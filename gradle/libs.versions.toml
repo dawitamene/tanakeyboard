@@ -10,9 +10,11 @@ espressoCore = "3.5.1"
 appcompat = "1.7.1"
 material = "1.10.0"
 activity = "1.9.3"
+savedstateCompose = "1.5.0"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity" }
+androidx-savedstate-compose = { module = "androidx.savedstate:savedstate-compose", version = "1.2.1" }
 androidx-activity-compose-v191 = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }

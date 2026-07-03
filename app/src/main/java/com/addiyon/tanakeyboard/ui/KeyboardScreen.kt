@@ -17,10 +17,12 @@ import com.addiyon.tanakeyboard.model.KeyData
 fun KeyboardScreen(
     service: TanaKeyboardService
 ) {
+
     val ic = service.currentInputConnection
 
-// LANGUAGE STATE
-    var isAmharic by remember { mutableStateOf(false) }
+// IMPORTANT: this forces Compose to recompose when service state changes
+    val isAmharic = service.isAmharic
+    val isShift = service.isShiftEnabled
 
 // SELECT LAYOUT
     val layout = if (isAmharic) {
@@ -31,13 +33,15 @@ fun KeyboardScreen(
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .wrapContentHeight()
             .background(Color(0xFFD1D5DB))
     ) {
 
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .wrapContentHeight()
                 .padding(horizontal = 4.dp, vertical = 6.dp)
         ) {
 
@@ -51,11 +55,25 @@ fun KeyboardScreen(
 
                             is KeyData.Character -> {
                                 KeyButton(
-                                    primaryText = key.latin,
+                                    primaryText = if (isShift && isAmharic.not()) {
+                                        key.latin.uppercase()
+                                    } else {
+                                        key.latin.lowercase()
+                                    },
                                     secondaryText = key.amharic,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    ic?.commitText(key.latin, 1)
+                                    val output = when {
+                                        isShift && !isAmharic -> key.latin.uppercase()
+                                        else -> key.latin
+                                    }
+
+                                    ic?.commitText(output, 1)
+
+// auto reset shift (like real keyboards)
+                                    if (service.isShiftEnabled) {
+                                        service.toggleShift()
+                                    }
                                 }
                             }
 
@@ -64,7 +82,7 @@ fun KeyboardScreen(
                                     primaryText = "⇧",
                                     modifier = Modifier.weight(1.2f)
                                 ) {
-                                    // TODO shift later
+                                    service.toggleShift()
                                 }
                             }
 
@@ -114,7 +132,7 @@ fun KeyboardScreen(
                                     primaryText = if (isAmharic) "EN" else "አ",
                                     modifier = Modifier.weight(1.2f)
                                 ) {
-                                    isAmharic = !isAmharic
+                                    service.toggleLanguage()
                                 }
                             }
                         }
