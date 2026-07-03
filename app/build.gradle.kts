@@ -1,11 +1,19 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("org.jetbrains.kotlin.plugin.compose")
+
+
 }
 
 android {
     namespace = "com.addiyon.tanakeyboard"
     compileSdk = 35
+
+    buildFeatures {
+        compose = true
+    }
+
 
     defaultConfig {
         applicationId = "com.addiyon.tanakeyboard"
@@ -43,4 +51,9 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.activity.compose.v191)
 }
