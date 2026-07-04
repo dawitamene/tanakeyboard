@@ -1,7 +1,6 @@
 // ui/KeyRow.kt
 package com.addiyon.tanakeyboard.ui
 
-import android.view.KeyEvent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -26,12 +25,21 @@ import com.addiyon.tanakeyboard.ui.keys.SpaceKey
  * function is just orchestration (which rows, in what order), while this
  * one owns "how a single row is built".
  *
- * IMPORTANT: this no longer takes an InputConnection parameter. Every
- * onClick below calls service.currentInputConnection itself, at the exact
- * moment the key is pressed, instead of relying on a reference captured
- * once when this composable was last (re)composed. See the comment in
- * KeyboardScreen.kt for why a captured reference goes stale across
- * keyboard close/reopen cycles.
+ * IMPORTANT: this composable no longer talks to the InputConnection at all.
+ * Every action is routed through a method on the service (onCharacter,
+ * onDelete, onSpace, onEnter, toggleShift, toggleLanguage). Two reasons:
+ *
+ *   1. In Amharic mode the buffer is stateful -- a keypress is not a
+ *      commitText, it's a mutation of an underlined composing region --
+ *      and only the service can keep that state consistent. Poking
+ *      InputConnection from here would race the composer.
+ *
+ *   2. Even for the "trivial" keys, the service needs a chance to flush
+ *      the composer at the right boundary (space, enter, language toggle)
+ *      before the raw action fires.
+ *
+ * See the KeyboardScreen doc for the historical reason we never captured
+ * an InputConnection reference at composition time either.
  */
 @Composable
 internal fun KeyRow(
@@ -67,32 +75,21 @@ internal fun KeyRow(
                 KeyData.Delete -> {
                     DeleteKey(
                         height = metrics.keyHeight,
-                        onClick = {
-                            service.currentInputConnection?.deleteSurroundingText(1, 0)
-                        }
+                        onClick = { service.onDelete() }
                     )
                 }
 
                 KeyData.Space -> {
                     SpaceKey(
                         height = metrics.keyHeight,
-                        onClick = {
-                            service.currentInputConnection?.commitText(" ", 1)
-                        }
+                        onClick = { service.onSpace() }
                     )
                 }
 
                 KeyData.Enter -> {
                     EnterKey(
                         height = metrics.keyHeight,
-                        onClick = {
-                            service.currentInputConnection?.sendKeyEvent(
-                                KeyEvent(
-                                    KeyEvent.ACTION_DOWN,
-                                    KeyEvent.KEYCODE_ENTER
-                                )
-                            )
-                        }
+                        onClick = { service.onEnter() }
                     )
                 }
 
@@ -116,7 +113,7 @@ internal fun KeyRow(
 }
 
 /**
- * Row wrapper — always fills full width. Rows made up only of fixed-width
+ * Row wrapper -- always fills full width. Rows made up only of fixed-width
  * letter keys will naturally center with gaps if they have fewer letters
  * than the reference row; rows containing a weighted special key will
  * stretch that key to consume all remaining space.

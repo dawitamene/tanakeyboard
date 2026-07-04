@@ -17,18 +17,17 @@ import com.addiyon.tanakeyboard.model.ShiftState
 import com.addiyon.tanakeyboard.ui.KeyButton
 import com.addiyon.tanakeyboard.ui.icons.ShiftIconFilled
 import com.addiyon.tanakeyboard.ui.icons.ShiftIconOutlined
-
 /**
- * A regular letter key. Fixed width -> identical size on every row.
- * Rendered as a light "surface" key (not special) so it stands apart
- * visually from function keys.
- *
- * IMPORTANT: no longer takes an InputConnection parameter. It calls
- * service.currentInputConnection inside onClick, at the moment the key is
- * actually pressed, rather than using a value captured once at composition
- * time (which can go stale after the keyboard is closed and reopened —
- * see the comment in KeyboardScreen.kt).
- */
+* A regular letter key. Fixed width -> identical size on every row.
+* Rendered as a light "surface" key (not special) so it stands apart
+* visually from function keys.
+*
+* IMPORTANT: this composable no longer talks to the InputConnection. It
+* just tells the service which key was pressed via [service.onCharacter];
+* the service is where case is resolved (from shift state) and where the
+* Amharic composer is fed. See TanaKeyboardService.onCharacter and the
+* KeyRow doc for the full reasoning.
+*/
 @Composable
 fun CharacterKey(
     key: KeyData.Character,
@@ -49,19 +48,10 @@ fun CharacterKey(
         height = height,
         isSpecial = false
     ) {
-        val output = when {
-            isAmharic -> key.latin
-            isShift -> key.latin.uppercase()
-            else -> key.latin.lowercase()
-        }
-
-        service.currentInputConnection?.commitText(output, 1)
-
-        // One-shot SHIFT consumes itself after a single character;
-        // CAPS_LOCK stays engaged until the shift key is tapped again.
-        service.consumeShiftAfterCharacter()
+        service.onCharacter(key.latin)
     }
 }
+
 
 /**
  * Shift / caps-lock key. Weighted -> flexes to fill leftover space in its

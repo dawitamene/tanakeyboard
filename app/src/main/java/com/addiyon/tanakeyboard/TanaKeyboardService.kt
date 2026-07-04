@@ -3,6 +3,7 @@ package com.addiyon.tanakeyboard
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.compose.runtime.getValue
@@ -19,6 +20,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.addiyon.tanakeyboard.model.ShiftState
+import com.addiyon.tanakeyboard.transliteration.AmharicComposer
 import com.addiyon.tanakeyboard.ui.theme.KeyboardColors
 
 class TanaKeyboardService : InputMethodService(),
@@ -26,8 +28,8 @@ class TanaKeyboardService : InputMethodService(),
     SavedStateRegistryOwner {
 
     // ----------------------------
-// Lifecycle (UNCHANGED)
-// ----------------------------
+    // Lifecycle (UNCHANGED)
+    // ----------------------------
     private val lifecycleRegistry = LifecycleRegistry(this)
     override val lifecycle: Lifecycle = lifecycleRegistry
 
@@ -37,9 +39,9 @@ class TanaKeyboardService : InputMethodService(),
     override val savedStateRegistry: SavedStateRegistry =
         savedStateRegistryController.savedStateRegistry
 
-// ----------------------------
-// KEYBOARD STATE (ADDED ONLY)
-// ----------------------------
+    // ----------------------------
+    // KEYBOARD STATE
+    // ----------------------------
 
     var isAmharic by mutableStateOf(false)
         private set
@@ -61,6 +63,17 @@ class TanaKeyboardService : InputMethodService(),
     // system dark/light toggle even while it's open.
     var isDarkTheme by mutableStateOf(false)
         private set
+
+    // ----------------------------
+    // AMHARIC COMPOSITION
+    // ----------------------------
+    //
+    // The composer is fed a lambda, not a reference. currentInputConnection
+    // changes identity between input sessions (each new field the user
+    // taps into gets a fresh one), so we always re-read it at the moment
+    // of use -- same reasoning as the KeyboardScreen comment about not
+    // capturing an InputConnection at composition time.
+    private val composer = AmharicComposer { currentInputConnection }
 
     private fun updateDarkThemeFromConfiguration(configuration: Configuration) {
         val nightModeFlags = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
@@ -99,6 +112,10 @@ class TanaKeyboardService : InputMethodService(),
     }
 
     fun toggleLanguage() {
+        // Any half-typed Amharic syllable belongs to the language it was
+        // started in -- flush it before switching, so the user doesn't end
+        // up with an orphaned partial word in the wrong pipeline.
+        composer.commit()
         isAmharic = !isAmharic
     }
 
@@ -131,9 +148,81 @@ class TanaKeyboardService : InputMethodService(),
         shiftState = ShiftState.OFF
     }
 
-// ----------------------------
-// IME LIFECYCLE (UNCHANGED)
-// ----------------------------
+    // ----------------------------
+    // KEY HANDLERS (called from the UI)
+    // ----------------------------
+    //
+    // Everything the UI does now goes through these methods rather than
+    // poking currentInputConnection directly. Two reasons:
+    //
+    //   1. In Amharic mode the buffer is stateful -- a single keypress no
+    //      longer maps to a single commitText, and only the service can
+    //      keep that state consistent.
+    //   2. Even for the "trivial" keys (space, enter, delete), routing
+    //      through here means the composer gets a chance to flush its
+    //      buffer at the right boundary before the raw action fires.
+
+    /**
+     * A character key was pressed. [latin] is the base spelling the key
+     * carries (e.g. "S" for the S key). We resolve shift here so callers
+     * (the UI) don't need to know about the composer or shift state.
+     *
+     * In English mode: commits the case-resolved character immediately.
+     * In Amharic mode: feeds it to the composer, which updates the
+     * underlined composing region with the retransliterated fidel.
+     */
+    fun onCharacter(latin: String) {
+        val output = when {
+            isAmharic -> if (isShiftEnabled) latin.uppercase() else latin.lowercase()
+            isShiftEnabled -> latin.uppercase()
+            else -> latin.lowercase()
+        }
+
+        if (isAmharic) {
+            composer.onCharacter(output)
+        } else {
+            currentInputConnection?.commitText(output, 1)
+        }
+
+        consumeShiftAfterCharacter()
+    }
+
+    /**
+     * Backspace pressed. In Amharic mode we try to shrink the composing
+     * buffer first (so "she" -> ሸ, backspace -> ሽ, backspace -> ስ, backspace
+     * -> nothing). If the buffer is empty -- or we're in English mode --
+     * fall back to deleting a character from the text field itself.
+     */
+    fun onDelete() {
+        if (isAmharic && composer.onBackspace()) return
+        currentInputConnection?.deleteSurroundingText(1, 0)
+    }
+
+    /**
+     * Space commits any in-flight Amharic syllable first, then inserts a
+     * space. Committing first is what lets the space actually terminate
+     * the word rather than getting swallowed into the composing region.
+     */
+    fun onSpace() {
+        composer.commit()
+        currentInputConnection?.commitText(" ", 1)
+    }
+
+    /**
+     * Enter commits the current syllable (so a form submission sees the
+     * completed word, not a half-transliterated one) and then dispatches
+     * the actual key event.
+     */
+    fun onEnter() {
+        composer.commit()
+        currentInputConnection?.sendKeyEvent(
+            KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
+        )
+    }
+
+    // ----------------------------
+    // IME LIFECYCLE
+    // ----------------------------
 
     override fun onEvaluateInputViewShown(): Boolean {
         super.onEvaluateInputViewShown()
@@ -170,6 +259,12 @@ class TanaKeyboardService : InputMethodService(),
 
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(editorInfo, restarting)
+        // A new input session means a new InputConnection -- any half-typed
+        // syllable we were composing belongs to a field that's no longer
+        // ours. Drop it silently rather than trying to commit into the
+        // wrong destination.
+        composer.reset()
+
         // Catch any theme change that happened while the keyboard was hidden,
         // and make sure the nav bar strip is colored correctly every time
         // the keyboard becomes visible again.
@@ -179,6 +274,9 @@ class TanaKeyboardService : InputMethodService(),
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        // Field is going away -- lock whatever we have into it before the
+        // InputConnection dies.
+        composer.commit()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }
 
@@ -186,5 +284,4 @@ class TanaKeyboardService : InputMethodService(),
         super.onDestroy()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
     }
-
 }
