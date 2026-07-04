@@ -1,3 +1,4 @@
+// ui/KeyButton.kt
 package com.addiyon.tanakeyboard.ui
 
 import androidx.compose.foundation.background
@@ -21,6 +22,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.addiyon.tanakeyboard.ui.keys.repeatingClickable
+
 /**
  * A single keyboard key. Renders as either a letter/character key
  * (light surface) or a "special" function key (shift, delete, space,
@@ -43,6 +46,12 @@ import androidx.compose.ui.unit.sp
  * "badged" Material icon for this, so it's drawn here rather than swapped
  * in as a different icon asset.
  *
+ * [repeatable] switches the key's press handling from a normal single-shot
+ * `clickable` (fires once on tap/release) to [repeatingClickable] (fires
+ * once immediately on press-down, then keeps firing [onClick] every ~50ms
+ * for as long as the key is held). Used by Delete/Backspace so holding it
+ * down deletes continuously, the way every other keyboard does.
+ *
  * Text layout: when both [primaryText] and [secondaryText] are supplied
  * (character keys in Amharic mode), [secondaryText] is rendered as a small
  * label tucked into the top-right corner -- the main letter itself (the
@@ -64,6 +73,7 @@ fun KeyButton(
     isHighlighted: Boolean = false,
     iconTint: Color = MaterialTheme.colorScheme.onSurface,
     showLockIndicator: Boolean = false,
+    repeatable: Boolean = false,
     onClick: () -> Unit
 ) {
     val background = when {
@@ -79,11 +89,17 @@ fun KeyButton(
     // box is taller than the glyph it draws.
     val tightText = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
 
+    val pressModifier = if (repeatable) {
+        Modifier.repeatingClickable(onClick = onClick)
+    } else {
+        Modifier.clickable(onClick = onClick)
+    }
+
     Card(
         modifier = modifier
             .height(height)
             .padding(horizontal = 3.dp)
-            .clickable(onClick = onClick),
+            .then(pressModifier),
         shape = RoundedCornerShape(6.dp),
         colors = CardDefaults.cardColors(containerColor = background),
         elevation = CardDefaults.cardElevation(
@@ -152,9 +168,13 @@ fun KeyButton(
                         )
 
                         if (showLockIndicator) {
-                            Spacer(modifier = Modifier.height(2.dp))
+                            // Text bounding boxes have a natural descent area below the baseline.
+                            // We omit the spacer and apply a slight negative y-offset here so the
+                            // underline visually hugs the letter, matching the tight gap of the
+                            // shift icon's indicator.
                             Box(
                                 modifier = Modifier
+                                    .offset(y = (-2).dp)
                                     .width(12.dp)
                                     .height(2.dp)
                                     .background(

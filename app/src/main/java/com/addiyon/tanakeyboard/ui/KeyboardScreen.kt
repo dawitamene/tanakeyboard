@@ -1,3 +1,4 @@
+// ui/KeyboardScreen.kt
 package com.addiyon.tanakeyboard.ui
 
 import androidx.compose.foundation.background
@@ -17,7 +18,16 @@ fun KeyboardScreen(
     service: TanaKeyboardService
 ) {
 
-    val ic = service.currentInputConnection
+    // NOTE: we deliberately do NOT read service.currentInputConnection here.
+    // Reading it once at composition time would bake a possibly-stale
+    // InputConnection into every key's onClick closure below. Android does
+    // not guarantee this composable gets recomposed every time the keyboard
+    // is hidden and reshown, but the system DOES swap out the underlying
+    // InputConnection for the new input session. If we captured it here,
+    // reopening the keyboard without a fresh composition would leave every
+    // key silently writing into a dead InputConnection. Instead, each key's
+    // onClick (in KeyRow / KeyComposables) fetches
+    // service.currentInputConnection fresh at the moment it's tapped.
 
     val isAmharic = service.isAmharic
     val isShift = service.isShiftEnabled
@@ -57,8 +67,7 @@ fun KeyboardScreen(
                         isShift = isShift,
                         isAmharic = isAmharic,
                         metrics = metrics,
-                        service = service,
-                        ic = ic
+                        service = service
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                 }

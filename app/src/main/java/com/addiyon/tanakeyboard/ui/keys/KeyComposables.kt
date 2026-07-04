@@ -1,3 +1,4 @@
+// ui/keys/KeyComposables.kt
 package com.addiyon.tanakeyboard.ui.keys
 
 import androidx.compose.foundation.layout.RowScope
@@ -21,6 +22,12 @@ import com.addiyon.tanakeyboard.ui.icons.ShiftIconOutlined
  * A regular letter key. Fixed width -> identical size on every row.
  * Rendered as a light "surface" key (not special) so it stands apart
  * visually from function keys.
+ *
+ * IMPORTANT: no longer takes an InputConnection parameter. It calls
+ * service.currentInputConnection inside onClick, at the moment the key is
+ * actually pressed, rather than using a value captured once at composition
+ * time (which can go stale after the keyboard is closed and reopened —
+ * see the comment in KeyboardScreen.kt).
  */
 @Composable
 fun CharacterKey(
@@ -29,8 +36,7 @@ fun CharacterKey(
     isAmharic: Boolean,
     width: Dp,
     height: Dp,
-    service: TanaKeyboardService,
-    ic: android.view.inputmethod.InputConnection?
+    service: TanaKeyboardService
 ) {
     KeyButton(
         primaryText = if (isShift && !isAmharic) {
@@ -49,7 +55,7 @@ fun CharacterKey(
             else -> key.latin.lowercase()
         }
 
-        ic?.commitText(output, 1)
+        service.currentInputConnection?.commitText(output, 1)
 
         // One-shot SHIFT consumes itself after a single character;
         // CAPS_LOCK stays engaged until the shift key is tapped again.
@@ -105,6 +111,11 @@ fun RowScope.ShiftKey(
 /**
  * Delete/backspace key. Weighted -> flexes to fill leftover space in its row.
  * Rendered as a "special" key -> darker surface than letter keys.
+ *
+ * [repeatable] is set so holding the key down deletes continuously (one
+ * character immediately, then repeating every ~50ms after a short initial
+ * delay) instead of requiring a fresh tap per character -- see
+ * [com.addiyon.tanakeyboard.ui.keys.repeatingClickable].
  */
 @Composable
 fun RowScope.DeleteKey(
@@ -116,6 +127,7 @@ fun RowScope.DeleteKey(
         modifier = Modifier.weight(KeyWeights.DELETE),
         height = height,
         isSpecial = true,
+        repeatable = true,
         onClick = onClick
     )
 }

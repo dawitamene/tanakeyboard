@@ -1,3 +1,4 @@
+// ui/KeyRow.kt
 package com.addiyon.tanakeyboard.ui
 
 import android.view.KeyEvent
@@ -24,6 +25,13 @@ import com.addiyon.tanakeyboard.ui.keys.SpaceKey
  * its matching key composable. Extracted out of KeyboardScreen so that
  * function is just orchestration (which rows, in what order), while this
  * one owns "how a single row is built".
+ *
+ * IMPORTANT: this no longer takes an InputConnection parameter. Every
+ * onClick below calls service.currentInputConnection itself, at the exact
+ * moment the key is pressed, instead of relying on a reference captured
+ * once when this composable was last (re)composed. See the comment in
+ * KeyboardScreen.kt for why a captured reference goes stale across
+ * keyboard close/reopen cycles.
  */
 @Composable
 internal fun KeyRow(
@@ -31,8 +39,7 @@ internal fun KeyRow(
     isShift: Boolean,
     isAmharic: Boolean,
     metrics: KeyboardMetrics,
-    service: TanaKeyboardService,
-    ic: android.view.inputmethod.InputConnection?
+    service: TanaKeyboardService
 ) {
     KeyboardRow {
         row.forEach { key ->
@@ -45,8 +52,7 @@ internal fun KeyRow(
                         isAmharic = isAmharic,
                         width = metrics.keyWidth,
                         height = metrics.keyHeight,
-                        service = service,
-                        ic = ic
+                        service = service
                     )
                 }
 
@@ -61,14 +67,18 @@ internal fun KeyRow(
                 KeyData.Delete -> {
                     DeleteKey(
                         height = metrics.keyHeight,
-                        onClick = { ic?.deleteSurroundingText(1, 0) }
+                        onClick = {
+                            service.currentInputConnection?.deleteSurroundingText(1, 0)
+                        }
                     )
                 }
 
                 KeyData.Space -> {
                     SpaceKey(
                         height = metrics.keyHeight,
-                        onClick = { ic?.commitText(" ", 1) }
+                        onClick = {
+                            service.currentInputConnection?.commitText(" ", 1)
+                        }
                     )
                 }
 
@@ -76,7 +86,7 @@ internal fun KeyRow(
                     EnterKey(
                         height = metrics.keyHeight,
                         onClick = {
-                            ic?.sendKeyEvent(
+                            service.currentInputConnection?.sendKeyEvent(
                                 KeyEvent(
                                     KeyEvent.ACTION_DOWN,
                                     KeyEvent.KEYCODE_ENTER
