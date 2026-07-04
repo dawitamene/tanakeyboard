@@ -1,5 +1,6 @@
 package com.addiyon.tanakeyboard.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,11 +26,16 @@ import androidx.compose.ui.unit.sp
  * pick out at a glance, matching the visual language of Gboard/iOS.
  *
  * [isHighlighted] draws a soft primary-tinted background instead of the
- * normal special-key surface -- used for states like caps-lock being
- * actively engaged, where the key needs to visually stand out as "on".
+ * normal special-key surface -- available for states that need to stand
+ * out via background rather than icon (currently unused by shift).
  *
  * [iconTint] lets callers color an icon independently of the default
  * content color (e.g. tinting the shift icon blue while it's active).
+ *
+ * [showLockIndicator] draws a small filled bar directly beneath the icon,
+ * matching the underline mark Gboard shows when caps-lock is engaged.
+ * There's no dedicated "badged" Material icon for this, so it's drawn
+ * here rather than swapped in as a different icon asset.
  */
 @Composable
 fun KeyButton(
@@ -41,6 +47,7 @@ fun KeyButton(
     isSpecial: Boolean = false,
     isHighlighted: Boolean = false,
     iconTint: Color = MaterialTheme.colorScheme.onSurface,
+    showLockIndicator: Boolean = false,
     onClick: () -> Unit
 ) {
     val background = when {
@@ -67,12 +74,30 @@ fun KeyButton(
             contentAlignment = Alignment.Center
         ) {
             if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(20.dp)
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(20.dp)
+                    )
+
+                    if (showLockIndicator) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(12.dp)
+                                .height(2.dp)
+                                .background(
+                                    color = iconTint,
+                                    shape = RoundedCornerShape(1.dp)
+                                )
+                        )
+                    }
+                }
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,

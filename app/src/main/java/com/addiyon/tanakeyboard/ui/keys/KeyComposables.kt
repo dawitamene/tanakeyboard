@@ -4,9 +4,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardReturn
-import androidx.compose.material.icons.filled.KeyboardCapslock
 import androidx.compose.material.icons.outlined.Backspace
-import androidx.compose.material.icons.outlined.KeyboardCapslock
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,6 +14,8 @@ import com.addiyon.tanakeyboard.TanaKeyboardService
 import com.addiyon.tanakeyboard.model.KeyData
 import com.addiyon.tanakeyboard.model.ShiftState
 import com.addiyon.tanakeyboard.ui.KeyButton
+import com.addiyon.tanakeyboard.ui.icons.ShiftIconFilled
+import com.addiyon.tanakeyboard.ui.icons.ShiftIconOutlined
 
 /**
  * A regular letter key. Fixed width -> identical size on every row.
@@ -59,12 +59,19 @@ fun CharacterKey(
 
 /**
  * Shift / caps-lock key. Weighted -> flexes to fill leftover space in its
- * row. Cycles through three visual states that mirror [ShiftState]:
+ * row. Uses the real KeyboardCapslock glyph (the same shift-arrow shape
+ * AOSP/Gboard use) with three visual states mirroring [ShiftState]:
  *
- * OFF       - outlined icon, normal color, normal key background.
- * SHIFT     - outlined icon, primary (blue) tint, normal key background.
- * CAPS_LOCK - filled icon, primary (blue) tint, soft blue-tinted
- *             background so the locked state is unmistakable at a glance.
+ * OFF       - outlined icon, normal color.
+ * SHIFT     - filled icon, primary (blue) tint. One-shot: capitalizes the
+ *             next letter only.
+ * CAPS_LOCK - filled icon, primary (blue) tint, plus a small underline
+ *             bar drawn beneath it -- the same "locked" indicator Gboard
+ *             draws under its shift icon (there's no separate "badged"
+ *             Material icon for this; it's a custom mark, so we draw it
+ *             ourselves). Stays capitalized until tapped again.
+ *
+ * The key's background never changes -- only the icon communicates state.
  */
 @Composable
 fun RowScope.ShiftKey(
@@ -72,10 +79,10 @@ fun RowScope.ShiftKey(
     height: Dp,
     onClick: () -> Unit
 ) {
-    val icon = if (shiftState == ShiftState.CAPS_LOCK) {
-        Icons.Filled.KeyboardCapslock
+    val icon = if (shiftState == ShiftState.OFF) {
+        ShiftIconOutlined
     } else {
-        Icons.Outlined.KeyboardCapslock
+        ShiftIconFilled
     }
 
     val tint = if (shiftState == ShiftState.OFF) {
@@ -87,7 +94,7 @@ fun RowScope.ShiftKey(
     KeyButton(
         icon = icon,
         iconTint = tint,
-        isHighlighted = shiftState == ShiftState.CAPS_LOCK,
+        showLockIndicator = shiftState == ShiftState.CAPS_LOCK,
         modifier = Modifier.weight(KeyWeights.SHIFT),
         height = height,
         isSpecial = true,
