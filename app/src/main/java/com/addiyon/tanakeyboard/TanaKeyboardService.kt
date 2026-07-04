@@ -272,6 +272,47 @@ class TanaKeyboardService : InputMethodService(),
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
 
+    /**
+     * The framework calls this whenever the cursor or selection changes in
+     * the target field -- both when WE change it (by pushing composing text)
+     * and when the USER changes it (by tapping somewhere else). If the new
+     * cursor is inside the composing region the framework is tracking, the
+     * movement is consistent with our own edits and we ignore it. If the
+     * cursor has landed outside that region, the user has visibly walked
+     * away from the word we were composing, so we freeze it in place and
+     * drop the buffer -- otherwise the next keystroke would keep rewriting
+     * a region that's no longer near the caret.
+     *
+     * candidatesStart / candidatesEnd are the framework's view of the
+     * current composing region; both are -1 when nothing is being composed.
+     */
+    override fun onUpdateSelection(
+        oldSelStart: Int,
+        oldSelEnd: Int,
+        newSelStart: Int,
+        newSelEnd: Int,
+        candidatesStart: Int,
+        candidatesEnd: Int
+    ) {
+        super.onUpdateSelection(
+            oldSelStart, oldSelEnd,
+            newSelStart, newSelEnd,
+            candidatesStart, candidatesEnd
+        )
+
+        if (!composer.isComposing) return
+
+        // A selection (start != end) inside our region also counts as "the
+        // user took over" -- we don't support composing across a selection.
+        val cursorInsideComposing = newSelStart == newSelEnd &&
+                candidatesStart >= 0 &&
+                newSelStart in candidatesStart..candidatesEnd
+
+        if (!cursorInsideComposing) {
+            composer.abandon()
+        }
+    }
+
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         // Field is going away -- lock whatever we have into it before the

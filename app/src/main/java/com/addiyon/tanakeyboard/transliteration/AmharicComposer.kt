@@ -124,6 +124,24 @@ internal class AmharicComposer(
         latin.clear()
     }
 
+    /**
+     * The user moved the cursor out from under the composing region (they
+     * tapped elsewhere in the text). Freeze whatever fidel is currently
+     * underlined into the field as-is and forget the Latin buffer -- we
+     * can't keep transliterating a word the user has visibly walked away
+     * from.
+     *
+     * Distinct from [reset], which drops the buffer without touching the
+     * field, and from [commit], which is called at natural word boundaries
+     * (space/enter/language toggle). This is the "involuntary" commit
+     * triggered by external cursor movement.
+     */
+    fun abandon() {
+        if (latin.isEmpty()) return
+        inputConnection()?.finishComposingText()
+        latin.clear()
+    }
+
     private fun pushComposing() {
         val fidel = Transliterator.transliterate(latin.toString())
         // newCursorPosition=1 means: place caret at the end of the composed

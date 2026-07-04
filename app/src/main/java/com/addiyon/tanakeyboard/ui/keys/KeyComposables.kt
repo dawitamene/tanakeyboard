@@ -14,20 +14,43 @@ import androidx.compose.ui.unit.Dp
 import com.addiyon.tanakeyboard.TanaKeyboardService
 import com.addiyon.tanakeyboard.model.KeyData
 import com.addiyon.tanakeyboard.model.ShiftState
+import com.addiyon.tanakeyboard.transliteration.AmharicTable
 import com.addiyon.tanakeyboard.ui.KeyButton
 import com.addiyon.tanakeyboard.ui.icons.ShiftIconFilled
 import com.addiyon.tanakeyboard.ui.icons.ShiftIconOutlined
 /**
-* A regular letter key. Fixed width -> identical size on every row.
-* Rendered as a light "surface" key (not special) so it stands apart
-* visually from function keys.
-*
-* IMPORTANT: this composable no longer talks to the InputConnection. It
-* just tells the service which key was pressed via [service.onCharacter];
-* the service is where case is resolved (from shift state) and where the
-* Amharic composer is fed. See TanaKeyboardService.onCharacter and the
-* KeyRow doc for the full reasoning.
-*/
+ * A regular letter key. Fixed width -> identical size on every row.
+ * Rendered as a light "surface" key (not special) so it stands apart
+ * visually from function keys.
+ *
+ * IMPORTANT: this composable no longer talks to the InputConnection. It
+ * just tells the service which key was pressed via [service.onCharacter];
+ * the service is where case is resolved (from shift state) and where the
+ * Amharic composer is fed. See TanaKeyboardService.onCharacter and the
+ * KeyRow doc for the full reasoning.
+ *
+ * CASE MATTERS IN AMHARIC MODE TOO (step 6):
+ *
+ * The transliteration table distinguishes h/H (ሀ/ሐ), t/T (ተ/ጠ), and
+ * ch/C (ቸ/ጨ) as entirely different consonant families -- so unlike a
+ * plain English keyboard, shift in Amharic mode isn't cosmetic, it
+ * changes what actually gets typed. That means:
+ *
+ *   - [primaryText] must reflect shift in BOTH modes. Previously this
+ *     was hardcoded to always show lowercase while isAmharic was true,
+ *     which silently lied about what tapping the key would produce.
+ *
+ *   - [secondaryText] (the small fidel preview in the corner) can no
+ *     longer be a single static glyph baked into the layout file --
+ *     it needs to track whichever family the CURRENT shift state
+ *     resolves to. We look it up live via
+ *     [AmharicTable.bareFormOf] using the same case-resolved letter
+ *     that's about to be typed, so toggling shift updates the preview
+ *     (e.g. "h" -> ሀ, shift on -> "H" -> ሐ) instead of it staying frozen.
+ *     Keys that aren't part of a consonant family (punctuation like
+ *     "," -> "፣") fall back to the static mapping from [KeyData.amharic],
+ *     since there's no shift-driven family to look up for those.
+ */
 @Composable
 fun CharacterKey(
     key: KeyData.Character,
@@ -37,13 +60,20 @@ fun CharacterKey(
     height: Dp,
     service: TanaKeyboardService
 ) {
+    // The letter as it will actually be typed once shift is resolved --
+    // used both for the key face and, in Amharic mode, to pick which
+    // family's preview glyph to show. Mirrors the resolution logic in
+    // TanaKeyboardService.onCharacter so the label never disagrees with
+    // what tapping the key produces.
+    val effectiveLatin = if (isShift) key.latin.uppercase() else key.latin.lowercase()
+
     KeyButton(
-        primaryText = if (isShift && !isAmharic) {
-            key.latin.uppercase()
+        primaryText = effectiveLatin,
+        secondaryText = if (isAmharic) {
+            AmharicTable.bareFormOf(effectiveLatin)?.toString() ?: key.amharic
         } else {
-            key.latin.lowercase()
+            null
         },
-        secondaryText = key.amharic,
         modifier = Modifier.width(width),
         height = height,
         isSpecial = false
