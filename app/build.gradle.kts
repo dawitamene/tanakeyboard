@@ -1,3 +1,7 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -41,6 +45,28 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    applicationVariants.all {
+        val variant = this
+
+        variant.outputs.all {
+        }
+
+        variant.assembleProvider.configure {
+            doLast {
+                val targetDir = file("/Users/dev/Shared")
+
+                val timeFormat = SimpleDateFormat("hh-mm-a", Locale.getDefault())
+                val fileName = "${timeFormat.format(Date())}.apk"
+
+                copy {
+                    from(file("$buildDir/outputs/apk/${variant.name}"))
+                    include("*.apk")
+                    into(targetDir)
+                    rename { fileName }
+                }
+            }
+        }
+    }
 }
 
 dependencies {
@@ -54,6 +80,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.activity.compose.v191)
 }
