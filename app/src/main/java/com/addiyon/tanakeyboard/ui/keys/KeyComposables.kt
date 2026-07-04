@@ -1,0 +1,149 @@
+package com.addiyon.tanakeyboard.ui.keys
+
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardReturn
+import androidx.compose.material.icons.outlined.Backspace
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+
+import com.addiyon.tanakeyboard.TanaKeyboardService
+import com.addiyon.tanakeyboard.model.KeyData
+import com.addiyon.tanakeyboard.ui.KeyButton
+
+/**
+ * A regular letter key. Fixed width -> identical size on every row.
+ */
+@Composable
+fun CharacterKey(
+    key: KeyData.Character,
+    isShift: Boolean,
+    isAmharic: Boolean,
+    width: Dp,
+    height: Dp,
+    service: TanaKeyboardService,
+    ic: android.view.inputmethod.InputConnection?
+) {
+    KeyButton(
+        primaryText = if (isShift && !isAmharic) {
+            key.latin.uppercase()
+        } else {
+            key.latin.lowercase()
+        },
+        secondaryText = key.amharic,
+        modifier = Modifier.width(width),
+        height = height
+    ) {
+        val output = when {
+            isShift && !isAmharic -> key.latin.uppercase()
+            else -> key.latin
+        }
+
+        ic?.commitText(output, 1)
+
+        // auto reset shift (like real keyboards)
+        if (service.isShiftEnabled) {
+            service.toggleShift()
+        }
+    }
+}
+
+/**
+ * Shift key. Weighted -> flexes to fill leftover space in its row.
+ */
+@Composable
+fun RowScope.ShiftKey(
+    height: Dp,
+    onClick: () -> Unit
+) {
+    KeyButton(
+        icon = Icons.Outlined.KeyboardArrowUp,
+        modifier = Modifier.weight(KeyWeights.SHIFT),
+        height = height,
+        onClick = onClick
+    )
+}
+
+/**
+ * Delete/backspace key. Weighted -> flexes to fill leftover space in its row.
+ */
+@Composable
+fun RowScope.DeleteKey(
+    height: Dp,
+    onClick: () -> Unit
+) {
+    KeyButton(
+        icon = Icons.Outlined.Backspace,
+        modifier = Modifier.weight(KeyWeights.DELETE),
+        height = height,
+        onClick = onClick
+    )
+}
+
+/**
+ * Space bar. Weighted heavily -> flexes to fill leftover space in its row.
+ */
+@Composable
+fun RowScope.SpaceKey(
+    height: Dp,
+    onClick: () -> Unit
+) {
+    KeyButton(
+        primaryText = "space",
+        modifier = Modifier.weight(KeyWeights.SPACE),
+        height = height,
+        onClick = onClick
+    )
+}
+
+/**
+ * Enter/return key. Weighted -> flexes to fill leftover space in its row.
+ */
+@Composable
+fun RowScope.EnterKey(
+    height: Dp,
+    onClick: () -> Unit
+) {
+    KeyButton(
+        icon = Icons.AutoMirrored.Outlined.KeyboardReturn,
+        modifier = Modifier.weight(KeyWeights.ENTER),
+        height = height,
+        onClick = onClick
+    )
+}
+
+/**
+ * "123" number-layout toggle. Weighted -> flexes to fill leftover space in its row.
+ */
+@Composable
+fun RowScope.NumberToggleKey(
+    height: Dp,
+    onClick: () -> Unit
+) {
+    KeyButton(
+        primaryText = "123",
+        modifier = Modifier.weight(KeyWeights.NUMBER_TOGGLE),
+        height = height,
+        onClick = onClick
+    )
+}
+
+/**
+ * Amharic/English language toggle. Weighted -> flexes to fill leftover space in its row.
+ */
+@Composable
+fun RowScope.LanguageToggleKey(
+    isAmharic: Boolean,
+    height: Dp,
+    onClick: () -> Unit
+) {
+    KeyButton(
+        primaryText = if (isAmharic) "EN" else "አ",
+        modifier = Modifier.weight(KeyWeights.LANGUAGE_TOGGLE),
+        height = height,
+        onClick = onClick
+    )
+}
