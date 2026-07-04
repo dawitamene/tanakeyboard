@@ -1,5 +1,6 @@
 package com.addiyon.tanakeyboard
 
+import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -43,6 +44,20 @@ class TanaKeyboardService : InputMethodService(),
 
     var isCapsLock by mutableStateOf(false)
         private set
+
+    // Tracked manually instead of relying on Compose's isSystemInDarkTheme(),
+    // because an InputMethodService's window doesn't reliably deliver
+    // configuration updates into the Compose tree the way an Activity does.
+    // We read the current mode on creation and again whenever
+    // onConfigurationChanged fires, so the keyboard UI can react to the
+    // system dark/light toggle even while it's open.
+    var isDarkTheme by mutableStateOf(false)
+        private set
+
+    private fun updateDarkThemeFromConfiguration(configuration: Configuration) {
+        val nightModeFlags = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        isDarkTheme = nightModeFlags == Configuration.UI_MODE_NIGHT_YES
+    }
 
     fun toggleLanguage() {
         isAmharic = !isAmharic
@@ -88,6 +103,12 @@ class TanaKeyboardService : InputMethodService(),
         super.onCreate()
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        updateDarkThemeFromConfiguration(resources.configuration)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        updateDarkThemeFromConfiguration(newConfig)
     }
 
     override fun onEvaluateFullscreenMode(): Boolean {
@@ -96,6 +117,8 @@ class TanaKeyboardService : InputMethodService(),
 
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(editorInfo, restarting)
+        // Catch any theme change that happened while the keyboard was hidden.
+        updateDarkThemeFromConfiguration(resources.configuration)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
 

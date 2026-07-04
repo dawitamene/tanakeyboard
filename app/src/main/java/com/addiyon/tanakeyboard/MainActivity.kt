@@ -7,6 +7,7 @@ import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -33,7 +34,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            CustomKeyboardTheme {
+            // A normal Activity DOES get reliable configuration updates,
+            // so isSystemInDarkTheme() is fine to use here. The keyboard's
+            // own IME window (TanaKeyboardView) tracks dark mode manually
+            // instead -- see TanaKeyboardService.isDarkTheme for why.
+            CustomKeyboardTheme(isDarkTheme = isSystemInDarkTheme()) {
                 Scaffold { innerPadding ->
                     TanaKeyboardTest(
                         modifier = Modifier.padding(innerPadding)

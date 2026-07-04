@@ -16,6 +16,8 @@ import com.addiyon.tanakeyboard.ui.KeyButton
 
 /**
  * A regular letter key. Fixed width -> identical size on every row.
+ * Rendered as a light "surface" key (not special) so it stands apart
+ * visually from function keys.
  */
 @Composable
 fun CharacterKey(
@@ -35,7 +37,8 @@ fun CharacterKey(
         },
         secondaryText = key.amharic,
         modifier = Modifier.width(width),
-        height = height
+        height = height,
+        isSpecial = false
     ) {
         val output = when {
             isShift && !isAmharic -> key.latin.uppercase()
@@ -53,6 +56,7 @@ fun CharacterKey(
 
 /**
  * Shift key. Weighted -> flexes to fill leftover space in its row.
+ * Rendered as a "special" key -> darker surface than letter keys.
  */
 @Composable
 fun RowScope.ShiftKey(
@@ -63,12 +67,14 @@ fun RowScope.ShiftKey(
         icon = Icons.Outlined.KeyboardArrowUp,
         modifier = Modifier.weight(KeyWeights.SHIFT),
         height = height,
+        isSpecial = true,
         onClick = onClick
     )
 }
 
 /**
  * Delete/backspace key. Weighted -> flexes to fill leftover space in its row.
+ * Rendered as a "special" key -> darker surface than letter keys.
  */
 @Composable
 fun RowScope.DeleteKey(
@@ -79,12 +85,14 @@ fun RowScope.DeleteKey(
         icon = Icons.Outlined.Backspace,
         modifier = Modifier.weight(KeyWeights.DELETE),
         height = height,
+        isSpecial = true,
         onClick = onClick
     )
 }
 
 /**
  * Space bar. Weighted heavily -> flexes to fill leftover space in its row.
+ * Rendered as a "special" key -> darker surface than letter keys.
  */
 @Composable
 fun RowScope.SpaceKey(
@@ -95,12 +103,14 @@ fun RowScope.SpaceKey(
         primaryText = "space",
         modifier = Modifier.weight(KeyWeights.SPACE),
         height = height,
+        isSpecial = true,
         onClick = onClick
     )
 }
 
 /**
  * Enter/return key. Weighted -> flexes to fill leftover space in its row.
+ * Rendered as a "special" key -> darker surface than letter keys.
  */
 @Composable
 fun RowScope.EnterKey(
@@ -111,12 +121,14 @@ fun RowScope.EnterKey(
         icon = Icons.AutoMirrored.Outlined.KeyboardReturn,
         modifier = Modifier.weight(KeyWeights.ENTER),
         height = height,
+        isSpecial = true,
         onClick = onClick
     )
 }
 
 /**
  * "123" number-layout toggle. Weighted -> flexes to fill leftover space in its row.
+ * Rendered as a "special" key -> darker surface than letter keys.
  */
 @Composable
 fun RowScope.NumberToggleKey(
@@ -127,12 +139,14 @@ fun RowScope.NumberToggleKey(
         primaryText = "123",
         modifier = Modifier.weight(KeyWeights.NUMBER_TOGGLE),
         height = height,
+        isSpecial = true,
         onClick = onClick
     )
 }
 
 /**
  * Amharic/English language toggle. Weighted -> flexes to fill leftover space in its row.
+ * Rendered as a "special" key -> darker surface than letter keys.
  */
 @Composable
 fun RowScope.LanguageToggleKey(
@@ -144,6 +158,7 @@ fun RowScope.LanguageToggleKey(
         primaryText = if (isAmharic) "EN" else "አ",
         modifier = Modifier.weight(KeyWeights.LANGUAGE_TOGGLE),
         height = height,
+        isSpecial = true,
         onClick = onClick
     )
 }
