@@ -15,6 +15,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.addiyon.tanakeyboard.model.ShiftState
 
 class TanaKeyboardService : InputMethodService(),
     LifecycleOwner,
@@ -39,11 +40,14 @@ class TanaKeyboardService : InputMethodService(),
     var isAmharic by mutableStateOf(false)
         private set
 
-    var isShiftEnabled by mutableStateOf(false)
+    // The single source of truth for shift/caps-lock. isShiftEnabled below
+    // is a derived convenience for callers that only care about "capitalize
+    // or not" and don't need to distinguish one-shot shift from caps lock.
+    var shiftState by mutableStateOf(ShiftState.OFF)
         private set
 
-    var isCapsLock by mutableStateOf(false)
-        private set
+    val isShiftEnabled: Boolean
+        get() = shiftState != ShiftState.OFF
 
     // Tracked manually instead of relying on Compose's isSystemInDarkTheme(),
     // because an InputMethodService's window doesn't reliably deliver
@@ -63,20 +67,33 @@ class TanaKeyboardService : InputMethodService(),
         isAmharic = !isAmharic
     }
 
+    /**
+     * Cycles the shift key: OFF -> SHIFT -> CAPS_LOCK -> OFF.
+     * Tapping shift once capitalizes the next letter only; tapping it again
+     * before typing anything locks caps on until shift is tapped a third
+     * time.
+     */
     fun toggleShift() {
-        isShiftEnabled = !isShiftEnabled
+        shiftState = when (shiftState) {
+            ShiftState.OFF -> ShiftState.SHIFT
+            ShiftState.SHIFT -> ShiftState.CAPS_LOCK
+            ShiftState.CAPS_LOCK -> ShiftState.OFF
+        }
     }
 
-    fun setShift(enabled: Boolean) {
-        isShiftEnabled = enabled
-    }
-
-    fun toggleCaps() {
-        isCapsLock = !isCapsLock
+    /**
+     * Called after a character key commits its output. One-shot SHIFT
+     * consumes itself and returns to OFF; CAPS_LOCK is left untouched since
+     * it should keep capitalizing until explicitly turned off.
+     */
+    fun consumeShiftAfterCharacter() {
+        if (shiftState == ShiftState.SHIFT) {
+            shiftState = ShiftState.OFF
+        }
     }
 
     fun resetShift() {
-        isShiftEnabled = false
+        shiftState = ShiftState.OFF
     }
 
 // ----------------------------

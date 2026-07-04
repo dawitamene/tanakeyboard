@@ -52,6 +52,7 @@ internal fun KeyRow(
 
                 KeyData.Shift -> {
                     ShiftKey(
+                        shiftState = service.shiftState,
                         height = metrics.keyHeight,
                         onClick = { service.toggleShift() }
                     )

@@ -4,14 +4,17 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardReturn
+import androidx.compose.material.icons.filled.KeyboardCapslock
 import androidx.compose.material.icons.outlined.Backspace
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.KeyboardCapslock
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 
 import com.addiyon.tanakeyboard.TanaKeyboardService
 import com.addiyon.tanakeyboard.model.KeyData
+import com.addiyon.tanakeyboard.model.ShiftState
 import com.addiyon.tanakeyboard.ui.KeyButton
 
 /**
@@ -41,30 +44,50 @@ fun CharacterKey(
         isSpecial = false
     ) {
         val output = when {
-            isShift && !isAmharic -> key.latin.uppercase()
-            else -> key.latin
+            isAmharic -> key.latin
+            isShift -> key.latin.uppercase()
+            else -> key.latin.lowercase()
         }
 
         ic?.commitText(output, 1)
 
-        // auto reset shift (like real keyboards)
-        if (service.isShiftEnabled) {
-            service.toggleShift()
-        }
+        // One-shot SHIFT consumes itself after a single character;
+        // CAPS_LOCK stays engaged until the shift key is tapped again.
+        service.consumeShiftAfterCharacter()
     }
 }
 
 /**
- * Shift key. Weighted -> flexes to fill leftover space in its row.
- * Rendered as a "special" key -> darker surface than letter keys.
+ * Shift / caps-lock key. Weighted -> flexes to fill leftover space in its
+ * row. Cycles through three visual states that mirror [ShiftState]:
+ *
+ * OFF       - outlined icon, normal color, normal key background.
+ * SHIFT     - outlined icon, primary (blue) tint, normal key background.
+ * CAPS_LOCK - filled icon, primary (blue) tint, soft blue-tinted
+ *             background so the locked state is unmistakable at a glance.
  */
 @Composable
 fun RowScope.ShiftKey(
+    shiftState: ShiftState,
     height: Dp,
     onClick: () -> Unit
 ) {
+    val icon = if (shiftState == ShiftState.CAPS_LOCK) {
+        Icons.Filled.KeyboardCapslock
+    } else {
+        Icons.Outlined.KeyboardCapslock
+    }
+
+    val tint = if (shiftState == ShiftState.OFF) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
     KeyButton(
-        icon = Icons.Outlined.KeyboardArrowUp,
+        icon = icon,
+        iconTint = tint,
+        isHighlighted = shiftState == ShiftState.CAPS_LOCK,
         modifier = Modifier.weight(KeyWeights.SHIFT),
         height = height,
         isSpecial = true,

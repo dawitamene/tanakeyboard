@@ -17,14 +17,17 @@ object KeyboardColors {
     val keyLight = Color(0xFFFFFFFF)
     val specialKeyLight = Color(0xFFD3D8DC)
     val textLight = Color(0xFF1C1C1E)
+    val primaryLight = Color(0xFF1A73E8) // Google-blue accent for active shift/caps-lock
 
     val trayDark = Color(0xFF1E1F22)
     val keyDark = Color(0xFF3A3B3E)
     val specialKeyDark = Color(0xFF232427)
     val textDark = Color(0xFFF2F2F2)
+    val primaryDark = Color(0xFF8AB4F8) // lighter blue for contrast on dark keys
 }
 
 private val LightScheme = lightColorScheme(
+    primary = KeyboardColors.primaryLight,
     background = KeyboardColors.trayLight,
     surface = KeyboardColors.keyLight,
     surfaceVariant = KeyboardColors.specialKeyLight,
@@ -33,6 +36,7 @@ private val LightScheme = lightColorScheme(
 )
 
 private val DarkScheme = darkColorScheme(
+    primary = KeyboardColors.primaryDark,
     background = KeyboardColors.trayDark,
     surface = KeyboardColors.keyDark,
     surfaceVariant = KeyboardColors.specialKeyDark,

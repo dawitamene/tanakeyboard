@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -22,6 +23,13 @@ import androidx.compose.ui.unit.sp
  * (light surface) or a "special" function key (shift, delete, space,
  * enter, toggles) which gets a slightly darker surface so it's easy to
  * pick out at a glance, matching the visual language of Gboard/iOS.
+ *
+ * [isHighlighted] draws a soft primary-tinted background instead of the
+ * normal special-key surface -- used for states like caps-lock being
+ * actively engaged, where the key needs to visually stand out as "on".
+ *
+ * [iconTint] lets callers color an icon independently of the default
+ * content color (e.g. tinting the shift icon blue while it's active).
  */
 @Composable
 fun KeyButton(
@@ -31,12 +39,14 @@ fun KeyButton(
     secondaryText: String? = null,
     icon: ImageVector? = null,
     isSpecial: Boolean = false,
+    isHighlighted: Boolean = false,
+    iconTint: Color = MaterialTheme.colorScheme.onSurface,
     onClick: () -> Unit
 ) {
-    val background = if (isSpecial) {
-        MaterialTheme.colorScheme.surfaceVariant
-    } else {
-        MaterialTheme.colorScheme.surface
+    val background = when {
+        isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+        isSpecial -> MaterialTheme.colorScheme.surfaceVariant
+        else -> MaterialTheme.colorScheme.surface
     }
     val content = MaterialTheme.colorScheme.onSurface
 
@@ -60,7 +70,7 @@ fun KeyButton(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = content,
+                    tint = iconTint,
                     modifier = Modifier.size(20.dp)
                 )
             } else {
