@@ -177,6 +177,11 @@ fun RowScope.NumberToggleKey(
 /**
  * Amharic/English language toggle. Weighted -> flexes to fill leftover space in its row.
  * Rendered as a "special" key -> darker surface than letter keys.
+ *
+ * Always shows the Amharic glyph as its label -- it doesn't switch to "EN"
+ * when Amharic mode is on. Instead, active/inactive state is communicated
+ * the same way ShiftKey communicates SHIFT/CAPS_LOCK: normal color when
+ * off, primary-tinted plus a small underline bar when Amharic mode is on.
  */
 @Composable
 fun RowScope.LanguageToggleKey(
@@ -185,7 +190,13 @@ fun RowScope.LanguageToggleKey(
     onClick: () -> Unit
 ) {
     KeyButton(
-        primaryText = if (isAmharic) "EN" else "አ",
+        primaryText = "አ",
+        iconTint = if (isAmharic) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        },
+        showLockIndicator = isAmharic,
         modifier = Modifier.weight(KeyWeights.LANGUAGE_TOGGLE),
         height = height,
         isSpecial = true,

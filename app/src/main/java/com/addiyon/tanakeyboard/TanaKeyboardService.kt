@@ -2,11 +2,14 @@ package com.addiyon.tanakeyboard
 
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
+import android.os.Build
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -16,6 +19,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.addiyon.tanakeyboard.model.ShiftState
+import com.addiyon.tanakeyboard.ui.theme.KeyboardColors
 
 class TanaKeyboardService : InputMethodService(),
     LifecycleOwner,
@@ -61,6 +65,37 @@ class TanaKeyboardService : InputMethodService(),
     private fun updateDarkThemeFromConfiguration(configuration: Configuration) {
         val nightModeFlags = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         isDarkTheme = nightModeFlags == Configuration.UI_MODE_NIGHT_YES
+        updateSystemNavigationBar()
+    }
+
+    /**
+     * Colors the system navigation bar area beneath the keyboard (the strip
+     * that hosts the "hide keyboard" / "switch input method" affordances)
+     * to match the keyboard's own tray color, and flips the icon color to
+     * match. Without the icon-appearance part, those icons stay a fixed
+     * light/white color regardless of background, so they can disappear
+     * against a light tray.
+     *
+     * Also disables the automatic contrast scrim Android draws over the
+     * navigation bar (API 29+) -- otherwise the system overlays its own
+     * translucent tint on top of whatever color we set, which throws the
+     * match off again.
+     */
+    private fun updateSystemNavigationBar() {
+        val color = if (isDarkTheme) KeyboardColors.trayDark else KeyboardColors.trayLight
+
+        window?.window?.let { imeWindow ->
+            imeWindow.navigationBarColor = color.toArgb()
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                imeWindow.isNavigationBarContrastEnforced = false
+            }
+
+            // true = dark icons for a light background, false = light icons
+            // for a dark background.
+            WindowInsetsControllerCompat(imeWindow, imeWindow.decorView)
+                .isAppearanceLightNavigationBars = !isDarkTheme
+        }
     }
 
     fun toggleLanguage() {
@@ -112,6 +147,7 @@ class TanaKeyboardService : InputMethodService(),
         }
 
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        updateSystemNavigationBar()
 
         return TanaKeyboardView(this)
     }
@@ -134,7 +170,9 @@ class TanaKeyboardService : InputMethodService(),
 
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(editorInfo, restarting)
-        // Catch any theme change that happened while the keyboard was hidden.
+        // Catch any theme change that happened while the keyboard was hidden,
+        // and make sure the nav bar strip is colored correctly every time
+        // the keyboard becomes visible again.
         updateDarkThemeFromConfiguration(resources.configuration)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
