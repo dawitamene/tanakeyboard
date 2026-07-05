@@ -31,7 +31,8 @@ KeyData.Character("√"),
 KeyData.Character("π"),
 KeyData.Character("÷"),
 KeyData.Character("×"),
-KeyData.Character("°")
+KeyData.Character("°"),
+KeyData.Character("^")
 ),
 
 // Row 3
@@ -41,7 +42,6 @@ KeyData.Character("£"),
 KeyData.Character("¢"),
 KeyData.Character("€"),
 KeyData.Character("¥"),
-KeyData.Character("^"),
 KeyData.Character("="),
 KeyData.Character("{"),
 KeyData.Character("}"),

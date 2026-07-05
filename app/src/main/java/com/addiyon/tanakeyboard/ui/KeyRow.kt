@@ -69,6 +69,7 @@ internal fun KeyRow(
                 KeyData.Shift -> {
                     ShiftKey(
                         shiftState = service.shiftState,
+                        width = metrics.keyWidth,
                         height = metrics.keyHeight,
                         onClick = { service.toggleShift() }
                     )
@@ -76,6 +77,7 @@ internal fun KeyRow(
 
                 KeyData.Delete -> {
                     DeleteKey(
+                        width = metrics.keyWidth,
                         height = metrics.keyHeight,
                         onClick = { service.onDelete() }
                     )
@@ -83,6 +85,7 @@ internal fun KeyRow(
 
                 KeyData.Space -> {
                     SpaceKey(
+                        isAmharic = isAmharic,
                         height = metrics.keyHeight,
                         onClick = { service.onSpace() }
                     )
@@ -106,6 +109,7 @@ internal fun KeyRow(
                 KeyData.SymbolsToggle -> {
                     SymbolsToggleKey(
                         numbersMode = service.numbersMode,
+                        width = metrics.keyWidth,
                         height = metrics.keyHeight,
                         onClick = { service.toggleSymbolsPage() }
                     )

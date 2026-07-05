@@ -19,6 +19,7 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -67,6 +68,7 @@ fun KeyButton(
     modifier: Modifier = Modifier,
     height: Dp = 48.dp,
     primaryText: String? = null,
+    primaryFontSize: TextUnit = 23.sp,
     secondaryText: String? = null,
     icon: ImageVector? = null,
     isSpecial: Boolean = false,
@@ -161,7 +163,7 @@ fun KeyButton(
                     ) {
                         Text(
                             text = it,
-                            fontSize = 23.sp,
+                            fontSize = primaryFontSize,
                             fontWeight = FontWeight.Normal,
                             color = iconTint,
                             style = tightText

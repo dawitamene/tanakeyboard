@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
 
 import com.addiyon.tanakeyboard.TanaKeyboardService
 import com.addiyon.tanakeyboard.model.KeyData
@@ -85,9 +86,15 @@ fun CharacterKey(
 
 
 /**
- * Shift / caps-lock key. Weighted -> flexes to fill leftover space in its
- * row. Uses the real KeyboardCapslock glyph (the same shift-arrow shape
- * AOSP/Gboard use) with three visual states mirroring [ShiftState]:
+ * Shift / caps-lock key. Fixed width (a multiple of a single letter key's
+ * width, same as [CharacterKey]) rather than [Modifier.weight] -- Shift only
+ * ever appears on the letter layouts, but it shares row 3 with [DeleteKey],
+ * which also appears on the Numbers/Symbols layouts; a fixed width is what
+ * keeps Delete (and Shift, on the letter layouts) an identical pixel size
+ * everywhere instead of a fraction of however much space row 3 happens to
+ * have left over on a given layout. Uses the real KeyboardCapslock glyph
+ * (the same shift-arrow shape AOSP/Gboard use) with three visual states
+ * mirroring [ShiftState]:
  *
  * OFF       - outlined icon, normal color.
  * SHIFT     - filled icon, primary (blue) tint. One-shot: capitalizes the
@@ -103,6 +110,7 @@ fun CharacterKey(
 @Composable
 fun RowScope.ShiftKey(
     shiftState: ShiftState,
+    width: Dp,
     height: Dp,
     onClick: () -> Unit
 ) {
@@ -122,7 +130,7 @@ fun RowScope.ShiftKey(
         icon = icon,
         iconTint = tint,
         showLockIndicator = shiftState == ShiftState.CAPS_LOCK,
-        modifier = Modifier.weight(KeyWeights.SHIFT),
+        modifier = Modifier.width(width * KeyWeights.SHIFT),
         height = height,
         isSpecial = true,
         onClick = onClick
@@ -130,8 +138,11 @@ fun RowScope.ShiftKey(
 }
 
 /**
- * Delete/backspace key. Weighted -> flexes to fill leftover space in its row.
- * Rendered as a "special" key -> darker surface than letter keys.
+ * Delete/backspace key. Fixed width (see [ShiftKey]'s doc for why this key
+ * in particular needs to be layout-invariant rather than weighted) -- it's
+ * the one key present in row 3 of every layout (letters, Numbers, Symbols),
+ * so it's the key where a weight-based, row-relative width would otherwise
+ * visibly differ depending on which layout is showing.
  *
  * [repeatable] is set so holding the key down deletes continuously (one
  * character immediately, then repeating every ~50ms after a short initial
@@ -140,12 +151,13 @@ fun RowScope.ShiftKey(
  */
 @Composable
 fun RowScope.DeleteKey(
+    width: Dp,
     height: Dp,
     onClick: () -> Unit
 ) {
     KeyButton(
         icon = Icons.Outlined.Backspace,
-        modifier = Modifier.weight(KeyWeights.DELETE),
+        modifier = Modifier.width(width * KeyWeights.DELETE),
         height = height,
         isSpecial = true,
         repeatable = true,
@@ -155,15 +167,20 @@ fun RowScope.DeleteKey(
 
 /**
  * Space bar. Weighted heavily -> flexes to fill leftover space in its row.
- * Rendered as a "special" key -> darker surface than letter keys.
+ * Rendered as a "special" key -> darker surface than letter keys. Shows the
+ * active language ("English"/"አማርኛ") instead of the word "space" -- the
+ * label always reflects the letter layout that's currently active (or was
+ * last active, while a numeric layout is showing), not literally which of
+ * the 4 layouts is on screen.
  */
 @Composable
 fun RowScope.SpaceKey(
+    isAmharic: Boolean,
     height: Dp,
     onClick: () -> Unit
 ) {
     KeyButton(
-        primaryText = "space",
+        primaryText = if (isAmharic) "አማርኛ" else "English",
         modifier = Modifier.weight(KeyWeights.SPACE),
         height = height,
         isSpecial = true,
@@ -190,11 +207,12 @@ fun RowScope.EnterKey(
 }
 
 /**
- * "123" / "ABC" number-layout toggle. Weighted -> flexes to fill leftover
+ * "?123" / "ABC" number-layout toggle. Weighted -> flexes to fill leftover
  * space in its row. Rendered as a "special" key -> darker surface than
- * letter keys.
+ * letter keys. Smaller font than an ordinary key's label -- "ABC"/"?123"
+ * are 3-4 characters, not a single glyph, so they need the room.
  *
- * The same key slot is reused bidirectionally: it reads "123" on a letter
+ * The same key slot is reused bidirectionally: it reads "?123" on a letter
  * layout (tap to go to numbers/symbols) and "ABC" on the numbers layout
  * (tap to go back), always via the one [onClick] flipping
  * TanaKeyboardService.isNumberMode.
@@ -206,7 +224,8 @@ fun RowScope.NumberToggleKey(
     onClick: () -> Unit
 ) {
     KeyButton(
-        primaryText = if (isNumberMode) "ABC" else "123",
+        primaryText = if (isNumberMode) "ABC" else "?123",
+        primaryFontSize = 14.sp,
         modifier = Modifier.weight(KeyWeights.NUMBER_TOGGLE),
         height = height,
         isSpecial = true,
@@ -215,9 +234,12 @@ fun RowScope.NumberToggleKey(
 }
 
 /**
- * "=\<" / "123" toggle between the two numeric pages. Weighted -> flexes
- * to fill leftover space in its row. Rendered as a "special" key -> darker
- * surface than letter keys.
+ * "=\<" / "123" toggle between the two numeric pages. Fixed width (see
+ * [ShiftKey]'s doc for the general reasoning) so it renders the same size on
+ * the Numbers page as on the Symbols page, rather than a fraction of however
+ * much row 3 has left over on each. Rendered as a "special" key -> darker
+ * surface than letter keys, with the same reduced font as [NumberToggleKey]
+ * (see there for why).
  *
  * Unlike [NumberToggleKey] (which is threaded down as an explicit
  * `isNumberMode` parameter because it affects row-wide rendering), this key's
@@ -227,12 +249,14 @@ fun RowScope.NumberToggleKey(
 @Composable
 fun RowScope.SymbolsToggleKey(
     numbersMode: NumbersMode,
+    width: Dp,
     height: Dp,
     onClick: () -> Unit
 ) {
     KeyButton(
         primaryText = if (numbersMode == NumbersMode.SYMBOLS) "123" else "=\\<",
-        modifier = Modifier.weight(KeyWeights.SYMBOLS_TOGGLE),
+        primaryFontSize = 14.sp,
+        modifier = Modifier.width(width * KeyWeights.SYMBOLS_TOGGLE),
         height = height,
         isSpecial = true,
         onClick = onClick
