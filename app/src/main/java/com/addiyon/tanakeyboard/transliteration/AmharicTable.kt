@@ -176,37 +176,41 @@ object AmharicTable {
 
     /**
      * Maps keyboard Latin letters (single characters) to the multi-letter
-     * AmharicTable family key they represent. Vowels all map to the glottal
-     * family, since their keys correspond to the ' (አ) series; "x" and "c"
-     * are the keyboard spellings for "sh" and "ch" respectively.
+     * AmharicTable family key they represent: "x" and "c" are the keyboard
+     * spellings for "sh" and "ch" respectively. Vowels are handled
+     * separately, via [bareVowels], since they don't all resolve to the
+     * same glottal glyph -- see [bareFormOf].
      */
     private val keyboardToFamilyKey: Map<String, String> = mapOf(
-        "a" to "'",
-        "e" to "'",
-        "i" to "'",
-        "o" to "'",
-        "u" to "'",
         "x" to "sh",
         "c" to "ch"
     )
 
     /**
      * Convenience lookup used by the UI (e.g. a key's corner label showing
-     * the bare form for its letter): the 6th-order glyph for [latin], or
-     * null if the spelling isn't a consonant in the scheme.
+     * a preview of what the key produces): the glyph for [latin], or null
+     * if the spelling isn't part of the scheme.
      *
      * Resolution order:
-     * 1. Exact match (preserves case distinctions like h/H, t/T, ch/C).
+     * 1. Exact match (preserves case distinctions like h/H, t/T, ch/C) ->
+     *    the family's bare (6th-order) form.
      * 2. Lowercased match (handles uppercase letters without a distinct
-     *    family, e.g. "Q" -> "q").
-     * 3. Keyboard-to-family-key mapping (handles letters that represent
-     *    multi-letter spellings: "x" -> "sh", "c" -> "ch", vowels -> "'").
+     *    family, e.g. "Q" -> "q") -> the family's bare form.
+     * 3. Bare-vowel match (e.g. "a" -> አ, "u" -> ኡ) -- these are NOT the
+     *    glottal family's bare form (እ); see [bareVowels] for why standalone
+     *    vowels use a different index than consonant+vowel combinations.
+     * 4. Keyboard-to-family-key mapping (handles letters that represent
+     *    multi-letter spellings: "x" -> "sh", "c" -> "ch") -> the family's
+     *    bare form.
      */
     fun bareFormOf(latin: String): Char? {
         families[latin]?.let { return it.bare }
         val lower = latin.lowercase()
         if (lower != latin) {
             families[lower]?.let { return it.bare }
+        }
+        bareVowels.firstOrNull { (spelling, _) -> spelling == lower }?.let { (_, index) ->
+            return families.getValue("'").forms[index]
         }
         val mapped = keyboardToFamilyKey[lower]
         if (mapped != null) return families[mapped]?.bare
