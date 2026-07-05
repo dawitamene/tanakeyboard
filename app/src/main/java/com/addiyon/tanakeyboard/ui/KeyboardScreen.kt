@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -42,16 +41,30 @@ fun KeyboardScreen(
         NumbersMode.OFF -> if (isAmharic) AmharicLayout else EnglishLayout
     }
 
-    Box(
+    // A Column, not a Box: the suggestion strip and the key rows need to
+    // STACK vertically. A Box overlays children by alignment instead --
+    // a TopCenter-aligned strip inside the same Box as a BottomCenter-
+    // aligned key block would draw on top of the first key row rather
+    // than push it down.
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
             .background(MaterialTheme.colorScheme.background)
     ) {
 
+        // Only on the Amharic letter layout -- suggestions are keyed off
+        // the Amharic composer's buffer, which is never active in English
+        // mode or on the Numbers/Symbols pages.
+        if (isAmharic && !isNumberMode) {
+            SuggestionBar(
+                suggestions = service.suggestions,
+                onTap = { word -> service.onSuggestionTapped(word) }
+            )
+        }
+
         BoxWithConstraints(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .padding(horizontal = 4.dp, vertical = 6.dp)

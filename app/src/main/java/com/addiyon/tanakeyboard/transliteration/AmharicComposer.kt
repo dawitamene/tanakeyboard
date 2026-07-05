@@ -116,6 +116,22 @@ internal class AmharicComposer(
     }
 
     /**
+     * A suggestion chip was tapped: swap whatever's currently composing for
+     * [fidelWord] plus a trailing space, and clear the Latin buffer.
+     *
+     * Unlike [commit], this doesn't just lock in the CURRENT composing text
+     * -- [fidelWord] is a different, complete word than whatever partial
+     * syllable is showing. `commitText` on Android replaces the active
+     * composing span with the given text (rather than appending after it),
+     * so no separate finishComposingText() call is needed first; passing an
+     * empty Latin buffer onward means the next keystroke starts a fresh word.
+     */
+    fun commitSuggestion(fidelWord: String) {
+        inputConnection()?.commitText("$fidelWord ", 1)
+        latin.clear()
+    }
+
+    /**
      * Abandon the buffer WITHOUT committing. Used when a new input session
      * starts -- the InputConnection we were composing into may not even be
      * the same one anymore, so we can't meaningfully finish that composition,

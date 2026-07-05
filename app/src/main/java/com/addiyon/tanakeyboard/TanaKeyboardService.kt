@@ -21,7 +21,9 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.addiyon.tanakeyboard.model.NumbersMode
 import com.addiyon.tanakeyboard.model.ShiftState
+import com.addiyon.tanakeyboard.suggestion.AmharicDictionary
 import com.addiyon.tanakeyboard.transliteration.AmharicComposer
+import com.addiyon.tanakeyboard.transliteration.Transliterator
 import com.addiyon.tanakeyboard.ui.theme.KeyboardColors
 
 class TanaKeyboardService : InputMethodService(),
@@ -71,6 +73,15 @@ class TanaKeyboardService : InputMethodService(),
     var isDarkTheme by mutableStateOf(false)
         private set
 
+    /**
+     * Up to 3 Amharic word completions for whatever's currently composing,
+     * highest-frequency first -- empty whenever there's nothing to suggest
+     * (buffer empty, dictionary still loading, or no match). Recomputed by
+     * [updateSuggestions] after every composer mutation.
+     */
+    var suggestions by mutableStateOf<List<String>>(emptyList())
+        private set
+
     // ----------------------------
     // AMHARIC COMPOSITION
     // ----------------------------
@@ -81,6 +92,29 @@ class TanaKeyboardService : InputMethodService(),
     // of use -- same reasoning as the KeyboardScreen comment about not
     // capturing an InputConnection at composition time.
     private val composer = AmharicComposer { currentInputConnection }
+
+    // Built in onCreate(), not as a property initializer here -- Context
+    // isn't safely usable (applicationContext etc.) until attachBaseContext
+    // has run, which happens after this class's own construction but
+    // before onCreate().
+    private lateinit var dictionary: AmharicDictionary
+
+    /**
+     * Re-derives [suggestions] from the composer's current buffer. Keyed off
+     * the LIVE TRANSLITERATED fidel prefix (exactly what's already shown in
+     * the composing region), not the raw Latin buffer -- reversing fidel
+     * back to a Latin spelling to look words up would be ambiguous, since
+     * the forward transliteration mapping isn't reliably invertible. See
+     * [com.addiyon.tanakeyboard.suggestion.WordTrie]'s class doc for the
+     * full reasoning.
+     */
+    private fun updateSuggestions() {
+        suggestions = if (::dictionary.isInitialized) {
+            dictionary.suggestions(Transliterator.transliterate(composer.currentLatin))
+        } else {
+            emptyList()
+        }
+    }
 
     private fun updateDarkThemeFromConfiguration(configuration: Configuration) {
         val nightModeFlags = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
@@ -124,6 +158,7 @@ class TanaKeyboardService : InputMethodService(),
         // up with an orphaned partial word in the wrong pipeline.
         composer.commit()
         isAmharic = !isAmharic
+        updateSuggestions()
     }
 
     /**
@@ -140,6 +175,7 @@ class TanaKeyboardService : InputMethodService(),
     fun toggleNumberMode() {
         composer.commit()
         numbersMode = if (numbersMode == NumbersMode.OFF) NumbersMode.NUMBERS else NumbersMode.OFF
+        updateSuggestions()
     }
 
     /**
@@ -223,6 +259,7 @@ class TanaKeyboardService : InputMethodService(),
         }
 
         consumeShiftAfterCharacter()
+        updateSuggestions()
     }
 
     /**
@@ -232,8 +269,12 @@ class TanaKeyboardService : InputMethodService(),
      * mode -- fall back to deleting a character from the text field itself.
      */
     fun onDelete() {
-        if (isAmharic && composer.onBackspace()) return
+        if (isAmharic && composer.onBackspace()) {
+            updateSuggestions()
+            return
+        }
         currentInputConnection?.deleteSurroundingText(1, 0)
+        updateSuggestions()
     }
 
     /**
@@ -244,6 +285,7 @@ class TanaKeyboardService : InputMethodService(),
     fun onSpace() {
         composer.commit()
         currentInputConnection?.commitText(" ", 1)
+        updateSuggestions()
     }
 
     /**
@@ -256,6 +298,16 @@ class TanaKeyboardService : InputMethodService(),
         currentInputConnection?.sendKeyEvent(
             KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
         )
+        updateSuggestions()
+    }
+
+    /**
+     * A suggestion chip was tapped: swap the current composing text for the
+     * full suggested word and clear the strip.
+     */
+    fun onSuggestionTapped(word: String) {
+        composer.commitSuggestion(word)
+        updateSuggestions()
     }
 
     // ----------------------------
@@ -284,6 +336,13 @@ class TanaKeyboardService : InputMethodService(),
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         updateDarkThemeFromConfiguration(resources.configuration)
+
+        dictionary = AmharicDictionary(this)
+        // Parsing ~182k dictionary lines happens off the main thread; if the
+        // user starts typing before it finishes, suggestions just start
+        // appearing once loadAsync's callback lands (main thread, per
+        // AmharicDictionary's contract).
+        dictionary.loadAsync { updateSuggestions() }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -302,6 +361,7 @@ class TanaKeyboardService : InputMethodService(),
         // ours. Drop it silently rather than trying to commit into the
         // wrong destination.
         composer.reset()
+        updateSuggestions()
 
         // Catch any theme change that happened while the keyboard was hidden,
         // and make sure the nav bar strip is colored correctly every time
@@ -348,6 +408,7 @@ class TanaKeyboardService : InputMethodService(),
 
         if (!cursorInsideComposing) {
             composer.abandon()
+            updateSuggestions()
         }
     }
 
@@ -356,6 +417,7 @@ class TanaKeyboardService : InputMethodService(),
         // Field is going away -- lock whatever we have into it before the
         // InputConnection dies.
         composer.commit()
+        updateSuggestions()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }
 
