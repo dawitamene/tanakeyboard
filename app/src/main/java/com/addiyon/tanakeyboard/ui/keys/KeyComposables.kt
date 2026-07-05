@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.Dp
 
 import com.addiyon.tanakeyboard.TanaKeyboardService
 import com.addiyon.tanakeyboard.model.KeyData
+import com.addiyon.tanakeyboard.model.NumbersMode
 import com.addiyon.tanakeyboard.model.ShiftState
 import com.addiyon.tanakeyboard.transliteration.AmharicTable
 import com.addiyon.tanakeyboard.ui.KeyButton
@@ -189,17 +190,49 @@ fun RowScope.EnterKey(
 }
 
 /**
- * "123" number-layout toggle. Weighted -> flexes to fill leftover space in its row.
- * Rendered as a "special" key -> darker surface than letter keys.
+ * "123" / "ABC" number-layout toggle. Weighted -> flexes to fill leftover
+ * space in its row. Rendered as a "special" key -> darker surface than
+ * letter keys.
+ *
+ * The same key slot is reused bidirectionally: it reads "123" on a letter
+ * layout (tap to go to numbers/symbols) and "ABC" on the numbers layout
+ * (tap to go back), always via the one [onClick] flipping
+ * TanaKeyboardService.isNumberMode.
  */
 @Composable
 fun RowScope.NumberToggleKey(
+    isNumberMode: Boolean,
     height: Dp,
     onClick: () -> Unit
 ) {
     KeyButton(
-        primaryText = "123",
+        primaryText = if (isNumberMode) "ABC" else "123",
         modifier = Modifier.weight(KeyWeights.NUMBER_TOGGLE),
+        height = height,
+        isSpecial = true,
+        onClick = onClick
+    )
+}
+
+/**
+ * "=\<" / "123" toggle between the two numeric pages. Weighted -> flexes
+ * to fill leftover space in its row. Rendered as a "special" key -> darker
+ * surface than letter keys.
+ *
+ * Unlike [NumberToggleKey] (which is threaded down as an explicit
+ * `isNumberMode` parameter because it affects row-wide rendering), this key's
+ * label only matters to itself, so [numbersMode] is read straight from the
+ * service by the caller rather than plumbed through KeyboardScreen/KeyRow.
+ */
+@Composable
+fun RowScope.SymbolsToggleKey(
+    numbersMode: NumbersMode,
+    height: Dp,
+    onClick: () -> Unit
+) {
+    KeyButton(
+        primaryText = if (numbersMode == NumbersMode.SYMBOLS) "123" else "=\\<",
+        modifier = Modifier.weight(KeyWeights.SYMBOLS_TOGGLE),
         height = height,
         isSpecial = true,
         onClick = onClick

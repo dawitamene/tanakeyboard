@@ -19,6 +19,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.addiyon.tanakeyboard.model.NumbersMode
 import com.addiyon.tanakeyboard.model.ShiftState
 import com.addiyon.tanakeyboard.transliteration.AmharicComposer
 import com.addiyon.tanakeyboard.ui.theme.KeyboardColors
@@ -45,6 +46,12 @@ class TanaKeyboardService : InputMethodService(),
 
     var isAmharic by mutableStateOf(false)
         private set
+
+    var numbersMode by mutableStateOf(NumbersMode.OFF)
+        private set
+
+    val isNumberMode: Boolean
+        get() = numbersMode != NumbersMode.OFF
 
     // The single source of truth for shift/caps-lock. isShiftEnabled below
     // is a derived convenience for callers that only care about "capitalize
@@ -120,6 +127,37 @@ class TanaKeyboardService : InputMethodService(),
     }
 
     /**
+     * Toggles between the letter layout (Amharic or English, whichever is
+     * active) and the numbers/symbols page. Flushes the composer first, for
+     * the same reason [toggleLanguage] does -- a composing syllable belongs
+     * to the mode it started in, and numbers/symbols are never part of one.
+     *
+     * Always lands on [NumbersMode.NUMBERS] from a letter layout, and always
+     * exits all the way to [NumbersMode.OFF] from EITHER numeric page -- so
+     * "ABC" returns straight to letters from the second symbols page too,
+     * without having to step back through the first page.
+     */
+    fun toggleNumberMode() {
+        composer.commit()
+        numbersMode = if (numbersMode == NumbersMode.OFF) NumbersMode.NUMBERS else NumbersMode.OFF
+    }
+
+    /**
+     * Toggles between the two numeric pages ("123" <-> "=\<"). Only ever
+     * called from a key that's rendered on one of those pages, so the
+     * [NumbersMode.OFF] branch is unreachable in practice -- kept so the
+     * `when` stays exhaustive. No composer to flush: a composing syllable
+     * can't exist while already in a numeric mode.
+     */
+    fun toggleSymbolsPage() {
+        numbersMode = when (numbersMode) {
+            NumbersMode.NUMBERS -> NumbersMode.SYMBOLS
+            NumbersMode.SYMBOLS -> NumbersMode.NUMBERS
+            NumbersMode.OFF -> NumbersMode.OFF
+        }
+    }
+
+    /**
      * Cycles the shift key: OFF -> SHIFT -> CAPS_LOCK -> OFF.
      * Tapping shift once capitalizes the next letter only; tapping it again
      * before typing anything locks caps on until shift is tapped a third
@@ -173,12 +211,12 @@ class TanaKeyboardService : InputMethodService(),
      */
     fun onCharacter(latin: String) {
         val output = when {
-            isAmharic -> if (isShiftEnabled) latin.uppercase() else latin.lowercase()
+            isAmharic && !isNumberMode -> if (isShiftEnabled) latin.uppercase() else latin.lowercase()
             isShiftEnabled -> latin.uppercase()
             else -> latin.lowercase()
         }
 
-        if (isAmharic) {
+        if (isAmharic && !isNumberMode) {
             composer.onCharacter(output)
         } else {
             currentInputConnection?.commitText(output, 1)

@@ -17,5 +17,7 @@ sealed class KeyData {
 
     data object NumberToggle : KeyData()
 
+    data object SymbolsToggle : KeyData()
+
     data object LanguageToggle : KeyData()
 }

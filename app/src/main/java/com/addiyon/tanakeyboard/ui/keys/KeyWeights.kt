@@ -12,6 +12,7 @@ object KeyWeights {
     const val SPACE = 5f
     const val ENTER = 1.5f
     const val NUMBER_TOGGLE = 1.5f
+    const val SYMBOLS_TOGGLE = 1.5f
     const val LANGUAGE_TOGGLE = 1.2f
 }
 

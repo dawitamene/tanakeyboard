@@ -18,6 +18,7 @@ import com.addiyon.tanakeyboard.ui.keys.LanguageToggleKey
 import com.addiyon.tanakeyboard.ui.keys.NumberToggleKey
 import com.addiyon.tanakeyboard.ui.keys.ShiftKey
 import com.addiyon.tanakeyboard.ui.keys.SpaceKey
+import com.addiyon.tanakeyboard.ui.keys.SymbolsToggleKey
 
 /**
  * Renders one full row of the keyboard: dispatches each key in the row to
@@ -46,6 +47,7 @@ internal fun KeyRow(
     row: List<KeyData>,
     isShift: Boolean,
     isAmharic: Boolean,
+    isNumberMode: Boolean,
     metrics: KeyboardMetrics,
     service: TanaKeyboardService
 ) {
@@ -95,8 +97,17 @@ internal fun KeyRow(
 
                 KeyData.NumberToggle -> {
                     NumberToggleKey(
+                        isNumberMode = isNumberMode,
                         height = metrics.keyHeight,
-                        onClick = { /* TODO: number layout later */ }
+                        onClick = { service.toggleNumberMode() }
+                    )
+                }
+
+                KeyData.SymbolsToggle -> {
+                    SymbolsToggleKey(
+                        numbersMode = service.numbersMode,
+                        height = metrics.keyHeight,
+                        onClick = { service.toggleSymbolsPage() }
                     )
                 }
 

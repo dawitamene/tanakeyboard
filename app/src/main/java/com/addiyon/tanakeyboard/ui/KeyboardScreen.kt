@@ -12,6 +12,9 @@ import androidx.compose.ui.unit.dp
 import com.addiyon.tanakeyboard.TanaKeyboardService
 import com.addiyon.tanakeyboard.layout.AmharicLayout
 import com.addiyon.tanakeyboard.layout.EnglishLayout
+import com.addiyon.tanakeyboard.layout.NumberLayout
+import com.addiyon.tanakeyboard.layout.SymbolsLayout
+import com.addiyon.tanakeyboard.model.NumbersMode
 
 @Composable
 fun KeyboardScreen(
@@ -31,11 +34,12 @@ fun KeyboardScreen(
 
     val isAmharic = service.isAmharic
     val isShift = service.isShiftEnabled
+    val isNumberMode = service.isNumberMode
 
-    val layout = if (isAmharic) {
-        AmharicLayout
-    } else {
-        EnglishLayout
+    val layout = when (service.numbersMode) {
+        NumbersMode.NUMBERS -> NumberLayout
+        NumbersMode.SYMBOLS -> SymbolsLayout
+        NumbersMode.OFF -> if (isAmharic) AmharicLayout else EnglishLayout
     }
 
     Box(
@@ -66,6 +70,7 @@ fun KeyboardScreen(
                         row = row,
                         isShift = isShift,
                         isAmharic = isAmharic,
+                        isNumberMode = isNumberMode,
                         metrics = metrics,
                         service = service
                     )
