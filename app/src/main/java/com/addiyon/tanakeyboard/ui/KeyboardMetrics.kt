@@ -31,7 +31,7 @@ internal fun computeKeyboardMetrics(
         row.count { it is KeyData.Character }
     }
     val keyWidth = availableWidth / maxLetterCount
-    val keyHeight = (keyWidth * 1.25f).coerceIn(40.dp, 52.dp)
+    val keyHeight = (keyWidth * 1.1f).coerceIn(36.dp, 46.dp)
 
     return KeyboardMetrics(
         keyWidth = keyWidth,

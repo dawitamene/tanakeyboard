@@ -181,9 +181,11 @@ fun RowScope.SpaceKey(
 ) {
     KeyButton(
         primaryText = if (isAmharic) "አማርኛ" else "English",
+        primaryFontSize = 16.sp,
+        iconTint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
         modifier = Modifier.weight(KeyWeights.SPACE),
         height = height,
-        isSpecial = true,
+        isSpecial = false,
         onClick = onClick
     )
 }

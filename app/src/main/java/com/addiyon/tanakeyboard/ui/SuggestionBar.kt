@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,7 +45,15 @@ fun SuggestionBar(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        suggestions.forEach { word ->
+        suggestions.forEachIndexed { index, word ->
+            if (index > 0) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight(0.5f)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                )
+            }
             Box(
                 modifier = Modifier
                     .weight(1f)
