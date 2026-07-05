@@ -23,8 +23,14 @@ package com.addiyon.tanakeyboard.transliteration
  * MATCHING RULES:
  *
  * 1. At each position, try to match the longest consonant spelling from
- *    [AmharicTable.consonantsByLength]. Longest-first so "sh" beats "s"+"h",
- *    "gn" beats "g"+"n", etc.
+ *    [AmharicTable.consonantsByLength], case-sensitively first. Longest-first
+ *    so "sh" beats "s"+"h", "gn" beats "g"+"n", etc. Case-sensitively first
+ *    so that the three families where shift genuinely changes the sound --
+ *    h/H, t/T, ch/C -- keep taking priority. If nothing matches
+ *    case-sensitively, retry the same lookup ignoring case: shift has no
+ *    distinct family for the other 20-odd consonants (e.g. "D"), so typing
+ *    the shifted key should transliterate exactly like its lowercase form
+ *    instead of falling through as literal Latin.
  *
  * 2. If a consonant matched, try to match the longest following vowel
  *    from [AmharicTable.vowels]. Longest-first so "ie" beats "i", "ua"
@@ -43,10 +49,12 @@ package com.addiyon.tanakeyboard.transliteration
  *                                         T, C, f) hit the fast path.
  *
  * 3. If no consonant matched at the current position, try the longest
- *    bare-vowel spelling from [AmharicTable.bareVowels] instead, resolved
- *    against the glottal ("'") family -- this is what makes a word-initial
- *    (or otherwise unprefixed) vowel like "aster" come out as አስተር rather
- *    than passed through as Latin "a".
+ *    bare-vowel spelling from [AmharicTable.bareVowels] instead (again
+ *    case-sensitive first, then case-insensitive), resolved against the
+ *    glottal ("'") family -- this is what makes a word-initial (or
+ *    otherwise unprefixed) vowel like "aster" come out as አስተር rather than
+ *    passed through as Latin "a", and "Aster" (shifted "A") come out the
+ *    same way -- there's no distinct uppercase vowel family either.
  *
  * 4. If neither a consonant nor a bare vowel matched, the character is
  *    passed through unchanged. This covers digits, punctuation, spaces,
@@ -55,11 +63,14 @@ package com.addiyon.tanakeyboard.transliteration
  *    deliberate: silently dropping characters would be far more confusing
  *    than showing them literally while the user figures out the spelling.
  *
- * WHAT THIS FUNCTION DOES NOT DO (yet):
+ * CASE FOLDING:
  *
- * - Case folding. The caller feeds the string with case already resolved
- *   by shift state (see step 6). "H" and "h" are meant to be distinct
- *   inputs mapping to distinct families (ሐ vs ሀ) and are treated as such.
+ * The caller feeds the string with case already resolved by shift state
+ * (see step 6). "H"/"h", "T"/"t", and "C"/"ch" are meant to stay distinct
+ * (ሐ vs ሀ, ጠ vs ተ, ጨ vs ቸ) since shift genuinely picks a different family
+ * for those; every other consonant and vowel has no such distinction, so
+ * its uppercase form falls back to case-insensitive matching (rules 1 and
+ * 3) rather than being passed through as literal Latin.
  */
 object Transliterator {
 
@@ -95,16 +106,24 @@ object Transliterator {
         while (i < latin.length) {
             val start = i
 
-            // 1. Longest consonant at position i.
+            // 1. Longest consonant at position i -- exact case first (so H/T/C
+            // keep taking priority over their lowercase counterparts), then a
+            // case-insensitive retry for every other consonant, which has no
+            // distinct uppercase family for shift to select.
             val consonant = AmharicTable.consonantsByLength
                 .firstOrNull { latin.startsWith(it, i) }
+                ?: AmharicTable.consonantsByLength
+                    .firstOrNull { latin.startsWith(it, i, ignoreCase = true) }
 
             if (consonant == null) {
                 // No consonant matched -> try a bare (unprefixed) vowel,
                 // resolved against the glottal family, before giving up and
-                // passing the character through as-is.
+                // passing the character through as-is. Same exact-then-
+                // case-insensitive order as the consonant lookup above.
                 val bareVowel = AmharicTable.bareVowels
                     .firstOrNull { (spelling, _) -> latin.startsWith(spelling, i) }
+                    ?: AmharicTable.bareVowels
+                        .firstOrNull { (spelling, _) -> latin.startsWith(spelling, i, ignoreCase = true) }
 
                 if (bareVowel != null) {
                     val (spelling, index) = bareVowel
@@ -121,9 +140,12 @@ object Transliterator {
             i += consonant.length
             val family = AmharicTable.families.getValue(consonant)
 
-            // 2. Longest vowel at the new position (may be none).
+            // 2. Longest vowel at the new position (may be none). No distinct
+            // family hinges on a vowel's case, so this is a single
+            // case-insensitive lookup (unlike rules 1 and 3, which check
+            // case-sensitively first to protect H/T/C).
             val vowel = AmharicTable.vowels
-                .firstOrNull { (spelling, _) -> latin.startsWith(spelling, i) }
+                .firstOrNull { (spelling, _) -> latin.startsWith(spelling, i, ignoreCase = true) }
 
             if (vowel == null) {
                 // Bare consonant -> 6th order.
