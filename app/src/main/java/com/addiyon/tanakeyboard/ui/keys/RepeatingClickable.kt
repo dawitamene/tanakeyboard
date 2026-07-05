@@ -3,6 +3,8 @@ package com.addiyon.tanakeyboard.ui.keys
 
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -26,8 +28,15 @@ import kotlinx.coroutines.launch
  * deletes exactly one character, same as before), then waits
  * [initialDelayMillis] before repeating every [repeatDelayMillis] until
  * the finger/pointer lifts or the gesture is cancelled.
+ *
+ * [interactionSource] receives [PressInteraction] events mirroring the
+ * gesture (press on down, release/cancel on up), the same events plain
+ * `clickable` emits -- so KeyButton can observe pressed state uniformly
+ * (for the iOS-style pressed shade / haptics) regardless of whether a key
+ * uses this modifier or a normal `clickable`.
  */
 internal fun Modifier.repeatingClickable(
+    interactionSource: MutableInteractionSource,
     enabled: Boolean = true,
     initialDelayMillis: Long = 400,
     repeatDelayMillis: Long = 50,
@@ -38,12 +47,15 @@ internal fun Modifier.repeatingClickable(
     if (!enabled) {
         this
     } else {
-        pointerInput(Unit) {
+        pointerInput(interactionSource) {
             coroutineScope {
                 while (isActive) {
-                    awaitPointerEventScope {
+                    val down = awaitPointerEventScope {
                         awaitFirstDown(requireUnconsumed = false)
                     }
+
+                    val press = PressInteraction.Press(down.position)
+                    launch { interactionSource.emit(press) }
 
                     val repeatJob = launch {
                         currentOnClick.value()
@@ -54,10 +66,17 @@ internal fun Modifier.repeatingClickable(
                         }
                     }
 
-                    awaitPointerEventScope {
+                    val up = awaitPointerEventScope {
                         waitForUpOrCancellation()
                     }
                     repeatJob.cancel()
+
+                    launch {
+                        interactionSource.emit(
+                            if (up != null) PressInteraction.Release(press)
+                            else PressInteraction.Cancel(press)
+                        )
+                    }
                 }
             }
         }

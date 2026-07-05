@@ -2,7 +2,9 @@ package com.addiyon.tanakeyboard
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Build
 import android.provider.Settings
+import android.view.inputmethod.InputMethodManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -16,31 +18,48 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 
 /**
- * Whether TanaKeyboardService is enabled/default, read straight from
- * Settings.Secure -- the system is the only source of truth here, so there's
- * no cached/persisted flag to fall out of sync.
+ * Whether TanaKeyboardService is enabled/default, asked of the live system
+ * state -- there's no cached/persisted flag to fall out of sync.
+ *
+ * Reads go through [InputMethodManager]'s public API, NOT raw
+ * Settings.Secure reads: Android 14 put ENABLED_INPUT_METHODS (and friends)
+ * behind a readable-settings allowlist, so `Settings.Secure.getString` on
+ * them throws SecurityException for apps targeting SDK 34+ -- which crashed
+ * MainActivity on launch on any Android 14+ device. (The one exception is
+ * [isDefault] on pre-34 devices, where DEFAULT_INPUT_METHOD is still
+ * readable and there's no public "current IME" API yet.)
  *
  * IME ids are compared as [ComponentName]s, not raw strings, because the
- * settings values mix short (".TanaKeyboardService") and fully-qualified
- * class forms depending on OS version/OEM.
+ * system mixes short (".TanaKeyboardService") and fully-qualified class
+ * forms depending on OS version/OEM.
  */
 object KeyboardStatus {
     private fun self(context: Context) =
         ComponentName(context, TanaKeyboardService::class.java)
 
+    private fun imm(context: Context) =
+        context.getSystemService(InputMethodManager::class.java)
+
     fun isEnabled(context: Context): Boolean {
-        val enabled = Settings.Secure.getString(
-            context.contentResolver, Settings.Secure.ENABLED_INPUT_METHODS
-        ) ?: return false
         val self = self(context)
-        return enabled.split(':').any { ComponentName.unflattenFromString(it) == self }
+        return imm(context)?.enabledInputMethodList
+            ?.any { it.component == self } == true
     }
 
     fun isDefault(context: Context): Boolean {
-        val default = Settings.Secure.getString(
-            context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD
-        ) ?: return false
-        return ComponentName.unflattenFromString(default) == self(context)
+        val self = self(context)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            imm(context)?.currentInputMethodInfo?.component == self
+        } else {
+            val default = try {
+                Settings.Secure.getString(
+                    context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD
+                )
+            } catch (e: SecurityException) {
+                null
+            } ?: return false
+            ComponentName.unflattenFromString(default) == self
+        }
     }
 }
 

@@ -1,8 +1,12 @@
 // ui/KeyButton.kt
 package com.addiyon.tanakeyboard.ui
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -11,17 +15,29 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 
 import com.addiyon.tanakeyboard.ui.keys.repeatingClickable
 
@@ -30,6 +46,23 @@ import com.addiyon.tanakeyboard.ui.keys.repeatingClickable
  * (light surface) or a "special" function key (shift, delete, space,
  * enter, toggles) which gets a slightly darker surface so it's easy to
  * pick out at a glance, matching the visual language of Gboard/iOS.
+ *
+ * PRESS FEEDBACK (iOS-style, no ripple):
+ *
+ * The default Material ripple is suppressed (`indication = null`) --
+ * press feedback instead mirrors what the iPhone keyboard does:
+ *
+ *   - Letter keys ([showsPreviewOnPress]) pop up a magnified "balloon"
+ *     of the key's character directly above the key for as long as it's
+ *     held. The balloon is a [Popup] with clipping disabled so it can
+ *     extend above the keyboard window even for top-row keys.
+ *   - Special keys (no balloon on iOS either) swap their surface shade
+ *     while pressed -- the dark special surface flips to the light
+ *     letter-key surface and vice versa.
+ *   - Every press-down fires a [HapticFeedbackConstants.KEYBOARD_TAP]
+ *     haptic (which respects the system "touch feedback" setting). It
+ *     fires on DOWN, not on release, matching iOS -- and for repeatable
+ *     keys each auto-repeat tick gets its own haptic.
  *
  * [isHighlighted] draws a soft primary-tinted background instead of the
  * normal special-key surface -- available for states that need to stand
@@ -76,12 +109,23 @@ fun KeyButton(
     iconTint: Color = MaterialTheme.colorScheme.onSurface,
     showLockIndicator: Boolean = false,
     repeatable: Boolean = false,
+    showsPreviewOnPress: Boolean = false,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val view = LocalView.current
+
     val background = when {
         isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-        isSpecial -> MaterialTheme.colorScheme.surfaceVariant
-        else -> MaterialTheme.colorScheme.surface
+        // iOS-style pressed shade swap: while a preview balloon is up the
+        // balloon itself IS the feedback, so letter keys with a balloon
+        // keep their normal surface; everything else flips between the
+        // light and dark key surfaces for the duration of the press.
+        isSpecial -> if (isPressed) MaterialTheme.colorScheme.surface
+        else MaterialTheme.colorScheme.surfaceVariant
+        else -> if (isPressed && !showsPreviewOnPress) MaterialTheme.colorScheme.surfaceVariant
+        else MaterialTheme.colorScheme.surface
     }
 
     // Removes the extra ascent/descent space Android normally reserves
@@ -92,9 +136,33 @@ fun KeyButton(
     val tightText = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
 
     val pressModifier = if (repeatable) {
-        Modifier.repeatingClickable(onClick = onClick)
+        // Haptic inside the repeat callback (not the press-interaction
+        // collector below) so held-down auto-repeat ticks each buzz too,
+        // like iOS delete. The first fire happens on press-down, so a
+        // quick tap still gets its haptic at the right moment.
+        Modifier.repeatingClickable(interactionSource = interactionSource) {
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            onClick()
+        }
     } else {
-        Modifier.clickable(onClick = onClick)
+        Modifier.clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick
+        )
+    }
+
+    if (!repeatable) {
+        // Haptic on press-DOWN (clickable's onClick only fires on release,
+        // which feels laggy for a keyboard -- iOS buzzes the moment your
+        // finger lands).
+        LaunchedEffect(interactionSource) {
+            interactionSource.interactions.collect { interaction ->
+                if (interaction is PressInteraction.Press) {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                }
+            }
+        }
     }
 
     Card(
@@ -205,6 +273,100 @@ fun KeyButton(
                             .padding(end = 3.dp, top = 0.dp)
                     )
                 }
+            }
+
+            if (isPressed && showsPreviewOnPress && primaryText != null) {
+                KeyPressPreview(
+                    text = primaryText,
+                    secondaryText = secondaryText,
+                    fontSize = primaryFontSize,
+                    keyHeight = height
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The iOS-style magnifier balloon shown above a letter key while it's
+ * held: the key's character, enlarged, on a rounded surface sitting
+ * flush against the top of the key.
+ *
+ * Implemented as a [Popup] (its own window) rather than an overlay in the
+ * keyboard's own hierarchy because top-row keys need the balloon to
+ * extend ABOVE the IME window's bounds -- an in-hierarchy overlay would
+ * be clipped there. `clippingEnabled = false` is what allows the popup
+ * window to be positioned partially outside the keyboard window, and
+ * `focusable = false` keeps the popup from stealing input focus from the
+ * text field being typed into (which would close the input session).
+ *
+ * The balloon is anchored to the key composable it's emitted from:
+ * [PopupPositionProvider] receives the key's bounds and centers the
+ * balloon horizontally over it, bottom edge touching the key's top edge.
+ */
+@Composable
+private fun KeyPressPreview(
+    text: String,
+    secondaryText: String?,
+    fontSize: TextUnit,
+    keyHeight: Dp
+) {
+    val positionProvider = remember {
+        object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize
+            ): IntOffset {
+                val x = anchorBounds.left +
+                        (anchorBounds.width - popupContentSize.width) / 2
+                val y = anchorBounds.top - popupContentSize.height
+                return IntOffset(x, y)
+            }
+        }
+    }
+
+    Popup(
+        popupPositionProvider = positionProvider,
+        properties = PopupProperties(
+            focusable = false,
+            clippingEnabled = false
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .shadow(4.dp, RoundedCornerShape(10.dp))
+                .background(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(10.dp)
+                )
+                .defaultMinSize(minWidth = 52.dp, minHeight = keyHeight + 12.dp)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Mirror the key face: the small fidel annotation (when in
+                // Amharic mode) rides above the enlarged Latin letter.
+                secondaryText?.let {
+                    Text(
+                        text = it,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        style = TextStyle(
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                        )
+                    )
+                }
+                Text(
+                    text = text,
+                    fontSize = (fontSize.value * 1.5f).sp,
+                    fontWeight = FontWeight.Normal,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = TextStyle(
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    )
+                )
             }
         }
     }
