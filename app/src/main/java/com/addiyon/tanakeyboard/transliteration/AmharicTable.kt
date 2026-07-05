@@ -78,6 +78,30 @@ object AmharicTable {
     )
 
     /**
+     * Bare (unprefixed) vowel spelling -> index into the glottal ("'")
+     * [Family.forms], used when a vowel appears with no preceding consonant
+     * match (e.g. word-initial "aster" -> አስተር).
+     *
+     * This is a DIFFERENT index mapping than [vowels]. [vowels] encodes
+     * "consonant + vowel" combinations, where order 1 (index 0) spells the
+     * "e" vowel by SERA convention (e.g. "l" + "e" -> ለ). But order 1 of the
+     * bare glottal family spells "a" (አ) -- the glottal series is the one
+     * everyday standalone-vowel spelling, and it doesn't follow the same
+     * vowel-per-order labeling as regular consonant families. Hence a
+     * second table instead of reusing [vowels] against the "'" family.
+     *
+     * ORDER MATTERS: longest-first, so "ie" wins over "i".
+     */
+    val bareVowels: List<Pair<String, Int>> = listOf(
+        "ie" to 4,
+        "a" to 0,
+        "i" to 2,
+        "u" to 1,
+        "o" to 6,
+        "e" to BARE_FORM_INDEX
+    )
+
+    /**
      * Every consonant family in the scheme, keyed by its (case-sensitive)
      * Latin spelling. Forms are copied verbatim, row by row, from the
      * source transliteration list.
@@ -151,9 +175,41 @@ object AmharicTable {
         families.keys.sortedByDescending { it.length }
 
     /**
+     * Maps keyboard Latin letters (single characters) to the multi-letter
+     * AmharicTable family key they represent. Vowels all map to the glottal
+     * family, since their keys correspond to the ' (አ) series; "x" and "c"
+     * are the keyboard spellings for "sh" and "ch" respectively.
+     */
+    private val keyboardToFamilyKey: Map<String, String> = mapOf(
+        "a" to "'",
+        "e" to "'",
+        "i" to "'",
+        "o" to "'",
+        "u" to "'",
+        "x" to "sh",
+        "c" to "ch"
+    )
+
+    /**
      * Convenience lookup used by the UI (e.g. a key's corner label showing
      * the bare form for its letter): the 6th-order glyph for [latin], or
      * null if the spelling isn't a consonant in the scheme.
+     *
+     * Resolution order:
+     * 1. Exact match (preserves case distinctions like h/H, t/T, ch/C).
+     * 2. Lowercased match (handles uppercase letters without a distinct
+     *    family, e.g. "Q" -> "q").
+     * 3. Keyboard-to-family-key mapping (handles letters that represent
+     *    multi-letter spellings: "x" -> "sh", "c" -> "ch", vowels -> "'").
      */
-    fun bareFormOf(latin: String): Char? = families[latin]?.bare
+    fun bareFormOf(latin: String): Char? {
+        families[latin]?.let { return it.bare }
+        val lower = latin.lowercase()
+        if (lower != latin) {
+            families[lower]?.let { return it.bare }
+        }
+        val mapped = keyboardToFamilyKey[lower]
+        if (mapped != null) return families[mapped]?.bare
+        return null
+    }
 }

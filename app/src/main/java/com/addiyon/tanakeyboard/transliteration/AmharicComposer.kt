@@ -29,10 +29,12 @@ import android.view.inputmethod.InputConnection
  *   pushes the result into the composing region. This is exactly the
  *   "stateless whole-buffer" strategy documented on Transliterator itself.
  *
- * - Backspace shrinks the Latin buffer by one char (not one fidel glyph).
- *   So "she"->ሸ, backspace -> ሽ (buffer now "sh"), backspace -> ስ (buffer
- *   now "s"), backspace -> empty. This matches how Gboard's Amharic layout
- *   behaves and is what users expect once they've internalized the scheme.
+ * - Backspace deletes exactly the Latin span behind the last rendered
+ *   fidel character (via [Transliterator.lastUnitStart]), not one Latin
+ *   char. So "she"->ሸ, backspace -> empty (the whole "she" that produced
+ *   ሸ is one unit). One press, one visible character removed, matching
+ *   ordinary text-delete expectations instead of stepping through
+ *   intermediate consonant stages.
  *
  * - The composer is fed an InputConnection *lambda*, not an InputConnection
  *   reference. The system swaps InputConnection instances between input
@@ -85,12 +87,12 @@ internal class AmharicComposer(
      * buffer had something to delete), false if the caller should apply
      * its own delete-from-text-field fallback.
      *
-     * Deletes one Latin character, not one fidel glyph -- see the class
-     * doc for why.
+     * Deletes the whole Latin span behind the last rendered fidel
+     * character, not one Latin char -- see the class doc for why.
      */
     fun onBackspace(): Boolean {
         if (latin.isEmpty()) return false
-        latin.deleteCharAt(latin.length - 1)
+        latin.setLength(Transliterator.lastUnitStart(latin.toString()))
         if (latin.isEmpty()) {
             // Empty setComposingText leaves an empty composing region hanging
             // around in some IMEs' bookkeeping. finishComposingText resolves

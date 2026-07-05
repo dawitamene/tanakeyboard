@@ -16,7 +16,8 @@ package com.addiyon.tanakeyboard.transliteration
  * Re-deriving from the Latin source of truth on every keystroke is trivial
  * at word length (< 1μs for typical inputs) and means the romanized buffer
  * is always the single source of truth. That property is what makes both
- * mid-word backspace ("she"->ሸ, backspace -> ሽ) and later autocomplete
+ * mid-word backspace (deleting exactly the Latin span behind the last
+ * rendered fidel character, via [lastUnitStart]) and later autocomplete
  * ("selam" as the lookup key even when the field shows ስላም) straightforward.
  *
  * MATCHING RULES:
@@ -41,7 +42,13 @@ package com.addiyon.tanakeyboard.transliteration
  *                                         q, b, t, ch, n, gn, k, z, d, j, g,
  *                                         T, C, f) hit the fast path.
  *
- * 3. If no consonant matched at the current position, the character is
+ * 3. If no consonant matched at the current position, try the longest
+ *    bare-vowel spelling from [AmharicTable.bareVowels] instead, resolved
+ *    against the glottal ("'") family -- this is what makes a word-initial
+ *    (or otherwise unprefixed) vowel like "aster" come out as አስተር rather
+ *    than passed through as Latin "a".
+ *
+ * 4. If neither a consonant nor a bare vowel matched, the character is
  *    passed through unchanged. This covers digits, punctuation, spaces,
  *    already-typed fidel, and any Latin letter outside the scheme (e.g.
  *    plain "x" -- your scheme has no x family). Passing through is
@@ -50,13 +57,6 @@ package com.addiyon.tanakeyboard.transliteration
  *
  * WHAT THIS FUNCTION DOES NOT DO (yet):
  *
- * - Bare-vowel words (typing "aster" and expecting አስተር). Currently a
- *   leading vowel with no consonant is passed through as Latin. Most SERA
- *   IMEs handle this by falling back to the ' (አ) family for a bare vowel
- *   at word start. Easy to layer on later once you decide the exact rule
- *   -- for now, users type ''aster' explicitly. This choice is called out
- *   here so it's not silently lost when step 6 adds shift handling.
- *
  * - Case folding. The caller feeds the string with case already resolved
  *   by shift state (see step 6). "H" and "h" are meant to be distinct
  *   inputs mapping to distinct families (ሐ vs ሀ) and are treated as such.
@@ -64,19 +64,56 @@ package com.addiyon.tanakeyboard.transliteration
 object Transliterator {
 
     fun transliterate(latin: String): String {
-        if (latin.isEmpty()) return ""
-
         val out = StringBuilder(latin.length)
+        forEachUnit(latin) { _, text -> out.append(text) }
+        return out.toString()
+    }
+
+    /**
+     * The Latin index where the last unit (one consonant+vowel syllable, or
+     * one passed-through character) begins -- i.e. how far a single
+     * backspace should truncate the buffer to delete exactly the last
+     * rendered fidel character. 0 if [latin] is empty.
+     */
+    fun lastUnitStart(latin: String): Int {
+        var lastStart = 0
+        forEachUnit(latin) { start, _ -> lastStart = start }
+        return lastStart
+    }
+
+    /**
+     * Walks [latin] left to right emitting one (start index, output text)
+     * pair per unit -- either a matched consonant(+vowel) syllable or a
+     * single passed-through character. Shared by [transliterate], which
+     * concatenates the text, and [lastUnitStart], which only needs the
+     * boundaries. Keeping one walk avoids the two ever disagreeing about
+     * where a unit begins.
+     */
+    private inline fun forEachUnit(latin: String, emit: (start: Int, text: String) -> Unit) {
         var i = 0
 
         while (i < latin.length) {
+            val start = i
+
             // 1. Longest consonant at position i.
             val consonant = AmharicTable.consonantsByLength
                 .firstOrNull { latin.startsWith(it, i) }
 
             if (consonant == null) {
-                // No consonant matched -> pass this character through.
-                out.append(latin[i])
+                // No consonant matched -> try a bare (unprefixed) vowel,
+                // resolved against the glottal family, before giving up and
+                // passing the character through as-is.
+                val bareVowel = AmharicTable.bareVowels
+                    .firstOrNull { (spelling, _) -> latin.startsWith(spelling, i) }
+
+                if (bareVowel != null) {
+                    val (spelling, index) = bareVowel
+                    emit(start, AmharicTable.families.getValue("'").forms[index].toString())
+                    i += spelling.length
+                    continue
+                }
+
+                emit(start, latin[i].toString())
                 i++
                 continue
             }
@@ -90,7 +127,7 @@ object Transliterator {
 
             if (vowel == null) {
                 // Bare consonant -> 6th order.
-                out.append(family.bare)
+                emit(start, family.bare.toString())
                 continue
             }
 
@@ -102,17 +139,15 @@ object Transliterator {
                 // defines one; otherwise fall back to bare + transliterated
                 // "ua" so nothing is silently dropped.
                 val ua = family.ua
-                if (ua != null) {
-                    out.append(ua)
+                val text = if (ua != null) {
+                    ua.toString()
                 } else {
-                    out.append(family.bare)
-                    out.append(transliterate("ua"))
+                    family.bare.toString() + transliterate("ua")
                 }
+                emit(start, text)
             } else {
-                out.append(family.forms[index])
+                emit(start, family.forms[index].toString())
             }
         }
-
-        return out.toString()
     }
 }

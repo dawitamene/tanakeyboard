@@ -189,9 +189,9 @@ class TanaKeyboardService : InputMethodService(),
 
     /**
      * Backspace pressed. In Amharic mode we try to shrink the composing
-     * buffer first (so "she" -> ሸ, backspace -> ሽ, backspace -> ስ, backspace
-     * -> nothing). If the buffer is empty -- or we're in English mode --
-     * fall back to deleting a character from the text field itself.
+     * buffer first, one full fidel character at a time (so "she" -> ሸ,
+     * backspace -> nothing). If the buffer is empty -- or we're in English
+     * mode -- fall back to deleting a character from the text field itself.
      */
     fun onDelete() {
         if (isAmharic && composer.onBackspace()) return
