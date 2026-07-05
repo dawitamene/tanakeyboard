@@ -196,13 +196,13 @@ fun KeyButton(
                 secondaryText?.let {
                     Text(
                         text = it,
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Normal,
                         color = iconTint.copy(alpha = 0.6f),
                         style = tightText,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(end = 3.dp, top = 2.dp)
+                            .padding(end = 3.dp, top = 0.dp)
                     )
                 }
             }

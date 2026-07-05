@@ -78,7 +78,7 @@ fun CharacterKey(
         },
         modifier = Modifier.width(width),
         height = height,
-        isSpecial = false
+        isSpecial = key.latin == "," || key.latin == "."
     ) {
         service.onCharacter(key.latin)
     }
