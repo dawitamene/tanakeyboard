@@ -1,22 +1,32 @@
 // ui/keys/KeyComposables.kt
 package com.addiyon.tanakeyboard.ui.keys
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardReturn
 import androidx.compose.material.icons.outlined.Backspace
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.addiyon.tanakeyboard.TanaKeyboardService
 import com.addiyon.tanakeyboard.model.KeyData
 import com.addiyon.tanakeyboard.model.NumbersMode
 import com.addiyon.tanakeyboard.model.ShiftState
-import com.addiyon.tanakeyboard.transliteration.AmharicTable
+import com.addiyon.tanakeyboard.transliteration.Transliterator
 import com.addiyon.tanakeyboard.ui.KeyButton
 import com.addiyon.tanakeyboard.ui.icons.ShiftIconFilled
 import com.addiyon.tanakeyboard.ui.icons.ShiftIconOutlined
@@ -42,16 +52,17 @@ import com.addiyon.tanakeyboard.ui.icons.ShiftIconOutlined
  *     was hardcoded to always show lowercase while isAmharic was true,
  *     which silently lied about what tapping the key would produce.
  *
- *   - [secondaryText] (the small fidel preview in the corner) can no
- *     longer be a single static glyph baked into the layout file --
- *     it needs to track whichever family the CURRENT shift state
- *     resolves to. We look it up live via
- *     [AmharicTable.bareFormOf] using the same case-resolved letter
- *     that's about to be typed, so toggling shift updates the preview
- *     (e.g. "h" -> ሀ, shift on -> "H" -> ሐ) instead of it staying frozen.
- *     Keys that aren't part of a consonant family (punctuation like
- *     "," -> "፣") fall back to the static mapping from [KeyData.amharic],
- *     since there's no shift-driven family to look up for those.
+ *   - [secondaryText] (the small fidel preview in the corner) is not a
+ *     static glyph baked into the layout file -- it's computed by running
+ *     [Transliterator.transliterate] on the same case-resolved letter
+ *     that's about to be typed, i.e. the LITERAL function the composer
+ *     applies on the keypress. Preview and behavior therefore cannot
+ *     disagree by construction (they used to: a parallel lookup path
+ *     showed ች on the C key while typing produced ጭ). Toggling shift
+ *     updates the preview too (e.g. "h" -> ህ, shift on -> "H" -> ሕ), and
+ *     punctuation gets its Ethiopic form ("," -> ፣) from the same call.
+ *     A key whose output transliteration leaves unchanged (digits on the
+ *     numeric pages) shows no preview rather than echoing itself.
  */
 @Composable
 fun CharacterKey(
@@ -72,7 +83,7 @@ fun CharacterKey(
     KeyButton(
         primaryText = effectiveLatin,
         secondaryText = if (isAmharic) {
-            AmharicTable.bareFormOf(effectiveLatin)?.toString() ?: key.amharic
+            Transliterator.transliterate(effectiveLatin).takeIf { it != effectiveLatin }
         } else {
             null
         },
@@ -173,12 +184,17 @@ fun RowScope.DeleteKey(
  * label always reflects the letter layout that's currently active (or was
  * last active, while a numeric layout is showing), not literally which of
  * the 4 layouts is on screen.
+ *
+ * A horizontal swipe (left OR right) across the space bar flips the
+ * language via [onSwipe] -- there are only two scripts, so either
+ * direction just toggles. A plain tap still inserts a space.
  */
 @Composable
 fun RowScope.SpaceKey(
     isAmharic: Boolean,
     height: Dp,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onSwipe: () -> Unit
 ) {
     KeyButton(
         primaryText = if (isAmharic) "አማርኛ" else "English",
@@ -187,6 +203,7 @@ fun RowScope.SpaceKey(
         modifier = Modifier.weight(KeyWeights.SPACE),
         height = height,
         isSpecial = false,
+        onSwipe = onSwipe,
         onClick = onClick
     )
 }
@@ -270,28 +287,41 @@ fun RowScope.SymbolsToggleKey(
  * Amharic/English language toggle. Weighted -> flexes to fill leftover space in its row.
  * Rendered as a "special" key -> darker surface than letter keys.
  *
- * Always shows the Amharic glyph as its label -- it doesn't switch to "EN"
- * when Amharic mode is on. Instead, active/inactive state is communicated
- * the same way ShiftKey communicates SHIFT/CAPS_LOCK: normal color when
- * off, primary-tinted plus a small underline bar when Amharic mode is on.
+ * Labelled with "ሀለ" over "AB", separated by a thin horizontal divider -- a
+ * static hint that this key flips between the two scripts, rather than an
+ * active/inactive indicator (which script is currently live is already shown
+ * on the space bar's label). The stacked, divided label (instead of a "ሀለ /
+ * AB" slash) needs a custom face, so it's passed as [KeyButton]'s content
+ * slot rather than a single primaryText string.
  */
 @Composable
 fun RowScope.LanguageToggleKey(
-    isAmharic: Boolean,
     height: Dp,
     onClick: () -> Unit
 ) {
     KeyButton(
-        primaryText = "አ",
-        iconTint = if (isAmharic) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        },
-        showLockIndicator = isAmharic,
         modifier = Modifier.weight(KeyWeights.LANGUAGE_TOGGLE),
         height = height,
         isSpecial = true,
-        onClick = onClick
+        onClick = onClick,
+        content = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "ሀለ", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 2.dp)
+                        .width(18.dp)
+                        .height(1.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(1.dp)
+                        )
+                )
+                Text(text = "AB", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
     )
 }

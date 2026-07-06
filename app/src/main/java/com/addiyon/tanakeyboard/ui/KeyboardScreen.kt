@@ -59,6 +59,7 @@ fun KeyboardScreen(
         if (!isNumberMode) {
             SuggestionBar(
                 suggestions = service.suggestions,
+                isAmharic = isAmharic,
                 onTap = { word -> service.onSuggestionTapped(word) }
             )
         }

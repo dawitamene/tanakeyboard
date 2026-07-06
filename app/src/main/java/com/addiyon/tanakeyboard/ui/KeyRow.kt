@@ -59,7 +59,12 @@ internal fun KeyRow(
                     CharacterKey(
                         key = key,
                         isShift = isShift,
-                        isAmharic = isAmharic,
+                        // Not raw isAmharic: on the numeric pages every key
+                        // commits its literal character (no transliteration),
+                        // so the fidel corner preview must be suppressed there
+                        // even while Amharic mode is on -- otherwise the ","
+                        // key would advertise ፣ but type ",".
+                        isAmharic = isAmharic && !isNumberMode,
                         width = metrics.keyWidth,
                         height = metrics.keyHeight,
                         service = service
@@ -87,7 +92,8 @@ internal fun KeyRow(
                     SpaceKey(
                         isAmharic = isAmharic,
                         height = metrics.keyHeight,
-                        onClick = { service.onSpace() }
+                        onClick = { service.onSpace() },
+                        onSwipe = { service.toggleLanguage() }
                     )
                 }
 
@@ -117,7 +123,6 @@ internal fun KeyRow(
 
                 KeyData.LanguageToggle -> {
                     LanguageToggleKey(
-                        isAmharic = isAmharic,
                         height = metrics.keyHeight,
                         onClick = { service.toggleLanguage() }
                     )

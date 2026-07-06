@@ -49,13 +49,15 @@ Settings > System > Languages & input > On-screen keyboard, then switch to it in
 - **`WordComposer`** (`composing/`) owns the live "being-typed" word: appends to a raw
   `StringBuilder`, re-runs a `render` lambda on the whole buffer, and pushes the result into the
   `InputConnection`'s composing region (`setComposingText`) so it's underlined until committed.
-  There's one instance per language, differing only in the injected lambdas: the Amharic one renders
-  via `Transliterator.transliterate` and backspaces the whole Latin span behind the last rendered
-  fidel unit (via `Transliterator.lastUnitStart`, so "she" → ሸ, one backspace removes the whole
-  thing); the English one uses identity render and one-char backspace, composing purely so a tapped
-  suggestion can atomically replace the current word. It's fed an `InputConnection` *lambda*,
-  not a captured reference, because the system swaps `InputConnection` instances between input
-  sessions.
+  There's one instance per language, differing only in the injected lambdas. Both compose the raw
+  Latin *inline* in the field (underlined): the Amharic one's `composingText` lambda is identity, so
+  the field shows the literal Latin being typed ("sh"), while its `render` = `Transliterator.transliterate`
+  produces the fidel ("ሽ") used for the suggestion strip and for `commit` (which atomically swaps the
+  underlined Latin for the greedy fidel reading). The English one uses identity for both. Backspace
+  removes one Latin character at a time in both languages, so the user clears the composed word letter
+  by letter. A tapped suggestion / space replaces the whole composing span. It's fed an
+  `InputConnection` *lambda*, not a captured reference, because the system swaps `InputConnection`
+  instances between input sessions.
 
 ### The suggestion layer
 
@@ -91,5 +93,10 @@ Settings > System > Languages & input > On-screen keyboard, then switch to it in
   concatenated buffer happens to match a family in `AmharicTable`.
   Composables never read `service.currentInputConnection` at composition time (it goes stale across
   input sessions) — they call service methods that re-fetch it fresh on each tap, and a key's corner
-  preview glyph is looked up live via `AmharicTable.bareFormOf` off the shift-resolved letter, not
-  baked into the layout data.
+  preview glyph is computed live by running `Transliterator.transliterate` on the shift-resolved
+  letter — the literal function the composer applies on keypress, so preview and behavior can't
+  disagree by construction. Never bake preview glyphs into layout data (a former `KeyData.amharic`
+  field did exactly that and drifted out of sync with actual output). The X and C keys work because
+  `AmharicTable.families` contains SERA's single-letter aliases ("x" → ሸ family, "c" → ቸ family,
+  sharing the digraphs' `Family` instances); "," and "." map to ፣/። via `AmharicTable.punctuation`,
+  applied in the Transliterator's pass-through step and committed (not composed) by `onCharacter`.

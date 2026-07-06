@@ -27,6 +27,13 @@ import com.addiyon.tanakeyboard.suggestion.matchCase
 import com.addiyon.tanakeyboard.transliteration.Transliterator
 import com.addiyon.tanakeyboard.ui.theme.KeyboardColors
 
+/**
+ * Max chips in the Amharic suggestion strip: the live word's readings plus
+ * dictionary completions. The strip scrolls horizontally, so this can be
+ * generous.
+ */
+private const val AMHARIC_SUGGESTION_LIMIT = 10
+
 class TanaKeyboardService : InputMethodService(),
     LifecycleOwner,
     SavedStateRegistryOwner {
@@ -99,8 +106,13 @@ class TanaKeyboardService : InputMethodService(),
     // capturing an InputConnection at composition time.
     private val amharicComposer = WordComposer(
         inputConnection = { currentInputConnection },
+        // The field shows the raw Latin the user types (composingText =
+        // identity), while render produces the fidel used for the suggestion
+        // strip and for commit -- so "sh" is visible inline and its readings
+        // (ስህ, ሽ, …) are offered in the strip. Backspace uses the default
+        // one-char step so each typed letter can be cleared individually.
         render = Transliterator::transliterate,
-        lastUnitStart = Transliterator::lastUnitStart
+        composingText = { it }
     )
 
     private val englishComposer = WordComposer(
@@ -138,11 +150,34 @@ class TanaKeyboardService : InputMethodService(),
             return
         }
         suggestions = if (isAmharic) {
-            amharicDictionary.suggestions(amharicComposer.display)
+            amharicSuggestions()
         } else {
             val typed = englishComposer.display
             englishDictionary.suggestions(typed.lowercase()).map { matchCase(typed, it) }
         }
+    }
+
+    /**
+     * Amharic suggestions: the live word's own readings first, then dictionary
+     * completions of each, as one scrollable strip.
+     *
+     * The field shows the raw Latin being typed; the strip offers its fidel
+     * readings, and [suggestions]`[0]` (the greedy reading) is what space
+     * commits in its place. The leading entries are [Transliterator.readings]:
+     * the greedy reading, plus the alternate-form and digraph-split readings
+     * when the buffer is ambiguous (so "sh" leads with ሽ, ስህ and "s" leads
+     * with ስ, ሠ; "r" is unambiguous and leads with just ር). Every reading is
+     * then used as a dictionary
+     * prefix -- so an ambiguous buffer searches BOTH ሽ… and ስህ… words -- and
+     * the completions are appended, deduped, capped at [AMHARIC_SUGGESTION_LIMIT].
+     */
+    private fun amharicSuggestions(): List<String> {
+        val latin = amharicComposer.raw
+        if (latin.isEmpty()) return emptyList()
+
+        val readings = Transliterator.readings(latin)
+        val completions = readings.flatMap { amharicDictionary.suggestions(it, AMHARIC_SUGGESTION_LIMIT) }
+        return (readings + completions).distinct().take(AMHARIC_SUGGESTION_LIMIT)
     }
 
     private fun updateDarkThemeFromConfiguration(configuration: Configuration) {
@@ -274,27 +309,43 @@ class TanaKeyboardService : InputMethodService(),
      * On the letter layouts, both languages compose: Amharic because a
      * keypress is ambiguous until the syllable ends, English so the current
      * word stays replaceable by a tapped suggestion. Word-terminating keys
-     * on the English layout ("." and ",") and everything on the numeric
-     * pages commit directly -- flushing the composer first, so "hello" +
-     * "." lands as "hello." rather than swallowing the dot into the word
-     * buffer (where it could never match a dictionary entry).
+     * ("." and ",", the only non-word keys on either letter layout) and
+     * everything on the numeric pages commit directly -- flushing the
+     * composer first, so "hello" + "." lands as "hello." rather than
+     * swallowing the dot into the word buffer (where it could never match
+     * a dictionary entry). In Amharic mode the punctuation itself is
+     * transliterated on the way out ("," -> ፣, "." -> ።) -- the same
+     * [Transliterator] call the key's corner preview shows, so the two
+     * can't disagree.
      */
     fun onCharacter(latin: String) {
         val output = if (isShiftEnabled) latin.uppercase() else latin.lowercase()
 
         when {
             isNumberMode -> currentInputConnection?.commitText(output, 1)
-            isAmharic -> amharicComposer.onCharacter(output)
-            output.all { it.isLetter() || it == '\'' } -> englishComposer.onCharacter(output)
-            else -> {
-                englishComposer.commit()
-                currentInputConnection?.commitText(output, 1)
+            !isWordCharacter(output) -> {
+                activeComposer.commit()
+                val text = if (isAmharic) Transliterator.transliterate(output) else output
+                currentInputConnection?.commitText(text, 1)
             }
+            isAmharic -> amharicComposer.onCharacter(output)
+            else -> englishComposer.onCharacter(output)
         }
 
         consumeShiftAfterCharacter()
         updateSuggestions()
     }
+
+    /**
+     * Whether [output] belongs inside a composing word rather than
+     * terminating one. Letters in both languages; apostrophe (English
+     * contractions, and the SERA spelling of the glottal አ family) and
+     * backtick (SERA pharyngeal ዐ) also count -- neither is on a letter
+     * layout today, but if one is ever added it must feed the composer,
+     * not chop the word.
+     */
+    private fun isWordCharacter(output: String) =
+        output.all { it.isLetter() || it == '\'' || it == '`' }
 
     /**
      * Backspace pressed. Try to shrink the active composing buffer first --
@@ -314,8 +365,12 @@ class TanaKeyboardService : InputMethodService(),
 
     /**
      * Space commits any in-flight word first, then inserts a space.
-     * Committing first is what lets the space actually terminate the word
-     * rather than getting swallowed into the composing region.
+     *
+     * [WordComposer.commit] replaces the composing region with the rendered
+     * word: for Amharic that swaps the underlined Latin for the greedy fidel
+     * reading (the same as suggestions[0]), so space picks the default reading
+     * and a tap is only needed for a NON-default one; for English it just
+     * finalizes the composed word. With no word in flight it's a plain space.
      */
     fun onSpace() {
         activeComposer.commit()

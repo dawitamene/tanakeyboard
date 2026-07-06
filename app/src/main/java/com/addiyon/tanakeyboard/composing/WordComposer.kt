@@ -3,41 +3,45 @@ package com.addiyon.tanakeyboard.composing
 import android.view.inputmethod.InputConnection
 
 /**
- * Owns the "currently-being-typed" word: a raw key buffer, and the rendered
- * mirror of that buffer that's shown to the user as underlined composing
- * text. One instance per language, differing only in the two lambdas:
+ * Owns the "currently-being-typed" word: a raw key buffer, mirrored into the
+ * field's composing region (underlined, replaceable) as you type. One
+ * instance per language, differing in the injected lambdas:
  *
- *   - Amharic: [render] = Transliterator.transliterate (the buffer is
- *     romanized SERA Latin, the display is fidel), [lastUnitStart] =
- *     Transliterator.lastUnitStart (backspace removes the whole Latin span
- *     behind the last rendered fidel character, so "she" -> ሸ dies in one
- *     press instead of stepping back through intermediate consonants).
- *   - English: both defaults (the buffer IS the display, backspace removes
- *     one character).
+ *   - Amharic: [composingText] = identity, so the field shows the LITERAL
+ *     Latin the user is typing ("sh"), while [render] =
+ *     Transliterator.transliterate produces the fidel ("ሽ") used for the
+ *     suggestion strip and for [commit]. Backspace removes one Latin
+ *     character at a time (default [lastUnitStart]), so the user can clear
+ *     the raw letters one by one.
+ *   - English: all defaults -- the buffer IS both the composing text and the
+ *     display, backspace removes one character.
+ *
+ * WHY THE LATIN IS SHOWN INLINE (AMHARIC)
+ *
+ * Earlier the Amharic word lived ONLY in the suggestion strip and nothing was
+ * written to the field until commit. That confused users -- typing produced
+ * no visible text in the field. Now the raw Latin is composed inline
+ * (underlined) so there's always visible feedback and each letter can be
+ * cleared, while the ambiguous fidel readings (ስህ, ሽ, …) are offered in the
+ * strip. Picking a reading (tap or space) atomically replaces the Latin span
+ * with the chosen fidel.
  *
  * WHY A COMPOSER AT ALL
  *
- * In Amharic mode, a keypress is ambiguous until the syllable ends. Typing
- * "s" might become "sh" (ሽ) or "se" (ሰ) or stay "s" (ስ). If we committed
- * each keypress with commitText, we'd have to keep deleting and re-typing
- * to fix it up -- flickery, and it fights with any downstream text field
- * that treats each commit as a discrete edit.
- *
- * English has no such ambiguity, but it composes through this class for a
- * different reason: suggestions. The composing region is Android's
- * first-class primitive for "this word may still be replaced" -- text set
- * with setComposingText is rendered underlined and is atomically swapped
- * out by the next setComposingText / finishComposingText / commitText call.
- * That swap is exactly how a tapped suggestion replaces the half-typed word
- * ([commitSuggestion]), so English words are composed rather than committed
- * keypress-by-keypress. This is the same approach AOSP's LatinIME takes.
+ * The composing region is Android's first-class primitive for "this word may
+ * still be replaced" -- text set with setComposingText is rendered underlined
+ * and is atomically swapped out by the next setComposingText / commitText
+ * call. That swap is exactly how a tapped suggestion replaces the half-typed
+ * word ([commitSuggestion]) and how Amharic's Latin becomes fidel on commit,
+ * so words are composed rather than committed keypress-by-keypress. This is
+ * the same approach AOSP's LatinIME takes.
  *
  * DESIGN
  *
  * - The raw buffer is the source of truth. Every keystroke mutates it, then
- *   re-runs [render] over the whole buffer and pushes the result into the
- *   composing region -- the "stateless whole-buffer" strategy documented on
- *   Transliterator itself.
+ *   re-runs [composingText] over the whole buffer and pushes the result into
+ *   the composing region, while [render] derives the committed/looked-up form
+ *   -- the "stateless whole-buffer" strategy documented on Transliterator.
  *
  * - The composer is fed an InputConnection *lambda*, not an InputConnection
  *   reference. The system swaps InputConnection instances between input
@@ -60,7 +64,18 @@ import android.view.inputmethod.InputConnection
  */
 internal class WordComposer(
     private val inputConnection: () -> InputConnection?,
+    /**
+     * Buffer -> the form committed into the field and used for dictionary
+     * lookups (fidel for Amharic, identity for English).
+     */
     private val render: (String) -> String = { it },
+    /**
+     * Buffer -> the text shown in the underlined composing region as the user
+     * types. Defaults to [render]; Amharic overrides it to identity so the
+     * literal Latin ("sh") is shown inline while [render] still produces the
+     * fidel used for suggestions and [commit].
+     */
+    private val composingText: (String) -> String = render,
     private val lastUnitStart: (String) -> Int = { it.length - 1 }
 ) {
 
@@ -71,14 +86,25 @@ internal class WordComposer(
         get() = buffer.isNotEmpty()
 
     /**
-     * What the composing region currently shows -- the rendered buffer.
-     * This is the string suggestions key off: for Amharic that's the live
-     * fidel (looking words up by the raw Latin would require reverse
-     * transliteration, which is ambiguous -- see WordTrie's class doc), and
-     * for English it's simply the word typed so far.
+     * The rendered buffer -- the form committed into the field and that
+     * suggestions key off. For Amharic that's the live fidel (looking words
+     * up by the raw Latin would require reverse transliteration, which is
+     * ambiguous -- see WordTrie's class doc), and for English it's simply the
+     * word typed so far. Distinct from what the composing region *shows*,
+     * which for Amharic is the raw Latin ([composingText]).
      */
     val display: String
         get() = render(buffer.toString())
+
+    /**
+     * The raw, unrendered key buffer -- for Amharic the romanized SERA Latin
+     * behind the fidel [display]. The service uses it to offer the alternate
+     * "separated" reading of an ambiguous digraph (Transliterator.transliterateSplit),
+     * which can't be recovered from [display] because forward transliteration
+     * isn't reliably invertible.
+     */
+    val raw: String
+        get() = buffer.toString()
 
     /**
      * A character key was pressed. Appends to the buffer and pushes the
@@ -98,8 +124,9 @@ internal class WordComposer(
      * buffer had something to delete), false if the caller should apply
      * its own delete-from-text-field fallback.
      *
-     * Deletes back to [lastUnitStart] -- the whole span behind the last
-     * rendered character, which for Amharic can be several Latin chars.
+     * Deletes back to [lastUnitStart] -- one Latin character for both
+     * languages by default, so the user clears the composed word letter by
+     * letter.
      */
     fun onBackspace(): Boolean {
         if (buffer.isEmpty()) return false
@@ -116,13 +143,16 @@ internal class WordComposer(
     }
 
     /**
-     * The word is done -- lock whatever is currently in the composing
-     * region into the field as normal committed text and clear the buffer.
-     * No-op if there's nothing being composed.
+     * The word is done -- replace whatever is currently in the composing
+     * region with the rendered [display] and lock it into the field as normal
+     * committed text, then clear the buffer. No-op if there's nothing being
+     * composed. For English [display] equals the composing text, so this just
+     * finalizes the word; for Amharic it swaps the underlined Latin for the
+     * greedy fidel reading.
      */
     fun commit() {
         if (buffer.isEmpty()) return
-        inputConnection()?.finishComposingText()
+        inputConnection()?.commitText(display, 1)
         buffer.clear()
     }
 
@@ -166,7 +196,10 @@ internal class WordComposer(
      */
     fun abandon() {
         if (buffer.isEmpty()) return
-        inputConnection()?.finishComposingText()
+        // Freeze the rendered word into the field wherever the composing
+        // region currently sits (for Amharic, this resolves the underlined
+        // Latin to its greedy fidel), then drop the buffer.
+        inputConnection()?.commitText(display, 1)
         buffer.clear()
     }
 
@@ -174,6 +207,6 @@ internal class WordComposer(
         // newCursorPosition=1 means: place caret at the end of the composed
         // text (offset 1 past its last char), which is the natural "keep
         // typing" position.
-        inputConnection()?.setComposingText(render(buffer.toString()), 1)
+        inputConnection()?.setComposingText(composingText(buffer.toString()), 1)
     }
 }

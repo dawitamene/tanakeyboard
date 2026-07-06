@@ -78,35 +78,67 @@ object AmharicTable {
     )
 
     /**
-     * Bare (unprefixed) vowel spelling -> index into the glottal ("'")
-     * [Family.forms], used when a vowel appears with no preceding consonant
-     * match (e.g. word-initial "aster" -> አስተር).
-     *
-     * This is a DIFFERENT index mapping than [vowels]. [vowels] encodes
-     * "consonant + vowel" combinations, where order 1 (index 0) spells the
-     * "e" vowel by SERA convention (e.g. "l" + "e" -> ለ). But order 1 of the
-     * bare glottal family spells "a" (አ) -- the glottal series is the one
-     * everyday standalone-vowel spelling, and it doesn't follow the same
-     * vowel-per-order labeling as regular consonant families. Hence a
-     * second table instead of reusing [vowels] against the "'" family.
-     *
-     * ORDER MATTERS: longest-first, so "ie" wins over "i".
+     * A bare (unprefixed) vowel: its Latin spelling, the consonant family it
+     * resolves against, and the index into that [Family.forms].
      */
-    val bareVowels: List<Pair<String, Int>> = listOf(
-        "ie" to 4,
-        "a" to 0,
-        "i" to 2,
-        "u" to 1,
-        "o" to 6,
-        "e" to BARE_FORM_INDEX
+    data class BareVowel(val spelling: String, val familyKey: String, val index: Int)
+
+    /**
+     * Bare (unprefixed) vowel spellings, used when a vowel appears with no
+     * preceding consonant match (e.g. word-initial "aster" -> አስተር).
+     *
+     * Two parallel sets, distinguished by CASE:
+     *
+     * - LOWERCASE (a/u/i/o/e/ie) resolve against the glottal ("'") family --
+     *   አ/ኡ/ኢ/ኦ/እ/ኤ -- the everyday standalone-vowel spelling.
+     * - UPPERCASE (A/U/I/O/E) resolve against the pharyngeal ("`") ዐ family --
+     *   ዐ/ዑ/ዒ/ዖ/ዕ -- so a shifted vowel reaches the ayn series that otherwise
+     *   only had the awkward backtick spelling. Same per-letter index mapping
+     *   as the lowercase set, just a different family.
+     *
+     * The index mapping is a DIFFERENT one than [vowels]. [vowels] encodes
+     * "consonant + vowel" combinations, where order 1 (index 0) spells the
+     * "e" vowel by SERA convention (e.g. "l" + "e" -> ለ). But order 1 of a
+     * bare vowel family spells "a" (አ / ዐ) -- these standalone series don't
+     * follow the same vowel-per-order labeling as regular consonant families.
+     * Hence a separate table instead of reusing [vowels].
+     *
+     * ORDER MATTERS: longest-first, so "ie" wins over "i". Case is resolved by
+     * the Transliterator (exact-case first, then case-insensitive), so the
+     * lowercase and uppercase groups can't shadow each other.
+     */
+    val bareVowels: List<BareVowel> = listOf(
+        // Glottal አ family (lowercase).
+        BareVowel("ie", "'", 4),
+        BareVowel("a", "'", 0),
+        BareVowel("i", "'", 2),
+        BareVowel("u", "'", 1),
+        BareVowel("o", "'", 6),
+        BareVowel("e", "'", BARE_FORM_INDEX),
+        // Pharyngeal ዐ family (uppercase).
+        BareVowel("A", "`", 0),
+        BareVowel("I", "`", 2),
+        BareVowel("U", "`", 1),
+        BareVowel("O", "`", 6),
+        BareVowel("E", "`", BARE_FORM_INDEX)
     )
 
     /**
      * Every consonant family in the scheme, keyed by its (case-sensitive)
      * Latin spelling. Forms are copied verbatim, row by row, from the
      * source transliteration list.
+     *
+     * The map is [baseFamilies] plus keyboard ALIASES appended below it:
+     * SERA also assigns single letters to two digraph families -- "x" spells
+     * ሸ (= "sh") and "c" spells ቸ (= "ch") -- and those are the spellings
+     * the keyboard's X and C keys rely on, since every key carries exactly
+     * one Latin letter. Aliases share the SAME [Family] instance as their
+     * digraph spelling rather than repeating the forms literal, so the two
+     * spellings can never drift apart. Note "c" (ቸ) vs "C" (ጨ) is a real
+     * case distinction, like h/H and t/T: the exact-case-first matching rule
+     * in Transliterator is what keeps shift+C reaching ጨ.
      */
-    val families: Map<String, Family> = mapOf(
+    private val baseFamilies: Map<String, Family> = mapOf(
         // ----- ሀ series -------------------------------------------------
         "h" to Family("ሀሁሂሃሄህሆ"),
         "H" to Family("ሐሑሒሓሔሕሖ"),
@@ -115,6 +147,7 @@ object AmharicTable {
         "l" to Family("ለሉሊላሌልሎ", ua = 'ሏ'),
         "m" to Family("መሙሚማሜምሞ", ua = 'ሟ'),
         "s" to Family("ሰሱሲሳሴስሶ", ua = 'ሷ'),
+        "S" to Family("ሠሡሢሣሤሥሦ"),
         "sh" to Family("ሸሹሺሻሼሽሾ", ua = 'ሿ'),
         "r" to Family("ረሩሪራሬርሮ", ua = 'ሯ'),
 
@@ -155,6 +188,7 @@ object AmharicTable {
         // ----- ejectives ጠ / ጸ / ጨ / ጰ -----------------------------------
         "T" to Family("ጠጡጢጣጤጥጦ", ua = 'ጧ'),
         "ts" to Family("ጸጹጺጻጼጽጾ"),
+        "Ts" to Family("ፀፁፂፃፄፅፆ"),
         "C" to Family("ጨጩጪጫጬጭጮ", ua = 'ጯ'),
         "ph" to Family("ጰጱጲጳጴጵጶ"),
         "P" to Family("ጰጱጲጳጴጵጶ"),
@@ -164,57 +198,97 @@ object AmharicTable {
         "p" to Family("ፐፑፒፓፔፕፖ")
     )
 
+    val families: Map<String, Family> = baseFamilies + mapOf(
+        // Keyboard aliases -- see the doc above [baseFamilies].
+        "x" to baseFamilies.getValue("sh"),
+        "c" to baseFamilies.getValue("ch")
+    )
+
     /**
      * Consonant spellings sorted longest-first, for greedy matching:
      * "sh" must be tried before "s", "gn" before "g", "kh" before "k",
      * "zh" before "z", "ts" before "t", "ch" before "c", "ph" before "p".
      *
-     * (Within the same length, order is irrelevant -- distinct spellings of
-     * equal length can never shadow each other.)
+     * (Within the same length, order is irrelevant. Distinct spellings of
+     * equal length can't shadow each other in the exact-case pass; "c"/"C"
+     * could in principle shadow each other in the case-INSENSITIVE pass,
+     * but never reach it -- an input starting with either letter always
+     * matches its own exact-case entry first.)
      */
     val consonantsByLength: List<String> =
         families.keys.sortedByDescending { it.length }
 
     /**
-     * Maps keyboard Latin letters (single characters) to the multi-letter
-     * AmharicTable family key they represent: "x" and "c" are the keyboard
-     * spellings for "sh" and "ch" respectively. Vowels are handled
-     * separately, via [bareVowels], since they don't all resolve to the
-     * same glottal glyph -- see [bareFormOf].
+     * The single-letter subset of [consonantsByLength], used for the
+     * "separated" reading ([Transliterator.transliterateSplit]) that resolves
+     * an ambiguous digraph like "sh" as two consonants (ስ+ህ) instead of one
+     * (ሽ). Every multi-letter spelling breaks down into single letters that
+     * all exist here ("sh"->s+h, "ts"->t+s, "gn"->g+n, ...), so a split
+     * reading is always producible.
      */
-    private val keyboardToFamilyKey: Map<String, String> = mapOf(
-        "x" to "sh",
-        "c" to "ch"
+    val singleCharConsonants: List<String> =
+        consonantsByLength.filter { it.length == 1 }
+
+    /**
+     * The velar ኀ series (ኀኁኂኃኄኅኆ). Not a keyboard-typeable family of its
+     * own -- there's no key and no Latin spelling that reaches it directly --
+     * it exists only as a *secondary* alternate reading of h/H (see
+     * [consonantAlternates]), so a user who wants ኅ can pick it from the
+     * suggestion strip without an extra dead key. Kept out of [families] on
+     * purpose so it never enters [consonantsByLength] and starts matching
+     * real input.
+     */
+    private val velarH = Family("ኀኁኂኃኄኅኆ")
+
+    /**
+     * Consonant spelling -> the ORDERED list of alternate families offered in
+     * the suggestion strip so the user doesn't have to reach for shift (or a
+     * spelling they don't know). Reading N of the strip flips every consonant
+     * to its Nth alternate (1-based); a consonant with fewer alternates than
+     * that just renders as itself and dedupes away.
+     *
+     *   - h/H -> [the other case form, then the velar ኀ series]: typing "h"
+     *     surfaces ሀ… , ሐ… and ኀ… readings.
+     *   - s/S -> [the other case form]: ሰ… and ሠ….
+     *   - ts/Ts -> [the other case form]: ጸ… and ፀ….
+     *   - k -> [the ቀ (q) series]: typing "k" primarily writes ከ/ክ but also
+     *     offers the ቅ family as a secondary reading, since the two are easy
+     *     to confuse and share a key in the user's head.
+     *
+     * Deliberately NOT the full set of case-distinct families: t/T (ተ/ጠ) and
+     * c/C (ቸ/ጨ) are left out because they'd flip on nearly every common word
+     * (every "t", every "c"), burying the useful readings under noise like
+     * ቤጥ for "bet". They stay reachable the old way, by pressing shift. Bare
+     * vowels a/A etc. have the same duality but are handled through
+     * [bareVowels] directly, not this map.
+     */
+    val consonantAlternates: Map<String, List<Family>> = mapOf(
+        "h" to listOf(families.getValue("H"), velarH),
+        "H" to listOf(families.getValue("h"), velarH),
+        "s" to listOf(families.getValue("S")),
+        "S" to listOf(families.getValue("s")),
+        "ts" to listOf(families.getValue("Ts")),
+        "Ts" to listOf(families.getValue("ts")),
+        "k" to listOf(families.getValue("q"))
     )
 
     /**
-     * Convenience lookup used by the UI (e.g. a key's corner label showing
-     * a preview of what the key produces): the glyph for [latin], or null
-     * if the spelling isn't part of the scheme.
-     *
-     * Resolution order:
-     * 1. Exact match (preserves case distinctions like h/H, t/T, ch/C) ->
-     *    the family's bare (6th-order) form.
-     * 2. Lowercased match (handles uppercase letters without a distinct
-     *    family, e.g. "Q" -> "q") -> the family's bare form.
-     * 3. Bare-vowel match (e.g. "a" -> አ, "u" -> ኡ) -- these are NOT the
-     *    glottal family's bare form (እ); see [bareVowels] for why standalone
-     *    vowels use a different index than consonant+vowel combinations.
-     * 4. Keyboard-to-family-key mapping (handles letters that represent
-     *    multi-letter spellings: "x" -> "sh", "c" -> "ch") -> the family's
-     *    bare form.
+     * How many alternate readings the strip can offer beyond the greedy one --
+     * the longest alternate list in [consonantAlternates], but at least 1 so
+     * the glottal<->pharyngeal bare-vowel flip (handled directly in
+     * [Transliterator], not via the map) always gets its own reading too.
      */
-    fun bareFormOf(latin: String): Char? {
-        families[latin]?.let { return it.bare }
-        val lower = latin.lowercase()
-        if (lower != latin) {
-            families[lower]?.let { return it.bare }
-        }
-        bareVowels.firstOrNull { (spelling, _) -> spelling == lower }?.let { (_, index) ->
-            return families.getValue("'").forms[index]
-        }
-        val mapped = keyboardToFamilyKey[lower]
-        if (mapped != null) return families[mapped]?.bare
-        return null
-    }
+    val maxAlternateLevel: Int =
+        maxOf(1, consonantAlternates.values.maxOfOrNull { it.size } ?: 0)
+
+    /**
+     * Ethiopic punctuation for the two punctuation keys on the Amharic
+     * letter layout: "," -> ፣ (comma) and "." -> ። (full stop). Applied by
+     * Transliterator's pass-through step, so the same mapping serves both
+     * actual typing and the keys' corner previews.
+     */
+    val punctuation: Map<Char, Char> = mapOf(
+        ',' to '፣',
+        '.' to '።'
+    )
 }

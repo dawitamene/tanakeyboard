@@ -4,6 +4,7 @@ package com.addiyon.tanakeyboard.ui
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -40,6 +42,7 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 
 import com.addiyon.tanakeyboard.ui.keys.repeatingClickable
+import kotlin.math.abs
 
 /**
  * A single keyboard key. Renders as either a letter/character key
@@ -110,6 +113,15 @@ fun KeyButton(
     showLockIndicator: Boolean = false,
     repeatable: Boolean = false,
     showsPreviewOnPress: Boolean = false,
+    onSwipe: (() -> Unit)? = null,
+    /**
+     * Optional custom face for the key, replacing the icon/[primaryText]
+     * layout entirely (still centered, and still wrapped in all the press /
+     * haptic / surface-swap behavior). Used by keys whose label isn't a single
+     * glyph or string -- e.g. the language toggle stacks "ሀለ" over "AB" with a
+     * divider between them.
+     */
+    content: (@Composable androidx.compose.foundation.layout.BoxScope.() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -152,6 +164,27 @@ fun KeyButton(
         )
     }
 
+    // Horizontal swipe handler (currently the space bar, to flip language).
+    // Accumulates the drag and fires [onSwipe] once on release if it crossed
+    // a distance threshold, so a plain tap still falls through to onClick and
+    // only a deliberate left/right flick triggers the swipe. The drag
+    // consumes horizontal moves so it doesn't fight the tap detection.
+    val swipeModifier = if (onSwipe != null) {
+        Modifier.pointerInput(onSwipe) {
+            val threshold = 32.dp.toPx()
+            var total = 0f
+            detectHorizontalDragGestures(
+                onDragStart = { total = 0f },
+                onDragEnd = { if (abs(total) > threshold) onSwipe() }
+            ) { change, dragAmount ->
+                total += dragAmount
+                change.consume()
+            }
+        }
+    } else {
+        Modifier
+    }
+
     if (!repeatable) {
         // Haptic on press-DOWN (clickable's onClick only fires on release,
         // which feels laggy for a keyboard -- iOS buzzes the moment your
@@ -169,7 +202,8 @@ fun KeyButton(
         modifier = modifier
             .height(height)
             .padding(horizontal = 3.dp)
-            .then(pressModifier),
+            .then(pressModifier)
+            .then(swipeModifier),
         shape = RoundedCornerShape(6.dp),
         colors = CardDefaults.cardColors(containerColor = background),
         elevation = CardDefaults.cardElevation(
@@ -181,7 +215,9 @@ fun KeyButton(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            if (icon != null) {
+            if (content != null) {
+                content()
+            } else if (icon != null) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center

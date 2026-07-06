@@ -53,12 +53,11 @@ private fun buildManualRows(): List<ManualRow> =
             ManualRow(latin, family.bare, entries)
         }
 
-private fun buildStandaloneVowelEntries(): List<ManualEntry> {
-    val glottal = AmharicTable.families.getValue("'")
-    return AmharicTable.bareVowels.map { (spelling, index) ->
-        ManualEntry(spelling, glottal.forms[index])
+private fun buildStandaloneVowelEntries(): List<ManualEntry> =
+    AmharicTable.bareVowels.map { bare ->
+        val family = AmharicTable.families.getValue(bare.familyKey)
+        ManualEntry(bare.spelling, family.forms[bare.index])
     }
-}
 
 @Composable
 fun ManualScreen(
