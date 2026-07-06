@@ -240,6 +240,9 @@ object AmharicTable {
      */
     private val velarH = Family("ኀኁኂኃኄኅኆ")
 
+    /** Velar ኀ series — alternate reading of h/H, not directly typeable. */
+    val velarFamily: Family get() = velarH
+
     /**
      * Consonant spelling -> the ORDERED list of alternate families offered in
      * the suggestion strip so the user doesn't have to reach for shift (or a

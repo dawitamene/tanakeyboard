@@ -2,15 +2,17 @@ package com.addiyon.tanakeyboard.ui.manual
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -22,63 +24,111 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastForEach
 import com.addiyon.tanakeyboard.transliteration.AmharicTable
 
-private data class ManualEntry(val spelling: String, val glyph: Char)
-private data class ManualRow(val latin: String, val bare: Char, val entries: List<ManualEntry>)
+private data class TableCell(val fidel: Char, val latin: String)
+private data class TableRow(
+    val label: String,
+    val cells: List<TableCell>,
+    val searchText: String
+)
 
-/**
- * Digraph families whose keyboard key is a single different letter -- the
- * table is keyed by spelling ("sh"), but the key the user actually taps is
- * "x". Mirrors AmharicTable's (private) keyboardToFamilyKey mapping.
- */
-private val keyboardAliases = mapOf("sh" to "x", "ch" to "c")
+private val indexToVowel: Map<Int, String> =
+    AmharicTable.vowels
+        .filter { it.second != AmharicTable.UA_INDEX }
+        .associate { it.second to it.first } + (AmharicTable.BARE_FORM_INDEX to "")
 
-private val indexToVowelLabel: Map<Int, String> =
-    AmharicTable.vowels.filter { it.second != AmharicTable.UA_INDEX }
-        .associate { (label, idx) -> idx to label }
+private val ethiopianOrder = listOf(
+    'ሀ', 'ለ', 'ሐ', 'መ', 'ሠ', 'ረ', 'ሰ', 'ሸ',
+    'ቀ', 'በ', 'ተ', 'ቸ', 'ኀ', 'ነ', 'ኘ', 'አ',
+    'ከ', 'ኸ', 'ወ', 'ዐ', 'ዘ', 'ዠ', 'የ', 'ደ',
+    'ጀ', 'ገ', 'ጠ', 'ጨ', 'ጰ', 'ጸ', 'ፀ', 'ፈ', 'ፐ'
+)
 
-private fun buildManualRows(): List<ManualRow> =
-    AmharicTable.families.entries
-        .sortedBy { it.key.lowercase() }
-        .map { (latin, family) ->
-            val entries = family.forms.mapIndexed { index, glyph ->
-                val label = indexToVowelLabel[index].orEmpty()
-                ManualEntry(latin + label, glyph)
-            } + listOfNotNull(family.ua?.let { ManualEntry(latin + "ua", it) })
-            ManualRow(latin, family.bare, entries)
+private fun buildTableRows(): List<TableRow> {
+    val rows = mutableListOf<TableRow>()
+
+    for ((key, family) in AmharicTable.families) {
+        val isGlottalPharyngeal = key == "'" || key == "`"
+        val cells = mutableListOf<TableCell>()
+        val searchParts = mutableListOf<String>()
+
+        for (i in 0 until 7) {
+            val fidel = family.forms[i]
+            val vowel = indexToVowel[i].orEmpty()
+            val latins = mutableListOf<String>()
+
+            if (isGlottalPharyngeal) {
+                for (bv in AmharicTable.bareVowels) {
+                    if (bv.index == i && bv.familyKey == key) {
+                        latins.add(bv.spelling)
+                    }
+                }
+                if (latins.isEmpty()) {
+                    latins.add(key + vowel)
+                }
+            } else {
+                latins.add(key + vowel)
+            }
+
+            val latinStr = latins.first()
+            cells.add(TableCell(fidel, latinStr))
+            searchParts.add(latinStr)
+            searchParts.add(fidel.toString())
         }
 
-private fun buildStandaloneVowelEntries(): List<ManualEntry> =
-    AmharicTable.bareVowels.map { bare ->
-        val family = AmharicTable.families.getValue(bare.familyKey)
-        ManualEntry(bare.spelling, family.forms[bare.index])
+        if (family.ua != null) {
+            cells.add(TableCell(family.ua, key + "ua"))
+            searchParts.add(key + "ua")
+            searchParts.add(family.ua.toString())
+        }
+
+        val label = when (key) {
+            "'" -> "a"
+            "`" -> "A"
+            else -> key
+        }
+        rows.add(TableRow(label, cells, searchParts.joinToString(" ")))
     }
+
+    val velar = AmharicTable.velarFamily
+    val velarCells = mutableListOf<TableCell>()
+    val velarSearch = mutableListOf<String>()
+    for (i in 0 until 7) {
+        val fidel = velar.forms[i]
+        val vowel = indexToVowel[i].orEmpty()
+        val spelling = "h$vowel"
+        velarCells.add(TableCell(fidel, spelling))
+        velarSearch.add(spelling)
+        velarSearch.add(fidel.toString())
+    }
+    rows.add(TableRow("h", velarCells, velarSearch.joinToString(" ")))
+
+    val orderMap = ethiopianOrder.withIndex().associate { it.value to it.index }
+    return rows.sortedWith(
+        compareBy<TableRow> {
+            orderMap[it.cells.first().fidel] ?: Int.MAX_VALUE
+        }.thenBy { it.label }
+    )
+}
 
 @Composable
 fun ManualScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val rows = remember { buildManualRows() }
-    val standaloneVowels = remember { buildStandaloneVowelEntries() }
+    val rows = remember { buildTableRows() }
     var query by rememberSaveable { mutableStateOf("") }
 
     val visibleRows = remember(query) {
         val q = query.trim()
         if (q.isEmpty()) rows
-        else rows.filter { row ->
-            row.latin.startsWith(q, ignoreCase = true) ||
-                keyboardAliases[row.latin]?.startsWith(q, ignoreCase = true) == true ||
-                row.entries.any { it.spelling.startsWith(q, ignoreCase = true) || it.glyph in q }
-        }
+        else rows.filter { it.searchText.contains(q, ignoreCase = true) }
     }
-    val showVowels = query.isBlank() ||
-        standaloneVowels.any { it.spelling.startsWith(query.trim(), ignoreCase = true) || it.glyph in query }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -90,7 +140,7 @@ fun ManualScreen(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
             Text(
-                text = "Transliteration Manual",
+                text = "Typing Guide",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(start = 8.dp, top = 12.dp)
             )
@@ -100,75 +150,65 @@ fun ManualScreen(
             value = query,
             onValueChange = { query = it },
             singleLine = true,
-            placeholder = { Text("Search: be, sh, ላ ...") },
+            shape = RoundedCornerShape(percent = 50),
+            placeholder = { Text("Search: he, sh, ላ ...") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (showVowels) {
-                item {
-                    ManualCard(title = "Standalone vowels", bare = null, entries = standaloneVowels)
-                }
-            }
             items(visibleRows) { row ->
-                ManualCard(
-                    title = row.latin,
-                    bare = row.bare,
-                    keyHint = keyboardAliases[row.latin],
-                    entries = row.entries
-                )
+                FamilyCard(row)
             }
         }
     }
 }
 
 @Composable
-private fun ManualCard(
-    title: String,
-    bare: Char?,
-    entries: List<ManualEntry>,
-    keyHint: String? = null
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = if (bare != null) "$title  ($bare)" else title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            if (keyHint != null) {
-                Text(
-                    text = "On the keyboard: tap \"$keyHint\"",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            EntryFlow(entries)
-        }
-    }
-}
+private fun FamilyCard(row: TableRow) {
+    val columnsPerRow = 4
 
-@Composable
-private fun EntryFlow(entries: List<ManualEntry>) {
-    // Simple wrapping rows of fixed chunk size -- avoids pulling in a
-    // FlowRow dependency for a small, fixed-size (<= 8 items) list.
-    val chunkSize = 4
-    Column(
-        modifier = Modifier.padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
-        entries.chunked(chunkSize).forEach { chunk ->
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                chunk.fastForEach { entry ->
-                    Column(modifier = Modifier.size(56.dp)) {
-                        Text(text = entry.glyph.toString(), style = MaterialTheme.typography.headlineSmall)
-                        Text(text = entry.spelling, style = MaterialTheme.typography.labelSmall)
+        Column(modifier = Modifier.padding(10.dp)) {
+            Text(
+                text = row.label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+
+            row.cells.chunked(columnsPerRow).forEach { chunk ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    chunk.forEach { cell ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = cell.fidel.toString(),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = cell.latin,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

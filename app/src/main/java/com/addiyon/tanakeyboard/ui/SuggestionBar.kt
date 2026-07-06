@@ -13,15 +13,28 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -47,15 +60,83 @@ import androidx.compose.ui.unit.sp
  * a service method" convention every other key already follows (see [KeyRow]).
  */
 @Composable
-fun SuggestionBar(
+fun SuggestionArea(
     suggestions: List<String>,
     isAmharic: Boolean,
-    onTap: (String) -> Unit
+    onTap: (String) -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenThemes: () -> Unit,
+    onAi: () -> Unit,
+    onClipboard: () -> Unit
 ) {
-    if (isAmharic) {
-        AmharicSuggestionStrip(suggestions, onTap)
-    } else {
-        EnglishSuggestionStrip(suggestions, onTap)
+    // The app logo is always at the start of the bar. When there's nothing to
+    // suggest, the row is a toolbar of quick actions spread evenly across the
+    // width (justify space-between, logo included); when suggestions exist the
+    // logo stays put and the strip fills the rest.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 8.dp),
+        horizontalArrangement =
+            if (suggestions.isEmpty()) Arrangement.SpaceBetween else Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AppIconPlaceholder()
+
+        if (suggestions.isEmpty()) {
+            ToolbarIcon(Icons.Filled.AutoAwesome, "AI", onAi)
+            ToolbarIcon(Icons.Filled.ContentPaste, "Clipboard", onClipboard)
+            ToolbarIcon(Icons.Filled.Settings, "Settings", onOpenSettings)
+            ToolbarIcon(Icons.Filled.Palette, "Themes", onOpenThemes)
+        } else {
+            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                if (isAmharic) {
+                    AmharicSuggestionStrip(suggestions, onTap)
+                } else {
+                    EnglishSuggestionStrip(suggestions, onTap)
+                }
+            }
+        }
+    }
+}
+
+/** Placeholder app-mark shown at the start of the toolbar. */
+@Composable
+private fun AppIconPlaceholder() {
+    Box(
+        modifier = Modifier
+            .size(26.dp)
+            .clip(RoundedCornerShape(7.dp))
+            .background(MaterialTheme.colorScheme.primary),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Keyboard,
+            contentDescription = "Tana Keyboard",
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun ToolbarIcon(icon: ImageVector, description: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            modifier = Modifier.size(22.dp)
+        )
     }
 }
 
@@ -73,7 +154,11 @@ private fun AmharicSuggestionStrip(
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        suggestions.forEach { word ->
+        suggestions.forEachIndexed { index, word ->
+            // The first chip is the greedy reading -- what SPACE auto-commits.
+            // Make it stand out (bolder, accent color) so the default choice
+            // is obvious versus the alternates.
+            val isPrimary = index == 0
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -83,10 +168,12 @@ private fun AmharicSuggestionStrip(
                 Text(
                     text = word,
                     fontSize = 16.sp,
+                    fontWeight = if (isPrimary) FontWeight.Bold else FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = if (isPrimary) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface
                 )
             }
 

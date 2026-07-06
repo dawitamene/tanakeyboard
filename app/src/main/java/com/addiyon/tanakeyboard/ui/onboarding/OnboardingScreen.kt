@@ -4,34 +4,66 @@ import android.content.Context.INPUT_METHOD_SERVICE
 import android.content.Intent
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.addiyon.tanakeyboard.KeyboardStatusSnapshot
 
+private val GreenCheck = Color(0xFF2E7D32)
+
+/** The distinct full-screen pages of the first-run flow. */
+private enum class Phase { Activate, Enable, AllSet }
+
 /**
- * First-run walkthrough: explain the app, then guide the user through
- * enabling the keyboard and switching to it. Auto-advances to Home only
- * once the keyboard is the default -- advancing on merely "enabled" would
- * skip the guided step 2. A manual Continue/Skip button is the fallback.
+ * First-run walkthrough as full-screen pages: Activate -> Enable -> All set.
+ * Each page is centered with a single centered call-to-action; the flow
+ * auto-advances as the live [KeyboardStatusSnapshot] changes (enabling the
+ * IME advances to Enable, making it default advances to All set), so the
+ * user never taps a "next" button -- completing the system step IS the next.
+ * After the brief All-set confirmation it calls [onDone].
  */
 @Composable
 fun OnboardingScreen(
@@ -41,89 +73,210 @@ fun OnboardingScreen(
 ) {
     val context = LocalContext.current
 
-    LaunchedEffect(status.isDefault) {
-        if (status.isDefault) onDone()
+    // Phase is derived from live status but held in state so it only ever
+    // moves forward -- e.g. an OEM toggling `enabled` off mid-flow shouldn't
+    // yank the user back a page.
+    var phase by remember {
+        mutableStateOf(
+            when {
+                status.isDefault -> Phase.AllSet
+                status.enabled -> Phase.Enable
+                else -> Phase.Activate
+            }
+        )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+    LaunchedEffect(status) {
+        when {
+            status.isDefault -> phase = Phase.AllSet
+            status.enabled && phase == Phase.Activate -> phase = Phase.Enable
+        }
+    }
+
+    // Brief confirmation, then hand off to the next screen.
+    LaunchedEffect(phase) {
+        if (phase == Phase.AllSet) {
+            kotlinx.coroutines.delay(1600)
+            onDone()
+        }
+    }
+
+    Box(
+        modifier = modifier.fillMaxSize()
     ) {
-        Text(
-            text = "Welcome to Tana Keyboard",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Text(
-            text = "Type Amharic (Ge'ez) using Latin transliteration -- " +
-                "for example, typing \"selam\" gives you ሰላም. " +
-                "Two quick steps to get started:",
-            style = MaterialTheme.typography.bodyMedium
-        )
+        AnimatedContent(
+            targetState = phase,
+            transitionSpec = {
+                (slideInHorizontally { it } + fadeIn()) togetherWith
+                    (slideOutHorizontally { -it } + fadeOut())
+            },
+            label = "onboarding-phase"
+        ) { current ->
+            when (current) {
+                Phase.Activate -> StepPage(
+                    icon = Icons.Default.Keyboard,
+                    title = "Activate Tana Keyboard",
+                    description = "Turn Tana Keyboard on in your device's " +
+                        "input-method settings. It only takes a moment.",
+                    buttonLabel = "Open Settings",
+                    footnote = "Tana Keyboard never collects any data from you. " +
+                        "Everything you type stays on your device.",
+                    stepIndex = 0,
+                    onClick = {
+                        context.startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                    }
+                )
 
-        OnboardingStep(
-            stepNumber = 1,
-            title = "Enable Tana Keyboard",
-            description = "Turn it on in your system's input method settings.",
-            done = status.enabled,
-            buttonLabel = "Open Settings",
-            onClick = {
-                context.startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                Phase.Enable -> StepPage(
+                    icon = Icons.Default.SwapHoriz,
+                    title = "Enable Tana Keyboard",
+                    description = "Pick Tana Keyboard from the keyboard " +
+                        "switcher to make it your active keyboard.",
+                    buttonLabel = "Switch Keyboard",
+                    footnote = null,
+                    stepIndex = 1,
+                    onClick = {
+                        (context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
+                            .showInputMethodPicker()
+                    }
+                )
+
+                Phase.AllSet -> AllSetPage()
             }
-        )
-
-        OnboardingStep(
-            stepNumber = 2,
-            title = "Switch to Tana Keyboard",
-            description = "Pick it from the keyboard switcher to start typing.",
-            done = status.isDefault,
-            buttonLabel = "Switch Keyboard",
-            onClick = {
-                (context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
-                    .showInputMethodPicker()
-            }
-        )
-
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onDone
-        ) {
-            Text(if (status.enabled) "Continue" else "Skip for now")
         }
     }
 }
 
 @Composable
-private fun OnboardingStep(
-    stepNumber: Int,
+private fun StepPage(
+    icon: ImageVector,
     title: String,
     description: String,
-    done: Boolean,
     buttonLabel: String,
+    footnote: String?,
+    stepIndex: Int,
     onClick: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Box(modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp)) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (done) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                    contentDescription = null,
-                    tint = if (done) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Step $stepNumber: $title",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-            Text(text = description, style = MaterialTheme.typography.bodyMedium)
-            Button(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(72.dp)
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = onClick) {
                 Text(buttonLabel)
             }
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            if (footnote != null) {
+                Text(
+                    text = footnote,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+            StepDots(count = 2, active = stepIndex)
+        }
+    }
+}
+
+@Composable
+private fun StepDots(count: Int, active: Int) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(count) { i ->
+            val selected = i == active
+            Box(
+                modifier = Modifier
+                    .height(8.dp)
+                    .width(if (selected) 24.dp else 8.dp)
+                    .background(
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        },
+                        shape = CircleShape
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun AllSetPage() {
+    var shown by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "check-scale"
+    )
+    val textAlpha by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = tween(durationMillis = 400),
+        label = "check-text"
+    )
+    LaunchedEffect(Unit) { shown = true }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = null,
+            tint = GreenCheck,
+            modifier = Modifier
+                .size(96.dp)
+                .scale(scale)
+        )
+        Spacer(Modifier.height(20.dp))
+        Column(
+            modifier = Modifier.alpha(textAlpha),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "All set!",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            Text(
+                text = "Tana Keyboard is ready to use.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

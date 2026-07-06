@@ -11,7 +11,7 @@ class TanaKeyboardView(
 
     @Composable
     override fun Content() {
-        CustomKeyboardTheme(isDarkTheme = service.isDarkTheme) {
+        CustomKeyboardTheme(isDarkTheme = service.isDarkTheme, palette = service.palette) {
             KeyboardScreen(service)
         }
     }

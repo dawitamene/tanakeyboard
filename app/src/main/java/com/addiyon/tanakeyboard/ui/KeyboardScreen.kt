@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+import com.addiyon.tanakeyboard.MainActivity
 import com.addiyon.tanakeyboard.TanaKeyboardService
 import com.addiyon.tanakeyboard.layout.AmharicLayout
 import com.addiyon.tanakeyboard.layout.EnglishLayout
@@ -58,13 +59,19 @@ fun KeyboardScreen(
         // On both letter layouts (Amharic and English), but not the
         // Numbers/Symbols pages -- suggestions are keyed off the active
         // word composer's buffer, and no word is ever composing there.
-        if (!isNumberMode) {
-            SuggestionBar(
-                suggestions = service.suggestions,
-                isAmharic = isAmharic,
-                onTap = { word -> service.onSuggestionTapped(word) }
-            )
-        }
+        // Always present -- across letter AND number/symbol layouts. When
+        // there's nothing to suggest (which is always the case on the numeric
+        // pages, where no word composes) it's the quick-action toolbar with
+        // the logo; otherwise the suggestion strip.
+        SuggestionArea(
+            suggestions = service.suggestions,
+            isAmharic = isAmharic,
+            onTap = { word -> service.onSuggestionTapped(word) },
+            onOpenSettings = { service.openAppScreen(MainActivity.SCREEN_SETTINGS) },
+            onOpenThemes = { service.openAppScreen(MainActivity.SCREEN_THEMES) },
+            onAi = { service.onAiAction() },
+            onClipboard = { service.onClipboardAction() }
+        )
 
         BoxWithConstraints(
             modifier = Modifier

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -92,10 +93,13 @@ fun HomeScreen(
         OutlinedTextField(
             value = text,
             onValueChange = setText,
+            shape = RoundedCornerShape(12.dp),
             placeholder = { Text("Type \"selam\" → ሰላም") },
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .padding(bottom = 16.dp),
+            minLines = 3,
+            maxLines = 5
         )
     }
 }

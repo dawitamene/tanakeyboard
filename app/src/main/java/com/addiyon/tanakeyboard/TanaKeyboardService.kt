@@ -1,5 +1,7 @@
 package com.addiyon.tanakeyboard
 
+import android.content.Intent
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.os.Build
@@ -25,7 +27,8 @@ import com.addiyon.tanakeyboard.model.ShiftState
 import com.addiyon.tanakeyboard.suggestion.WordDictionary
 import com.addiyon.tanakeyboard.suggestion.matchCase
 import com.addiyon.tanakeyboard.transliteration.Transliterator
-import com.addiyon.tanakeyboard.ui.theme.KeyboardColors
+import com.addiyon.tanakeyboard.ui.settings.KeyboardPrefs
+import com.addiyon.tanakeyboard.ui.theme.KeyboardPalette
 
 /**
  * Max chips in the Amharic suggestion strip: the live word's readings plus
@@ -80,6 +83,24 @@ class TanaKeyboardService : InputMethodService(),
     // system dark/light toggle even while it's open.
     var isDarkTheme by mutableStateOf(false)
         private set
+
+    // The selected color palette, read from the same SharedPreferences the
+    // settings UI writes. Observable so the hosted keyboard recomposes when
+    // it changes. See [refreshTheme].
+    var palette by mutableStateOf(KeyboardPalette.CLASSIC)
+        private set
+
+    // Registered in onCreate / unregistered in onDestroy. Fires when the user
+    // changes the theme in the app (same process -> same prefs instance), so
+    // the keyboard recolors live even while it's open (e.g. the in-app Test
+    // Keyboard screen). Lifecycle-boundary refreshTheme() calls are the
+    // fallback that guarantees correctness regardless.
+    private val prefsListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KeyboardPrefs.KEY_PALETTE) {
+                refreshTheme(resources.configuration)
+            }
+        }
 
     /**
      * Up to 3 word completions (Amharic or English, whichever mode is
@@ -180,7 +201,14 @@ class TanaKeyboardService : InputMethodService(),
         return (readings + completions).distinct().take(AMHARIC_SUGGESTION_LIMIT)
     }
 
-    private fun updateDarkThemeFromConfiguration(configuration: Configuration) {
+    /**
+     * Re-derives [isDarkTheme] from the system night flag and [palette] from
+     * the saved preference, then refreshes the nav-bar tint (which depends on
+     * both). Light/dark follows the system; only the color palette is user-
+     * selectable, and it themes just the keyboard.
+     */
+    private fun refreshTheme(configuration: Configuration) {
+        palette = KeyboardPrefs.palette(this)
         val nightModeFlags = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         isDarkTheme = nightModeFlags == Configuration.UI_MODE_NIGHT_YES
         updateSystemNavigationBar()
@@ -200,7 +228,7 @@ class TanaKeyboardService : InputMethodService(),
      * match off again.
      */
     private fun updateSystemNavigationBar() {
-        val color = if (isDarkTheme) KeyboardColors.trayDark else KeyboardColors.trayLight
+        val color = palette.tray(isDarkTheme)
 
         window?.window?.let { imeWindow ->
             imeWindow.navigationBarColor = color.toArgb()
@@ -214,6 +242,30 @@ class TanaKeyboardService : InputMethodService(),
             WindowInsetsControllerCompat(imeWindow, imeWindow.decorView)
                 .isAppearanceLightNavigationBars = !isDarkTheme
         }
+    }
+
+    /**
+     * Opens the app's UI (a normal Activity) from the keyboard, jumping
+     * straight to the given screen. Needs NEW_TASK because we're launching
+     * from a Service context, not an Activity. See [MainActivity]'s
+     * EXTRA_OPEN_SCREEN handling.
+     */
+    fun openAppScreen(screen: String) {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra(MainActivity.EXTRA_OPEN_SCREEN, screen)
+        }
+        startActivity(intent)
+    }
+
+    /** AI assist entry point from the suggestion toolbar. Not wired up yet. */
+    fun onAiAction() {
+        // TODO: hook up AI feature.
+    }
+
+    /** Clipboard entry point from the suggestion toolbar. Not wired up yet. */
+    fun onClipboardAction() {
+        // TODO: hook up clipboard panel.
     }
 
     fun toggleLanguage() {
@@ -423,7 +475,8 @@ class TanaKeyboardService : InputMethodService(),
         super.onCreate()
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        updateDarkThemeFromConfiguration(resources.configuration)
+        refreshTheme(resources.configuration)
+        KeyboardPrefs.prefs(this).registerOnSharedPreferenceChangeListener(prefsListener)
 
         amharicDictionary = WordDictionary(this, "amharic_words.dat")
         englishDictionary = WordDictionary(this, "english_words.dat")
@@ -437,7 +490,7 @@ class TanaKeyboardService : InputMethodService(),
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        updateDarkThemeFromConfiguration(newConfig)
+        refreshTheme(newConfig)
     }
 
     override fun onEvaluateFullscreenMode(): Boolean {
@@ -457,7 +510,7 @@ class TanaKeyboardService : InputMethodService(),
         // Catch any theme change that happened while the keyboard was hidden,
         // and make sure the nav bar strip is colored correctly every time
         // the keyboard becomes visible again.
-        updateDarkThemeFromConfiguration(resources.configuration)
+        refreshTheme(resources.configuration)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
 
@@ -514,6 +567,7 @@ class TanaKeyboardService : InputMethodService(),
 
     override fun onDestroy() {
         super.onDestroy()
+        KeyboardPrefs.prefs(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
     }
 }
