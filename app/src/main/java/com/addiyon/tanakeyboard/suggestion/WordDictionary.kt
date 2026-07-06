@@ -6,25 +6,32 @@ import android.os.Looper
 import java.util.zip.GZIPInputStream
 
 /**
- * Android-facing loader for the bundled Amharic word dictionary -- the thin
- * wrapper around the pure-Kotlin [WordTrie], mirroring how
- * [com.addiyon.tanakeyboard.transliteration.AmharicComposer] wraps the pure
- * [com.addiyon.tanakeyboard.transliteration.Transliterator].
+ * Android-facing loader for a bundled word-frequency dictionary -- the thin
+ * wrapper around the pure-Kotlin [WordTrie], mirroring how the composing
+ * layer wraps the pure [com.addiyon.tanakeyboard.transliteration.Transliterator].
+ * One instance per bundled asset (currently Amharic and English).
  *
- * Reads `assets/amharic_words.dat` -- gzip-compressed, one
- * `word<TAB>frequency` pair per line once decompressed. Current bundled
- * asset is the Hunspell `am_ET` word list (public domain, Ge'ez Frontier
- * Foundation), ~182k words; since it carries no real frequency data,
- * frequency here is a rough starter heuristic (shorter words rank higher).
- * Swapping in a proper frequency-ranked list later (e.g. built from
- * Wikipedia + news corpora) is just replacing this one asset file --
- * nothing in this class or [WordTrie] needs to change.
+ * Reads a gzip-compressed asset, one `word<TAB>frequency` pair per line
+ * once decompressed. The bundled assets:
+ *
+ *   - `amharic_words.dat`: the Hunspell `am_ET` word list (public domain,
+ *     Ge'ez Frontier Foundation), ~182k words; since it carries no real
+ *     frequency data, frequency is a rough starter heuristic (shorter words
+ *     rank higher). Swapping in a proper frequency-ranked list later (e.g.
+ *     built from Wikipedia + news corpora) is just replacing the asset.
+ *   - `english_words.dat`: derived from the OpenSubtitles-based
+ *     FrequencyWords en_50k list (hermitdave/FrequencyWords, MIT), ~47k
+ *     words with real corpus frequencies. The source tokenizer splits
+ *     contractions ("don't" -> "don" + "'t"), so common contractions were
+ *     reconstructed with estimated counts at asset-build time. Entries are
+ *     all lowercase -- callers lowercase the lookup prefix and restore the
+ *     typed case pattern via [matchCase].
  *
  * NOTE ON THE FILE EXTENSION: deliberately `.dat`, not `.gz` -- the Android
  * Gradle Plugin silently auto-decompresses `.gz` assets and strips the
  * extension at build time (confirmed by inspecting the packaged APK), which
- * would leave a source file named `amharic_words.txt.gz` bundled as a
- * *plain, uncompressed* `amharic_words.txt` instead. `.dat` sidesteps that.
+ * would leave a source file named `words.txt.gz` bundled as a *plain,
+ * uncompressed* `words.txt` instead. `.dat` sidesteps that.
  *
  * Parsing ~182k lines and building a trie is fast in absolute terms but
  * still real work, so it happens on a background thread rather than
@@ -33,7 +40,7 @@ import java.util.zip.GZIPInputStream
  * [isReady] must only ever happen on the main thread (this class does no
  * locking of its own for that reason).
  */
-class AmharicDictionary(context: Context) {
+class WordDictionary(context: Context, private val assetName: String) {
 
     private val appContext = context.applicationContext
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -61,7 +68,7 @@ class AmharicDictionary(context: Context) {
 
     private fun load(): WordTrie {
         val words = mutableListOf<Pair<String, Int>>()
-        appContext.assets.open(ASSET_NAME).use { raw ->
+        appContext.assets.open(assetName).use { raw ->
             GZIPInputStream(raw).bufferedReader(Charsets.UTF_8).useLines { lines ->
                 for (line in lines) {
                     val tab = line.indexOf('\t')
@@ -78,8 +85,4 @@ class AmharicDictionary(context: Context) {
     /** Empty (not an error) if the dictionary hasn't finished loading yet. */
     fun suggestions(prefix: String, limit: Int = 3): List<String> =
         trie?.suggestions(prefix, limit) ?: emptyList()
-
-    private companion object {
-        const val ASSET_NAME = "amharic_words.dat"
-    }
 }

@@ -28,7 +28,7 @@ Settings > System > Languages & input > On-screen keyboard, then switch to it in
 
 ### The transliteration pipeline (the core logic, all pure Kotlin / JVM-testable)
 
-`transliteration/AmharicTable.kt` → `transliteration/Transliterator.kt` → `transliteration/AmharicComposer.kt`
+`transliteration/AmharicTable.kt` → `transliteration/Transliterator.kt` → `composing/WordComposer.kt`
 
 - **`AmharicTable`** is the sole source of transliteration data: a `Family` per consonant (7 ordered
   syllabic forms — e/u/i/a/ie/bare/o — plus an optional labialized "ua" form), keyed by SERA-style
@@ -46,23 +46,44 @@ Settings > System > Languages & input > On-screen keyboard, then switch to it in
   The case-sensitive-first rule matters: h/H, t/T, ch/C are the three families where shift
   genuinely selects a different consonant (ሀ/ሐ, ተ/ጠ, ቸ/ጨ); every other letter has no distinct
   uppercase family, so shift should be a no-op for it and falls through to the case-insensitive pass.
-- **`AmharicComposer`** owns the live "being-typed" word: appends to a Latin `StringBuilder`, re-runs
-  `Transliterator` on the whole buffer, and pushes the result into the `InputConnection`'s composing
-  region (`setComposingText`) so it's underlined until committed. Backspace deletes the whole Latin
-  span behind the last rendered fidel unit (via `Transliterator.lastUnitStart`), not one Latin
-  char — so "she" → ሸ, one backspace removes the whole thing. It's fed an `InputConnection` *lambda*,
+- **`WordComposer`** (`composing/`) owns the live "being-typed" word: appends to a raw
+  `StringBuilder`, re-runs a `render` lambda on the whole buffer, and pushes the result into the
+  `InputConnection`'s composing region (`setComposingText`) so it's underlined until committed.
+  There's one instance per language, differing only in the injected lambdas: the Amharic one renders
+  via `Transliterator.transliterate` and backspaces the whole Latin span behind the last rendered
+  fidel unit (via `Transliterator.lastUnitStart`, so "she" → ሸ, one backspace removes the whole
+  thing); the English one uses identity render and one-char backspace, composing purely so a tapped
+  suggestion can atomically replace the current word. It's fed an `InputConnection` *lambda*,
   not a captured reference, because the system swaps `InputConnection` instances between input
   sessions.
+
+### The suggestion layer
+
+`suggestion/WordTrie.kt` (pure Kotlin prefix trie, frequency-ranked) ← `suggestion/WordDictionary.kt`
+(Android asset loader) ← `TanaKeyboardService.updateSuggestions()` → `ui/SuggestionBar.kt`.
+
+- Dictionaries are gzip assets (`.dat`, not `.gz` — AGP silently decompresses `.gz` assets at build
+  time), one `word<TAB>frequency` line each: `amharic_words.dat` (Hunspell am_ET, ~182k words,
+  heuristic frequencies) and `english_words.dat` (FrequencyWords/OpenSubtitles en_50k, MIT, ~47k
+  words, real corpus frequencies with common contractions reconstructed at asset-build time because
+  the source tokenizer split "don't" into "don" + "'t").
+- Amharic lookups key off the live *transliterated fidel* prefix (reverse-transliterating fidel back
+  to Latin is ambiguous). English lookups lowercase the typed prefix (dictionary entries are all
+  lowercase) and restore the typed case pattern via `suggestion/CasePattern.kt`'s `matchCase`
+  ("Th" → "The"; two+ uppercase letters → all caps).
 
 ### Service / UI layer
 
 - **`TanaKeyboardService`** is the actual `InputMethodService`. It owns `isAmharic`, `shiftState`
-  (`ShiftState`: OFF → SHIFT (one-shot) → CAPS_LOCK → OFF), and the `AmharicComposer`. All key
-  handling goes through methods on the service (`onCharacter`, `onDelete`, `onSpace`, `onEnter`,
-  `toggleShift`, `toggleLanguage`) rather than the UI touching `InputConnection` directly — in
-  Amharic mode a keypress isn't a single `commitText`, it's a mutation of the composer's buffer, and
-  only the service can keep that state consistent. Case resolution from shift state happens inside
-  `onCharacter` (`latin.uppercase()`/`.lowercase()`), not in the UI layer.
+  (`ShiftState`: OFF → SHIFT (one-shot) → CAPS_LOCK → OFF), and the two `WordComposer`s (only the
+  one matching the current language is ever fed keys; every mode transition commits the active one
+  first). All key handling goes through methods on the service (`onCharacter`, `onDelete`,
+  `onSpace`, `onEnter`, `toggleShift`, `toggleLanguage`) rather than the UI touching
+  `InputConnection` directly — on the letter layouts a keypress isn't a single `commitText`, it's a
+  mutation of the active composer's buffer, and only the service can keep that state consistent.
+  On the English layout, "." and "," (the only non-letter keys there) commit the word first, then
+  commit directly. Case resolution from shift state happens inside `onCharacter`
+  (`latin.uppercase()`/`.lowercase()`), not in the UI layer.
 - **`KeyboardScreen` → `KeyRow` → `KeyComposables`** render whichever `KeyboardLayout` is active
   (`layout/AmharicLayout.kt` or `layout/EnglishLayout.kt`, both flat `KeyData` row lists). Every
   `KeyData.Character` key carries exactly one base Latin letter — there are no multi-character key

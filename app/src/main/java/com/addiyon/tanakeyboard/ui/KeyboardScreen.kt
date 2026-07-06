@@ -53,10 +53,10 @@ fun KeyboardScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
 
-        // Only on the Amharic letter layout -- suggestions are keyed off
-        // the Amharic composer's buffer, which is never active in English
-        // mode or on the Numbers/Symbols pages.
-        if (isAmharic && !isNumberMode) {
+        // On both letter layouts (Amharic and English), but not the
+        // Numbers/Symbols pages -- suggestions are keyed off the active
+        // word composer's buffer, and no word is ever composing there.
+        if (!isNumberMode) {
             SuggestionBar(
                 suggestions = service.suggestions,
                 onTap = { word -> service.onSuggestionTapped(word) }

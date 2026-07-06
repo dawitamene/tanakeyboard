@@ -19,10 +19,11 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.addiyon.tanakeyboard.composing.WordComposer
 import com.addiyon.tanakeyboard.model.NumbersMode
 import com.addiyon.tanakeyboard.model.ShiftState
-import com.addiyon.tanakeyboard.suggestion.AmharicDictionary
-import com.addiyon.tanakeyboard.transliteration.AmharicComposer
+import com.addiyon.tanakeyboard.suggestion.WordDictionary
+import com.addiyon.tanakeyboard.suggestion.matchCase
 import com.addiyon.tanakeyboard.transliteration.Transliterator
 import com.addiyon.tanakeyboard.ui.theme.KeyboardColors
 
@@ -74,45 +75,73 @@ class TanaKeyboardService : InputMethodService(),
         private set
 
     /**
-     * Up to 3 Amharic word completions for whatever's currently composing,
-     * highest-frequency first -- empty whenever there's nothing to suggest
-     * (buffer empty, dictionary still loading, or no match). Recomputed by
-     * [updateSuggestions] after every composer mutation.
+     * Up to 3 word completions (Amharic or English, whichever mode is
+     * active) for whatever's currently composing, highest-frequency first --
+     * empty whenever there's nothing to suggest (buffer empty, dictionary
+     * still loading, or no match). Recomputed by [updateSuggestions] after
+     * every composer mutation.
      */
     var suggestions by mutableStateOf<List<String>>(emptyList())
         private set
 
     // ----------------------------
-    // AMHARIC COMPOSITION
+    // WORD COMPOSITION
     // ----------------------------
     //
-    // The composer is fed a lambda, not a reference. currentInputConnection
+    // One composer per language; only the one matching the current mode is
+    // ever fed keystrokes, and every mode transition commits the active one
+    // first, so at most one has a non-empty buffer at any time.
+    //
+    // Both are fed a lambda, not a reference. currentInputConnection
     // changes identity between input sessions (each new field the user
     // taps into gets a fresh one), so we always re-read it at the moment
     // of use -- same reasoning as the KeyboardScreen comment about not
     // capturing an InputConnection at composition time.
-    private val composer = AmharicComposer { currentInputConnection }
+    private val amharicComposer = WordComposer(
+        inputConnection = { currentInputConnection },
+        render = Transliterator::transliterate,
+        lastUnitStart = Transliterator::lastUnitStart
+    )
 
-    // Built in onCreate(), not as a property initializer here -- Context
+    private val englishComposer = WordComposer(
+        inputConnection = { currentInputConnection }
+    )
+
+    private val activeComposer: WordComposer
+        get() = if (isAmharic) amharicComposer else englishComposer
+
+    // Built in onCreate(), not as property initializers here -- Context
     // isn't safely usable (applicationContext etc.) until attachBaseContext
     // has run, which happens after this class's own construction but
     // before onCreate().
-    private lateinit var dictionary: AmharicDictionary
+    private lateinit var amharicDictionary: WordDictionary
+    private lateinit var englishDictionary: WordDictionary
 
     /**
-     * Re-derives [suggestions] from the composer's current buffer. Keyed off
-     * the LIVE TRANSLITERATED fidel prefix (exactly what's already shown in
-     * the composing region), not the raw Latin buffer -- reversing fidel
-     * back to a Latin spelling to look words up would be ambiguous, since
-     * the forward transliteration mapping isn't reliably invertible. See
+     * Re-derives [suggestions] from the active composer's current buffer.
+     *
+     * Amharic is keyed off the LIVE TRANSLITERATED fidel prefix (exactly
+     * what's already shown in the composing region), not the raw Latin
+     * buffer -- reversing fidel back to a Latin spelling to look words up
+     * would be ambiguous, since the forward transliteration mapping isn't
+     * reliably invertible. See
      * [com.addiyon.tanakeyboard.suggestion.WordTrie]'s class doc for the
      * full reasoning.
+     *
+     * English lookups are lowercased (the dictionary stores every entry
+     * lowercase) and the user's typed case pattern is restored on the way
+     * out, so "Th" suggests "The", not "the".
      */
     private fun updateSuggestions() {
-        suggestions = if (::dictionary.isInitialized) {
-            dictionary.suggestions(Transliterator.transliterate(composer.currentLatin))
+        if (!::amharicDictionary.isInitialized) {
+            suggestions = emptyList()
+            return
+        }
+        suggestions = if (isAmharic) {
+            amharicDictionary.suggestions(amharicComposer.display)
         } else {
-            emptyList()
+            val typed = englishComposer.display
+            englishDictionary.suggestions(typed.lowercase()).map { matchCase(typed, it) }
         }
     }
 
@@ -153,10 +182,11 @@ class TanaKeyboardService : InputMethodService(),
     }
 
     fun toggleLanguage() {
-        // Any half-typed Amharic syllable belongs to the language it was
-        // started in -- flush it before switching, so the user doesn't end
-        // up with an orphaned partial word in the wrong pipeline.
-        composer.commit()
+        // Any half-typed word belongs to the language it was started in --
+        // flush it before switching (i.e. while activeComposer still points
+        // at the outgoing language), so the user doesn't end up with an
+        // orphaned partial word in the wrong pipeline.
+        activeComposer.commit()
         isAmharic = !isAmharic
         updateSuggestions()
     }
@@ -164,7 +194,7 @@ class TanaKeyboardService : InputMethodService(),
     /**
      * Toggles between the letter layout (Amharic or English, whichever is
      * active) and the numbers/symbols page. Flushes the composer first, for
-     * the same reason [toggleLanguage] does -- a composing syllable belongs
+     * the same reason [toggleLanguage] does -- a composing word belongs
      * to the mode it started in, and numbers/symbols are never part of one.
      *
      * Always lands on [NumbersMode.NUMBERS] from a letter layout, and always
@@ -173,7 +203,7 @@ class TanaKeyboardService : InputMethodService(),
      * without having to step back through the first page.
      */
     fun toggleNumberMode() {
-        composer.commit()
+        activeComposer.commit()
         numbersMode = if (numbersMode == NumbersMode.OFF) NumbersMode.NUMBERS else NumbersMode.OFF
         updateSuggestions()
     }
@@ -182,7 +212,7 @@ class TanaKeyboardService : InputMethodService(),
      * Toggles between the two numeric pages ("123" <-> "=\<"). Only ever
      * called from a key that's rendered on one of those pages, so the
      * [NumbersMode.OFF] branch is unreachable in practice -- kept so the
-     * `when` stays exhaustive. No composer to flush: a composing syllable
+     * `when` stays exhaustive. No composer to flush: a composing word
      * can't exist while already in a numeric mode.
      */
     fun toggleSymbolsPage() {
@@ -241,21 +271,25 @@ class TanaKeyboardService : InputMethodService(),
      * carries (e.g. "S" for the S key). We resolve shift here so callers
      * (the UI) don't need to know about the composer or shift state.
      *
-     * In English mode: commits the case-resolved character immediately.
-     * In Amharic mode: feeds it to the composer, which updates the
-     * underlined composing region with the retransliterated fidel.
+     * On the letter layouts, both languages compose: Amharic because a
+     * keypress is ambiguous until the syllable ends, English so the current
+     * word stays replaceable by a tapped suggestion. Word-terminating keys
+     * on the English layout ("." and ",") and everything on the numeric
+     * pages commit directly -- flushing the composer first, so "hello" +
+     * "." lands as "hello." rather than swallowing the dot into the word
+     * buffer (where it could never match a dictionary entry).
      */
     fun onCharacter(latin: String) {
-        val output = when {
-            isAmharic && !isNumberMode -> if (isShiftEnabled) latin.uppercase() else latin.lowercase()
-            isShiftEnabled -> latin.uppercase()
-            else -> latin.lowercase()
-        }
+        val output = if (isShiftEnabled) latin.uppercase() else latin.lowercase()
 
-        if (isAmharic && !isNumberMode) {
-            composer.onCharacter(output)
-        } else {
-            currentInputConnection?.commitText(output, 1)
+        when {
+            isNumberMode -> currentInputConnection?.commitText(output, 1)
+            isAmharic -> amharicComposer.onCharacter(output)
+            output.all { it.isLetter() || it == '\'' } -> englishComposer.onCharacter(output)
+            else -> {
+                englishComposer.commit()
+                currentInputConnection?.commitText(output, 1)
+            }
         }
 
         consumeShiftAfterCharacter()
@@ -263,13 +297,14 @@ class TanaKeyboardService : InputMethodService(),
     }
 
     /**
-     * Backspace pressed. In Amharic mode we try to shrink the composing
-     * buffer first, one full fidel character at a time (so "she" -> ሸ,
-     * backspace -> nothing). If the buffer is empty -- or we're in English
-     * mode -- fall back to deleting a character from the text field itself.
+     * Backspace pressed. Try to shrink the active composing buffer first --
+     * one full rendered character at a time, which in Amharic can be a
+     * multi-Latin-char span (so "she" -> ሸ, backspace -> nothing). If the
+     * buffer is empty, fall back to deleting a character from the text
+     * field itself.
      */
     fun onDelete() {
-        if (isAmharic && composer.onBackspace()) {
+        if (activeComposer.onBackspace()) {
             updateSuggestions()
             return
         }
@@ -278,23 +313,23 @@ class TanaKeyboardService : InputMethodService(),
     }
 
     /**
-     * Space commits any in-flight Amharic syllable first, then inserts a
-     * space. Committing first is what lets the space actually terminate
-     * the word rather than getting swallowed into the composing region.
+     * Space commits any in-flight word first, then inserts a space.
+     * Committing first is what lets the space actually terminate the word
+     * rather than getting swallowed into the composing region.
      */
     fun onSpace() {
-        composer.commit()
+        activeComposer.commit()
         currentInputConnection?.commitText(" ", 1)
         updateSuggestions()
     }
 
     /**
-     * Enter commits the current syllable (so a form submission sees the
-     * completed word, not a half-transliterated one) and then dispatches
+     * Enter commits the current word (so a form submission sees the
+     * completed word, not a half-composed one) and then dispatches
      * the actual key event.
      */
     fun onEnter() {
-        composer.commit()
+        activeComposer.commit()
         currentInputConnection?.sendKeyEvent(
             KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
         )
@@ -306,7 +341,7 @@ class TanaKeyboardService : InputMethodService(),
      * full suggested word and clear the strip.
      */
     fun onSuggestionTapped(word: String) {
-        composer.commitSuggestion(word)
+        activeComposer.commitSuggestion(word)
         updateSuggestions()
     }
 
@@ -337,12 +372,14 @@ class TanaKeyboardService : InputMethodService(),
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         updateDarkThemeFromConfiguration(resources.configuration)
 
-        dictionary = AmharicDictionary(this)
-        // Parsing ~182k dictionary lines happens off the main thread; if the
-        // user starts typing before it finishes, suggestions just start
-        // appearing once loadAsync's callback lands (main thread, per
-        // AmharicDictionary's contract).
-        dictionary.loadAsync { updateSuggestions() }
+        amharicDictionary = WordDictionary(this, "amharic_words.dat")
+        englishDictionary = WordDictionary(this, "english_words.dat")
+        // Parsing the dictionary lines (~182k Amharic, ~47k English) happens
+        // off the main thread; if the user starts typing before a load
+        // finishes, suggestions just start appearing once loadAsync's
+        // callback lands (main thread, per WordDictionary's contract).
+        amharicDictionary.loadAsync { updateSuggestions() }
+        englishDictionary.loadAsync { updateSuggestions() }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -357,10 +394,11 @@ class TanaKeyboardService : InputMethodService(),
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(editorInfo, restarting)
         // A new input session means a new InputConnection -- any half-typed
-        // syllable we were composing belongs to a field that's no longer
+        // word we were composing belongs to a field that's no longer
         // ours. Drop it silently rather than trying to commit into the
         // wrong destination.
-        composer.reset()
+        amharicComposer.reset()
+        englishComposer.reset()
         updateSuggestions()
 
         // Catch any theme change that happened while the keyboard was hidden,
@@ -398,7 +436,7 @@ class TanaKeyboardService : InputMethodService(),
             candidatesStart, candidatesEnd
         )
 
-        if (!composer.isComposing) return
+        if (!activeComposer.isComposing) return
 
         // A selection (start != end) inside our region also counts as "the
         // user took over" -- we don't support composing across a selection.
@@ -407,7 +445,7 @@ class TanaKeyboardService : InputMethodService(),
                 newSelStart in candidatesStart..candidatesEnd
 
         if (!cursorInsideComposing) {
-            composer.abandon()
+            activeComposer.abandon()
             updateSuggestions()
         }
     }
@@ -416,7 +454,7 @@ class TanaKeyboardService : InputMethodService(),
         super.onFinishInputView(finishingInput)
         // Field is going away -- lock whatever we have into it before the
         // InputConnection dies.
-        composer.commit()
+        activeComposer.commit()
         updateSuggestions()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }
