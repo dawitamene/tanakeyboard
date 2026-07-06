@@ -107,6 +107,7 @@ fun KeyButton(
     primaryText: String? = null,
     primaryFontSize: TextUnit = 23.sp,
     secondaryText: String? = null,
+    secondaryFontSize: TextUnit = 10.sp,
     icon: ImageVector? = null,
     isSpecial: Boolean = false,
     isHighlighted: Boolean = false,
@@ -305,7 +306,7 @@ fun KeyButton(
                 secondaryText?.let {
                     Text(
                         text = it,
-                        fontSize = 10.sp,
+                        fontSize = secondaryFontSize,
                         fontWeight = FontWeight.Normal,
                         color = iconTint.copy(alpha = 0.6f),
                         style = tightText,

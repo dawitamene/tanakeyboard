@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -73,29 +74,41 @@ fun CharacterKey(
     height: Dp,
     service: TanaKeyboardService
 ) {
-    // The letter as it will actually be typed once shift is resolved --
-    // used both for the key face and, in Amharic mode, to pick which
-    // family's preview glyph to show. Mirrors the resolution logic in
-    // TanaKeyboardService.onCharacter so the label never disagrees with
-    // what tapping the key produces.
     val effectiveLatin = if (isShift) key.latin.uppercase() else key.latin.lowercase()
-
+    val amharicChar = Transliterator.transliterate(effectiveLatin)
     val isPunctuation = key.latin == "," || key.latin == "."
 
+    val primaryText: String
+    val secondaryText: String?
+    val longPressAction: (() -> Unit)?
+    val secondarySize: TextUnit
+
+    if (isPunctuation && isAmharic) {
+        primaryText = amharicChar
+        secondaryText = effectiveLatin
+        longPressAction = { service.commitText(key.latin) }
+        secondarySize = 14.sp
+    } else if (isPunctuation) {
+        primaryText = effectiveLatin
+        secondaryText = null
+        longPressAction = { service.commitText(amharicChar) }
+        secondarySize = 10.sp
+    } else {
+        primaryText = effectiveLatin
+        secondaryText = amharicChar.takeIf { isAmharic && it != effectiveLatin }
+        longPressAction = null
+        secondarySize = 10.sp
+    }
+
     KeyButton(
-        primaryText = effectiveLatin,
-        secondaryText = if (isAmharic) {
-            Transliterator.transliterate(effectiveLatin).takeIf { it != effectiveLatin }
-        } else {
-            null
-        },
+        primaryText = primaryText,
+        secondaryText = secondaryText,
+        secondaryFontSize = secondarySize,
         modifier = Modifier.width(width),
         height = height,
         isSpecial = isPunctuation,
         showsPreviewOnPress = true,
-        onLongPress = if (isPunctuation) {
-            { service.commitText(Transliterator.transliterate(key.latin)) }
-        } else null
+        onLongPress = longPressAction
     ) {
         service.onCharacter(key.latin)
     }
