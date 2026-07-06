@@ -309,10 +309,14 @@ fun RowScope.LanguageToggleKey(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "ሀለ", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = "ሀለ",
+                    fontSize = 13.sp,
+                    lineHeight = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Box(
                     modifier = Modifier
-                        .padding(vertical = 2.dp)
                         .width(18.dp)
                         .height(1.dp)
                         .background(
@@ -320,7 +324,12 @@ fun RowScope.LanguageToggleKey(
                             shape = RoundedCornerShape(1.dp)
                         )
                 )
-                Text(text = "AB", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = "AB",
+                    fontSize = 13.sp,
+                    lineHeight = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     )
