@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TanaKeyboard app icon (gradient). Drop into res/drawable/. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <group>
+        <clip-path android:pathData="M118,0 L394,0 A118,118 0 0 1 512,118 L512,394 A118,118 0 0 1 394,512 L118,512 A118,118 0 0 1 0,394 L0,118 A118,118 0 0 1 118,0 Z" />
+
+        <path android:pathData="M118,0 L394,0 A118,118 0 0 1 512,118 L512,394 A118,118 0 0 1 394,512 L118,512 A118,118 0 0 1 0,394 L0,118 A118,118 0 0 1 118,0 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="81" android:startY="-47"
+                    android:endX="431" android:endY="559">
+                    <item android:offset="0.0"  android:color="#FF0E3A63" />
+                    <item android:offset="0.55" android:color="#FF1B6FB3" />
+                    <item android:offset="1.0"  android:color="#FF38A9D4" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <path android:pathData="M-154,517 a410,230 0 1,0 820,0 a410,230 0 1,0 -820,0 Z" android:fillColor="#FFFFFF" android:fillAlpha="0.08" />
+        <path android:pathData="M-154,579 a410,230 0 1,0 820,0 a410,230 0 1,0 -820,0 Z" android:fillColor="#FFFFFF" android:fillAlpha="0.07" />
+        <path android:pathData="M118,1.5 L394,1.5 A116.5,116.5 0 0 1 510.5,118 L510.5,394 A116.5,116.5 0 0 1 394,510.5 L118,510.5 A116.5,116.5 0 0 1 1.5,394 L1.5,118 A116.5,116.5 0 0 1 118,1.5 Z" android:strokeColor="#FFFFFF" android:strokeAlpha="0.18" android:strokeWidth="3" />
+    </group>
+
+    <!-- Glyph scaled to 0.72 about the center so its arms stay clear of the
+         rounded corners / any circular mask. -->
+    <group android:scaleX="0.72" android:scaleY="0.72" android:pivotX="256" android:pivotY="256">
+        <path android:pathData="M358.65 375.95L358.65 233.49Q358.65 212.99 354.45 200.06Q350.25 187.12 340.84 180.74Q331.43 174.35 315.98 174.35Q308.25 174.35 301.36 176.2Q294.47 178.05 289.1 180.9Q283.72 183.76 280.02 187.12L280.02 295.65L230.3 295.65L230.3 175.02Q228.28 175.02 226.43 175.02Q224.58 175.02 222.57 175.02Q195.35 175.02 179.9 184.6Q164.44 194.18 158.06 211.98Q151.67 229.79 151.67 255.33L151.67 295.65L101.94 295.65L101.94 253.98Q101.94 209.63 116.39 183.76Q130.84 157.89 157.72 146.97Q184.6 136.05 221.56 136.05L280.02 136.05L280.02 151.5Q286.41 146.46 298.84 141.26Q311.27 136.05 330.76 136.05Q351.59 136.05 366.21 141.76Q380.82 147.47 390.23 158.56Q399.64 169.65 404.01 185.27Q408.38 200.9 408.38 221.06L408.38 375.95Z" android:fillColor="#FFFFFF" />
+    </group>
+</vector>

@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,9 +49,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.addiyon.tanakeyboard.KeyboardStatusSnapshot
+import com.addiyon.tanakeyboard.R
 
 private val GreenCheck = Color(0xFF2E7D32)
 
@@ -254,12 +257,20 @@ private fun AllSetPage() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Image(
+            painter = painterResource(R.drawable.ic_tana_icon),
+            contentDescription = null,
+            modifier = Modifier
+                .size(96.dp)
+                .scale(scale)
+        )
+        Spacer(Modifier.height(12.dp))
         Icon(
             imageVector = Icons.Default.CheckCircle,
             contentDescription = null,
             tint = GreenCheck,
             modifier = Modifier
-                .size(96.dp)
+                .size(40.dp)
                 .scale(scale)
         )
         Spacer(Modifier.height(20.dp))

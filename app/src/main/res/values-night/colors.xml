@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark-mode splash uses the Ink background. -->
+    <color name="splash_background">#FF0B1722</color>
+    <color name="splash_status_bar">#FF0B1722</color>
+</resources>

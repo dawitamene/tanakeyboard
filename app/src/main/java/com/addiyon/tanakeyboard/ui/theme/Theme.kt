@@ -175,6 +175,86 @@ private fun full(
 ): PaletteColors =
     PaletteColors(Color(tray), Color(key), Color(special), Color(accent), Color(onText), Color(onAccent))
 
+// ---------------------------------------------------------------------------
+// Tana brand palette (the app's own settings/onboarding UI, NOT the keyboard).
+//
+// Source colors from branding:
+//   Deep Tana  #0E3A63  primary
+//   Lake Blue  #1B6FB3  secondary
+//   Shore Aqua #38A9D4  accent
+//   Sand       #E9B872  highlight / English-mode cue  -> exposed as [TanaSand]
+//   Mist       #EEF3F7  surface
+//   Ink        #0B1722  text
+// The keyboard palettes above are user-selectable and deliberately untouched;
+// this is the fixed brand identity for the app chrome (buttons, fields, cards).
+// ---------------------------------------------------------------------------
+
+/** Sand highlight — the English-mode cue / accent chip color. Same in both modes. */
+val TanaSand: Color = Color(0xFFE9B872)
+
+private val TanaLightScheme: ColorScheme = lightColorScheme(
+    primary = Color(0xFF0E3A63),            // Deep Tana
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFD4E6F6),
+    onPrimaryContainer = Color(0xFF082138),
+    secondary = Color(0xFF1B6FB3),          // Lake Blue
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFCFE5F6),
+    onSecondaryContainer = Color(0xFF0A2C48),
+    tertiary = Color(0xFF38A9D4),           // Shore Aqua
+    onTertiary = Color(0xFF042836),
+    tertiaryContainer = Color(0xFFC9ECF7),
+    onTertiaryContainer = Color(0xFF042836),
+    background = Color(0xFFEEF3F7),         // Mist
+    onBackground = Color(0xFF0B1722),       // Ink
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF0B1722),          // Ink
+    surfaceVariant = Color(0xFFDCE6EF),
+    onSurfaceVariant = Color(0xFF43525E),
+    outline = Color(0xFF74828E),
+    outlineVariant = Color(0xFFC2CDD6)
+)
+
+private val TanaDarkScheme: ColorScheme = darkColorScheme(
+    primary = Color(0xFF7FC1EA),            // lightened Lake Blue for contrast on dark
+    onPrimary = Color(0xFF052440),
+    primaryContainer = Color(0xFF0E3A63),   // Deep Tana
+    onPrimaryContainer = Color(0xFFD4E6F6),
+    secondary = Color(0xFF9AD0EC),
+    onSecondary = Color(0xFF05283F),
+    secondaryContainer = Color(0xFF1B6FB3), // Lake Blue
+    onSecondaryContainer = Color(0xFFDCEEF9),
+    tertiary = Color(0xFF6FCDEC),           // brightened Shore Aqua
+    onTertiary = Color(0xFF03222F),
+    tertiaryContainer = Color(0xFF1B6E8C),
+    onTertiaryContainer = Color(0xFFC9ECF7),
+    background = Color(0xFF0B1722),         // Ink
+    onBackground = Color(0xFFE6EEF4),
+    surface = Color(0xFF12222E),
+    onSurface = Color(0xFFE6EEF4),
+    surfaceVariant = Color(0xFF2A3A47),
+    onSurfaceVariant = Color(0xFFB9C7D1),
+    outline = Color(0xFF80909C),
+    outlineVariant = Color(0xFF3C4C58)
+)
+
+/**
+ * The brand theme for the app's own UI (settings, onboarding, home, manual).
+ * Uses the fixed Tana palette and follows the system light/dark setting.
+ * Distinct from [CustomKeyboardTheme], which themes only the keyboard surface
+ * from a user-selected [KeyboardPalette].
+ */
+@Composable
+fun TanaBrandTheme(
+    isDarkTheme: Boolean,
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        colorScheme = if (isDarkTheme) TanaDarkScheme else TanaLightScheme,
+        content = content
+    )
+}
+
 /**
  * Wraps content in a MaterialTheme using the selected [palette] resolved to
  * the given appearance ([isDarkTheme]).

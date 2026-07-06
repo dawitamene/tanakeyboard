@@ -1,6 +1,7 @@
 // ui/SuggestionBar.kt
 package com.addiyon.tanakeyboard.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -16,14 +17,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Feedback
-import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
@@ -35,12 +34,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.addiyon.tanakeyboard.R
 
 /**
  * The word-completion strip above the key rows. Always reserves a fixed-height
@@ -109,23 +110,14 @@ fun SuggestionArea(
     }
 }
 
-/** Placeholder app-mark shown at the start of the toolbar. */
+/** App-mark shown at the start of the toolbar. */
 @Composable
 private fun AppIconPlaceholder() {
-    Box(
-        modifier = Modifier
-            .size(26.dp)
-            .clip(RoundedCornerShape(7.dp))
-            .background(MaterialTheme.colorScheme.primary),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Keyboard,
-            contentDescription = "Tana Keyboard",
-            tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(16.dp)
-        )
-    }
+    Image(
+        painter = painterResource(R.drawable.ic_tana_icon),
+        contentDescription = "Tana Keyboard",
+        modifier = Modifier.size(26.dp)
+    )
 }
 
 @Composable

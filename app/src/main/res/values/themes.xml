@@ -13,4 +13,13 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+
+    <!-- Launch splash: brand surface + centered Tana logo as the window
+         background. MainActivity.setTheme() swaps back to the theme above
+         before Compose draws. -->
+    <style name="Theme.TanaKeyboard.Splash" parent="Theme.TanaKeyboard">
+        <item name="android:windowBackground">@drawable/splash_screen</item>
+        <item name="android:statusBarColor">@color/splash_status_bar</item>
+        <item name="android:navigationBarColor">@color/splash_background</item>
+    </style>
 </resources>

@@ -22,7 +22,7 @@ import com.addiyon.tanakeyboard.ui.settings.SettingsScreen
 import com.addiyon.tanakeyboard.ui.settings.SoundVibrationScreen
 import com.addiyon.tanakeyboard.ui.settings.TestKeyboardScreen
 import com.addiyon.tanakeyboard.ui.settings.ThemesScreen
-import com.addiyon.tanakeyboard.ui.theme.CustomKeyboardTheme
+import com.addiyon.tanakeyboard.ui.theme.TanaBrandTheme
 
 private enum class ScreenKey {
     Onboarding, Settings, Manual, SoundVibration, TestKeyboard, About, Themes
@@ -52,6 +52,10 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The launch window uses Theme.TanaKeyboard.Splash (branded logo
+        // background) so the first frame is the splash. Swap to the real app
+        // theme before Compose draws.
+        setTheme(R.style.Theme_TanaKeyboard)
         super.onCreate(savedInstanceState)
 
         screenRequest = intent?.getStringExtra(EXTRA_OPEN_SCREEN)
@@ -59,11 +63,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            // The app's own UI always uses the default (Classic) palette and
-            // follows the system light/dark setting. The selectable keyboard
-            // palette only themes the keyboard itself (TanaKeyboardView reads
-            // the pref independently), not this settings UI.
-            CustomKeyboardTheme(isDarkTheme = isSystemInDarkTheme()) {
+            // The app's own UI uses the fixed Tana brand palette and follows
+            // the system light/dark setting. The selectable keyboard palette
+            // only themes the keyboard itself (TanaKeyboardView reads the pref
+            // independently), not this settings UI.
+            TanaBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
                 Scaffold { innerPadding ->
                     val status by rememberKeyboardStatus()
                     var screen by rememberSaveable {

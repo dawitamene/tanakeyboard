@@ -7,4 +7,16 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Tana brand palette -->
+    <color name="tana_deep">#FF0E3A63</color>     <!-- Deep Tana  (primary)   -->
+    <color name="tana_lake">#FF1B6FB3</color>     <!-- Lake Blue  (secondary) -->
+    <color name="tana_aqua">#FF38A9D4</color>     <!-- Shore Aqua (accent)     -->
+    <color name="tana_sand">#FFE9B872</color>     <!-- Sand       (highlight)  -->
+    <color name="tana_mist">#FFEEF3F7</color>     <!-- Mist       (surface)    -->
+    <color name="tana_ink">#FF0B1722</color>      <!-- Ink        (text)       -->
+
+    <!-- Splash / launch background (overridden in values-night). -->
+    <color name="splash_background">#FFEEF3F7</color>
+    <color name="splash_status_bar">#FF0E3A63</color>
 </resources>
