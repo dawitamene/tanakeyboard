@@ -4,6 +4,7 @@ package com.addiyon.tanakeyboard.ui
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -114,6 +115,7 @@ fun KeyButton(
     repeatable: Boolean = false,
     showsPreviewOnPress: Boolean = false,
     onSwipe: (() -> Unit)? = null,
+    onLongPress: (() -> Unit)? = null,
     /**
      * Optional custom face for the key, replacing the icon/[primaryText]
      * layout entirely (still centered, and still wrapped in all the press /
@@ -148,14 +150,17 @@ fun KeyButton(
     val tightText = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
 
     val pressModifier = if (repeatable) {
-        // Haptic inside the repeat callback (not the press-interaction
-        // collector below) so held-down auto-repeat ticks each buzz too,
-        // like iOS delete. The first fire happens on press-down, so a
-        // quick tap still gets its haptic at the right moment.
         Modifier.repeatingClickable(interactionSource = interactionSource) {
             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             onClick()
         }
+    } else if (onLongPress != null) {
+        Modifier.combinedClickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick,
+            onLongClick = onLongPress
+        )
     } else {
         Modifier.clickable(
             interactionSource = interactionSource,

@@ -217,12 +217,11 @@ class TanaKeyboardService : InputMethodService(),
     }
 
     fun toggleLanguage() {
-        // Any half-typed word belongs to the language it was started in --
-        // flush it before switching (i.e. while activeComposer still points
-        // at the outgoing language), so the user doesn't end up with an
-        // orphaned partial word in the wrong pipeline.
         activeComposer.commit()
         isAmharic = !isAmharic
+        if (!isAmharic && numbersMode == NumbersMode.GEEZ_NUMBERS) {
+            numbersMode = NumbersMode.NUMBERS
+        }
         updateSuggestions()
     }
 
@@ -243,16 +242,10 @@ class TanaKeyboardService : InputMethodService(),
         updateSuggestions()
     }
 
-    /**
-     * Toggles between the two numeric pages ("123" <-> "=\<"). Only ever
-     * called from a key that's rendered on one of those pages, so the
-     * [NumbersMode.OFF] branch is unreachable in practice -- kept so the
-     * `when` stays exhaustive. No composer to flush: a composing word
-     * can't exist while already in a numeric mode.
-     */
     fun toggleSymbolsPage() {
         numbersMode = when (numbersMode) {
-            NumbersMode.NUMBERS -> NumbersMode.SYMBOLS
+            NumbersMode.NUMBERS -> if (isAmharic) NumbersMode.GEEZ_NUMBERS else NumbersMode.SYMBOLS
+            NumbersMode.GEEZ_NUMBERS -> NumbersMode.SYMBOLS
             NumbersMode.SYMBOLS -> NumbersMode.NUMBERS
             NumbersMode.OFF -> NumbersMode.OFF
         }
@@ -361,6 +354,11 @@ class TanaKeyboardService : InputMethodService(),
         }
         currentInputConnection?.deleteSurroundingText(1, 0)
         updateSuggestions()
+    }
+
+    fun commitText(text: String) {
+        activeComposer.commit()
+        currentInputConnection?.commitText(text, 1)
     }
 
     /**

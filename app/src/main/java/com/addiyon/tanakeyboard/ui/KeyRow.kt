@@ -107,6 +107,7 @@ internal fun KeyRow(
                 KeyData.NumberToggle -> {
                     NumberToggleKey(
                         isNumberMode = isNumberMode,
+                        isAmharic = isAmharic,
                         height = metrics.keyHeight,
                         onClick = { service.toggleNumberMode() }
                     )
@@ -115,6 +116,7 @@ internal fun KeyRow(
                 KeyData.SymbolsToggle -> {
                     SymbolsToggleKey(
                         numbersMode = service.numbersMode,
+                        isAmharic = service.isAmharic,
                         width = metrics.keyWidth,
                         height = metrics.keyHeight,
                         onClick = { service.toggleSymbolsPage() }

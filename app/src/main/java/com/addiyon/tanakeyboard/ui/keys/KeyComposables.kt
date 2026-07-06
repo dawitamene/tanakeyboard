@@ -80,6 +80,8 @@ fun CharacterKey(
     // what tapping the key produces.
     val effectiveLatin = if (isShift) key.latin.uppercase() else key.latin.lowercase()
 
+    val isPunctuation = key.latin == "," || key.latin == "."
+
     KeyButton(
         primaryText = effectiveLatin,
         secondaryText = if (isAmharic) {
@@ -89,8 +91,11 @@ fun CharacterKey(
         },
         modifier = Modifier.width(width),
         height = height,
-        isSpecial = key.latin == "," || key.latin == ".",
-        showsPreviewOnPress = true
+        isSpecial = isPunctuation,
+        showsPreviewOnPress = true,
+        onLongPress = if (isPunctuation) {
+            { service.commitText(Transliterator.transliterate(key.latin)) }
+        } else null
     ) {
         service.onCharacter(key.latin)
     }
@@ -240,11 +245,16 @@ fun RowScope.EnterKey(
 @Composable
 fun RowScope.NumberToggleKey(
     isNumberMode: Boolean,
+    isAmharic: Boolean,
     height: Dp,
     onClick: () -> Unit
 ) {
     KeyButton(
-        primaryText = if (isNumberMode) "ABC" else "?123",
+        primaryText = when {
+            isNumberMode -> "ABC"
+            isAmharic -> "፣፩፪"
+            else -> "?123"
+        },
         primaryFontSize = 14.sp,
         modifier = Modifier.weight(KeyWeights.NUMBER_TOGGLE),
         height = height,
@@ -254,27 +264,30 @@ fun RowScope.NumberToggleKey(
 }
 
 /**
- * "=\<" / "123" toggle between the two numeric pages. Fixed width (see
+ * "=\<" / "፩፪" / "123" toggle between the numeric pages. Fixed width (see
  * [ShiftKey]'s doc for the general reasoning) so it renders the same size on
- * the Numbers page as on the Symbols page, rather than a fraction of however
- * much row 3 has left over on each. Rendered as a "special" key -> darker
- * surface than letter keys, with the same reduced font as [NumberToggleKey]
- * (see there for why).
+ * every numeric page. Rendered as a "special" key -> darker surface than
+ * letter keys, with the same reduced font as [NumberToggleKey].
  *
- * Unlike [NumberToggleKey] (which is threaded down as an explicit
- * `isNumberMode` parameter because it affects row-wide rendering), this key's
- * label only matters to itself, so [numbersMode] is read straight from the
- * service by the caller rather than plumbed through KeyboardScreen/KeyRow.
+ * When Amharic mode is on the key cycles three ways: NUMBERS -> GEEZ_NUMBERS
+ * -> SYMBOLS -> NUMBERS, with "፩፪" on the NUMBERS page hinting the Ge'ez
+ * numerals layer. When Amharic is off it reverts to the old two-state cycle
+ * NUMBERS <-> SYMBOLS with "123" / "=\<" labels.
  */
 @Composable
 fun RowScope.SymbolsToggleKey(
     numbersMode: NumbersMode,
+    isAmharic: Boolean,
     width: Dp,
     height: Dp,
     onClick: () -> Unit
 ) {
     KeyButton(
-        primaryText = if (numbersMode == NumbersMode.SYMBOLS) "123" else "=\\<",
+        primaryText = when {
+            numbersMode == NumbersMode.NUMBERS && isAmharic -> "፩፪"
+            numbersMode == NumbersMode.SYMBOLS -> "123"
+            else -> "=\\<"
+        },
         primaryFontSize = 14.sp,
         modifier = Modifier.width(width * KeyWeights.SYMBOLS_TOGGLE),
         height = height,

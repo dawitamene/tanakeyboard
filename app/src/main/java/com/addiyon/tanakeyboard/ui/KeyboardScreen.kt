@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.addiyon.tanakeyboard.TanaKeyboardService
 import com.addiyon.tanakeyboard.layout.AmharicLayout
 import com.addiyon.tanakeyboard.layout.EnglishLayout
+import com.addiyon.tanakeyboard.layout.GeezNumbersLayout
 import com.addiyon.tanakeyboard.layout.NumberLayout
 import com.addiyon.tanakeyboard.layout.SymbolsLayout
 import com.addiyon.tanakeyboard.model.NumbersMode
@@ -38,6 +39,7 @@ fun KeyboardScreen(
     val layout = when (service.numbersMode) {
         NumbersMode.NUMBERS -> NumberLayout
         NumbersMode.SYMBOLS -> SymbolsLayout
+        NumbersMode.GEEZ_NUMBERS -> GeezNumbersLayout
         NumbersMode.OFF -> if (isAmharic) AmharicLayout else EnglishLayout
     }
 
