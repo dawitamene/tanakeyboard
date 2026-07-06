@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Feedback
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.StarRate
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -62,7 +64,10 @@ fun SettingsScreen(
     onOpenTestKeyboard: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenThemes: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // When non-null (screen opened from the keyboard), a back button is shown
+    // in the header to return to the keyboard.
+    onExit: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     var showFeedback by remember { mutableStateOf(false) }
@@ -142,7 +147,7 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Header()
+            Header(onExit = onExit)
             Spacer(Modifier.height(8.dp))
 
             GroupCard {
@@ -191,13 +196,22 @@ private const val FEEDBACK_EMAIL = "tanakeyboard@addiyon.com"
 private const val TELEGRAM_USERNAME = "tanakeyboard"
 
 @Composable
-private fun Header() {
+private fun Header(onExit: (() -> Unit)?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (onExit != null) {
+            IconButton(onClick = onExit) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back to keyboard"
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+        }
         // Placeholder logo -- a rounded tile with the keyboard glyph, to be
         // swapped for the real brand mark later.
         Box(

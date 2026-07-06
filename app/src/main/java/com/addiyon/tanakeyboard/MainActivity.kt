@@ -35,6 +35,16 @@ class MainActivity : ComponentActivity() {
     // is already running still navigates.
     private var screenRequest by mutableStateOf<String?>(null)
 
+    // True once the app was opened FROM the keyboard toolbar. Drives the
+    // "return to keyboard" affordances (a back button on Settings, auto-finish
+    // after picking a theme) instead of the normal in-app navigation.
+    private var fromKeyboard by mutableStateOf(false)
+
+    // The screen the keyboard opened us onto. Back FROM that entry screen
+    // returns to the keyboard (finish); back from screens navigated to
+    // afterwards falls through to normal in-app navigation.
+    private var keyboardEntryScreen by mutableStateOf<ScreenKey?>(null)
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -78,12 +88,23 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(screenRequest, status.isDefault) {
                         val req = screenRequest
                         if (req != null && status.isDefault) {
-                            screen = when (req) {
+                            val target = when (req) {
                                 SCREEN_THEMES -> ScreenKey.Themes
+                                SCREEN_GUIDE -> ScreenKey.Manual
                                 else -> ScreenKey.Settings
                             }
+                            screen = target
+                            fromKeyboard = true
+                            keyboardEntryScreen = target
                             screenRequest = null
                         }
+                    }
+
+                    // Back handler: from the keyboard-entry screen, return to
+                    // the keyboard; otherwise navigate back to Settings.
+                    fun goBack(from: ScreenKey) {
+                        if (fromKeyboard && from == keyboardEntryScreen) finish()
+                        else screen = ScreenKey.Settings
                     }
 
                     Box(modifier = Modifier.padding(innerPadding)) {
@@ -98,22 +119,31 @@ class MainActivity : ComponentActivity() {
                                 onOpenSoundVibration = { screen = ScreenKey.SoundVibration },
                                 onOpenTestKeyboard = { screen = ScreenKey.TestKeyboard },
                                 onOpenAbout = { screen = ScreenKey.About },
-                                onOpenThemes = { screen = ScreenKey.Themes }
+                                onOpenThemes = { screen = ScreenKey.Themes },
+                                // Back-to-keyboard only when Settings was the
+                                // keyboard-entry screen.
+                                onExit = if (fromKeyboard && keyboardEntryScreen == ScreenKey.Settings)
+                                    ({ finish() }) else null
                             )
                             ScreenKey.Manual -> ManualScreen(
-                                onBack = { screen = ScreenKey.Settings }
+                                onBack = { goBack(ScreenKey.Manual) }
                             )
                             ScreenKey.SoundVibration -> SoundVibrationScreen(
-                                onBack = { screen = ScreenKey.Settings }
+                                onBack = { goBack(ScreenKey.SoundVibration) }
                             )
                             ScreenKey.TestKeyboard -> TestKeyboardScreen(
-                                onBack = { screen = ScreenKey.Settings }
+                                onBack = { goBack(ScreenKey.TestKeyboard) }
                             )
                             ScreenKey.About -> AboutScreen(
-                                onBack = { screen = ScreenKey.Settings }
+                                onBack = { goBack(ScreenKey.About) }
                             )
                             ScreenKey.Themes -> ThemesScreen(
-                                onBack = { screen = ScreenKey.Settings }
+                                onBack = { goBack(ScreenKey.Themes) },
+                                // Picking a theme when Themes was opened from the
+                                // keyboard returns straight to it.
+                                onPaletteChosen = {
+                                    if (fromKeyboard && keyboardEntryScreen == ScreenKey.Themes) finish()
+                                }
                             )
                         }
                     }
@@ -126,5 +156,6 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_OPEN_SCREEN = "open_screen"
         const val SCREEN_SETTINGS = "SETTINGS"
         const val SCREEN_THEMES = "THEMES"
+        const val SCREEN_GUIDE = "GUIDE"
     }
 }

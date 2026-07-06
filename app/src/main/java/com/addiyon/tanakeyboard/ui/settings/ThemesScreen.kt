@@ -54,7 +54,10 @@ import com.addiyon.tanakeyboard.ui.theme.PaletteCategory
 @Composable
 fun ThemesScreen(
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Invoked right after a palette is chosen. When the screen was opened from
+    // the keyboard toolbar, the host uses this to return to the keyboard.
+    onPaletteChosen: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var selected by remember { mutableStateOf(KeyboardPrefs.palette(context)) }
@@ -80,8 +83,10 @@ fun ThemesScreen(
     ) { innerPadding ->
         Column(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
+                // innerPadding OUTSIDE the scroll so the top-bar area is
+                // reserved and content scrolls beneath it, not over the title.
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -101,6 +106,7 @@ fun ThemesScreen(
                                 onClick = {
                                     selected = p
                                     KeyboardPrefs.setPalette(context, p)
+                                    onPaletteChosen()
                                 }
                             )
                         }
@@ -194,10 +200,11 @@ private fun SkeletonKeyboard() {
             repeat(7) { KeyBar(Modifier.weight(1f), scheme.surface) }
             KeyBar(Modifier.weight(1.4f), scheme.surfaceVariant)
         }
-        // Row 4: special, wide space (accent), special.
+        // Row 4: special, wide space, special. The space bar is a normal key
+        // surface in the real keyboard (not the accent), so match that.
         SkeletonRow {
             KeyBar(Modifier.weight(1.4f), scheme.surfaceVariant)
-            KeyBar(Modifier.weight(5f), scheme.primary)
+            KeyBar(Modifier.weight(5f), scheme.surface)
             KeyBar(Modifier.weight(1.4f), scheme.surfaceVariant)
         }
     }

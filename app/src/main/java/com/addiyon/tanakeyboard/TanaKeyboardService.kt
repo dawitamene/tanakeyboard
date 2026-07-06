@@ -3,6 +3,7 @@ package com.addiyon.tanakeyboard
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import android.net.Uri
 import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.view.KeyEvent
@@ -36,6 +37,11 @@ import com.addiyon.tanakeyboard.ui.theme.KeyboardPalette
  * generous.
  */
 private const val AMHARIC_SUGGESTION_LIMIT = 10
+
+// Feedback destinations, mirrored from the settings feedback sheet.
+private const val FEEDBACK_EMAIL = "tanakeyboard@addiyon.com"
+// TODO: replace with the real Telegram username once provided.
+private const val TELEGRAM_USERNAME = "tanakeyboard"
 
 class TanaKeyboardService : InputMethodService(),
     LifecycleOwner,
@@ -266,6 +272,30 @@ class TanaKeyboardService : InputMethodService(),
     /** Clipboard entry point from the suggestion toolbar. Not wired up yet. */
     fun onClipboardAction() {
         // TODO: hook up clipboard panel.
+    }
+
+    /**
+     * Feedback actions launched from the in-keyboard feedback sheet. These
+     * start Activities from a Service context, so they need NEW_TASK (unlike
+     * the same actions in [com.addiyon.tanakeyboard.ui.settings.SettingsScreen],
+     * which run from an Activity).
+     */
+    fun sendFeedbackEmail() {
+        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra(Intent.EXTRA_EMAIL, arrayOf(FEEDBACK_EMAIL))
+            putExtra(Intent.EXTRA_SUBJECT, "Tana Keyboard feedback")
+        }
+        runCatching { startActivity(intent) }
+    }
+
+    fun openFeedbackTelegram() {
+        val deep = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=$TELEGRAM_USERNAME"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$TELEGRAM_USERNAME"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val target = if (packageManager.resolveActivity(deep, 0) != null) deep else web
+        runCatching { startActivity(target) }
     }
 
     fun toggleLanguage() {

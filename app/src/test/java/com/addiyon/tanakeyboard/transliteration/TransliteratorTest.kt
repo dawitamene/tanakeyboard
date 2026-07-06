@@ -147,8 +147,9 @@ class TransliteratorTest {
     fun digraphBufferOffersBothReadings() {
         // "sh" -> greedy ሽ then separated ስህ.
         assertEquals(listOf("ሽ", "ስህ"), Transliterator.readings("sh"))
-        // "shtet" -> ሽተት then ስህተት.
-        assertEquals(listOf("ሽተት", "ስህተት"), Transliterator.readings("shtet"))
+        // "shtet" -> greedy ሽተት, the ጠ-family alternate ሽጠጥ (every "t" flips to
+        // its ጥ reading), then the separated ስህተት.
+        assertEquals(listOf("ሽተት", "ሽጠጥ", "ስህተት"), Transliterator.readings("shtet"))
     }
 
     @Test
@@ -172,6 +173,15 @@ class TransliteratorTest {
         assertEquals("ክ", Transliterator.transliterate("k"))
         assertEquals(listOf("ክ", "ቅ"), Transliterator.readings("k"))
         assertEquals(listOf("ካ", "ቃ"), Transliterator.readings("ka"))
+    }
+
+    @Test
+    fun tOffersTFamilyAsSecondaryReading() {
+        // "t" primarily writes the ተ series (bare ት), but the ጠ series (bare
+        // ጥ) rides along as a secondary reading, reachable without shift.
+        assertEquals("ት", Transliterator.transliterate("t"))
+        assertEquals(listOf("ት", "ጥ"), Transliterator.readings("t"))
+        assertEquals(listOf("ታ", "ጣ"), Transliterator.readings("ta"))
     }
 
     @Test

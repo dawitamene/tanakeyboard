@@ -257,13 +257,13 @@ object AmharicTable {
      *   - k -> [the ቀ (q) series]: typing "k" primarily writes ከ/ክ but also
      *     offers the ቅ family as a secondary reading, since the two are easy
      *     to confuse and share a key in the user's head.
+     *   - t -> [the ጠ (T) series]: typing "t" primarily writes ተ/ት but also
+     *     offers the ጥ family as a secondary reading.
      *
-     * Deliberately NOT the full set of case-distinct families: t/T (ተ/ጠ) and
-     * c/C (ቸ/ጨ) are left out because they'd flip on nearly every common word
-     * (every "t", every "c"), burying the useful readings under noise like
-     * ቤጥ for "bet". They stay reachable the old way, by pressing shift. Bare
-     * vowels a/A etc. have the same duality but are handled through
-     * [bareVowels] directly, not this map.
+     * c/C (ቸ/ጨ) is still left out: it'd flip on nearly every common word,
+     * burying the useful readings under noise. It stays reachable the old way,
+     * by pressing shift. Bare vowels a/A etc. have the same duality but are
+     * handled through [bareVowels] directly, not this map.
      */
     val consonantAlternates: Map<String, List<Family>> = mapOf(
         "h" to listOf(families.getValue("H"), velarH),
@@ -272,7 +272,8 @@ object AmharicTable {
         "S" to listOf(families.getValue("s")),
         "ts" to listOf(families.getValue("Ts")),
         "Ts" to listOf(families.getValue("ts")),
-        "k" to listOf(families.getValue("q"))
+        "k" to listOf(families.getValue("q")),
+        "t" to listOf(families.getValue("T"))
     )
 
     /**

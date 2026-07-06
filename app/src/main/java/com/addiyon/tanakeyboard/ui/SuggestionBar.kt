@@ -22,7 +22,9 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -66,6 +68,8 @@ fun SuggestionArea(
     onTap: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenThemes: () -> Unit,
+    onOpenGuide: () -> Unit,
+    onFeedback: () -> Unit,
     onAi: () -> Unit,
     onClipboard: () -> Unit
 ) {
@@ -86,8 +90,11 @@ fun SuggestionArea(
         AppIconPlaceholder()
 
         if (suggestions.isEmpty()) {
-            ToolbarIcon(Icons.Filled.AutoAwesome, "AI", onAi)
-            ToolbarIcon(Icons.Filled.ContentPaste, "Clipboard", onClipboard)
+            // AI + Clipboard kept for later, commented out for now:
+            // ToolbarIcon(Icons.Filled.AutoAwesome, "AI", onAi)
+            // ToolbarIcon(Icons.Filled.ContentPaste, "Clipboard", onClipboard)
+            ToolbarIcon(Icons.Filled.MenuBook, "Typing guide", onOpenGuide)
+            ToolbarIcon(Icons.Filled.Feedback, "Feedback", onFeedback)
             ToolbarIcon(Icons.Filled.Settings, "Settings", onOpenSettings)
             ToolbarIcon(Icons.Filled.Palette, "Themes", onOpenThemes)
         } else {
