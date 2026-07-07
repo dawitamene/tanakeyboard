@@ -1,7 +1,10 @@
 // ui/KeyButton.kt
 package com.addiyon.tanakeyboard.ui
 
+import android.content.Context
+import android.media.AudioManager
 import android.view.HapticFeedbackConstants
+import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -43,7 +46,26 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 
 import com.addiyon.tanakeyboard.ui.keys.repeatingClickable
+import com.addiyon.tanakeyboard.ui.settings.KeyboardPrefs
 import kotlin.math.abs
+
+/**
+ * Per-keypress feedback, gated on the user's own preferences (both OFF by
+ * default -- see [KeyboardPrefs]). Vibration additionally respects the system
+ * touch-feedback setting via [View.performHapticFeedback]; sound plays the
+ * standard system keypress click. Read fresh on every press so a settings
+ * change takes effect immediately.
+ */
+private fun keypressFeedback(view: View) {
+    val context = view.context
+    if (KeyboardPrefs.vibrateOnKeypress(context)) {
+        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+    }
+    if (KeyboardPrefs.soundOnKeypress(context)) {
+        (context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)
+            ?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD)
+    }
+}
 
 /**
  * A single keyboard key. Renders as either a letter/character key
@@ -63,10 +85,13 @@ import kotlin.math.abs
  *   - Special keys (no balloon on iOS either) swap their surface shade
  *     while pressed -- the dark special surface flips to the light
  *     letter-key surface and vice versa.
- *   - Every press-down fires a [HapticFeedbackConstants.KEYBOARD_TAP]
- *     haptic (which respects the system "touch feedback" setting). It
- *     fires on DOWN, not on release, matching iOS -- and for repeatable
- *     keys each auto-repeat tick gets its own haptic.
+ *   - Every press-down fires [keypressFeedback]: a
+ *     [HapticFeedbackConstants.KEYBOARD_TAP] haptic and/or a keypress
+ *     click sound, each gated on the user's own preference (both OFF by
+ *     default, see [KeyboardPrefs]) and the haptic additionally on the
+ *     system "touch feedback" setting. It fires on DOWN, not on release,
+ *     matching iOS -- and for repeatable keys each auto-repeat tick gets
+ *     its own feedback.
  *
  * [isHighlighted] draws a soft primary-tinted background instead of the
  * normal special-key surface -- available for states that need to stand
@@ -152,7 +177,7 @@ fun KeyButton(
 
     val pressModifier = if (repeatable) {
         Modifier.repeatingClickable(interactionSource = interactionSource) {
-            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            keypressFeedback(view)
             onClick()
         }
     } else if (onLongPress != null) {
@@ -198,7 +223,7 @@ fun KeyButton(
         LaunchedEffect(interactionSource) {
             interactionSource.interactions.collect { interaction ->
                 if (interaction is PressInteraction.Press) {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    keypressFeedback(view)
                 }
             }
         }

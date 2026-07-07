@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Feedback
@@ -26,10 +25,9 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.StarRate
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -65,10 +63,7 @@ fun SettingsScreen(
     onOpenTestKeyboard: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenThemes: () -> Unit,
-    modifier: Modifier = Modifier,
-    // When non-null (screen opened from the keyboard), a back button is shown
-    // in the header to return to the keyboard.
-    onExit: (() -> Unit)? = null
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var showFeedback by remember { mutableStateOf(false) }
@@ -148,13 +143,13 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Header(onExit = onExit)
+            Header()
             Spacer(Modifier.height(8.dp))
 
             GroupCard {
                 SettingsItem(Icons.Default.Palette, "Themes", onClick = onOpenThemes)
                 SettingsItem(Icons.Default.MenuBook, "Typing Guide", onClick = onOpenManual)
-                SettingsItem(Icons.Default.VolumeUp, "Sound and Vibration", onClick = onOpenSoundVibration)
+                SettingsItem(Icons.Default.Tune, "Preferences", onClick = onOpenSoundVibration)
                 SettingsItem(Icons.Default.Keyboard, "Test Keyboard", onClick = onOpenTestKeyboard)
             }
             GroupCard {
@@ -197,22 +192,13 @@ private const val FEEDBACK_EMAIL = "tanakeyboard@addiyon.com"
 private const val TELEGRAM_USERNAME = "tanakeyboard"
 
 @Composable
-private fun Header(onExit: (() -> Unit)?) {
+private fun Header() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (onExit != null) {
-            IconButton(onClick = onExit) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back to keyboard"
-                )
-            }
-            Spacer(Modifier.width(4.dp))
-        }
         // Brand logo (the pre-rounded Tana mark).
         Image(
             painter = painterResource(R.drawable.ic_tana_icon),

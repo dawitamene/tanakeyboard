@@ -11,8 +11,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.KeyboardReturn
+import androidx.compose.material.icons.automirrored.outlined.KeyboardTab
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Backspace
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.addiyon.tanakeyboard.TanaKeyboardService
+import com.addiyon.tanakeyboard.model.EnterAction
 import com.addiyon.tanakeyboard.model.KeyData
 import com.addiyon.tanakeyboard.model.NumbersMode
 import com.addiyon.tanakeyboard.model.ShiftState
@@ -229,14 +236,30 @@ fun RowScope.SpaceKey(
 /**
  * Enter/return key. Weighted -> flexes to fill leftover space in its row.
  * Rendered as a "special" key -> darker surface than letter keys.
+ *
+ * Context-aware, Gboard-style: its icon reflects the target field's IME action
+ * ([action]) -- a magnifier in a search box, a paper plane in a message field,
+ * a tab arrow for "next", and so on -- while a plain/multi-line field keeps the
+ * return glyph. The actual behavior is decided by the service in
+ * [TanaKeyboardService.onEnter]; this only chooses the glyph.
  */
 @Composable
 fun RowScope.EnterKey(
+    action: EnterAction,
     height: Dp,
     onClick: () -> Unit
 ) {
+    val icon = when (action) {
+        EnterAction.SEARCH -> Icons.Outlined.Search
+        EnterAction.SEND -> Icons.AutoMirrored.Outlined.Send
+        EnterAction.GO -> Icons.AutoMirrored.Outlined.ArrowForward
+        EnterAction.NEXT -> Icons.AutoMirrored.Outlined.KeyboardTab
+        EnterAction.PREVIOUS -> Icons.AutoMirrored.Outlined.ArrowBack
+        EnterAction.DONE -> Icons.Outlined.Check
+        EnterAction.NEWLINE -> Icons.AutoMirrored.Outlined.KeyboardReturn
+    }
     KeyButton(
-        icon = Icons.AutoMirrored.Outlined.KeyboardReturn,
+        icon = icon,
         modifier = Modifier.weight(KeyWeights.ENTER),
         height = height,
         isSpecial = true,

@@ -36,6 +36,17 @@
             </intent-filter>
 
         </activity>
+
+        <!-- Opened directly from the keyboard toolbar so their screens are the
+             first frame drawn (no MainActivity home flash). Not exported. -->
+        <activity
+            android:name=".ThemesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TanaKeyboard" />
+        <activity
+            android:name=".ManualActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TanaKeyboard" />
     </application>
 
 </manifest>

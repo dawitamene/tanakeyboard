@@ -99,6 +99,7 @@ internal fun KeyRow(
 
                 KeyData.Enter -> {
                     EnterKey(
+                        action = service.enterAction,
                         height = metrics.keyHeight,
                         onClick = { service.onEnter() }
                     )

@@ -10,7 +10,13 @@
 .DS_Store
 /build
 /captures
+/tools/.cache
 .externalNativeBuild
 .cxx
 local.properties
 **/output.txt
+
+# Release signing material -- never commit
+*.jks
+*.keystore
+keystore.properties

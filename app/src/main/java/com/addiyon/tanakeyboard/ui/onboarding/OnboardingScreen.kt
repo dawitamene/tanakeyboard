@@ -173,6 +173,12 @@ private fun StepPage(
                 modifier = Modifier.size(72.dp)
             )
             Text(
+                text = "Step ${stepIndex + 1}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center
+            )
+            Text(
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center

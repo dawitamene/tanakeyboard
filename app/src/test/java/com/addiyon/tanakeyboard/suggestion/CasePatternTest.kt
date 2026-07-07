@@ -41,4 +41,21 @@ class CasePatternTest {
     fun emptyPrefixLeavesWordUntouched() {
         assertEquals("that", matchCase("", "that"))
     }
+
+    @Test
+    fun lowercasePrefixKeepsCanonicalProperNounCasing() {
+        // The dictionary word already carries proper-noun casing; a lowercase
+        // prefix must not lowercase it back down.
+        assertEquals("England", matchCase("engl", "England"))
+    }
+
+    @Test
+    fun allCapsPrefixOverridesCanonicalCasing() {
+        assertEquals("ENGLAND", matchCase("ENG", "England"))
+    }
+
+    @Test
+    fun titleCasePrefixLeavesAlreadyCapitalizedWordUnchanged() {
+        assertEquals("England", matchCase("Eng", "England"))
+    }
 }

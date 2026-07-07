@@ -72,8 +72,16 @@ class MainActivity : ComponentActivity() {
                     val status by rememberKeyboardStatus()
                     var screen by rememberSaveable {
                         mutableStateOf(
-                            if (KeyboardStatus.isDefault(this@MainActivity)) ScreenKey.Settings
-                            else ScreenKey.Onboarding
+                            when {
+                                // Not the default keyboard yet -> onboarding gate.
+                                !KeyboardStatus.isDefault(this@MainActivity) ->
+                                    ScreenKey.Onboarding
+                                // Launched from the keyboard toolbar onto a
+                                // specific screen: land there on the FIRST frame
+                                // (behind the splash) so the target screen isn't
+                                // preceded by a visible flash of Settings.
+                                else -> screenForRequest(screenRequest) ?: ScreenKey.Settings
+                            }
                         )
                     }
 
@@ -90,13 +98,8 @@ class MainActivity : ComponentActivity() {
                     // once Tana is default, i.e. past onboarding), then consume
                     // it so returning to the app later lands on Settings.
                     LaunchedEffect(screenRequest, status.isDefault) {
-                        val req = screenRequest
-                        if (req != null && status.isDefault) {
-                            val target = when (req) {
-                                SCREEN_THEMES -> ScreenKey.Themes
-                                SCREEN_GUIDE -> ScreenKey.Manual
-                                else -> ScreenKey.Settings
-                            }
+                        val target = screenForRequest(screenRequest)
+                        if (target != null && status.isDefault) {
                             screen = target
                             fromKeyboard = true
                             keyboardEntryScreen = target
@@ -123,11 +126,7 @@ class MainActivity : ComponentActivity() {
                                 onOpenSoundVibration = { screen = ScreenKey.SoundVibration },
                                 onOpenTestKeyboard = { screen = ScreenKey.TestKeyboard },
                                 onOpenAbout = { screen = ScreenKey.About },
-                                onOpenThemes = { screen = ScreenKey.Themes },
-                                // Back-to-keyboard only when Settings was the
-                                // keyboard-entry screen.
-                                onExit = if (fromKeyboard && keyboardEntryScreen == ScreenKey.Settings)
-                                    ({ finish() }) else null
+                                onOpenThemes = { screen = ScreenKey.Themes }
                             )
                             ScreenKey.Manual -> ManualScreen(
                                 onBack = { goBack(ScreenKey.Manual) }
@@ -154,6 +153,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    // Maps a keyboard-toolbar screen request (or null) to the screen it should
+    // open. Unknown/absent requests return null (no keyboard-initiated nav).
+    private fun screenForRequest(req: String?): ScreenKey? = when (req) {
+        SCREEN_THEMES -> ScreenKey.Themes
+        SCREEN_GUIDE -> ScreenKey.Manual
+        SCREEN_SETTINGS -> ScreenKey.Settings
+        else -> null
     }
 
     companion object {

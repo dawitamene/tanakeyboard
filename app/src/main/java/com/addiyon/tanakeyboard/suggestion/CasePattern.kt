@@ -1,15 +1,17 @@
 package com.addiyon.tanakeyboard.suggestion
 
 /**
- * Re-applies the case pattern of the user's typed prefix to a lowercase
- * dictionary word: "Th" + "the" -> "The", "THA" + "that" -> "THAT",
- * "th" + "that" -> "that".
+ * Reconciles the case the user typed with a dictionary [word] that already
+ * carries its own CANONICAL casing: "Th" + "the" -> "The", "THA" + "that" ->
+ * "THAT", "th" + "that" -> "that", and -- crucially -- "engl" + "England" ->
+ * "England" (the dictionary's proper-noun casing survives a lowercase prefix).
  *
- * Needed because the English dictionary stores every entry lowercase (its
- * source corpus is lowercased), so lookups happen against the lowercased
- * prefix -- but a suggestion chip must not silently discard the
- * capitalization the user already typed, or tapping it would "correct"
- * "Th|" into "the".
+ * The dictionary stores each word in canonical form (common words lowercase,
+ * proper nouns capitalized -- see [WordTrie]), and lookups are
+ * case-insensitive, so a suggestion chip must (a) preserve the capitalization
+ * the user themselves typed -- tapping must not "correct" "Th|" into "the" --
+ * while (b) otherwise keeping the word's own casing untouched, which is what
+ * the `else` branch does by returning [word] verbatim.
  *
  * The all-caps rule deliberately requires at least TWO typed uppercase
  * letters (not merely "no lowercase"): a single "T" -- or "I'" with its

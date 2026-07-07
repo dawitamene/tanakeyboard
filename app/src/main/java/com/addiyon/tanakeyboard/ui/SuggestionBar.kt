@@ -1,7 +1,6 @@
 // ui/SuggestionBar.kt
 package com.addiyon.tanakeyboard.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -20,12 +19,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Feedback
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Feedback
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,14 +31,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.addiyon.tanakeyboard.R
 
 /**
  * The word-completion strip above the key rows. Always reserves a fixed-height
@@ -74,10 +69,9 @@ fun SuggestionArea(
     onAi: () -> Unit,
     onClipboard: () -> Unit
 ) {
-    // The app logo is always at the start of the bar. When there's nothing to
-    // suggest, the row is a toolbar of quick actions spread evenly across the
-    // width (justify space-between, logo included); when suggestions exist the
-    // logo stays put and the strip fills the rest.
+    // When there's nothing to suggest, the row is a toolbar of quick actions
+    // spread evenly across the width (justify space-between); when suggestions
+    // exist the strip fills the whole row.
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -88,16 +82,14 @@ fun SuggestionArea(
             if (suggestions.isEmpty()) Arrangement.SpaceBetween else Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AppIconPlaceholder()
-
         if (suggestions.isEmpty()) {
             // AI + Clipboard kept for later, commented out for now:
-            // ToolbarIcon(Icons.Filled.AutoAwesome, "AI", onAi)
-            // ToolbarIcon(Icons.Filled.ContentPaste, "Clipboard", onClipboard)
-            ToolbarIcon(Icons.Filled.MenuBook, "Typing guide", onOpenGuide)
-            ToolbarIcon(Icons.Filled.Feedback, "Feedback", onFeedback)
-            ToolbarIcon(Icons.Filled.Settings, "Settings", onOpenSettings)
-            ToolbarIcon(Icons.Filled.Palette, "Themes", onOpenThemes)
+            // ToolbarIcon(Icons.Outlined.AutoAwesome, "AI", onAi)
+            // ToolbarIcon(Icons.Outlined.ContentPaste, "Clipboard", onClipboard)
+            ToolbarIcon(Icons.Outlined.MenuBook, "Typing guide", onOpenGuide)
+            ToolbarIcon(Icons.Outlined.Feedback, "Feedback", onFeedback)
+            ToolbarIcon(Icons.Outlined.Settings, "Settings", onOpenSettings)
+            ToolbarIcon(Icons.Outlined.Palette, "Themes", onOpenThemes)
         } else {
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 if (isAmharic) {
@@ -108,16 +100,6 @@ fun SuggestionArea(
             }
         }
     }
-}
-
-/** App-mark shown at the start of the toolbar. */
-@Composable
-private fun AppIconPlaceholder() {
-    Image(
-        painter = painterResource(R.drawable.ic_tana_icon),
-        contentDescription = "Tana Keyboard",
-        modifier = Modifier.size(26.dp)
-    )
 }
 
 @Composable
@@ -176,13 +158,16 @@ private fun AmharicSuggestionStrip(
                 )
             }
 
-            // A separator after every word.
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .fillMaxHeight(0.5f)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-            )
+            // A separator BETWEEN words only -- no trailing divider after the
+            // last chip.
+            if (index < suggestions.lastIndex) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight(0.5f)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                )
+            }
         }
     }
 }
@@ -233,14 +218,16 @@ private fun RowScope.EnglishSuggestionSlot(
         contentAlignment = Alignment.Center
     ) {
         if (word != null) {
-            // autoSize shrinks the font (down to 11sp) only when the word is
+            // autoSize shrinks the font (only down to 15sp) when the word is
             // too long to fit its slot at the normal 16sp -- short words stay
-            // full size, long ones scale down instead of ellipsizing.
+            // full size, long ones scale down slightly and then ellipsize
+            // rather than shrinking to an unreadable size.
             BasicText(
                 text = word,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 autoSize = TextAutoSize.StepBased(
-                    minFontSize = 11.sp,
+                    minFontSize = 15.sp,
                     maxFontSize = 16.sp,
                     stepSize = 1.sp
                 ),

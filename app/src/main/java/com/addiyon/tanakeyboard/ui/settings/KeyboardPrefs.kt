@@ -20,7 +20,7 @@ object KeyboardPrefs {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     fun vibrateOnKeypress(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_VIBRATE, true)
+        prefs(context).getBoolean(KEY_VIBRATE, false)
 
     fun soundOnKeypress(context: Context): Boolean =
         prefs(context).getBoolean(KEY_SOUND, false)

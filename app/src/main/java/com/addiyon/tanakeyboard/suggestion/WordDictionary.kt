@@ -20,12 +20,15 @@ import java.util.zip.GZIPInputStream
  *     rank higher). Swapping in a proper frequency-ranked list later (e.g.
  *     built from Wikipedia + news corpora) is just replacing the asset.
  *   - `english_words.dat`: derived from the OpenSubtitles-based
- *     FrequencyWords en_50k list (hermitdave/FrequencyWords, MIT), ~47k
+ *     FrequencyWords full list (hermitdave/FrequencyWords, MIT), ~250k
  *     words with real corpus frequencies. The source tokenizer splits
  *     contractions ("don't" -> "don" + "'t"), so common contractions were
- *     reconstructed with estimated counts at asset-build time. Entries are
- *     all lowercase -- callers lowercase the lookup prefix and restore the
- *     typed case pattern via [matchCase].
+ *     reconstructed with estimated counts at asset-build time. Unlike the
+ *     old en_50k asset, entries now carry canonical casing (common words
+ *     lowercase, proper nouns capitalized). The trie matches
+ *     case-insensitively, so callers still lowercase the lookup prefix and
+ *     reconcile it with the returned casing via [matchCase]. Rebuilt by
+ *     `tools/build_english_dict.py`.
  *
  * NOTE ON THE FILE EXTENSION: deliberately `.dat`, not `.gz` -- the Android
  * Gradle Plugin silently auto-decompresses `.gz` assets and strips the

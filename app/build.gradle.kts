@@ -1,6 +1,8 @@
+import java.io.FileInputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,6 +10,17 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 
 
+}
+
+// Release signing is driven by a gitignored keystore.properties in the module
+// root (never committed). When it's absent -- e.g. a fresh checkout or CI
+// without the secret -- we skip the signing config so debug builds still work;
+// only `bundleRelease`/`assembleRelease` require it.
+val keystorePropertiesFile = rootProject.file("app/keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        load(FileInputStream(keystorePropertiesFile))
+    }
 }
 
 android {
@@ -29,13 +42,29 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // Only materialized when keystore.properties is present.
+        if (keystoreProperties.isNotEmpty()) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Falls back to unsigned when keystore.properties is missing, so a
+            // fresh checkout can still `assembleRelease` (just not upload it).
+            signingConfig = signingConfigs.findByName("release")
         }
     }
     compileOptions {
@@ -53,16 +82,21 @@ android {
 
         variant.assembleProvider.configure {
             doLast {
+                // Local sideload convenience: drop a timestamped APK into a
+                // shared folder for the test device. No-op on any host that
+                // doesn't have that folder (CI, another machine, Play builds),
+                // so it never breaks the build there.
                 val targetDir = file("/Users/dev/Shared")
+                if (targetDir.isDirectory) {
+                    val timeFormat = SimpleDateFormat("hh-mm-a", Locale.getDefault())
+                    val fileName = "${timeFormat.format(Date())}.apk"
 
-                val timeFormat = SimpleDateFormat("hh-mm-a", Locale.getDefault())
-                val fileName = "${timeFormat.format(Date())}.apk"
-
-                copy {
-                    from(file("$buildDir/outputs/apk/${variant.name}"))
-                    include("*.apk")
-                    into(targetDir)
-                    rename { fileName }
+                    copy {
+                        from(file("$buildDir/outputs/apk/${variant.name}"))
+                        include("*.apk")
+                        into(targetDir)
+                        rename { fileName }
+                    }
                 }
             }
         }

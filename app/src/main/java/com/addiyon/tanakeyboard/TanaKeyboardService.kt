@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -23,6 +24,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.addiyon.tanakeyboard.composing.WordComposer
+import com.addiyon.tanakeyboard.model.EnterAction
 import com.addiyon.tanakeyboard.model.NumbersMode
 import com.addiyon.tanakeyboard.model.ShiftState
 import com.addiyon.tanakeyboard.suggestion.WordDictionary
@@ -63,7 +65,7 @@ class TanaKeyboardService : InputMethodService(),
     // KEYBOARD STATE
     // ----------------------------
 
-    var isAmharic by mutableStateOf(false)
+    var isAmharic by mutableStateOf(true)
         private set
 
     var numbersMode by mutableStateOf(NumbersMode.OFF)
@@ -80,6 +82,15 @@ class TanaKeyboardService : InputMethodService(),
 
     val isShiftEnabled: Boolean
         get() = shiftState != ShiftState.OFF
+
+    // What the Enter key should show and do in the current field, derived from
+    // its IME action (see [resolveEnterAction], refreshed per input session in
+    // onStartInputView). [editorActionId] is the raw EditorInfo action to fire
+    // via performEditorAction when [enterAction] isn't a plain NEWLINE.
+    var enterAction by mutableStateOf(EnterAction.NEWLINE)
+        private set
+
+    private var editorActionId: Int = EditorInfo.IME_ACTION_UNSPECIFIED
 
     // Tracked manually instead of relying on Compose's isSystemInDarkTheme(),
     // because an InputMethodService's window doesn't reliably deliver
@@ -251,15 +262,22 @@ class TanaKeyboardService : InputMethodService(),
     }
 
     /**
-     * Opens the app's UI (a normal Activity) from the keyboard, jumping
-     * straight to the given screen. Needs NEW_TASK because we're launching
-     * from a Service context, not an Activity. See [MainActivity]'s
-     * EXTRA_OPEN_SCREEN handling.
+     * Opens the app's UI from the keyboard, jumping straight to the given
+     * screen. Themes and the typing guide each have their own Activity so
+     * their screen IS the first frame -- no brief flash of [MainActivity]'s
+     * home on the way there; everything else goes through [MainActivity].
+     * Needs NEW_TASK because we're launching from a Service context, not an
+     * Activity.
      */
     fun openAppScreen(screen: String) {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            putExtra(MainActivity.EXTRA_OPEN_SCREEN, screen)
+        val target = when (screen) {
+            MainActivity.SCREEN_THEMES -> ThemesActivity::class.java
+            MainActivity.SCREEN_GUIDE -> ManualActivity::class.java
+            else -> MainActivity::class.java
+        }
+        val intent = Intent(this, target).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (target == MainActivity::class.java) {
+            intent.putExtra(MainActivity.EXTRA_OPEN_SCREEN, screen)
         }
         startActivity(intent)
     }
@@ -459,16 +477,55 @@ class TanaKeyboardService : InputMethodService(),
     }
 
     /**
-     * Enter commits the current word (so a form submission sees the
-     * completed word, not a half-composed one) and then dispatches
-     * the actual key event.
+     * Enter commits the current word first (so a form submission sees the
+     * completed word, not a half-composed one), then either runs the field's
+     * IME action (search/go/send/next/...) via [performEditorAction] or, for a
+     * plain/multi-line field, sends a literal newline key event. Which one is
+     * decided by [enterAction], resolved for the current field in
+     * [onStartInputView].
      */
     fun onEnter() {
         activeComposer.commit()
-        currentInputConnection?.sendKeyEvent(
-            KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
-        )
+        val ic = currentInputConnection
+        if (enterAction == EnterAction.NEWLINE) {
+            ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+            ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+        } else {
+            ic?.performEditorAction(editorActionId)
+        }
         updateSuggestions()
+    }
+
+    /**
+     * Resolves how the Enter key should present and behave for the current
+     * field from its `EditorInfo`. A multi-line field, or one that opts out of
+     * an enter action (`IME_FLAG_NO_ENTER_ACTION`), gets a plain newline;
+     * otherwise the declared IME action (GO/SEARCH/SEND/NEXT/PREVIOUS/DONE)
+     * drives both the key's icon and what Enter fires.
+     */
+    private fun resolveEnterAction(editorInfo: EditorInfo?) {
+        if (editorInfo == null) {
+            enterAction = EnterAction.NEWLINE
+            editorActionId = EditorInfo.IME_ACTION_UNSPECIFIED
+            return
+        }
+        val imeOptions = editorInfo.imeOptions
+        val actionId = imeOptions and EditorInfo.IME_MASK_ACTION
+        val multiline = editorInfo.inputType and InputType.TYPE_TEXT_FLAG_MULTI_LINE != 0
+        val noEnterAction = imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0
+
+        editorActionId = actionId
+        enterAction = if (multiline || noEnterAction) {
+            EnterAction.NEWLINE
+        } else when (actionId) {
+            EditorInfo.IME_ACTION_GO -> EnterAction.GO
+            EditorInfo.IME_ACTION_SEARCH -> EnterAction.SEARCH
+            EditorInfo.IME_ACTION_SEND -> EnterAction.SEND
+            EditorInfo.IME_ACTION_NEXT -> EnterAction.NEXT
+            EditorInfo.IME_ACTION_PREVIOUS -> EnterAction.PREVIOUS
+            EditorInfo.IME_ACTION_DONE -> EnterAction.DONE
+            else -> EnterAction.NEWLINE
+        }
     }
 
     /**
@@ -535,6 +592,8 @@ class TanaKeyboardService : InputMethodService(),
         // wrong destination.
         amharicComposer.reset()
         englishComposer.reset()
+        // The Enter key adapts to this field's IME action (search/go/send/...).
+        resolveEnterAction(editorInfo)
         updateSuggestions()
 
         // Catch any theme change that happened while the keyboard was hidden,
