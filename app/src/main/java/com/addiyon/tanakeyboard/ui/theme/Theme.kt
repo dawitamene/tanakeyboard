@@ -12,8 +12,11 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import com.addiyon.tanakeyboard.R
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import kotlin.math.sin
@@ -61,7 +64,15 @@ private fun schemeFrom(c: PaletteColors, isDark: Boolean): ColorScheme {
 enum class PaletteCategory(val displayName: String) {
     MINIMAL("Minimal"),
     PASTEL("Pastel"),
-    BOLD("Bold")
+    BOLD("Bold"),
+    NATURE("Nature"),
+    VIBRANT("Vibrant"),
+    DARK("Dark")
+}
+
+sealed interface KeyboardBackground {
+    data object Solid : KeyboardBackground
+    data object LakeRipple : KeyboardBackground
 }
 
 /**
@@ -80,7 +91,8 @@ enum class KeyboardPalette(
     val displayName: String,
     val category: PaletteCategory,
     private val light: PaletteColors,
-    private val dark: PaletteColors
+    private val dark: PaletteColors,
+    val backgroundEffect: KeyboardBackground = KeyboardBackground.Solid
 ) {
     // ---- MINIMAL: tinted tray/special + accent, neutral keys, light+dark ----
     CLASSIC(
@@ -164,11 +176,83 @@ enum class KeyboardPalette(
     SLATE(
         "SLATE", "Slate", PaletteCategory.BOLD,
         full(0xFF12161C, 0xFF232A33, 0xFF1A2027, 0xFF8FB0C9, 0xFFE7EEF5, 0xFF12161C)
+    ),
+
+    TANA(
+        "TANA", "Tana", PaletteCategory.NATURE,
+        PaletteColors(Color(0xFFDEEAF4), Color(0xFFF2F7FB), Color(0xFFC5DAE8), Color(0xFF1B6FB3), Color(0xFF0B1A28), Color(0xFFFFFFFF)),
+        PaletteColors(Color(0xFF0B1722), Color(0xFF152636), Color(0xFF0E1E30), Color(0xFF389ED4), Color(0xFFDEE8F2), Color(0xFF0B1722)),
+        backgroundEffect = KeyboardBackground.LakeRipple
+    ),
+    AURORA(
+        "AURORA", "Aurora", PaletteCategory.NATURE,
+        full(0xFFD8F0E8, 0xFFEDF8F2, 0xFFC0E5D5, 0xFF1A9E6E, 0xFF0A2E1E, 0xFFFFFFFF)
+    ),
+    DUSK(
+        "DUSK", "Dusk", PaletteCategory.NATURE,
+        full(0xFFF2E6DE, 0xFFFAF2EC, 0xFFE8D5C8, 0xFFD4784A, 0xFF2A1A0E, 0xFFFFFFFF)
+    ),
+    CORAL(
+        "CORAL", "Coral", PaletteCategory.NATURE,
+        full(0xFFFCE8E2, 0xFFFEF4F0, 0xFFF8D0C5, 0xFFE06050, 0xFF2A1A14, 0xFFFFFFFF)
+    ),
+    EMERALD(
+        "EMERALD", "Emerald", PaletteCategory.NATURE,
+        full(0xFF0E1E16, 0xFF182E24, 0xFF12251A, 0xFF50D898, 0xFFE0F5EA, 0xFF0E1E16)
+    ),
+    STORM(
+        "STORM", "Storm", PaletteCategory.NATURE,
+        full(0xFF181C24, 0xFF262A35, 0xFF1E222C, 0xFF8A9EC0, 0xFFE6EAF2, 0xFF181C24)
+    ),
+
+    NEON(
+        "NEON", "Neon", PaletteCategory.VIBRANT,
+        full(0xFFF2F0FF, 0xFFFAF8FF, 0xFFE2DCF8, 0xFFF03088, 0xFF180A2A, 0xFFFFFFFF)
+    ),
+    SUNSET(
+        "SUNSET", "Sunset", PaletteCategory.VIBRANT,
+        full(0xFFFFF0E5, 0xFFFFF8F2, 0xFFFDDFCF, 0xFFF06830, 0xFF2A1400, 0xFFFFFFFF)
+    ),
+    ELECTRIC(
+        "ELECTRIC", "Electric", PaletteCategory.VIBRANT,
+        full(0xFFEDF0FF, 0xFFF6F8FF, 0xFFD5DDFA, 0xFF6840FF, 0xFF0E082A, 0xFFFFFFFF)
+    ),
+    BERRY(
+        "BERRY", "Berry", PaletteCategory.VIBRANT,
+        full(0xFF1A0E20, 0xFF2D1A35, 0xFF22132B, 0xFFE048A8, 0xFFF5E5F0, 0xFF1A0E20)
+    ),
+    TANGERINE(
+        "TANGERINE", "Tangerine", PaletteCategory.VIBRANT,
+        full(0xFFFFF2E5, 0xFFFFFAF3, 0xFFFFE5D0, 0xFFFF8040, 0xFF2A1400, 0xFFFFFFFF)
+    ),
+    AQUA(
+        "AQUA", "Aqua", PaletteCategory.VIBRANT,
+        full(0xFFDEFAF2, 0xFFEEFFFA, 0xFFC0F0E3, 0xFF00C0A5, 0xFF00281E, 0xFFFFFFFF)
+    ),
+
+    CHARCOAL(
+        "CHARCOAL", "Charcoal", PaletteCategory.DARK,
+        full(0xFF1C1C20, 0xFF2A2A30, 0xFF222228, 0xFF9EA0B2, 0xFFE8E8EE, 0xFF1C1C20)
+    ),
+    PEARL(
+        "PEARL", "Pearl", PaletteCategory.DARK,
+        full(0xFF222018, 0xFF333028, 0xFF282520, 0xFFC8B898, 0xFFF0EBE0, 0xFF222018)
+    ),
+    STEEL(
+        "STEEL", "Steel", PaletteCategory.DARK,
+        full(0xFF1A1E26, 0xFF282C38, 0xFF20242E, 0xFF8298B8, 0xFFE4EAF2, 0xFF1A1E26)
+    ),
+    ASH(
+        "ASH", "Ash", PaletteCategory.DARK,
+        full(0xFF242428, 0xFF343438, 0xFF2A2A30, 0xFFA6A6B6, 0xFFECECF0, 0xFF242428)
+    ),
+    SHADOW(
+        "SHADOW", "Shadow", PaletteCategory.DARK,
+        full(0xFF101014, 0xFF1C1C20, 0xFF141418, 0xFF888898, 0xFFD8D8E0, 0xFF101014)
     );
 
-    // Secondary ctor for full palettes: one PaletteColors used for both modes.
-    constructor(id: String, displayName: String, category: PaletteCategory, both: PaletteColors) :
-        this(id, displayName, category, both, both)
+    constructor(id: String, displayName: String, category: PaletteCategory, both: PaletteColors, backgroundEffect: KeyboardBackground = KeyboardBackground.Solid) :
+        this(id, displayName, category, both, both, backgroundEffect)
 
     private val lightScheme: ColorScheme = schemeFrom(light, isDark = false)
     private val darkScheme: ColorScheme = schemeFrom(dark, isDark = true)
@@ -254,9 +338,9 @@ private val TanaDarkScheme: ColorScheme = darkColorScheme(
 
 @Composable
 private fun LakeBackground(isDark: Boolean) {
-    val topColor = if (isDark) Color(0xFF0B1722) else Color(0xFFEEF3F7)
-    val deepColor = if (isDark) Color(0xFF0A1E30) else Color(0xFFB4D4E6)
-    val wave = if (isDark) Color(0xFF254D68).copy(alpha = 0.35f) else Color(0xFF85B8D4).copy(alpha = 0.35f)
+    val topColor = if (isDark) Color(0xFF0D1E2E) else Color(0xFFF2F5F9)
+    val deepColor = if (isDark) Color(0xFF102838) else Color(0xFFCDDDEB)
+    val wave = if (isDark) Color(0xFF2A5268).copy(alpha = 0.28f) else Color(0xFFA8C8E0).copy(alpha = 0.28f)
 
     val seeds = remember { List(2) { Random(it.hashCode()).nextFloat() } }
 
@@ -281,6 +365,55 @@ private fun LakeBackground(isDark: Boolean) {
             close()
         }
         drawPath(path, wave)
+    }
+}
+
+@Composable
+private fun LakeRippleBackground(modifier: Modifier, isDark: Boolean) {
+    val topColor = if (isDark) Color(0xFF0E2A40) else Color(0xFFE1F0F8)
+    val deepColor = if (isDark) Color(0xFF091C2E) else Color(0xFFB8D8EB)
+    val wave = if (isDark) Color(0xFF254D68).copy(alpha = 0.40f) else Color(0xFF8EBFDA).copy(alpha = 0.45f)
+    val wave2 = if (isDark) Color(0xFF1A3D55).copy(alpha = 0.25f) else Color(0xFFA8CFE5).copy(alpha = 0.25f)
+
+    val seeds = remember { List(3) { Random(it.hashCode()).nextFloat() } }
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        drawRect(Brush.verticalGradient(listOf(topColor, deepColor)))
+
+        val path1 = Path().apply {
+            moveTo(0f, h * 0.70f)
+            var x = 0f
+            while (x <= w) {
+                val dx = x / w
+                val y = h * 0.70f + sin(dx * 6.28f * 1.2f + seeds[0] * 6.28f) * h * 0.055f
+                    + sin(dx * 6.28f * 3.0f + seeds[1] * 6.28f) * h * 0.03f
+                lineTo(x, y)
+                x += w / 100f
+            }
+            lineTo(w, h)
+            lineTo(0f, h)
+            close()
+        }
+        drawPath(path1, wave)
+
+        val path2 = Path().apply {
+            moveTo(0f, h * 0.76f)
+            var x = 0f
+            while (x <= w) {
+                val dx = x / w
+                val y = h * 0.76f + sin(dx * 6.28f * 2.2f + seeds[2] * 6.28f) * h * 0.035f
+                    + sin(dx * 6.28f * 4.5f + seeds[0] * 6.28f) * h * 0.016f
+                lineTo(x, y)
+                x += w / 100f
+            }
+            lineTo(w, h)
+            lineTo(0f, h)
+            close()
+        }
+        drawPath(path2, wave2)
     }
 }
 
@@ -326,6 +459,18 @@ fun CustomKeyboardTheme(
 ) {
     MaterialTheme(
         colorScheme = palette.scheme(isDarkTheme),
-        content = content
+        content = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                if (palette.backgroundEffect is KeyboardBackground.LakeRipple) {
+                    LakeRippleBackground(Modifier.matchParentSize(), isDarkTheme)
+                }
+                content()
+            }
+        }
     )
 }

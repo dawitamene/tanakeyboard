@@ -51,7 +51,6 @@ fun KeyboardScreen(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .background(MaterialTheme.colorScheme.background)
     ) {
         // A Column, not a Box: the suggestion strip and the key rows need to
         // STACK vertically.
