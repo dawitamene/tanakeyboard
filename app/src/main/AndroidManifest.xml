@@ -47,6 +47,10 @@
             android:name=".ManualActivity"
             android:exported="false"
             android:theme="@style/Theme.TanaKeyboard" />
+        <activity
+            android:name=".FeedbackActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TanaKeyboard" />
     </application>
 
 </manifest>

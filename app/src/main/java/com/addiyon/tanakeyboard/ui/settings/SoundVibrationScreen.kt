@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
 
 /**
  * Sound & vibration settings: two independent keypress toggles, persisted
@@ -40,6 +41,7 @@ fun SoundVibrationScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val strings = LocalAppStrings.current
     var vibrate by remember { mutableStateOf(KeyboardPrefs.vibrateOnKeypress(context)) }
     var sound by remember { mutableStateOf(KeyboardPrefs.soundOnKeypress(context)) }
 
@@ -47,10 +49,10 @@ fun SoundVibrationScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Preferences") },
+                title = { Text(strings.preferences) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -66,7 +68,7 @@ fun SoundVibrationScreen(
         ) {
             GroupCard {
                 ToggleRow(
-                    label = "Vibrate on keypress",
+                    label = strings.vibrateOnKeypress,
                     checked = vibrate,
                     onCheckedChange = {
                         vibrate = it
@@ -74,7 +76,7 @@ fun SoundVibrationScreen(
                     }
                 )
                 ToggleRow(
-                    label = "Sound on keypress",
+                    label = strings.soundOnKeypress,
                     checked = sound,
                     onCheckedChange = {
                         sound = it

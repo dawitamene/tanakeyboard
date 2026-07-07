@@ -157,6 +157,32 @@ internal class WordComposer(
     }
 
     /**
+     * Finalize the composing word IN PLACE, without inserting new text.
+     *
+     * Used when the input view is going away (the field is losing us). Unlike
+     * [commit], which calls `commitText`, this never inserts text: it resolves
+     * the composing region to its rendered [display] (fidel for Amharic) with
+     * `setComposingText` -- which REPLACES the current composing span rather
+     * than appending after it -- then `finishComposingText` locks it in place.
+     *
+     * `commitText` on the way out duplicated the word: as an input session
+     * ends, the framework finalizes the still-active composing region on its
+     * own, so an additional `commitText` pasted a second copy (the "text
+     * appears twice after exiting the keyboard" bug). This path can't double,
+     * and it commits no autosuggestion -- [display] is exactly the text the
+     * user typed (English) or its greedy fidel reading (Amharic), never a
+     * dictionary completion.
+     */
+    fun finish() {
+        if (buffer.isEmpty()) return
+        inputConnection()?.apply {
+            setComposingText(display, 1)
+            finishComposingText()
+        }
+        buffer.clear()
+    }
+
+    /**
      * A suggestion chip was tapped: swap whatever's currently composing for
      * [word] plus a trailing space, and clear the buffer.
      *

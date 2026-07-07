@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Keyboard
@@ -47,6 +45,11 @@ import com.addiyon.tanakeyboard.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.addiyon.tanakeyboard.KeyboardStatusSnapshot
+import com.addiyon.tanakeyboard.ui.feedback.FeedbackOptions
+import com.addiyon.tanakeyboard.ui.feedback.openFeedbackTelegram
+import com.addiyon.tanakeyboard.ui.feedback.sendFeedbackEmail
+import com.addiyon.tanakeyboard.ui.i18n.LanguageToggle
+import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
 
 /**
  * App home. Header with the app name + placeholder logo and grouped lists of
@@ -66,6 +69,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val strings = LocalAppStrings.current
     var showFeedback by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
@@ -99,30 +103,9 @@ fun SettingsScreen(
         val link = "https://play.google.com/store/apps/details?id=${context.packageName}"
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, "Type Amharic easily with Tana Keyboard: $link")
+            putExtra(Intent.EXTRA_TEXT, strings.shareTextFormat.format(link))
         }
-        context.startActivity(Intent.createChooser(intent, "Share Tana Keyboard"))
-    }
-
-    fun openEmail() {
-        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).apply {
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(FEEDBACK_EMAIL))
-            putExtra(Intent.EXTRA_SUBJECT, "Tana Keyboard feedback")
-        }
-        runCatching { context.startActivity(intent) }
-    }
-
-    fun openTelegram() {
-        // tg:// deep-links straight into the app; https fallback for when
-        // Telegram isn't installed. Username is a placeholder for now.
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=$TELEGRAM_USERNAME"))
-        if (context.packageManager.resolveActivity(intent, 0) != null) {
-            context.startActivity(intent)
-        } else {
-            context.startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$TELEGRAM_USERNAME"))
-            )
-        }
+        context.startActivity(Intent.createChooser(intent, strings.shareChooserTitle))
     }
 
     Scaffold(
@@ -143,22 +126,26 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            // Language toggle at the top-left, switching the whole app UI
+            // between English and Amharic.
+            Row(modifier = Modifier.fillMaxWidth()) {
+                LanguageToggle()
+            }
             Header()
-            Spacer(Modifier.height(8.dp))
 
             GroupCard {
-                SettingsItem(Icons.Default.Palette, "Themes", onClick = onOpenThemes)
-                SettingsItem(Icons.Default.MenuBook, "Typing Guide", onClick = onOpenManual)
-                SettingsItem(Icons.Default.Tune, "Preferences", onClick = onOpenSoundVibration)
-                SettingsItem(Icons.Default.Keyboard, "Test Keyboard", onClick = onOpenTestKeyboard)
+                SettingsItem(Icons.Default.Palette, strings.themes, onClick = onOpenThemes)
+                SettingsItem(Icons.Default.MenuBook, strings.typingGuide, onClick = onOpenManual)
+                SettingsItem(Icons.Default.Tune, strings.preferences, onClick = onOpenSoundVibration)
+                SettingsItem(Icons.Default.Keyboard, strings.testKeyboard, onClick = onOpenTestKeyboard)
             }
             GroupCard {
-                SettingsItem(Icons.Default.Share, "Share Tana Keyboard") { shareApp() }
-                SettingsItem(Icons.Default.StarRate, "Rate Tana Keyboard") { rateApp() }
+                SettingsItem(Icons.Default.Share, strings.shareApp) { shareApp() }
+                SettingsItem(Icons.Default.StarRate, strings.rateApp) { rateApp() }
             }
             GroupCard {
-                SettingsItem(Icons.Default.Feedback, "Feedback") { showFeedback = true }
-                SettingsItem(Icons.Default.Info, "About", onClick = onOpenAbout)
+                SettingsItem(Icons.Default.Feedback, strings.feedback) { showFeedback = true }
+                SettingsItem(Icons.Default.Info, strings.about, onClick = onOpenAbout)
             }
         }
     }
@@ -169,27 +156,25 @@ fun SettingsScreen(
             sheetState = sheetState
         ) {
             Text(
-                text = "Send feedback",
+                text = strings.sendFeedback,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
             )
-            SettingsItem(Icons.Default.Email, "Email") {
-                showFeedback = false
-                openEmail()
-            }
-            SettingsItem(Icons.AutoMirrored.Filled.Send, "Telegram") {
-                showFeedback = false
-                openTelegram()
-            }
+            // Telegram first (with the real Telegram logo), then Email.
+            FeedbackOptions(
+                onTelegram = {
+                    showFeedback = false
+                    openFeedbackTelegram(context)
+                },
+                onEmail = {
+                    showFeedback = false
+                    sendFeedbackEmail(context, strings.feedbackEmailSubject)
+                }
+            )
             Spacer(Modifier.height(16.dp))
         }
     }
 }
-
-private const val FEEDBACK_EMAIL = "tanakeyboard@addiyon.com"
-
-// TODO: replace with the real Telegram username once provided.
-private const val TELEGRAM_USERNAME = "tanakeyboard"
 
 @Composable
 private fun Header() {

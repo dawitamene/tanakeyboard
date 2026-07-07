@@ -3,7 +3,6 @@ package com.addiyon.tanakeyboard
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
-import android.net.Uri
 import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.text.InputType
@@ -39,11 +38,6 @@ import com.addiyon.tanakeyboard.ui.theme.KeyboardPalette
  * generous.
  */
 private const val AMHARIC_SUGGESTION_LIMIT = 10
-
-// Feedback destinations, mirrored from the settings feedback sheet.
-private const val FEEDBACK_EMAIL = "tanakeyboard@addiyon.com"
-// TODO: replace with the real Telegram username once provided.
-private const val TELEGRAM_USERNAME = "tanakeyboard"
 
 class TanaKeyboardService : InputMethodService(),
     LifecycleOwner,
@@ -293,27 +287,14 @@ class TanaKeyboardService : InputMethodService(),
     }
 
     /**
-     * Feedback actions launched from the in-keyboard feedback sheet. These
-     * start Activities from a Service context, so they need NEW_TASK (unlike
-     * the same actions in [com.addiyon.tanakeyboard.ui.settings.SettingsScreen],
-     * which run from an Activity).
+     * Opens the standalone [FeedbackActivity] from the keyboard toolbar's
+     * feedback icon (which used to pop an in-keyboard bottom sheet). Launched
+     * from a Service context, so it needs NEW_TASK.
      */
-    fun sendFeedbackEmail() {
-        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(FEEDBACK_EMAIL))
-            putExtra(Intent.EXTRA_SUBJECT, "Tana Keyboard feedback")
-        }
+    fun openFeedbackScreen() {
+        val intent = Intent(this, FeedbackActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { startActivity(intent) }
-    }
-
-    fun openFeedbackTelegram() {
-        val deep = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=$TELEGRAM_USERNAME"))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$TELEGRAM_USERNAME"))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val target = if (packageManager.resolveActivity(deep, 0) != null) deep else web
-        runCatching { startActivity(target) }
     }
 
     fun toggleLanguage() {
@@ -452,7 +433,21 @@ class TanaKeyboardService : InputMethodService(),
             updateSuggestions()
             return
         }
-        currentInputConnection?.deleteSurroundingText(1, 0)
+        val ic = currentInputConnection
+        if (ic != null) {
+            // If the user has a selection, backspace should delete the whole
+            // selection. deleteSurroundingText ignores the selection and would
+            // instead delete a character just before it, leaving the selected
+            // text untouched -- so replace the selection with empty text
+            // (commitText on a selection removes it). Only fall back to
+            // deleting one preceding character when nothing is selected.
+            val selected = ic.getSelectedText(0)
+            if (!selected.isNullOrEmpty()) {
+                ic.commitText("", 1)
+            } else {
+                ic.deleteSurroundingText(1, 0)
+            }
+        }
         updateSuggestions()
     }
 
@@ -515,15 +510,26 @@ class TanaKeyboardService : InputMethodService(),
         val noEnterAction = imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0
 
         editorActionId = actionId
-        enterAction = if (multiline || noEnterAction) {
-            EnterAction.NEWLINE
-        } else when (actionId) {
+        val declaredAction = when (actionId) {
             EditorInfo.IME_ACTION_GO -> EnterAction.GO
             EditorInfo.IME_ACTION_SEARCH -> EnterAction.SEARCH
             EditorInfo.IME_ACTION_SEND -> EnterAction.SEND
             EditorInfo.IME_ACTION_NEXT -> EnterAction.NEXT
             EditorInfo.IME_ACTION_PREVIOUS -> EnterAction.PREVIOUS
             EditorInfo.IME_ACTION_DONE -> EnterAction.DONE
+            else -> EnterAction.NEWLINE
+        }
+        // An explicitly declared IME action wins over the multi-line flag.
+        // Some single-line search boxes (e.g. Reddit's) set the multi-line
+        // input flag yet still declare IME_ACTION_SEARCH; the old
+        // `multiline || noEnterAction -> NEWLINE` order swallowed the action
+        // and inserted a literal newline, so search was impossible. Now the
+        // multi-line flag only forces a newline when the field declares NO
+        // action of its own. IME_FLAG_NO_ENTER_ACTION still opts out entirely.
+        enterAction = when {
+            noEnterAction -> EnterAction.NEWLINE
+            declaredAction != EnterAction.NEWLINE -> declaredAction
+            multiline -> EnterAction.NEWLINE
             else -> EnterAction.NEWLINE
         }
     }
@@ -647,9 +653,11 @@ class TanaKeyboardService : InputMethodService(),
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
-        // Field is going away -- lock whatever we have into it before the
-        // InputConnection dies.
-        activeComposer.commit()
+        // Field is going away -- finalize the composing region IN PLACE (no
+        // new text inserted). Using commit()/commitText here duplicated the
+        // word, because the framework also finalizes the still-active
+        // composing region as the session ends. See WordComposer.finish().
+        activeComposer.finish()
         updateSuggestions()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }

@@ -22,6 +22,7 @@ import com.addiyon.tanakeyboard.ui.settings.SettingsScreen
 import com.addiyon.tanakeyboard.ui.settings.SoundVibrationScreen
 import com.addiyon.tanakeyboard.ui.settings.TestKeyboardScreen
 import com.addiyon.tanakeyboard.ui.settings.ThemesScreen
+import com.addiyon.tanakeyboard.ui.i18n.ProvideAppLocalization
 import com.addiyon.tanakeyboard.ui.theme.TanaBrandTheme
 
 private enum class ScreenKey {
@@ -67,6 +68,7 @@ class MainActivity : ComponentActivity() {
             // the system light/dark setting. The selectable keyboard palette
             // only themes the keyboard itself (TanaKeyboardView reads the pref
             // independently), not this settings UI.
+            ProvideAppLocalization {
             TanaBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
                 Scaffold { innerPadding ->
                     val status by rememberKeyboardStatus()
@@ -151,6 +153,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
             }
         }
     }

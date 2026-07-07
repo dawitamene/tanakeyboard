@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
 import com.addiyon.tanakeyboard.ui.theme.CustomKeyboardTheme
 import com.addiyon.tanakeyboard.ui.theme.KeyboardPalette
 import com.addiyon.tanakeyboard.ui.theme.PaletteCategory
@@ -60,6 +61,7 @@ fun ThemesScreen(
     onPaletteChosen: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val strings = LocalAppStrings.current
     var selected by remember { mutableStateOf(KeyboardPrefs.palette(context)) }
     // The skeleton reflects what the keyboard will actually look like, which
     // follows the system light/dark setting.
@@ -69,10 +71,10 @@ fun ThemesScreen(
         modifier = modifier.fillMaxWidth(),
         topBar = {
             TopAppBar(
-                title = { Text("Themes") },
+                title = { Text(strings.themes) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

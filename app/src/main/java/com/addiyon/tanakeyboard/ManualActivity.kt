@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.addiyon.tanakeyboard.ui.manual.ManualScreen
+import com.addiyon.tanakeyboard.ui.i18n.ProvideAppLocalization
 import com.addiyon.tanakeyboard.ui.theme.TanaBrandTheme
 
 /**
@@ -24,10 +25,12 @@ class ManualActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            TanaBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
-                Scaffold { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding)) {
-                        ManualScreen(onBack = { finish() })
+            ProvideAppLocalization {
+                TanaBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
+                    Scaffold { innerPadding ->
+                        Box(modifier = Modifier.padding(innerPadding)) {
+                            ManualScreen(onBack = { finish() })
+                        }
                     }
                 }
             }

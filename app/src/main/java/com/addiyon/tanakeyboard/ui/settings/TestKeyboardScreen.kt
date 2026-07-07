@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.LaunchedEffect
+import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
 
 /**
  * A scratch text field for trying out the keyboard. Requests focus on entry
@@ -41,6 +42,7 @@ fun TestKeyboardScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalAppStrings.current
     var text by remember { mutableStateOf(TextFieldValue("")) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -54,10 +56,10 @@ fun TestKeyboardScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Test Keyboard") },
+                title = { Text(strings.testKeyboard) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -76,7 +78,7 @@ fun TestKeyboardScreen(
                 value = text,
                 onValueChange = { text = it },
                 shape = RoundedCornerShape(12.dp),
-                placeholder = { Text("Type \"selam\" → ሰላም") },
+                placeholder = { Text(strings.testPlaceholder) },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface

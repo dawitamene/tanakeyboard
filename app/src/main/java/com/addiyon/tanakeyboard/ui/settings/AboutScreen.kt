@@ -30,6 +30,7 @@ import com.addiyon.tanakeyboard.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
 
 /**
  * About screen: app identity, version (read from the installed package so it
@@ -42,6 +43,7 @@ fun AboutScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val strings = LocalAppStrings.current
     val version = remember {
         runCatching {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName
@@ -52,10 +54,10 @@ fun AboutScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("About") },
+                title = { Text(strings.about) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -87,7 +89,7 @@ fun AboutScreen(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Version $version",
+                text = strings.versionFormat.format(version),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -102,13 +104,11 @@ fun AboutScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Type Amharic (Ge'ez) using simple Latin " +
-                            "transliteration — for example, \"selam\" becomes ሰላም.",
+                        text = strings.aboutDescription,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "Your privacy: Tana Keyboard never collects any " +
-                            "data. Everything you type stays on your device.",
+                        text = strings.aboutPrivacy,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -116,7 +116,7 @@ fun AboutScreen(
 
             Spacer(Modifier.height(24.dp))
             Text(
-                text = "Made by Addiyon",
+                text = strings.madeBy,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

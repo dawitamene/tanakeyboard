@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.addiyon.tanakeyboard.KeyboardStatusSnapshot
 import com.addiyon.tanakeyboard.R
+import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
 
 private val GreenCheck = Color(0xFF2E7D32)
 
@@ -75,6 +76,7 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val strings = LocalAppStrings.current
 
     // Phase is derived from live status but held in state so it only ever
     // moves forward -- e.g. an OEM toggling `enabled` off mid-flow shouldn't
@@ -118,12 +120,10 @@ fun OnboardingScreen(
             when (current) {
                 Phase.Activate -> StepPage(
                     icon = Icons.Default.Keyboard,
-                    title = "Activate Tana Keyboard",
-                    description = "Turn Tana Keyboard on in your device's " +
-                        "input-method settings. It only takes a moment.",
-                    buttonLabel = "Open Settings",
-                    footnote = "Tana Keyboard never collects any data from you. " +
-                        "Everything you type stays on your device.",
+                    title = strings.activateTitle,
+                    description = strings.activateDescription,
+                    buttonLabel = strings.openSettings,
+                    footnote = strings.activateFootnote,
                     stepIndex = 0,
                     onClick = {
                         context.startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
@@ -132,10 +132,9 @@ fun OnboardingScreen(
 
                 Phase.Enable -> StepPage(
                     icon = Icons.Default.SwapHoriz,
-                    title = "Enable Tana Keyboard",
-                    description = "Pick Tana Keyboard from the keyboard " +
-                        "switcher to make it your active keyboard.",
-                    buttonLabel = "Switch Keyboard",
+                    title = strings.enableTitle,
+                    description = strings.enableDescription,
+                    buttonLabel = strings.switchKeyboard,
                     footnote = null,
                     stepIndex = 1,
                     onClick = {
@@ -173,7 +172,7 @@ private fun StepPage(
                 modifier = Modifier.size(72.dp)
             )
             Text(
-                text = "Step ${stepIndex + 1}",
+                text = LocalAppStrings.current.stepFormat.format(stepIndex + 1),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center
@@ -285,12 +284,12 @@ private fun AllSetPage() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "All set!",
+                text = LocalAppStrings.current.allSet,
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 4.dp)
             )
             Text(
-                text = "Tana Keyboard is ready to use.",
+                text = LocalAppStrings.current.allSetSubtitle,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

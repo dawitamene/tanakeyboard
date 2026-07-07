@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.addiyon.tanakeyboard.transliteration.AmharicTable
+import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
 
 private data class TableCell(val fidel: Char, val latin: String)
 private data class TableRow(
@@ -122,6 +123,7 @@ fun ManualScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalAppStrings.current
     val rows = remember { buildTableRows() }
     var query by rememberSaveable { mutableStateOf("") }
 
@@ -138,10 +140,10 @@ fun ManualScreen(
                 .padding(8.dp),
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
             }
             Text(
-                text = "Typing Guide",
+                text = strings.typingGuide,
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(start = 8.dp, top = 12.dp)
             )
@@ -152,7 +154,7 @@ fun ManualScreen(
             onValueChange = { query = it },
             singleLine = true,
             shape = RoundedCornerShape(percent = 50),
-            placeholder = { Text("Search: he, sh, ላ ...") },
+            placeholder = { Text(strings.searchPlaceholder) },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface
