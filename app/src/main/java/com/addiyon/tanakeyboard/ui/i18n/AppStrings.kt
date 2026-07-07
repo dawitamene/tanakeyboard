@@ -107,41 +107,41 @@ val EnglishStrings = AppStrings(
 val AmharicStrings = AppStrings(
     back = "ተመለስ",
     themes = "ገጽታዎች",
-    typingGuide = "የመተየቢያ መመሪያ",
+    typingGuide = "የአፃፃፍ መመሪያ",
     preferences = "ምርጫዎች",
-    testKeyboard = "ኪቦርድ ሞክር",
-    shareApp = "ታና ኪቦርድን አጋራ",
-    rateApp = "ታና ኪቦርድን ደረጃ ስጥ",
+    testKeyboard = "ኪቦርዱን ሞክር",
+    shareApp = "ጣና ኪቦርድን አጋራ",
+    rateApp = "ጣና ኪቦርድን ደረጃ ስጥ",
     feedback = "አስተያየት",
     about = "ስለ መተግበሪያው",
     sendFeedback = "አስተያየት ላክ",
     email = "ኢሜይል",
     telegram = "ቴሌግራም",
-    feedbackEmailSubject = "የታና ኪቦርድ አስተያየት",
-    shareTextFormat = "አማርኛን በቀላሉ በታና ኪቦርድ ይተይቡ፡ %s",
-    shareChooserTitle = "ታና ኪቦርድን አጋራ",
+    feedbackEmailSubject = "የጣና ኪቦርድ አስተያየት",
+    shareTextFormat = "አማርኛን በቀላሉ በጣና ኪቦርድ ይፃፉ %s",
+    shareChooserTitle = "ጣና ኪቦርድን አጋራ",
     searchPlaceholder = "ፈልግ፡ he, sh, ላ ...",
     vibrateOnKeypress = "ቁልፍ ሲነካ ንዝረት",
     soundOnKeypress = "ቁልፍ ሲነካ ድምፅ",
-    testPlaceholder = "\"selam\" ተይብ → ሰላም",
+    testPlaceholder = "\"selam\" ብለው ይፃፉ → ሰላም",
     versionFormat = "ስሪት %s",
-    aboutDescription = "ቀላል የላቲን ፊደል ግልበጣ በመጠቀም አማርኛ (ግዕዝ) ይተይቡ — " +
+    aboutDescription = "የእንግሊዝኛ ፊደላትን በመጠቀም በቀላሉ አማርኛ ይፃፉ — " +
         "ለምሳሌ \"selam\" ወደ ሰላም ይቀየራል።",
-    aboutPrivacy = "የእርስዎ ግላዊነት፡ ታና ኪቦርድ ምንም መረጃ አይሰበስብም። " +
-        "የሚተይቡት ሁሉ በመሳሪያዎ ላይ ይቆያል።",
+    aboutPrivacy = "የእርስዎ ግላዊነት፡ ጣና ኪቦርድ ምንም መረጃ አይሰበስብም። " +
+        "የሚፅፉት ሁሉ በስልክዎ ላይ ይቆያል።",
     madeBy = "በአዲዮን የተሰራ",
-    activateTitle = "ታና ኪቦርድን አግብር",
-    activateDescription = "ታና ኪቦርድን በመሳሪያዎ የግቤት ዘዴ ቅንብሮች ውስጥ ያብሩት። " +
+    activateTitle = "ጣና ኪቦርድን አስጀምር",
+    activateDescription = "ጣና ኪቦርድን በስልክዎ የፅህፈት ዘዴ ቅንብሮች ውስጥ ያብሩት። " +
         "ጥቂት ጊዜ ብቻ ነው የሚወስደው።",
     openSettings = "ቅንብሮችን ክፈት",
-    activateFootnote = "ታና ኪቦርድ ከእርስዎ ምንም መረጃ አይሰበስብም። " +
-        "የሚተይቡት ሁሉ በመሳሪያዎ ላይ ይቆያል።",
-    enableTitle = "ታና ኪቦርድን አንቃ",
-    enableDescription = "ታና ኪቦርድን ንቁ ኪቦርድዎ ለማድረግ ከኪቦርድ መቀየሪያው ይምረጡት።",
+    activateFootnote = "ጣና ኪቦርድ ከእርስዎ ምንም መረጃ አይሰበስብም። " +
+        "የሚፅፉት ሁሉ በስልክዎ ላይ ይቆያል።",
+    enableTitle = "ጣና ኪቦርድን ምረጥ",
+    enableDescription = "ጣና ኪቦርድን ከኪቦርድ መቀየሪያው ይምረጡት።",
     switchKeyboard = "ኪቦርድ ቀይር",
     stepFormat = "ደረጃ %d",
     allSet = "ሁሉም ተዘጋጅቷል!",
-    allSetSubtitle = "ታና ኪቦርድ ለመጠቀም ዝግጁ ነው።"
+    allSetSubtitle = "ጣና ኪቦርድ ለመጠቀም ዝግጁ ነው።"
 )
 
 /**
