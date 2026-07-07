@@ -12,6 +12,24 @@ plugins {
 
 }
 
+val versionPropsFile = rootProject.file("version.properties")
+val versionProps = Properties().apply {
+    if (versionPropsFile.exists()) load(FileInputStream(versionPropsFile))
+}
+val releaseVersionName = versionProps.getProperty("versionName", "1.0.0")
+
+val autoVersionCode: Int by lazy {
+    try {
+        val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+            .directory(rootProject.projectDir)
+            .redirectErrorStream(true)
+            .start()
+        process.inputStream.bufferedReader().use { it.readText().trim().toInt() }
+    } catch (_: Exception) {
+        (System.currentTimeMillis() / 1000).toInt()
+    }
+}
+
 // Release signing is driven by a gitignored keystore.properties in the module
 // root (never committed). When it's absent -- e.g. a fresh checkout or CI
 // without the secret -- we skip the signing config so debug builds still work;
@@ -36,8 +54,8 @@ android {
         applicationId = "com.addiyon.tanakeyboard"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = autoVersionCode
+        versionName = releaseVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
