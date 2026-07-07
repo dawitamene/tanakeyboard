@@ -5,7 +5,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import com.addiyon.tanakeyboard.R
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import kotlin.math.sin
+import kotlin.random.Random
+
+val PlaypenSansBrand = FontFamily(Font(R.font.playpen_sans_extrabold))
 
 /**
  * The full per-appearance color inputs for one palette. Every Material role
@@ -205,7 +219,7 @@ private val TanaLightScheme: ColorScheme = lightColorScheme(
     onTertiary = Color(0xFF042836),
     tertiaryContainer = Color(0xFFC9ECF7),
     onTertiaryContainer = Color(0xFF042836),
-    background = Color(0xFFEEF3F7),         // Mist
+    background = Color.Transparent,
     onBackground = Color(0xFF0B1722),       // Ink
     surface = Color(0xFFFFFFFF),
     onSurface = Color(0xFF0B1722),          // Ink
@@ -228,7 +242,7 @@ private val TanaDarkScheme: ColorScheme = darkColorScheme(
     onTertiary = Color(0xFF03222F),
     tertiaryContainer = Color(0xFF1B6E8C),
     onTertiaryContainer = Color(0xFFC9ECF7),
-    background = Color(0xFF0B1722),         // Ink
+    background = Color.Transparent,
     onBackground = Color(0xFFE6EEF4),
     surface = Color(0xFF12222E),
     onSurface = Color(0xFFE6EEF4),
@@ -237,6 +251,38 @@ private val TanaDarkScheme: ColorScheme = darkColorScheme(
     outline = Color(0xFF80909C),
     outlineVariant = Color(0xFF3C4C58)
 )
+
+@Composable
+private fun LakeBackground(isDark: Boolean) {
+    val topColor = if (isDark) Color(0xFF0B1722) else Color(0xFFEEF3F7)
+    val deepColor = if (isDark) Color(0xFF0A1E30) else Color(0xFFB4D4E6)
+    val wave = if (isDark) Color(0xFF254D68).copy(alpha = 0.35f) else Color(0xFF85B8D4).copy(alpha = 0.35f)
+
+    val seeds = remember { List(2) { Random(it.hashCode()).nextFloat() } }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+
+        drawRect(Brush.verticalGradient(listOf(topColor, deepColor)))
+
+        val path = Path().apply {
+            moveTo(0f, h * 0.75f)
+            var x = 0f
+            while (x <= w) {
+                val dx = x / w
+                val y = h * 0.75f + sin(dx * 6.28f * 1.5f + seeds[0] * 6.28f) * h * 0.04f
+                    + sin(dx * 6.28f * 3.5f + seeds[1] * 6.28f) * h * 0.025f
+                lineTo(x, y)
+                x += w / 100f
+            }
+            lineTo(w, h)
+            lineTo(0f, h)
+            close()
+        }
+        drawPath(path, wave)
+    }
+}
 
 /**
  * The brand theme for the app's own UI (settings, onboarding, home, manual).
@@ -251,7 +297,12 @@ fun TanaBrandTheme(
 ) {
     MaterialTheme(
         colorScheme = if (isDarkTheme) TanaDarkScheme else TanaLightScheme,
-        content = content
+        content = {
+            Box(modifier = Modifier.fillMaxSize()) {
+                LakeBackground(isDark = isDarkTheme)
+                content()
+            }
+        }
     )
 }
 

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
+import com.addiyon.tanakeyboard.ui.theme.PlaypenSansBrand
 
 /**
  * About screen: app identity, version (read from the installed package so it
@@ -85,8 +86,9 @@ fun AboutScreen(
             Spacer(Modifier.height(16.dp))
             Text(
                 text = "Tana Keyboard",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = PlaypenSansBrand,
+                fontWeight = FontWeight.ExtraBold
             )
             Text(
                 text = strings.versionFormat.format(version),

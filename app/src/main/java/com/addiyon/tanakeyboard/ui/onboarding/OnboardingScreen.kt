@@ -50,11 +50,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.addiyon.tanakeyboard.KeyboardStatusSnapshot
 import com.addiyon.tanakeyboard.R
+import com.addiyon.tanakeyboard.ui.i18n.LanguageToggle
 import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
+import com.addiyon.tanakeyboard.ui.theme.PlaypenSansBrand
 
 private val GreenCheck = Color(0xFF2E7D32)
 
@@ -109,6 +112,28 @@ fun OnboardingScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_tana_icon),
+                contentDescription = null,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = "Tana Keyboard",
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = PlaypenSansBrand,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Spacer(Modifier.weight(1f))
+            LanguageToggle()
+        }
+
         AnimatedContent(
             targetState = phase,
             transitionSpec = {
@@ -257,28 +282,21 @@ private fun AllSetPage() {
     )
     LaunchedEffect(Unit) { shown = true }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Image(
-            painter = painterResource(R.drawable.ic_tana_icon),
-            contentDescription = null,
-            modifier = Modifier
-                .size(96.dp)
-                .scale(scale)
-        )
-        Spacer(Modifier.height(12.dp))
-        Icon(
-            imageVector = Icons.Default.CheckCircle,
-            contentDescription = null,
-            tint = GreenCheck,
-            modifier = Modifier
-                .size(40.dp)
-                .scale(scale)
-        )
-        Spacer(Modifier.height(20.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = GreenCheck,
+                modifier = Modifier
+                    .size(72.dp)
+                    .scale(scale)
+            )
+            Spacer(Modifier.height(20.dp))
         Column(
             modifier = Modifier.alpha(textAlpha),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -294,5 +312,6 @@ private fun AllSetPage() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
     }
 }

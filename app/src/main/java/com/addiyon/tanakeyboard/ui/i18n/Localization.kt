@@ -63,8 +63,11 @@ fun ProvideAppLocalization(content: @Composable () -> Unit) {
  * top-left on the Settings home.
  */
 @Composable
-fun LanguageToggle(modifier: Modifier = Modifier) {
+fun LanguageToggle(modifier: Modifier = Modifier, compact: Boolean = false) {
     val controller = LocalAppLanguage.current
+    val textStyle = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
+    val hPadding = if (compact) 10.dp else 14.dp
+    val vPadding = if (compact) 4.dp else 6.dp
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(percent = 50))
@@ -75,7 +78,7 @@ fun LanguageToggle(modifier: Modifier = Modifier) {
             val selected = controller.current == lang
             Text(
                 text = lang.label,
-                style = MaterialTheme.typography.labelLarge,
+                style = textStyle,
                 color = if (selected) {
                     MaterialTheme.colorScheme.onPrimary
                 } else {
@@ -87,7 +90,7 @@ fun LanguageToggle(modifier: Modifier = Modifier) {
                         if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
                     )
                     .clickable { controller.set(lang) }
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                    .padding(horizontal = hPadding, vertical = vPadding)
             )
         }
     }

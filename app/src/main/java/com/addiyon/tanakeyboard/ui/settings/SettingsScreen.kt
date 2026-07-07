@@ -50,6 +50,7 @@ import com.addiyon.tanakeyboard.ui.feedback.openFeedbackTelegram
 import com.addiyon.tanakeyboard.ui.feedback.sendFeedbackEmail
 import com.addiyon.tanakeyboard.ui.i18n.LanguageToggle
 import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
+import com.addiyon.tanakeyboard.ui.theme.PlaypenSansBrand
 
 /**
  * App home. Header with the app name + placeholder logo and grouped lists of
@@ -118,7 +119,7 @@ fun SettingsScreen(
         //         Icon(Icons.Default.Keyboard, contentDescription = "Open keyboard")
         //     }
         // }
-    ) { innerPadding ->
+        ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -126,12 +127,27 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Language toggle at the top-left, switching the whole app UI
-            // between English and Amharic.
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_tana_icon),
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "Tana Keyboard",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontFamily = PlaypenSansBrand,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Spacer(Modifier.weight(1f))
                 LanguageToggle()
             }
-            Header()
 
             GroupCard {
                 SettingsItem(Icons.Default.Palette, strings.themes, onClick = onOpenThemes)
@@ -173,29 +189,6 @@ fun SettingsScreen(
             )
             Spacer(Modifier.height(16.dp))
         }
-    }
-}
-
-@Composable
-private fun Header() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 20.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Brand logo (the pre-rounded Tana mark).
-        Image(
-            painter = painterResource(R.drawable.ic_tana_icon),
-            contentDescription = null,
-            modifier = Modifier.size(40.dp)
-        )
-        Spacer(Modifier.width(12.dp))
-        Text(
-            text = "Tana Keyboard",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold
-        )
     }
 }
 
