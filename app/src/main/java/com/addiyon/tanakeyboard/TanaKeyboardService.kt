@@ -181,6 +181,17 @@ class TanaKeyboardService : InputMethodService(),
     var suggestions by mutableStateOf<List<String>>(emptyList())
         private set
 
+    /**
+     * The Amharic in-progress word's raw Latin, mirrored out-of-field for
+     * [com.addiyon.tanakeyboard.ui.BufferPreviewStrip] (its fidel reading
+     * isn't duplicated here -- it's already the first suggestion chip).
+     * Empty ("") whenever nothing is composing, which is how the strip knows
+     * to hide itself. Kept in lockstep with [amharicComposer] by
+     * [updateSuggestions].
+     */
+    var amharicBufferLatin by mutableStateOf("")
+        private set
+
     // ----------------------------
     // WORD COMPOSITION
     // ----------------------------
@@ -196,13 +207,13 @@ class TanaKeyboardService : InputMethodService(),
     // capturing an InputConnection at composition time.
     private val amharicComposer = WordComposer(
         inputConnection = { currentInputConnection },
-        // The field shows the raw Latin the user types (composingText =
-        // identity), while render produces the fidel used for the suggestion
-        // strip and for commit -- so "sh" is visible inline and its readings
-        // (ስህ, ሽ, …) are offered in the strip. Backspace uses the default
-        // one-char step so each typed letter can be cleared individually.
+        // render produces the fidel used for the suggestion strip and
+        // commit. composesInline = false: nothing is written to the field
+        // while typing -- see WordComposer's "WHY AMHARIC COMPOSES
+        // OUT-OF-FIELD" doc. Backspace uses the default one-char step so
+        // each typed letter can be cleared individually.
         render = Transliterator::transliterate,
-        composingText = { it }
+        composesInline = false
     )
 
     private val englishComposer = WordComposer(
@@ -235,6 +246,12 @@ class TanaKeyboardService : InputMethodService(),
      * out, so "Th" suggests "The", not "the".
      */
     private fun updateSuggestions() {
+        amharicBufferLatin = if (isAmharic && amharicComposer.isComposing) {
+            amharicComposer.raw
+        } else {
+            ""
+        }
+
         if (!::amharicDictionary.isInitialized) {
             suggestions = emptyList()
             return
@@ -485,8 +502,11 @@ class TanaKeyboardService : InputMethodService(),
      * (the UI) don't need to know about the composer or shift state.
      *
      * On the letter layouts, both languages compose: Amharic because a
-     * keypress is ambiguous until the syllable ends, English so the current
-     * word stays replaceable by a tapped suggestion. Word-terminating keys
+     * keypress is ambiguous until the syllable ends (out-of-field -- see the
+     * preview strip fed by [amharicBufferLatin] -- so
+     * nothing touches the target field until commit), English so the current
+     * word stays replaceable by a tapped suggestion (inline, underlined, in
+     * the field). Word-terminating keys
      * ("." and ",", the only non-word keys on either letter layout) and
      * everything on the numeric pages commit directly -- flushing the
      * composer first, so "hello" + "." lands as "hello." rather than
@@ -600,11 +620,12 @@ class TanaKeyboardService : InputMethodService(),
     /**
      * Space commits any in-flight word first, then inserts a space.
      *
-     * [WordComposer.commit] replaces the composing region with the rendered
-     * word: for Amharic that swaps the underlined Latin for the greedy fidel
-     * reading (the same as suggestions[0]), so space picks the default reading
-     * and a tap is only needed for a NON-default one; for English it just
-     * finalizes the composed word. With no word in flight it's a plain space.
+     * [WordComposer.commit] inserts the rendered word: for Amharic that's the
+     * first time anything from this word reaches the field at all, landing
+     * as the greedy fidel reading (the same as suggestions[0]) -- so space
+     * picks the default reading and a tap is only needed for a NON-default
+     * one -- and the preview strip disappears; for English it finalizes the
+     * inline composed word. With no word in flight it's a plain space.
      */
     fun onSpace() {
         activeComposer.commit()
@@ -758,12 +779,16 @@ class TanaKeyboardService : InputMethodService(),
      * cursor is inside the composing region the framework is tracking, the
      * movement is consistent with our own edits and we ignore it. If the
      * cursor has landed outside that region, the user has visibly walked
-     * away from the word we were composing, so we freeze it in place and
-     * drop the buffer -- otherwise the next keystroke would keep rewriting
-     * a region that's no longer near the caret.
+     * away from the word we were composing, so we abandon it -- for English
+     * that freezes the underlined text in place; for Amharic there's no
+     * composing region (nothing was written to the field), so it's a pure
+     * buffer discard -- otherwise the next keystroke would keep rewriting a
+     * region that's no longer near the caret.
      *
      * candidatesStart / candidatesEnd are the framework's view of the
-     * current composing region; both are -1 when nothing is being composed.
+     * current composing region; both are -1 when nothing is being composed
+     * (always true for Amharic, since it never opens one -- so any selection
+     * change while its buffer is non-empty is treated as tap-away).
      */
     override fun onUpdateSelection(
         oldSelStart: Int,
@@ -795,10 +820,13 @@ class TanaKeyboardService : InputMethodService(),
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
-        // Field is going away -- finalize the composing region IN PLACE (no
-        // new text inserted). Using commit()/commitText here duplicated the
-        // word, because the framework also finalizes the still-active
-        // composing region as the session ends. See WordComposer.finish().
+        // Field is going away without an explicit commit. For English,
+        // finalize the composing region IN PLACE (no new text inserted) --
+        // using commit()/commitText here duplicated the word, because the
+        // framework also finalizes the still-active composing region as the
+        // session ends. For Amharic there's nothing in the field to
+        // finalize, so this discards the uncommitted buffer instead. See
+        // WordComposer.finish().
         activeComposer.finish()
         updateSuggestions()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)

@@ -76,6 +76,15 @@ fun KeyboardScreen(
                 .wrapContentHeight()
         ) {
 
+            // Amharic-only, shown only while a word is composing (nothing is
+            // written to the field until commit -- see WordComposer's "WHY
+            // AMHARIC COMPOSES OUT-OF-FIELD" doc). Grows the keyboard by
+            // ~40.dp while typing and shrinks back on commit; that's
+            // intended, since the strip is meant to be ephemeral.
+            if (service.amharicBufferLatin.isNotEmpty()) {
+                BufferPreviewStrip(latin = service.amharicBufferLatin)
+            }
+
             // Always present -- across letter AND number/symbol layouts. When
             // there's nothing to suggest (always the case on the numeric pages,
             // where no word composes) it's the quick-action toolbar with the
