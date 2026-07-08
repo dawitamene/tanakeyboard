@@ -70,6 +70,14 @@ private const val ENGLISH_FUZZY_MIN_FREQUENCY = 500
 private const val MAX_RESUME_PREFIX = 48
 
 /**
+ * Max fidel reading length for fuzzy suggestions. Beyond this the Damerau-
+ * Levenshtein trie walk is expensive and the results are less useful (long
+ * words are less likely to need typo correction). Exact-prefix completions
+ * still run at any length.
+ */
+private const val MAX_FUZZY_READING_LENGTH = 12
+
+/**
  * Length-scaled edit budget for fuzzy matching: none for buffers too short to
  * disambiguate, one edit for typical words, two for long ones (where a double
  * typo is plausible without exploding false positives).
@@ -257,7 +265,7 @@ class TanaKeyboardService : InputMethodService(),
             return
         }
         suggestions = if (isAmharic) {
-            amharicSuggestions()
+            amharicSuggestions(amharicBufferLatin)
         } else {
             englishSuggestions()
         }
@@ -299,8 +307,7 @@ class TanaKeyboardService : InputMethodService(),
      * prefix -- so an ambiguous buffer searches BOTH ሽ… and ስህ… words -- and
      * the completions are appended, deduped, capped at [AMHARIC_SUGGESTION_LIMIT].
      */
-    private fun amharicSuggestions(): List<String> {
-        val latin = amharicComposer.raw
+    private fun amharicSuggestions(latin: String): List<String> {
         if (latin.isEmpty()) return emptyList()
 
         val readings = Transliterator.readings(latin)
@@ -310,20 +317,21 @@ class TanaKeyboardService : InputMethodService(),
         // so a mid-syllable near-miss (የተለይ, before the vowel lands on ያ)
         // still surfaces የተለያ… words. Ranked below the exact completions and
         // deduped into the same cap; frequency-gated to stay quiet.
-        val fuzzy = readings.flatMap { reading ->
-            amharicDictionary.fuzzySuggestions(
-                reading,
-                fuzzyEditBudget(reading.length),
-                AMHARIC_SUGGESTION_LIMIT,
-                AMHARIC_FIDEL_COST,
-                // Only a same-family vowel substitution is cheap; making indels
-                // expensive keeps "delete the last fidel then complete anything"
-                // (የተለይ -> የተለሽም) out, leaving the intended የተለያዩ.
-                insertCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
-                deleteCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
-            )
-        }.sortedWith(compareBy({ it.editDistance }, { -it.frequency }))
-            .map { it.word }
+        val fuzzy = if (readings.all { it.length > MAX_FUZZY_READING_LENGTH }) {
+            emptyList()
+        } else {
+            readings.flatMap { reading ->
+                amharicDictionary.fuzzySuggestions(
+                    reading,
+                    fuzzyEditBudget(reading.length),
+                    AMHARIC_SUGGESTION_LIMIT,
+                    AMHARIC_FIDEL_COST,
+                    insertCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
+                    deleteCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
+                )
+            }.sortedWith(compareBy({ it.editDistance }, { -it.frequency }))
+                .map { it.word }
+        }
 
         return (readings + completions + fuzzy).distinct().take(AMHARIC_SUGGESTION_LIMIT)
     }

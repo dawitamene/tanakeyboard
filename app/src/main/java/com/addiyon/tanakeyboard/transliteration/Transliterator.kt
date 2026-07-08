@@ -82,6 +82,11 @@ package com.addiyon.tanakeyboard.transliteration
  */
 object Transliterator {
 
+    private val ALTERNATE_START_CHARS = setOf(
+        'h', 'H', 's', 'S', 't', 'T', 'k',
+        'a', 'e', 'i', 'o', 'u'
+    )
+
     fun transliterate(latin: String): String =
         build(latin, AmharicTable.consonantsByLength, alternateLevel = 0)
 
@@ -124,11 +129,46 @@ object Transliterator {
     fun readings(latin: String, limit: Int = 6): List<String> {
         if (latin.isEmpty()) return emptyList()
         val greedy = build(latin, AmharicTable.consonantsByLength, alternateLevel = 0)
+        if (!bufferHasAlternates(latin)) {
+            return listOf(greedy)
+        }
         val altReadings = (1..AmharicTable.maxAlternateLevel).map { level ->
             build(latin, AmharicTable.consonantsByLength, alternateLevel = level)
         }
         val split = build(latin, AmharicTable.singleCharConsonants, alternateLevel = 0)
         return (listOf(greedy) + altReadings + split).distinct().take(limit)
+    }
+
+    private fun bufferHasAlternates(latin: String): Boolean {
+        for (ch in latin) {
+            if (ch in ALTERNATE_START_CHARS) return true
+        }
+        return bufferHasAlternatesFull(latin)
+    }
+
+    private fun bufferHasAlternatesFull(latin: String): Boolean {
+        var i = 0
+        while (i < latin.length) {
+            val consonant = AmharicTable.consonantsByLength
+                .firstOrNull { latin.startsWith(it, i) }
+                ?: AmharicTable.consonantsByLength
+                    .firstOrNull { latin.startsWith(it, i, ignoreCase = true) }
+            if (consonant != null) {
+                if (consonant in AmharicTable.consonantAlternates) return true
+                i += consonant.length
+                val vowel = AmharicTable.vowels
+                    .firstOrNull { (spelling, _) -> latin.startsWith(spelling, i, ignoreCase = true) }
+                if (vowel != null) i += vowel.first.length
+            } else {
+                val bareVowel = AmharicTable.bareVowels
+                    .firstOrNull { latin.startsWith(it.spelling, i) }
+                    ?: AmharicTable.bareVowels
+                        .firstOrNull { latin.startsWith(it.spelling, i, ignoreCase = true) }
+                if (bareVowel != null) return true
+                i++
+            }
+        }
+        return false
     }
 
     /**

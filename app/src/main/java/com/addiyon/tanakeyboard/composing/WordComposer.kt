@@ -92,6 +92,8 @@ internal class WordComposer(
 ) {
 
     private val buffer = StringBuilder()
+    private var _rawCache: String = ""
+    private var rawDirty = true
 
     /** True while there's an active composing region we're responsible for. */
     val isComposing: Boolean
@@ -106,7 +108,7 @@ internal class WordComposer(
      * strip; the field itself shows nothing until [commit].
      */
     val display: String
-        get() = render(buffer.toString())
+        get() = render(raw)
 
     /**
      * The raw, unrendered key buffer -- for Amharic the romanized SERA Latin
@@ -116,7 +118,13 @@ internal class WordComposer(
      * isn't reliably invertible.
      */
     val raw: String
-        get() = buffer.toString()
+        get() {
+            if (rawDirty) {
+                _rawCache = buffer.toString()
+                rawDirty = false
+            }
+            return _rawCache
+        }
 
     /**
      * A character key was pressed. Appends to the buffer and pushes the
@@ -128,6 +136,7 @@ internal class WordComposer(
      */
     fun onCharacter(char: String) {
         buffer.append(char)
+        rawDirty = true
         pushComposing()
     }
 
@@ -143,6 +152,7 @@ internal class WordComposer(
     fun onBackspace(): Boolean {
         if (buffer.isEmpty()) return false
         buffer.setLength(lastUnitStart(buffer.toString()))
+        rawDirty = true
         if (composesInline) {
             if (buffer.isEmpty()) {
                 // Empty setComposingText leaves an empty composing region
@@ -168,6 +178,7 @@ internal class WordComposer(
         if (buffer.isEmpty()) return
         inputConnection()?.commitText(display, 1)
         buffer.clear()
+        rawDirty = true
     }
 
     /**
@@ -195,6 +206,7 @@ internal class WordComposer(
         if (buffer.isEmpty()) return
         if (composesInline) inputConnection()?.finishComposingText()
         buffer.clear()
+        rawDirty = true
     }
 
     /**
@@ -216,6 +228,7 @@ internal class WordComposer(
         if (prefix.isEmpty()) return
         buffer.setLength(0)
         buffer.append(prefix)
+        rawDirty = true
         pushComposing()
     }
 
@@ -233,6 +246,7 @@ internal class WordComposer(
     fun commitSuggestion(word: String) {
         inputConnection()?.commitText("$word ", 1)
         buffer.clear()
+        rawDirty = true
     }
 
     /**
@@ -244,6 +258,7 @@ internal class WordComposer(
      */
     fun reset() {
         buffer.clear()
+        rawDirty = true
     }
 
     /**
@@ -264,13 +279,11 @@ internal class WordComposer(
         if (buffer.isEmpty()) return
         if (composesInline) inputConnection()?.commitText(display, 1)
         buffer.clear()
+        rawDirty = true
     }
 
     private fun pushComposing() {
         if (!composesInline) return
-        // newCursorPosition=1 means: place caret at the end of the composed
-        // text (offset 1 past its last char), which is the natural "keep
-        // typing" position.
-        inputConnection()?.setComposingText(render(buffer.toString()), 1)
+        inputConnection()?.setComposingText(render(raw), 1)
     }
 }
