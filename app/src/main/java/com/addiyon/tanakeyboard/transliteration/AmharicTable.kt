@@ -295,4 +295,55 @@ object AmharicTable {
         ',' to '፣',
         '.' to '።'
     )
+
+    // ----------------------------------------------------------------------
+    // Reverse fidel index + fuzzy-suggestion cost model
+    // ----------------------------------------------------------------------
+
+    /**
+     * Fuzzy-suggestion substitution costs (see
+     * [com.addiyon.tanakeyboard.suggestion.WordTrie.fuzzySuggestions]).
+     *
+     * Two fidel in the SAME consonant family differ only by vowel order (ይ vs
+     * ያ vs የ) -- overwhelmingly the "user hasn't added the vowel yet / picked
+     * the wrong vowel" case, so it's cheap. A DIFFERENT consonant is a genuine
+     * spelling error and costs enough to fall outside a 1-edit budget, so a
+     * near-miss like የተለይ still surfaces የተለያ… words without every unrelated
+     * word one keystroke away flooding the strip. Named so they stay tunable.
+     */
+    const val SAME_FAMILY_SUBSTITUTION_COST = 1
+    const val DIFFERENT_CONSONANT_SUBSTITUTION_COST = 2
+
+    /**
+     * Every fidel char that belongs to a consonant family -> a stable id for
+     * that family, so two fidel can be tested for "same consonant, different
+     * vowel". Built once from [families] (deduped by Family identity, since
+     * aliases like x/sh and c/ch share one instance) plus [velarH], which is a
+     * real family that intentionally isn't in [families]. Collisions from
+     * families that duplicate glyph content (ph/P) resolve to one id -- they
+     * are the same glyphs, so that's correct.
+     */
+    val fidelFamilyId: Map<Char, Int> = buildMap {
+        val idByFamily = HashMap<Family, Int>()
+        fun register(family: Family) {
+            val id = idByFamily.getOrPut(family) { idByFamily.size }
+            for (form in family.forms) put(form, id)
+            family.ua?.let { put(it, id) }
+        }
+        for (family in families.values) register(family)
+        register(velarH)
+    }
+
+    /**
+     * Substitution cost for the Amharic fuzzy pass: 0 for identical fidel,
+     * [SAME_FAMILY_SUBSTITUTION_COST] when both are forms of the same consonant
+     * family, else [DIFFERENT_CONSONANT_SUBSTITUTION_COST]. A char not in
+     * [fidelFamilyId] (e.g. punctuation) only matches itself.
+     */
+    fun fidelSubstitutionCost(a: Char, b: Char): Int = when {
+        a == b -> 0
+        fidelFamilyId[a]?.let { it == fidelFamilyId[b] } == true ->
+            SAME_FAMILY_SUBSTITUTION_COST
+        else -> DIFFERENT_CONSONANT_SUBSTITUTION_COST
+    }
 }

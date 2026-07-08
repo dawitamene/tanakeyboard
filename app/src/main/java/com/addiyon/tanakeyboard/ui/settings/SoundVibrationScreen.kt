@@ -44,6 +44,7 @@ fun SoundVibrationScreen(
     val strings = LocalAppStrings.current
     var vibrate by remember { mutableStateOf(KeyboardPrefs.vibrateOnKeypress(context)) }
     var sound by remember { mutableStateOf(KeyboardPrefs.soundOnKeypress(context)) }
+    var numberRow by remember { mutableStateOf(KeyboardPrefs.numberRow(context)) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -81,6 +82,14 @@ fun SoundVibrationScreen(
                     onCheckedChange = {
                         sound = it
                         KeyboardPrefs.setSoundOnKeypress(context, it)
+                    }
+                )
+                ToggleRow(
+                    label = strings.numberRow,
+                    checked = numberRow,
+                    onCheckedChange = {
+                        numberRow = it
+                        KeyboardPrefs.setNumberRow(context, it)
                     }
                 )
             }

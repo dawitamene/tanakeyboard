@@ -101,6 +101,183 @@ class WordTrie private constructor(private val root: Node) {
 
     private class Candidate(val priority: Int, val node: Node?, val emit: String?)
 
+    /**
+     * Cost of substituting one character for another during fuzzy matching.
+     * Returns 0 when the two are "equal enough" to not count as an edit. The
+     * default is uniform (any mismatch costs 1); the Amharic path injects a
+     * script-aware cost (a wrong vowel on the right consonant is cheaper than a
+     * wrong consonant) -- see
+     * [com.addiyon.tanakeyboard.transliteration.AmharicTable.fidelSubstitutionCost].
+     * Characters here are already lowercased (trie edges and the lookup prefix
+     * are lowercased before matching), matching how [suggestions] keys nodes.
+     */
+    fun interface SubstitutionCost {
+        fun of(typedChar: Char, wordChar: Char): Int
+    }
+
+    /** A fuzzy hit: the canonical [word], its [editDistance] from the typed
+     *  prefix (an upper bound; see [fuzzySuggestions]), and its [frequency]. */
+    data class FuzzyMatch(val word: String, val editDistance: Int, val frequency: Int)
+
+    /**
+     * Up to [limit] words whose *prefix* is within [maxEdits] of [prefix]
+     * (case-insensitively), for typo / near-miss correction ("informtion" ->
+     * "information"; over Fidel, የተለይ -> የተለያ… with the Amharic cost model).
+     * Ordered by (editDistance asc, frequency desc). Empty for an empty prefix,
+     * `maxEdits <= 0`, or no match within budget.
+     *
+     * FUZZY-*PREFIX* SEMANTICS: a word W matches if the typed string is within
+     * [maxEdits] of some prefix of W (the rest of W is simply un-typed-yet), so
+     * completion still works while a typo is present. W's distance is the min,
+     * over the nodes on its path, of `editDistance(typed, thatWordPrefix)`.
+     *
+     * [insertCost] / [deleteCost] weight the two indel edits independently of
+     * [substitutionCost] (default 1 each = plain Levenshtein). The Amharic path
+     * raises both so the *only* cheap edit is a same-family vowel substitution:
+     * otherwise "delete the last typed fidel, then complete freely" would let a
+     * wrong-consonant word (የተለሽም for የተለይ) match as cheaply as the intended
+     * same-consonant one (የተለያዩ).
+     *
+     * Bounded Damerau-Levenshtein over the trie: a DP row over the typed
+     * positions is carried down each edge (one edge = one word char), and
+     * `minSoFar` tracks the best `row[last]` seen on the path (the running
+     * fuzzy-prefix distance). Two regimes keep the work bounded:
+     *  - while still searching for an in-budget prefix, a subtree is pruned as
+     *    soon as `row.min() > maxEdits` (no descendant row can dip back into
+     *    budget -- row minima are non-decreasing down the trie);
+     *  - once a prefix is in budget (`minSoFar <= maxEdits`), every word below
+     *    it is a valid completion, so children the DP would otherwise prune are
+     *    handed to the same frequency-ranked best-first search as [suggestions]
+     *    (tagged with `minSoFar`) instead of being dropped. A word reached both
+     *    ways keeps its lower (DP-accurate) distance.
+     */
+    fun fuzzySuggestions(
+        prefix: String,
+        maxEdits: Int,
+        limit: Int = 3,
+        substitutionCost: SubstitutionCost = SubstitutionCost { a, b -> if (a == b) 0 else 1 },
+        insertCost: Int = 1,
+        deleteCost: Int = 1,
+    ): List<FuzzyMatch> {
+        if (prefix.isEmpty() || maxEdits <= 0 || limit <= 0) return emptyList()
+        val typed = prefix.map { it.lowercaseChar() }
+
+        // word -> best (lowest) distance found for it.
+        val best = HashMap<String, Int>()
+        // DP row 0: turning "" (empty word-prefix) into typed[0..j) is j
+        // insertions; minSoFar starts as row[last] = typed.size * insertCost.
+        val initialRow = IntArray(typed.size + 1) { it * insertCost }
+        val costs = Costs(substitutionCost, insertCost, deleteCost)
+        searchFuzzy(root, ' ', typed, initialRow, null, initialRow[typed.size], maxEdits, limit, costs, best)
+
+        return best.entries
+            .map { (word, dist) -> FuzzyMatch(word, dist, frequencyOf(word)) }
+            .sortedWith(compareBy({ it.editDistance }, { -it.frequency }))
+            .take(limit)
+    }
+
+    /**
+     * Records [word] as a fuzzy hit at [distance] into [best], keeping the
+     * lowest distance if it's seen more than once.
+     */
+    private fun record(best: HashMap<String, Int>, word: String, distance: Int) {
+        val existing = best[word]
+        if (existing == null || distance < existing) best[word] = distance
+    }
+
+    /** The three edit weights for a fuzzy walk, bundled to keep signatures small. */
+    private class Costs(
+        val substitution: SubstitutionCost,
+        val insert: Int,
+        val delete: Int,
+    )
+
+    /**
+     * One step of the bounded Damerau-Levenshtein walk over the trie. [row] is
+     * the DP row for the word-prefix ending at [node] (reached via edge
+     * [prevLetter]); [prevLetter] is that edge, used with the row two levels up
+     * (passed as [prevRow]) for the transposition term. [minSoFar] is the least
+     * `row[last]` seen from the root down to [node] -- the running fuzzy-prefix
+     * distance. See [fuzzySuggestions] for the two regimes.
+     */
+    private fun searchFuzzy(
+        node: Node,
+        prevLetter: Char,
+        typed: List<Char>,
+        row: IntArray,
+        prevRow: IntArray?,
+        minSoFar: Int,
+        maxEdits: Int,
+        limit: Int,
+        costs: Costs,
+        best: HashMap<String, Int>,
+    ) {
+        // This node's own prefix is in budget -> if it terminates a word, emit
+        // it at the accurate running distance.
+        if (minSoFar <= maxEdits) node.word?.let { record(best, it, minSoFar) }
+
+        for ((edge, child) in node.children) {
+            val next = IntArray(typed.size + 1)
+            next[0] = row[0] + costs.delete   // consuming a word char, no typed char
+            for (j in 1..typed.size) {
+                val insert = next[j - 1] + costs.insert
+                val delete = row[j] + costs.delete
+                val replace = row[j - 1] + costs.substitution.of(typed[j - 1], edge)
+                var cost = minOf(insert, delete, replace)
+                // Damerau transposition: typed "…ab" vs word "…ba".
+                if (prevRow != null && j >= 2 &&
+                    typed[j - 1] == prevLetter && typed[j - 2] == edge
+                ) {
+                    cost = minOf(cost, prevRow[j - 2] + 1)
+                }
+                next[j] = cost
+            }
+            val childMin = minOf(minSoFar, next[typed.size])
+
+            when {
+                // The DP can still make progress (or improve the distance) here.
+                next.min() <= maxEdits ->
+                    searchFuzzy(child, edge, typed, next, row, childMin, maxEdits, limit, costs, best)
+
+                // DP is exhausted for this branch, but we already have an
+                // in-budget prefix above it -> everything below is a valid
+                // completion at that distance; collect the best by frequency.
+                minSoFar <= maxEdits ->
+                    for ((word, _) in collectBest(child, limit)) record(best, word, minSoFar)
+
+                // else: no in-budget prefix and DP can't recover -> prune.
+            }
+        }
+    }
+
+    /** Frequency of the exact [word] (case-insensitive path), 0 if absent. */
+    private fun frequencyOf(word: String): Int {
+        var node = root
+        for (c in word) node = node.children[c.lowercaseChar()] ?: return 0
+        return node.frequency
+    }
+
+    /** Top [limit] (word, frequency) pairs in [start]'s subtree, best-first --
+     *  the same bounded search as [suggestions], from an arbitrary node. */
+    private fun collectBest(start: Node, limit: Int): List<Pair<String, Int>> {
+        val results = ArrayList<Pair<String, Int>>(limit)
+        val frontier = PriorityQueue<Candidate>(compareByDescending { it.priority })
+        frontier.add(Candidate(start.subtreeMaxFrequency, start, null))
+        while (results.size < limit) {
+            val c = frontier.poll() ?: break
+            if (c.emit != null) {
+                results.add(c.emit to c.priority)
+                continue
+            }
+            val n = c.node!!
+            n.word?.let { frontier.add(Candidate(n.frequency, null, it)) }
+            for (child in n.children.values) {
+                frontier.add(Candidate(child.subtreeMaxFrequency, child, null))
+            }
+        }
+        return results
+    }
+
     companion object {
         /**
          * Builds a trie from (word, frequency) pairs. Keys are matched

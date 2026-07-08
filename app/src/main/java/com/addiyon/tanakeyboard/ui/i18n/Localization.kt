@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
@@ -65,7 +66,11 @@ fun ProvideAppLocalization(content: @Composable () -> Unit) {
 @Composable
 fun LanguageToggle(modifier: Modifier = Modifier, compact: Boolean = false) {
     val controller = LocalAppLanguage.current
-    val textStyle = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
+    val textStyle = if (compact) {
+        MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Normal)
+    } else {
+        MaterialTheme.typography.labelLarge
+    }
     val hPadding = if (compact) 10.dp else 14.dp
     val vPadding = if (compact) 4.dp else 6.dp
     Row(

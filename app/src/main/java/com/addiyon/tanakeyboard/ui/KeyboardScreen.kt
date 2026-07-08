@@ -15,7 +15,23 @@ import com.addiyon.tanakeyboard.layout.EnglishLayout
 import com.addiyon.tanakeyboard.layout.GeezNumbersLayout
 import com.addiyon.tanakeyboard.layout.NumberLayout
 import com.addiyon.tanakeyboard.layout.SymbolsLayout
+import com.addiyon.tanakeyboard.model.KeyData
 import com.addiyon.tanakeyboard.model.NumbersMode
+
+// The optional number row (Latin 1-0), matching Row 1 of NumberLayout so its
+// 10 keys keep maxLetterCount aligned with the letter rows it sits above.
+private val NumberRowKeys = listOf(
+    KeyData.Character("1"),
+    KeyData.Character("2"),
+    KeyData.Character("3"),
+    KeyData.Character("4"),
+    KeyData.Character("5"),
+    KeyData.Character("6"),
+    KeyData.Character("7"),
+    KeyData.Character("8"),
+    KeyData.Character("9"),
+    KeyData.Character("0")
+)
 
 @Composable
 fun KeyboardScreen(
@@ -83,7 +99,9 @@ fun KeyboardScreen(
                     .padding(horizontal = 4.dp, vertical = 6.dp)
             ) {
 
-                val metrics = computeKeyboardMetrics(rows = layout.rows, availableWidth = maxWidth)
+                val showNumberRow = service.showNumberRow && service.numbersMode == NumbersMode.OFF
+                val rows = if (showNumberRow) listOf(NumberRowKeys) + layout.rows else layout.rows
+                val metrics = computeKeyboardMetrics(rows = rows, availableWidth = maxWidth)
 
                 Column(
                     modifier = Modifier
@@ -91,11 +109,16 @@ fun KeyboardScreen(
                         .wrapContentHeight()
                 ) {
 
-                    layout.rows.forEach { row ->
+                    rows.forEachIndexed { index, row ->
+                        // The digit row (row 0 when showNumberRow) always
+                        // commits its literal character, so it never shows
+                        // the Amharic fidel corner preview, regardless of
+                        // the active language.
+                        val rowIsAmharic = isAmharic && !(showNumberRow && index == 0)
                         KeyRow(
                             row = row,
                             isShift = isShift,
-                            isAmharic = isAmharic,
+                            isAmharic = rowIsAmharic,
                             isNumberMode = isNumberMode,
                             metrics = metrics,
                             service = service

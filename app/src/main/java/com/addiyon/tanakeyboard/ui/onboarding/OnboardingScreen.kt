@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.addiyon.tanakeyboard.KeyboardStatusSnapshot
 import com.addiyon.tanakeyboard.R
+import com.addiyon.tanakeyboard.ui.AppBrandHeader
 import com.addiyon.tanakeyboard.ui.i18n.LanguageToggle
 import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
 import com.addiyon.tanakeyboard.ui.theme.PlaypenSansBrand
@@ -112,27 +113,9 @@ fun OnboardingScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, top = 16.dp, end = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(R.drawable.ic_tana_icon),
-                contentDescription = null,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(Modifier.width(10.dp))
-            Text(
-                text = "Tana Keyboard",
-                style = MaterialTheme.typography.titleLarge,
-                fontFamily = PlaypenSansBrand,
-                fontWeight = FontWeight.ExtraBold
-            )
-            Spacer(Modifier.weight(1f))
-            LanguageToggle()
-        }
+        AppBrandHeader(
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp)
+        )
 
         AnimatedContent(
             targetState = phase,

@@ -43,6 +43,7 @@ data class AppStrings(
     // Preferences
     val vibrateOnKeypress: String,
     val soundOnKeypress: String,
+    val numberRow: String,
     // Test keyboard
     val testPlaceholder: String,
     // About
@@ -82,6 +83,7 @@ val EnglishStrings = AppStrings(
     searchPlaceholder = "Search: he, sh, ላ ...",
     vibrateOnKeypress = "Vibrate on keypress",
     soundOnKeypress = "Sound on keypress",
+    numberRow = "Number row",
     testPlaceholder = "Type \"selam\" → ሰላም",
     versionFormat = "Version %s",
     aboutDescription = "Type Amharic (Ge'ez) using simple Latin transliteration " +
@@ -123,6 +125,7 @@ val AmharicStrings = AppStrings(
     searchPlaceholder = "ፈልግ፡ he, sh, ላ ...",
     vibrateOnKeypress = "ቁልፍ ሲነካ ንዝረት",
     soundOnKeypress = "ቁልፍ ሲነካ ድምፅ",
+    numberRow = "የቁጥር ረድፍ",
     testPlaceholder = "\"selam\" ብለው ይፃፉ → ሰላም",
     versionFormat = "ስሪት %s",
     aboutDescription = "የእንግሊዝኛ ፊደላትን በመጠቀም በቀላሉ አማርኛ ይፃፉ — " +

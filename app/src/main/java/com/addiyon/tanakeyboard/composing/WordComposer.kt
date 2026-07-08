@@ -183,6 +183,28 @@ internal class WordComposer(
     }
 
     /**
+     * Adopt an already-typed word [prefix] that is sitting in the field just
+     * before the caret, so that continuing to type extends THAT word instead
+     * of starting a fresh one. Used when the user moves the caret back to the
+     * end of a previously committed word and resumes typing ("infor", tap
+     * away, come back, type "mation" -> "information", with the strip keying
+     * off the whole "informa…" rather than "mation").
+     *
+     * The caller is responsible for turning the existing field text into the
+     * composing region first (deleting it and re-inserting it, or
+     * setComposingRegion); here we just seed the buffer and re-push it so the
+     * composing text and buffer stay in lockstep. Only meaningful when the
+     * buffer is empty (we're not already composing) -- callers guard on
+     * [isComposing].
+     */
+    fun resume(prefix: String) {
+        if (prefix.isEmpty()) return
+        buffer.setLength(0)
+        buffer.append(prefix)
+        pushComposing()
+    }
+
+    /**
      * A suggestion chip was tapped: swap whatever's currently composing for
      * [word] plus a trailing space, and clear the buffer.
      *

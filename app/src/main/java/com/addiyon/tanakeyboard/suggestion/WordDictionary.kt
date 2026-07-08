@@ -88,4 +88,22 @@ class WordDictionary(context: Context, private val assetName: String) {
     /** Empty (not an error) if the dictionary hasn't finished loading yet. */
     fun suggestions(prefix: String, limit: Int = 3): List<String> =
         trie?.suggestions(prefix, limit) ?: emptyList()
+
+    /**
+     * Fuzzy / typo-tolerant completions of [prefix] -- see
+     * [WordTrie.fuzzySuggestions]. Empty until the dictionary has loaded. The
+     * Amharic caller injects a script-aware [substitutionCost]; English uses
+     * the uniform default.
+     */
+    fun fuzzySuggestions(
+        prefix: String,
+        maxEdits: Int,
+        limit: Int = 3,
+        substitutionCost: WordTrie.SubstitutionCost =
+            WordTrie.SubstitutionCost { a, b -> if (a == b) 0 else 1 },
+        insertCost: Int = 1,
+        deleteCost: Int = 1,
+    ): List<WordTrie.FuzzyMatch> =
+        trie?.fuzzySuggestions(prefix, maxEdits, limit, substitutionCost, insertCost, deleteCost)
+            ?: emptyList()
 }

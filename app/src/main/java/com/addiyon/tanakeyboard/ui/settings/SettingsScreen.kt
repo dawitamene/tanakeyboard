@@ -48,6 +48,7 @@ import com.addiyon.tanakeyboard.KeyboardStatusSnapshot
 import com.addiyon.tanakeyboard.ui.feedback.FeedbackOptions
 import com.addiyon.tanakeyboard.ui.feedback.openFeedbackTelegram
 import com.addiyon.tanakeyboard.ui.feedback.sendFeedbackEmail
+import com.addiyon.tanakeyboard.ui.AppBrandHeader
 import com.addiyon.tanakeyboard.ui.i18n.LanguageToggle
 import com.addiyon.tanakeyboard.ui.i18n.LocalAppStrings
 import com.addiyon.tanakeyboard.ui.theme.PlaypenSansBrand
@@ -127,27 +128,7 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_tana_icon),
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = "Tana Keyboard",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontFamily = PlaypenSansBrand,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                Spacer(Modifier.weight(1f))
-                LanguageToggle()
-            }
+            AppBrandHeader(modifier = Modifier.padding(vertical = 16.dp))
 
             GroupCard {
                 SettingsItem(Icons.Default.Palette, strings.themes, onClick = onOpenThemes)

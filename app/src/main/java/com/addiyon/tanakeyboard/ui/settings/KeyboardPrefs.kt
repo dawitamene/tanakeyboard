@@ -14,6 +14,7 @@ object KeyboardPrefs {
     const val KEY_VIBRATE = "vibrate_on_keypress"
     const val KEY_SOUND = "sound_on_keypress"
     const val KEY_PALETTE = "palette"
+    const val KEY_NUMBER_ROW = "number_row"
 
     /** Exposed so the service can register an OnSharedPreferenceChangeListener. */
     fun prefs(context: Context): SharedPreferences =
@@ -36,4 +37,10 @@ object KeyboardPrefs {
 
     fun setPalette(context: Context, value: KeyboardPalette) =
         prefs(context).edit().putString(KEY_PALETTE, value.id).apply()
+
+    fun numberRow(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_NUMBER_ROW, false)
+
+    fun setNumberRow(context: Context, value: Boolean) =
+        prefs(context).edit().putBoolean(KEY_NUMBER_ROW, value).apply()
 }

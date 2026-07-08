@@ -27,6 +27,8 @@ import com.addiyon.tanakeyboard.model.EnterAction
 import com.addiyon.tanakeyboard.model.NumbersMode
 import com.addiyon.tanakeyboard.model.ShiftState
 import com.addiyon.tanakeyboard.suggestion.WordDictionary
+import com.addiyon.tanakeyboard.suggestion.WordTrie
+import com.addiyon.tanakeyboard.transliteration.AmharicTable
 import com.addiyon.tanakeyboard.suggestion.matchCase
 import com.addiyon.tanakeyboard.transliteration.Transliterator
 import com.addiyon.tanakeyboard.ui.settings.KeyboardPrefs
@@ -38,6 +40,53 @@ import com.addiyon.tanakeyboard.ui.theme.KeyboardPalette
  * generous.
  */
 private const val AMHARIC_SUGGESTION_LIMIT = 10
+
+/**
+ * English strip capacity: exact-prefix completions first, then up to
+ * [ENGLISH_FUZZY_LIMIT] typo corrections appended below them.
+ */
+private const val ENGLISH_EXACT_LIMIT = 3
+private const val ENGLISH_FUZZY_LIMIT = 2
+private const val ENGLISH_SUGGESTION_LIMIT = ENGLISH_EXACT_LIMIT + ENGLISH_FUZZY_LIMIT
+
+/**
+ * English fuzzy corrections below this raw dictionary frequency are dropped so
+ * a typo maps to a reasonably common word, not an obscure 1-edit neighbour.
+ * The English asset carries real OpenSubtitles counts (up to ~28M); ~500 keeps
+ * roughly the top 10% of words, a good "is this a real correction" cutoff.
+ *
+ * The Amharic asset has NO real frequencies (a shorter-word-ranks-higher
+ * heuristic, all values <= 950), so an absolute gate is meaningless there --
+ * its noise is instead controlled by the strict fidel cost model (only a
+ * same-family vowel substitution is in budget), so it uses no gate.
+ */
+private const val ENGLISH_FUZZY_MIN_FREQUENCY = 500
+
+/**
+ * How far back to scan for an already-typed word when the user resumes typing
+ * at the end of it (see [TanaKeyboardService.resumeEnglishWordIfAny]). Longer
+ * than any word we'd complete against, so the whole prefix is always captured.
+ */
+private const val MAX_RESUME_PREFIX = 48
+
+/**
+ * Length-scaled edit budget for fuzzy matching: none for buffers too short to
+ * disambiguate, one edit for typical words, two for long ones (where a double
+ * typo is plausible without exploding false positives).
+ */
+private fun fuzzyEditBudget(length: Int): Int = when {
+    length <= 2 -> 0
+    length <= 6 -> 1
+    else -> 2
+}
+
+/**
+ * Script-aware substitution cost for the Amharic fuzzy pass: a wrong vowel on
+ * the right consonant (ይ↔ያ) is a cheap edit, a wrong consonant is expensive --
+ * see [AmharicTable.fidelSubstitutionCost].
+ */
+private val AMHARIC_FIDEL_COST =
+    WordTrie.SubstitutionCost(AmharicTable::fidelSubstitutionCost)
 
 class TanaKeyboardService : InputMethodService(),
     LifecycleOwner,
@@ -101,6 +150,12 @@ class TanaKeyboardService : InputMethodService(),
     var palette by mutableStateOf(KeyboardPalette.CLASSIC)
         private set
 
+    // Whether the optional Latin digit row renders above the top letter row
+    // on the letter layouts. Observable (like [palette]) so the hosted
+    // keyboard recomposes live when the user flips it in Preferences.
+    var showNumberRow by mutableStateOf(false)
+        private set
+
     // Registered in onCreate / unregistered in onDestroy. Fires when the user
     // changes the theme in the app (same process -> same prefs instance), so
     // the keyboard recolors live even while it's open (e.g. the in-app Test
@@ -110,6 +165,9 @@ class TanaKeyboardService : InputMethodService(),
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == KeyboardPrefs.KEY_PALETTE) {
                 refreshTheme(resources.configuration)
+            }
+            if (key == KeyboardPrefs.KEY_NUMBER_ROW) {
+                refreshNumberRow()
             }
         }
 
@@ -184,9 +242,30 @@ class TanaKeyboardService : InputMethodService(),
         suggestions = if (isAmharic) {
             amharicSuggestions()
         } else {
-            val typed = englishComposer.display
-            englishDictionary.suggestions(typed.lowercase()).map { matchCase(typed, it) }
+            englishSuggestions()
         }
+    }
+
+    /**
+     * English suggestions: exact-prefix completions first, then typo/near-miss
+     * corrections ([WordTrie.fuzzySuggestions]) appended below and gated by
+     * [ENGLISH_FUZZY_MIN_FREQUENCY], so "informtion" still surfaces "information"
+     * without an empty strip. Corrections are display-only -- space still
+     * commits the literal buffer -- and the user's typed case is restored on
+     * the way out via [matchCase].
+     */
+    private fun englishSuggestions(): List<String> {
+        val typed = englishComposer.display
+        if (typed.isEmpty()) return emptyList()
+
+        val key = typed.lowercase()
+        val exact = englishDictionary.suggestions(key, ENGLISH_EXACT_LIMIT)
+        val fuzzy = englishDictionary
+            .fuzzySuggestions(key, fuzzyEditBudget(key.length), ENGLISH_FUZZY_LIMIT)
+            .filter { it.frequency >= ENGLISH_FUZZY_MIN_FREQUENCY }
+            .map { it.word }
+        return (exact + fuzzy).distinct().take(ENGLISH_SUGGESTION_LIMIT)
+            .map { matchCase(typed, it) }
     }
 
     /**
@@ -209,7 +288,27 @@ class TanaKeyboardService : InputMethodService(),
 
         val readings = Transliterator.readings(latin)
         val completions = readings.flatMap { amharicDictionary.suggestions(it, AMHARIC_SUGGESTION_LIMIT) }
-        return (readings + completions).distinct().take(AMHARIC_SUGGESTION_LIMIT)
+
+        // Fuzzy pass over each fidel reading with the script-aware cost model,
+        // so a mid-syllable near-miss (የተለይ, before the vowel lands on ያ)
+        // still surfaces የተለያ… words. Ranked below the exact completions and
+        // deduped into the same cap; frequency-gated to stay quiet.
+        val fuzzy = readings.flatMap { reading ->
+            amharicDictionary.fuzzySuggestions(
+                reading,
+                fuzzyEditBudget(reading.length),
+                AMHARIC_SUGGESTION_LIMIT,
+                AMHARIC_FIDEL_COST,
+                // Only a same-family vowel substitution is cheap; making indels
+                // expensive keeps "delete the last fidel then complete anything"
+                // (የተለይ -> የተለሽም) out, leaving the intended የተለያዩ.
+                insertCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
+                deleteCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
+            )
+        }.sortedWith(compareBy({ it.editDistance }, { -it.frequency }))
+            .map { it.word }
+
+        return (readings + completions + fuzzy).distinct().take(AMHARIC_SUGGESTION_LIMIT)
     }
 
     /**
@@ -223,6 +322,11 @@ class TanaKeyboardService : InputMethodService(),
         val nightModeFlags = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         isDarkTheme = nightModeFlags == Configuration.UI_MODE_NIGHT_YES
         updateSystemNavigationBar()
+    }
+
+    /** Re-derives [showNumberRow] from the saved preference. */
+    private fun refreshNumberRow() {
+        showNumberRow = KeyboardPrefs.numberRow(this)
     }
 
     /**
@@ -403,11 +507,48 @@ class TanaKeyboardService : InputMethodService(),
                 currentInputConnection?.commitText(text, 1)
             }
             isAmharic -> amharicComposer.onCharacter(output)
-            else -> englishComposer.onCharacter(output)
+            else -> {
+                if (!englishComposer.isComposing) resumeEnglishWordIfAny()
+                englishComposer.onCharacter(output)
+            }
         }
 
         consumeShiftAfterCharacter()
         updateSuggestions()
+    }
+
+    /**
+     * When the caret sits at the end of an already-typed English word and the
+     * user starts typing again, adopt that word into the composer so the new
+     * keystrokes EXTEND it rather than starting a fresh one. Without this,
+     * typing "infor", moving away, then coming back and typing "mation" would
+     * offer completions of "mation" instead of "information".
+     *
+     * We turn the trailing run of word characters before the caret into the
+     * composing region (delete it, re-insert it as composing text via
+     * [WordComposer.resume]) and seed the buffer with it. Guards:
+     *
+     *  - English only. The Amharic buffer is romanized Latin behind the fidel
+     *    shown in the field, and reversing fidel back to that Latin isn't
+     *    reliable (see WordTrie's class doc), so there's nothing safe to adopt.
+     *  - Skip if a word character immediately FOLLOWS the caret -- the user is
+     *    editing mid-word, and adopting only the prefix would strand the
+     *    suffix. Better to leave that alone.
+     */
+    private fun resumeEnglishWordIfAny() {
+        val ic = currentInputConnection ?: return
+
+        val after = ic.getTextAfterCursor(1, 0)
+        if (!after.isNullOrEmpty() && isWordCharacter(after[0].toString())) return
+
+        val before = ic.getTextBeforeCursor(MAX_RESUME_PREFIX, 0) ?: return
+        val prefix = before.takeLastWhile { isWordCharacter(it.toString()) }.toString()
+        if (prefix.isEmpty()) return
+
+        ic.beginBatchEdit()
+        ic.deleteSurroundingText(prefix.length, 0)
+        englishComposer.resume(prefix)
+        ic.endBatchEdit()
     }
 
     /**
@@ -569,6 +710,7 @@ class TanaKeyboardService : InputMethodService(),
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         refreshTheme(resources.configuration)
+        refreshNumberRow()
         KeyboardPrefs.prefs(this).registerOnSharedPreferenceChangeListener(prefsListener)
 
         amharicDictionary = WordDictionary(this, "amharic_words.dat")

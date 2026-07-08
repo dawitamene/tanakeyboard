@@ -1,6 +1,8 @@
 package com.addiyon.tanakeyboard.suggestion
 
+import com.addiyon.tanakeyboard.transliteration.AmharicTable
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WordTrieTest {
@@ -65,5 +67,101 @@ class WordTrieTest {
     fun exactWordIsAlsoASuggestionForItsOwnPrefix() {
         val t = trie("go" to 100, "good" to 60, "google" to 40)
         assertEquals(listOf("go", "good", "google"), t.suggestions("go"))
+    }
+
+    // ---- fuzzySuggestions -------------------------------------------------
+
+    private fun WordTrie.fuzzyWords(prefix: String, maxEdits: Int, limit: Int = 3) =
+        fuzzySuggestions(prefix, maxEdits, limit).map { it.word }
+
+    @Test
+    fun fuzzyCorrectsASingleInsertionTypo() {
+        // "informtion" (missing an 'a') is one edit from "information".
+        val t = trie("information" to 500, "informer" to 50)
+        assertEquals(listOf("information"), t.fuzzyWords("informtion", maxEdits = 1))
+    }
+
+    @Test
+    fun fuzzyCorrectsATransposition() {
+        // Damerau: "teh" -> "the" is a single adjacent transposition, whereas
+        // reaching "the" via plain substitutions would cost 2 ("teh"[e/h] ->
+        // "th_" then "the"), so this only matches with transposition support.
+        val t = trie("the" to 900, "cat" to 100)
+        assertEquals(listOf("the"), t.fuzzyWords("teh", maxEdits = 1))
+    }
+
+    @Test
+    fun fuzzyStillCompletesBeyondTheTypedPrefix() {
+        // A one-edit prefix should still pull in longer completions.
+        val t = trie("information" to 500, "informational" to 120)
+        assertEquals(
+            listOf("information", "informational"),
+            t.fuzzyWords("informtion", maxEdits = 1, limit = 2)
+        )
+    }
+
+    @Test
+    fun fuzzyRanksByEditDistanceThenFrequency() {
+        // "cat" (exact prefix, distance 0) must outrank "cot"/"car" (distance
+        // 1) regardless of frequency; among distance-1, higher frequency wins.
+        val t = trie("cat" to 10, "cot" to 100, "car" to 500)
+        val matches = t.fuzzySuggestions("cat", maxEdits = 1, limit = 3)
+        assertEquals(listOf("cat", "car", "cot"), matches.map { it.word })
+        assertEquals(0, matches[0].editDistance)
+        assertEquals(1, matches[1].editDistance)
+    }
+
+    @Test
+    fun fuzzyReturnsNothingBeyondBudget() {
+        // Two edits away with only a one-edit budget -> no match.
+        val t = trie("house" to 100)
+        assertEquals(emptyList<String>(), t.fuzzyWords("mouze", maxEdits = 1))
+    }
+
+    @Test
+    fun fuzzyWithZeroBudgetIsEmpty() {
+        val t = trie("the" to 100)
+        assertEquals(emptyList<String>(), t.fuzzyWords("the", maxEdits = 0))
+        assertEquals(emptyList<String>(), t.fuzzyWords("", maxEdits = 1))
+    }
+
+    @Test
+    fun fuzzyUsesInjectedSubstitutionCost() {
+        // A cost model that treats a<->o as free but everything else expensive:
+        // "cot" should match "cat" for free, "cut" should not (cost 2).
+        val cheapAO = WordTrie.SubstitutionCost { a, b ->
+            when {
+                a == b -> 0
+                setOf(a, b) == setOf('a', 'o') -> 0
+                else -> 2
+            }
+        }
+        val t = trie("cat" to 100)
+        assertEquals(
+            listOf("cat"),
+            t.fuzzySuggestions("cot", maxEdits = 1, substitutionCost = cheapAO).map { it.word }
+        )
+        assertEquals(
+            emptyList<String>(),
+            t.fuzzySuggestions("cut", maxEdits = 1, substitutionCost = cheapAO).map { it.word }
+        )
+    }
+
+    @Test
+    fun amharicCostModelSurfacesTheIntendedVowelNearMiss() {
+        // User is typing toward የተለያዩ but the last syllable is still on the bare
+        // ይ (የተለይ) before the vowel lands on ያ (የተለያ). With the fidel cost model
+        // that's ONE cheap same-family edit, so the word should surface; a
+        // wrong-consonant word (የተለሽ…) is two-cost and must not.
+        val cost = WordTrie.SubstitutionCost(AmharicTable::fidelSubstitutionCost)
+        val indel = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST
+        val t = trie("የተለያዩ" to 500, "የተለያየ" to 300, "የተለሽም" to 400)
+        val words = t.fuzzySuggestions(
+            "የተለይ", maxEdits = 1, limit = 5,
+            substitutionCost = cost, insertCost = indel, deleteCost = indel,
+        ).map { it.word }
+        assertTrue("የተለያዩ" in words)
+        assertTrue("የተለያየ" in words)
+        assertTrue("የተለሽም" !in words)
     }
 }
