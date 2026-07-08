@@ -157,28 +157,28 @@ internal class WordComposer(
     }
 
     /**
-     * Finalize the composing word IN PLACE, without inserting new text.
+     * Finalize the composing word IN PLACE, without inserting new text or
+     * resolving it to any reading.
      *
-     * Used when the input view is going away (the field is losing us). Unlike
-     * [commit], which calls `commitText`, this never inserts text: it resolves
-     * the composing region to its rendered [display] (fidel for Amharic) with
-     * `setComposingText` -- which REPLACES the current composing span rather
-     * than appending after it -- then `finishComposingText` locks it in place.
+     * Used when the input view is going away (the field is losing us) and the
+     * user never explicitly accepted a word (space, enter, or a tapped
+     * suggestion). Locks in whatever is CURRENTLY shown in the composing
+     * region -- via `finishComposingText`, which finalizes the existing span
+     * without replacing it -- rather than [display]. For Amharic,
+     * [composingText] is identity, so that's the raw Latin still on screen
+     * ("selam"), not its greedy fidel reading (ሰላም): applying [display] here
+     * silently promoted the top suggestion to committed text on exit even
+     * though the user never chose it. English is unaffected, since its
+     * [composingText] already equals [display].
      *
      * `commitText` on the way out duplicated the word: as an input session
      * ends, the framework finalizes the still-active composing region on its
      * own, so an additional `commitText` pasted a second copy (the "text
-     * appears twice after exiting the keyboard" bug). This path can't double,
-     * and it commits no autosuggestion -- [display] is exactly the text the
-     * user typed (English) or its greedy fidel reading (Amharic), never a
-     * dictionary completion.
+     * appears twice after exiting the keyboard" bug). This path can't double.
      */
     fun finish() {
         if (buffer.isEmpty()) return
-        inputConnection()?.apply {
-            setComposingText(display, 1)
-            finishComposingText()
-        }
+        inputConnection()?.finishComposingText()
         buffer.clear()
     }
 
