@@ -165,10 +165,10 @@ internal class WordComposer(
         rawDirty = true
         if (composesInline) {
             if (buffer.isEmpty()) {
-                inputConnection()?.let {
-                    it.setComposingText("", 1)
-                    it.finishComposingText()
-                }
+                // Empty setComposingText leaves an empty composing region
+                // hanging around in some IMEs' bookkeeping. finishComposingText
+                // resolves it cleanly to nothing.
+                inputConnection()?.finishComposingText()
             } else {
                 pushComposing()
             }

@@ -268,7 +268,7 @@ class AddiyonKeyboardService : InputMethodService(),
         // OUT-OF-FIELD" doc. Backspace uses the default one-char step so
         // each typed letter can be cleared individually.
         render = Transliterator::transliterate,
-        composesInline = true,
+        composesInline = false,
         onCommit = { rawLatin, fidel -> amharicCommitHistory[fidel] = rawLatin }
     )
 
@@ -414,7 +414,7 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
 
-        return merged.asSequence().drop(1).take(AMHARIC_SUGGESTION_LIMIT).toList()
+        return merged.asSequence().take(AMHARIC_SUGGESTION_LIMIT).toList()
     }
 
     /**
