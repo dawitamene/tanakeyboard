@@ -25,10 +25,8 @@ import com.addiyon.keyboard.R
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 
 /** Feedback destinations, shared by every place that offers "Send feedback". */
-const val FEEDBACK_EMAIL = "tanakeyboard@addiyon.com"
-
-// TODO: replace with the real Telegram username once provided.
-const val TELEGRAM_USERNAME = "tanakeyboard"
+const val FEEDBACK_EMAIL = "keyboard@addiyon.com"
+const val TELEGRAM_USERNAME = "addiyonkeyboard"
 
 /**
  * Launches the mail composer to the feedback address. [extraFlags] lets a

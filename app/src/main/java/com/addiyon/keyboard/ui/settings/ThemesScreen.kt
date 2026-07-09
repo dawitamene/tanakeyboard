@@ -1,21 +1,20 @@
 package com.addiyon.keyboard.ui.settings
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -63,9 +65,15 @@ fun ThemesScreen(
     val context = LocalContext.current
     val strings = LocalAppStrings.current
     var selected by remember { mutableStateOf(KeyboardPrefs.palette(context)) }
-    // The skeleton reflects what the keyboard will actually look like, which
-    // follows the system light/dark setting.
     val isDark = isSystemInDarkTheme()
+    val paletteSections = remember {
+        PaletteCategory.entries.mapNotNull { category ->
+            KeyboardPalette.entries
+                .filter { it.category == category }
+                .takeIf { it.isNotEmpty() }
+                ?.let { category to it.chunked(3) }
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxWidth(),
@@ -83,21 +91,20 @@ fun ThemesScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
-                // innerPadding OUTSIDE the scroll so the top-bar area is
-                // reserved and content scrolls beneath it, not over the title.
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            PaletteCategory.entries.forEach { category ->
-                val palettes = KeyboardPalette.entries.filter { it.category == category }
-                if (palettes.isEmpty()) return@forEach
-
-                SectionLabel(category.displayName)
-                palettes.chunked(3).forEach { rowPalettes ->
+            paletteSections.forEach { (category, rows) ->
+                item(key = "section-${category.name}") {
+                    SectionLabel(category.displayName)
+                }
+                items(
+                    items = rows,
+                    key = { row -> row.joinToString(separator = "-") { it.id } }
+                ) { rowPalettes ->
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         rowPalettes.forEach { p ->
                             ThemeCard(
@@ -112,7 +119,6 @@ fun ThemesScreen(
                                 }
                             )
                         }
-                        // Keep the last row's cells the same width as full rows.
                         repeat(3 - rowPalettes.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
@@ -178,55 +184,59 @@ private fun ThemeCard(
 @Composable
 private fun SkeletonKeyboard() {
     val scheme = MaterialTheme.colorScheme
-    Column(
+    Canvas(
         modifier = Modifier
             .fillMaxWidth()
+            .height(60.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(scheme.background)
-            .padding(6.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Row 1: ten letter keys.
-        SkeletonRow {
-            repeat(10) { KeyBar(Modifier.weight(1f), scheme.surface) }
+        val padding = 6.dp.toPx()
+        val gap = 3.dp.toPx()
+        val rowGap = 4.dp.toPx()
+        val keyHeight = 9.dp.toPx()
+        val corner = 2.dp.toPx()
+
+        fun drawRow(y: Float, segments: List<Pair<Float, Color?>>) {
+            val contentWidth = size.width - padding * 2
+            val unit = (contentWidth - gap * (segments.size - 1)) / segments.sumOf { it.first.toDouble() }.toFloat()
+            var x = padding
+
+            segments.forEach { (weight, color) ->
+                val width = unit * weight
+                if (color != null) {
+                    drawRoundRect(
+                        color = color,
+                        topLeft = Offset(x, y),
+                        size = Size(width, keyHeight),
+                        cornerRadius = CornerRadius(corner, corner)
+                    )
+                }
+                x += width + gap
+            }
         }
-        // Row 2: nine letter keys, slightly inset.
-        SkeletonRow {
-            Spacer(Modifier.weight(0.5f))
-            repeat(9) { KeyBar(Modifier.weight(1f), scheme.surface) }
-            Spacer(Modifier.weight(0.5f))
-        }
-        // Row 3: shift (special), letters, delete (special).
-        SkeletonRow {
-            KeyBar(Modifier.weight(1.4f), scheme.surfaceVariant)
-            repeat(7) { KeyBar(Modifier.weight(1f), scheme.surface) }
-            KeyBar(Modifier.weight(1.4f), scheme.surfaceVariant)
-        }
-        // Row 4: special, wide space, special. The space bar is a normal key
-        // surface in the real keyboard (not the accent), so match that.
-        SkeletonRow {
-            KeyBar(Modifier.weight(1.4f), scheme.surfaceVariant)
-            KeyBar(Modifier.weight(5f), scheme.surface)
-            KeyBar(Modifier.weight(1.4f), scheme.surfaceVariant)
-        }
+
+        drawRow(
+            padding,
+            List(10) { 1f to scheme.surface }
+        )
+        drawRow(
+            padding + keyHeight + rowGap,
+            listOf(0.5f to null) + List(9) { 1f to scheme.surface } + listOf(0.5f to null)
+        )
+        drawRow(
+            padding + (keyHeight + rowGap) * 2,
+            listOf(1.4f to scheme.surfaceVariant) +
+                List(7) { 1f to scheme.surface } +
+                listOf(1.4f to scheme.surfaceVariant)
+        )
+        drawRow(
+            padding + (keyHeight + rowGap) * 3,
+            listOf(
+                1.4f to scheme.surfaceVariant,
+                5f to scheme.surface,
+                1.4f to scheme.surfaceVariant
+            )
+        )
     }
-}
-
-@Composable
-private fun SkeletonRow(content: @Composable RowScope.() -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        content = content
-    )
-}
-
-@Composable
-private fun KeyBar(modifier: Modifier, color: androidx.compose.ui.graphics.Color) {
-    Box(
-        modifier = modifier
-            .height(9.dp)
-            .clip(RoundedCornerShape(2.dp))
-            .background(color)
-    )
 }
