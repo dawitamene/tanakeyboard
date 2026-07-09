@@ -228,10 +228,6 @@ private fun AmharicSuggestionStrip(
         verticalAlignment = Alignment.CenterVertically
     ) {
         suggestions.forEachIndexed { index, word ->
-            // The first chip is the greedy reading -- what SPACE auto-commits.
-            // Make it stand out (bolder, accent color) so the default choice
-            // is obvious versus the alternates.
-            val isPrimary = index == 0
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -241,12 +237,11 @@ private fun AmharicSuggestionStrip(
                 Text(
                     text = word,
                     fontSize = 16.sp,
-                    fontWeight = if (isPrimary) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    color = if (isPrimary) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
