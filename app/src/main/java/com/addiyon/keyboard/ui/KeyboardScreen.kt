@@ -13,6 +13,7 @@ import com.addiyon.keyboard.AddiyonKeyboardService
 import com.addiyon.keyboard.layout.AmharicLayout
 import com.addiyon.keyboard.layout.EnglishLayout
 import com.addiyon.keyboard.layout.GeezNumbersLayout
+import com.addiyon.keyboard.layout.MoreSymbolsLayout
 import com.addiyon.keyboard.layout.NumberLayout
 import com.addiyon.keyboard.layout.SymbolsLayout
 import com.addiyon.keyboard.model.KeyData
@@ -56,6 +57,7 @@ fun KeyboardScreen(
     val layout = when (service.numbersMode) {
         NumbersMode.NUMBERS -> NumberLayout
         NumbersMode.SYMBOLS -> SymbolsLayout
+        NumbersMode.MORE_SYMBOLS -> MoreSymbolsLayout
         NumbersMode.GEEZ_NUMBERS -> GeezNumbersLayout
         NumbersMode.OFF -> if (isAmharic) AmharicLayout else EnglishLayout
     }
@@ -99,9 +101,9 @@ fun KeyboardScreen(
                 onFeedback = { service.openFeedbackScreen() },
                 onAi = { service.onAiAction() },
                 onClipboard = { service.onClipboardAction() },
-                isListening = service.isListening,
-                voiceState = service.voiceState,
-                onVoice = { service.onVoiceInput() }
+                voiceUiState = service.voiceUiState,
+                onVoice = { service.onVoiceInput() },
+                onExitVoice = { service.exitVoiceMode() }
             )
 
             BoxWithConstraints(

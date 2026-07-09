@@ -300,15 +300,15 @@ fun RowScope.NumberToggleKey(
 }
 
 /**
- * "=\<" / "፩፪" / "123" toggle between the numeric pages. Fixed width (see
+ * "=\<" / "<>/" / "፩፪" / "123" toggle between the numeric pages. Fixed width (see
  * [ShiftKey]'s doc for the general reasoning) so it renders the same size on
  * every numeric page. Rendered as a "special" key -> darker surface than
  * letter keys, with the same reduced font as [NumberToggleKey].
  *
- * When Amharic mode is on the key cycles three ways: NUMBERS -> GEEZ_NUMBERS
- * -> SYMBOLS -> NUMBERS, with "፩፪" on the NUMBERS page hinting the Ge'ez
- * numerals layer. When Amharic is off it reverts to the old two-state cycle
- * NUMBERS <-> SYMBOLS with "123" / "=\<" labels.
+ * When Amharic mode is on the key cycles four ways: NUMBERS -> GEEZ_NUMBERS
+ * -> SYMBOLS -> MORE_SYMBOLS -> NUMBERS, with "፩፪" on the NUMBERS page
+ * hinting the Ge'ez numerals layer. When Amharic is off it cycles through
+ * NUMBERS -> SYMBOLS -> MORE_SYMBOLS -> NUMBERS.
  */
 @Composable
 fun RowScope.SymbolsToggleKey(
@@ -321,7 +321,8 @@ fun RowScope.SymbolsToggleKey(
     KeyButton(
         primaryText = when {
             numbersMode == NumbersMode.NUMBERS && isAmharic -> "፩፪"
-            numbersMode == NumbersMode.SYMBOLS -> "123"
+            numbersMode == NumbersMode.SYMBOLS -> "<>/"
+            numbersMode == NumbersMode.MORE_SYMBOLS -> "123"
             else -> "=\\<"
         },
         primaryFontSize = 14.sp,

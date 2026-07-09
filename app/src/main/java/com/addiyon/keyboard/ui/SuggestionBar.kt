@@ -8,14 +8,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.MenuBook
@@ -40,7 +39,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,7 +48,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.addiyon.keyboard.voice.VoiceInputState
+import com.addiyon.keyboard.voice.VoiceUiState
+import com.addiyon.keyboard.voice.isRecording
+import com.addiyon.keyboard.voice.isVoiceMode
 
 /**
  * The word-completion strip above the key rows. Always reserves a fixed-height
@@ -82,34 +82,39 @@ fun SuggestionArea(
     onFeedback: () -> Unit,
     onAi: () -> Unit,
     onClipboard: () -> Unit,
-    isListening: Boolean = false,
-    voiceState: VoiceInputState = VoiceInputState.IDLE,
-    onVoice: () -> Unit = {}
+    voiceUiState: VoiceUiState = VoiceUiState.Idle,
+    onVoice: () -> Unit = {},
+    onExitVoice: () -> Unit = {}
 ) {
+    val voiceMode = voiceUiState.isVoiceMode
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(40.dp)
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 8.dp),
-        horizontalArrangement =
-            if (suggestions.isEmpty() && voiceState == VoiceInputState.IDLE) Arrangement.SpaceBetween else Arrangement.Start,
+        horizontalArrangement = if (!voiceMode && suggestions.isEmpty()) {
+            Arrangement.SpaceBetween
+        } else {
+            Arrangement.Start
+        },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (voiceState != VoiceInputState.IDLE) {
-            val label = when (voiceState) {
-                VoiceInputState.SPEAK_NOW -> "Speak now..."
-                VoiceInputState.LISTENING -> "Listening..."
-                VoiceInputState.IDLE -> ""
-            }
+        if (voiceMode) {
+            ToolbarIcon(Icons.AutoMirrored.Outlined.ArrowBack, "Exit voice input", onExitVoice)
+            val label = voiceLabel(voiceUiState)
             Text(
                 text = label,
                 color = MaterialTheme.colorScheme.primary,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp)
             )
-            Spacer(modifier = Modifier.weight(1f))
-            VoiceBubbleMic(onClick = onVoice)
+            MicToolbarIcon(isListening = voiceUiState.isRecording, onClick = onVoice)
         } else if (suggestions.isEmpty()) {
             // AI + Clipboard kept for later, commented out for now:
             // ToolbarIcon(Icons.Outlined.AutoAwesome, "AI", onAi)
@@ -118,7 +123,7 @@ fun SuggestionArea(
             ToolbarIcon(Icons.Outlined.MenuBook, "Typing guide", onOpenGuide)
             ToolbarIcon(Icons.Outlined.Feedback, "Feedback", onFeedback)
             ToolbarIcon(Icons.Outlined.Palette, "Themes", onOpenThemes)
-            MicToolbarIcon(isListening = isListening, onClick = onVoice)
+            MicToolbarIcon(isListening = false, onClick = onVoice)
         } else {
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 if (isAmharic) {
@@ -127,8 +132,20 @@ fun SuggestionArea(
                     EnglishSuggestionStrip(suggestions, onTap)
                 }
             }
+            MicToolbarIcon(isListening = false, onClick = onVoice)
         }
     }
+}
+
+// Deliberately static per state -- recognized text streams into the field's
+// composing region, never into this label, and session churn inside the
+// controller doesn't surface here. That's what keeps the bar flicker-free.
+private fun voiceLabel(state: VoiceUiState): String = when (state) {
+    VoiceUiState.Idle -> ""
+    VoiceUiState.Listening -> "Listening…"
+    VoiceUiState.Paused -> "Paused"
+    VoiceUiState.PermissionRequired -> "Microphone permission required"
+    is VoiceUiState.Unavailable -> state.message
 }
 
 @Composable
@@ -193,80 +210,6 @@ private fun MicToolbarIcon(
                 .size(22.dp)
                 .scale(if (isListening) pulse else 1f)
         )
-    }
-}
-
-@Composable
-private fun VoiceBubbleMic(onClick: () -> Unit) {
-    val accent = MaterialTheme.colorScheme.primary
-    val transition = rememberInfiniteTransition(label = "voiceRipple")
-
-    val rippleSpec = infiniteRepeatable<Float>(
-        animation = tween(durationMillis = 1200, easing = LinearEasing),
-        repeatMode = RepeatMode.Restart
-    )
-
-    val ripple1 by transition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = rippleSpec, label = "ripple1"
-    )
-    val ripple2 by transition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = rippleSpec, label = "ripple2"
-    )
-    val ripple2Phase = (ripple2 + 0.33f) % 1f
-    val ripple3 by transition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = rippleSpec, label = "ripple3"
-    )
-    val ripple3Phase = (ripple3 + 0.66f) % 1f
-
-    val micPulse by transition.animateFloat(
-        initialValue = 1f, targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "micPulse"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .clip(CircleShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(36.dp)
-        ) {
-            listOf(ripple1 to 0f, ripple2Phase to 0.33f, ripple3Phase to 0.66f)
-                .forEach { (progress, _) ->
-                    val ringScale = 0.4f + progress * 1.2f
-                    val ringAlpha = ((1f - progress) * 0.45f)
-                        .coerceIn(0f, 0.45f)
-                    if (ringAlpha > 0.01f) {
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .scale(ringScale)
-                                .alpha(ringAlpha)
-                                .border(1.5.dp, accent, CircleShape)
-                        )
-                    }
-                }
-
-            Icon(
-                imageVector = Icons.Filled.Mic,
-                contentDescription = "Stop voice input",
-                tint = accent,
-                modifier = Modifier
-                    .size(24.dp)
-                    .scale(micPulse)
-            )
-        }
     }
 }
 

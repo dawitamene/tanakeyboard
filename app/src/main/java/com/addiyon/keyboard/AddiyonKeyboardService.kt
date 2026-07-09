@@ -39,8 +39,11 @@ import com.addiyon.keyboard.suggestion.matchCase
 import com.addiyon.keyboard.transliteration.Transliterator
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
+import com.addiyon.keyboard.voice.VoiceComposer
+import com.addiyon.keyboard.voice.VoiceErrorKind
 import com.addiyon.keyboard.voice.VoiceInputController
-import com.addiyon.keyboard.voice.VoiceInputState
+import com.addiyon.keyboard.voice.VoiceUiState
+import com.addiyon.keyboard.voice.isVoiceMode
 
 /**
  * Max chips in the Amharic suggestion strip: the live word's readings plus
@@ -146,12 +149,7 @@ class AddiyonKeyboardService : InputMethodService(),
     // VOICE INPUT
     // ----------------------------
 
-    /** True while [voiceInputController] has an active recognition session. */
-    var isListening by mutableStateOf(false)
-        private set
-
-    /** Finer-grained voice state for the UI ("Speak now" vs "Listening..."). */
-    var voiceState by mutableStateOf(VoiceInputState.IDLE)
+    var voiceUiState by mutableStateOf<VoiceUiState>(VoiceUiState.Idle)
         private set
 
     // Created lazily on first use (needs a Context, not available at
@@ -160,13 +158,11 @@ class AddiyonKeyboardService : InputMethodService(),
     // onFinishInputView/onDestroy.
     private var voiceInputController: VoiceInputController? = null
 
-    // Streaming state for the utterance currently being recognized: whether
-    // a leading space is needed before it (decided once, from the cursor's
-    // surroundings, the moment the first partial of the utterance arrives)
-    // and the field's composing region tracks the interim guess live -- see
-    // the VOICE STREAMING doc on [onVoicePartialResult].
-    private var voiceUtteranceStarted = false
-    private var voiceNeedsLeadingSpace = false
+    private var pendingVoiceStartAfterPermission = false
+
+    // Reconciles the in-flight utterance with the field's composing region;
+    // see VoiceComposer for the dictation model.
+    private val voiceComposer = VoiceComposer()
 
     // What the Enter key should show and do in the current field, derived from
     // its IME action (see [resolveEnterAction], refreshed per input session in
@@ -459,95 +455,147 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     /**
-     * Mic button on the suggestion toolbar. Tapping while already listening
-     * stops the current session (acts as a toggle); otherwise starts one --
-     * requesting RECORD_AUDIO first via [VoicePermissionActivity] if it isn't
-     * already granted (an InputMethodService can't request permissions
-     * itself). Language follows the keyboard's current mode: "am-ET" in
-     * Amharic, "en-US" in English.
+     * Mic button on the suggestion toolbar. Tapping while listening pauses
+     * dictation (the in-flight utterance is finalized in place, so nothing
+     * the user saw is lost); otherwise starts/resumes it -- requesting
+     * RECORD_AUDIO first via [VoicePermissionActivity] if it isn't already
+     * granted (an InputMethodService can't request permissions itself).
+     * Language follows the keyboard's current mode: "am-ET" in Amharic,
+     * "en-US" in English.
      */
     fun onVoiceInput() {
-        if (isListening) {
+        if (voiceUiState is VoiceUiState.Listening) {
             voiceInputController?.stop()
+            finalizeVoiceComposing()
+            voiceUiState = VoiceUiState.Paused
             return
         }
+
+        startVoiceRecognition()
+    }
+
+    /** Back arrow in the voice toolbar: leave voice mode entirely. */
+    fun exitVoiceMode() {
+        voiceInputController?.stop()
+        finalizeVoiceComposing()
+        resetVoiceUi()
+        updateSuggestions()
+    }
+
+    private fun startVoiceRecognition() {
         val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
         if (!granted) {
+            voiceUiState = VoiceUiState.PermissionRequired
+            pendingVoiceStartAfterPermission = true
             val intent = Intent(this, VoicePermissionActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             runCatching { startActivity(intent) }
             return
         }
-        // Flush any in-flight typed word first -- voice and typing shouldn't
-        // merge into one word -- then start with a clean utterance boundary.
+
+        // Flush any half-typed word first: the WordComposer and voice must
+        // never both own a composing region in the field.
         activeComposer.commit()
-        voiceUtteranceStarted = false
+        voiceComposer.reset()
+        // Set Listening BEFORE start(): an unavailable recognizer fails
+        // synchronously through onVoiceFatalError, which must win.
+        voiceUiState = VoiceUiState.Listening
         voiceController().start(if (isAmharic) "am-ET" else "en-US")
     }
 
     private fun voiceController(): VoiceInputController =
         voiceInputController ?: VoiceInputController(
             context = this,
-            onListeningChanged = { listening ->
-                isListening = listening
-                // A fresh utterance is starting (either the very first one,
-                // or the auto-restart after the previous one finalized) --
-                // the leading-space decision needs to be recomputed once the
-                // next partial arrives.
-                if (listening) voiceUtteranceStarted = false
-            },
-            onPartialResult = { text -> onVoicePartialResult(text) },
-            onFinalResult = { text -> onVoiceFinalResult(text) },
-            onError = { message ->
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-            },
-            onVoiceStateChanged = { state -> voiceState = state }
+            onPartial = { text -> onVoicePartialResult(text) },
+            onFinal = { text -> onVoiceFinalResult(text) },
+            onFatalError = { kind -> onVoiceFatalError(kind) }
         ).also { voiceInputController = it }
 
     /**
-     * VOICE STREAMING: partial (interim) results are written straight into
-     * the field as the [InputConnection]'s composing region -- the same
-     * underlined-while-uncommitted region [WordComposer] uses for inline
-     * typing -- instead of held in some app-side buffer and only flushed on
-     * a final result. Every updated guess replaces the composing text live,
-     * so what's on screen tracks what the recognizer currently believes it
-     * heard, the same way Gboard's dictation reads as "streaming".
-     *
-     * The leading-space decision is made once per utterance, the moment its
-     * first partial arrives (checking the character actually in the field,
-     * not the guess text), then reused for the rest of that utterance so
-     * space insertion doesn't flicker as later partials revise the guess.
+     * Streams the latest refinement of the in-flight utterance into the
+     * field's composing region -- each push atomically replaces the previous
+     * one, so the text updates in place as recognition refines it (the
+     * Gboard model). The char before the cursor is read once per utterance
+     * (when the region opens); after that the region itself is the anchor.
      */
     private fun onVoicePartialResult(text: String) {
-        if (text.isBlank()) return
+        if (voiceUiState !is VoiceUiState.Listening) return
         val ic = currentInputConnection ?: return
-        if (!voiceUtteranceStarted) {
-            voiceUtteranceStarted = true
-            val charBefore = ic.getTextBeforeCursor(1, 0)
-            voiceNeedsLeadingSpace = !charBefore.isNullOrEmpty() && !charBefore.last().isWhitespace()
-        }
-        val partial = if (voiceNeedsLeadingSpace) " $text" else text
-        ic.setComposingText(partial, partial.length + 1)
+        val charBefore = if (voiceComposer.isComposing) null
+        else ic.getTextBeforeCursor(1, 0)?.lastOrNull()
+        voiceComposer.updatePartial(text, charBefore)?.let { ic.setComposingText(it, 1) }
     }
 
     /**
-     * Finalizes the utterance: commits the composing region as real text
-     * (ending it) with a trailing space so typing can continue immediately,
-     * then resets the leading-space check for the next utterance. See
-     * [onVoicePartialResult] for the streaming design this completes.
+     * Replaces the composing region with the utterance's final text.
+     * commitText atomically swaps out an active composing region, so no
+     * explicit finishComposingText is needed on this path.
      */
     private fun onVoiceFinalResult(text: String) {
-        if (text.isBlank()) return
+        if (voiceUiState !is VoiceUiState.Listening) return
         val ic = currentInputConnection ?: return
-        if (!voiceUtteranceStarted) {
-            val charBefore = ic.getTextBeforeCursor(1, 0)
-            voiceNeedsLeadingSpace = !charBefore.isNullOrEmpty() && !charBefore.last().isWhitespace()
+        val charBefore = if (voiceComposer.isComposing) null
+        else ic.getTextBeforeCursor(1, 0)?.lastOrNull()
+        val commit = voiceComposer.finalize(text, charBefore) ?: return
+
+        ic.beginBatchEdit()
+        if (commit.deleteSpaceBefore) {
+            // Spoken punctuation after "word ": clear the composing region
+            // (if one is live) so the delete hits the space, then commit.
+            ic.setComposingText("", 1)
+            ic.deleteSurroundingText(1, 0)
         }
-        val finalText = if (voiceNeedsLeadingSpace) " $text " else "$text "
-        ic.commitText(finalText, finalText.length + 1)
-        voiceUtteranceStarted = false
-        updateSuggestions()
+        ic.commitText(commit.text, 1)
+        ic.endBatchEdit()
+    }
+
+    private fun onVoiceFatalError(kind: VoiceErrorKind) {
+        finalizeVoiceComposing()
+        voiceUiState = if (kind == VoiceErrorKind.TOO_MANY_REQUESTS) {
+            VoiceUiState.Paused
+        } else {
+            VoiceUiState.Unavailable(kind.userMessage)
+        }
+        Toast.makeText(this, kind.userMessage, Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * Locks whatever the composing region currently shows into the field
+     * (never commitText here -- the framework auto-finalizes a live region
+     * when the session ends, and committing again would duplicate the text;
+     * see [WordComposer.finish] for the same lesson). Safe no-op when no
+     * utterance is live.
+     */
+    private fun finalizeVoiceComposing() {
+        if (!voiceComposer.isComposing) return
+        currentInputConnection?.finishComposingText()
+        voiceComposer.onFinalizedExternally()
+    }
+
+    private fun resetVoiceUi() {
+        voiceComposer.reset()
+        pendingVoiceStartAfterPermission = false
+        voiceUiState = VoiceUiState.Idle
+    }
+
+    private fun leaveVoiceModeForKeyboardInput() {
+        if (!voiceUiState.isVoiceMode) return
+        // stop() first so in-flight recognizer callbacks are stale before we
+        // close the region; the pressed key's own edits then land after it.
+        voiceInputController?.stop()
+        finalizeVoiceComposing()
+        resetVoiceUi()
+    }
+
+    private fun maybeStartPendingVoiceAfterPermission() {
+        if (!pendingVoiceStartAfterPermission) return
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            pendingVoiceStartAfterPermission = false
+            startVoiceRecognition()
+        }
     }
 
     /**
@@ -562,6 +610,7 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     fun toggleLanguage() {
+        leaveVoiceModeForKeyboardInput()
         activeComposer.commit()
         isAmharic = !isAmharic
         if (!isAmharic && numbersMode == NumbersMode.GEEZ_NUMBERS) {
@@ -586,16 +635,19 @@ class AddiyonKeyboardService : InputMethodService(),
      * without having to step back through the first page.
      */
     fun toggleNumberMode() {
+        leaveVoiceModeForKeyboardInput()
         activeComposer.commit()
         numbersMode = if (numbersMode == NumbersMode.OFF) NumbersMode.NUMBERS else NumbersMode.OFF
         updateSuggestions()
     }
 
     fun toggleSymbolsPage() {
+        leaveVoiceModeForKeyboardInput()
         numbersMode = when (numbersMode) {
             NumbersMode.NUMBERS -> if (isAmharic) NumbersMode.GEEZ_NUMBERS else NumbersMode.SYMBOLS
             NumbersMode.GEEZ_NUMBERS -> NumbersMode.SYMBOLS
-            NumbersMode.SYMBOLS -> NumbersMode.NUMBERS
+            NumbersMode.SYMBOLS -> NumbersMode.MORE_SYMBOLS
+            NumbersMode.MORE_SYMBOLS -> NumbersMode.NUMBERS
             NumbersMode.OFF -> NumbersMode.OFF
         }
     }
@@ -607,6 +659,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * time.
      */
     fun toggleShift() {
+        leaveVoiceModeForKeyboardInput()
         shiftState = when (shiftState) {
             ShiftState.OFF -> ShiftState.SHIFT
             ShiftState.SHIFT -> ShiftState.CAPS_LOCK
@@ -664,6 +717,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * can't disagree.
      */
     fun onCharacter(latin: String) {
+        leaveVoiceModeForKeyboardInput()
         val output = if (isShiftEnabled) latin.uppercase() else latin.lowercase()
 
         when {
@@ -771,6 +825,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * field itself.
      */
     fun onDelete() {
+        leaveVoiceModeForKeyboardInput()
         if (activeComposer.onBackspace()) {
             updateSuggestions()
             return
@@ -794,6 +849,7 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     fun commitText(text: String) {
+        leaveVoiceModeForKeyboardInput()
         activeComposer.commit()
         currentInputConnection?.commitText(text, 1)
     }
@@ -809,6 +865,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * inline composed word. With no word in flight it's a plain space.
      */
     fun onSpace() {
+        leaveVoiceModeForKeyboardInput()
         activeComposer.commit()
         currentInputConnection?.commitText(" ", 1)
         updateSuggestions()
@@ -823,6 +880,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * [onStartInputView].
      */
     fun onEnter() {
+        leaveVoiceModeForKeyboardInput()
         activeComposer.commit()
         val ic = currentInputConnection
         if (enterAction == EnterAction.NEWLINE) {
@@ -882,6 +940,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * full suggested word and clear the strip.
      */
     fun onSuggestionTapped(word: String) {
+        leaveVoiceModeForKeyboardInput()
         activeComposer.commitSuggestion(word)
         updateSuggestions()
     }
@@ -965,6 +1024,7 @@ class AddiyonKeyboardService : InputMethodService(),
         // wrong destination.
         amharicComposer.reset()
         englishComposer.reset()
+        voiceComposer.reset()
         // The Enter key adapts to this field's IME action (search/go/send/...).
         resolveEnterAction(editorInfo)
         updateSuggestions()
@@ -974,6 +1034,12 @@ class AddiyonKeyboardService : InputMethodService(),
         // the keyboard becomes visible again.
         refreshTheme(resources.configuration)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        maybeStartPendingVoiceAfterPermission()
+    }
+
+    override fun onWindowShown() {
+        super.onWindowShown()
+        maybeStartPendingVoiceAfterPermission()
     }
 
     /**
@@ -1008,13 +1074,25 @@ class AddiyonKeyboardService : InputMethodService(),
             candidatesStart, candidatesEnd
         )
 
-        if (!activeComposer.isComposing) return
-
         // A selection (start != end) inside our region also counts as "the
         // user took over" -- we don't support composing across a selection.
         val cursorInsideComposing = newSelStart == newSelEnd &&
                 candidatesStart >= 0 &&
                 newSelStart in candidatesStart..candidatesEnd
+
+        // Voice dictation in flight: a deliberate cursor move finalizes the
+        // utterance where it was showing and restarts recognition cleanly at
+        // the new position (our own setComposingText pushes land INSIDE the
+        // region, so they don't trip this).
+        if (voiceComposer.isComposing) {
+            if (!cursorInsideComposing) {
+                finalizeVoiceComposing()
+                voiceInputController?.restartSession()
+            }
+            return
+        }
+
+        if (!activeComposer.isComposing) return
 
         if (!cursorInsideComposing) {
             activeComposer.abandon()
@@ -1034,6 +1112,8 @@ class AddiyonKeyboardService : InputMethodService(),
         activeComposer.finish()
         updateSuggestions()
         voiceInputController?.stop()
+        finalizeVoiceComposing()
+        resetVoiceUi()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }
 
@@ -1041,6 +1121,7 @@ class AddiyonKeyboardService : InputMethodService(),
         super.onDestroy()
         KeyboardPrefs.prefs(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
         voiceInputController?.stop()
+        resetVoiceUi()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
     }
 }

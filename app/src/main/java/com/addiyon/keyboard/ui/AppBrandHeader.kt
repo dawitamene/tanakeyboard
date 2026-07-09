@@ -39,7 +39,7 @@ fun AppBrandHeader(modifier: Modifier = Modifier) {
         Image(
             painter = painterResource(R.drawable.ic_addiyon_icon),
             contentDescription = null,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(28.dp)
         )
         Spacer(Modifier.width(10.dp))
         Text(
