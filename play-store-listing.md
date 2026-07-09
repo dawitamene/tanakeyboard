@@ -1,4 +1,4 @@
-# Play Store Listing — Tana Keyboard
+# Play Store Listing — Addiyon Keyboard
 
 ## Short description (80 char max)
 
@@ -13,15 +13,16 @@ Alternates:
 ## Full description (4000 char max)
 
 ```
-Tana Keyboard is a fast, simple keyboard for typing Amharic (Ge'ez script) on your phone. Type using familiar English letters and Tana instantly converts them into the correct Amharic words as you go. A standard English layout is built in too, so you can switch between languages without leaving the keyboard.
+Addiyon Keyboard is a fast, simple keyboard for typing Amharic (Ge'ez script) on your phone. Type using familiar English letters and Addiyon instantly converts them into the correct Amharic words as you go. A standard English layout is built in too, so you can switch between languages without leaving the keyboard.
 
-WHY TANA KEYBOARD
+WHY ADDIYON KEYBOARD
 
-Typing Amharic usually means hunting through hundreds of characters. Tana lets you type the way the word sounds using English letters, and it handles the rest for you. Type "selam" and get ሰላም. It feels natural whether you grew up writing in Amharic or are more comfortable with an English keyboard.
+Typing Amharic usually means hunting through hundreds of characters. Addiyon lets you type the way the word sounds using English letters, and it handles the rest for you. Type "selam" and get ሰላም. It feels natural whether you grew up writing in Amharic or are more comfortable with an English keyboard.
 
 KEY FEATURES
 
 - Type in English, get Amharic: type phonetically using English letters and see Amharic appear automatically.
+- Voice input: speak in Amharic or English and watch your words appear — great for when typing is inconvenient.
 - Full Amharic script support: every consonant family and vowel form is covered.
 - Word suggestions: a large Amharic dictionary suggests words as you type so you can finish faster with fewer taps.
 - Built-in English layout: switch to a standard QWERTY English keyboard with its own word suggestions and proper capitalization.
@@ -31,11 +32,11 @@ KEY FEATURES
 
 HOW IT WORKS
 
-1. Install Tana Keyboard.
+1. Install Addiyon Keyboard.
 2. Enable it in Settings, under Languages and input, on-screen keyboard.
-3. Switch to Tana Keyboard in any text field and start typing.
+3. Switch to Addiyon Keyboard in any text field and start typing.
 
-Type in English letters and watch them turn into Amharic. Tap a suggested word to complete it, or keep typing. Switching to English is one tap away.
+Type in English letters and watch them turn into Amharic. Tap a suggested word to complete it, or keep typing. Switching to English is one tap away. Tap the microphone to dictate hands-free.
 
 WHO IT IS FOR
 
@@ -45,9 +46,9 @@ WHO IT IS FOR
 
 PRIVACY
 
-Your typing stays on your device. Tana Keyboard performs its word conversion and suggestions locally and does not require an account. We are committed to protecting what you type. Please review the privacy policy for full details.
+Your typing stays on your device. Addiyon Keyboard performs its word conversion and suggestions locally and does not require an account. Voice input is processed by your device's speech recognition service. We are committed to protecting what you type. Please review the privacy policy for full details.
 
-We are actively improving Tana Keyboard. If you have feedback or run into an issue, we would love to hear from you so we can make it better.
+We are actively improving Addiyon Keyboard. If you have feedback or run into an issue, we would love to hear from you so we can make it better.
 ```
 
 ## Publishing checklist

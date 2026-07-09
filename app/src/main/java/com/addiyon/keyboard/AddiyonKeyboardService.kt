@@ -40,6 +40,7 @@ import com.addiyon.keyboard.transliteration.Transliterator
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 import com.addiyon.keyboard.voice.VoiceInputController
+import com.addiyon.keyboard.voice.VoiceInputState
 
 /**
  * Max chips in the Amharic suggestion strip: the live word's readings plus
@@ -147,6 +148,10 @@ class AddiyonKeyboardService : InputMethodService(),
 
     /** True while [voiceInputController] has an active recognition session. */
     var isListening by mutableStateOf(false)
+        private set
+
+    /** Finer-grained voice state for the UI ("Speak now" vs "Listening..."). */
+    var voiceState by mutableStateOf(VoiceInputState.IDLE)
         private set
 
     // Created lazily on first use (needs a Context, not available at
@@ -496,7 +501,8 @@ class AddiyonKeyboardService : InputMethodService(),
             onFinalResult = { text -> onVoiceFinalResult(text) },
             onError = { message ->
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-            }
+            },
+            onVoiceStateChanged = { state -> voiceState = state }
         ).also { voiceInputController = it }
 
     /**
@@ -521,7 +527,8 @@ class AddiyonKeyboardService : InputMethodService(),
             val charBefore = ic.getTextBeforeCursor(1, 0)
             voiceNeedsLeadingSpace = !charBefore.isNullOrEmpty() && !charBefore.last().isWhitespace()
         }
-        ic.setComposingText(if (voiceNeedsLeadingSpace) " $text" else text, 1)
+        val partial = if (voiceNeedsLeadingSpace) " $text" else text
+        ic.setComposingText(partial, partial.length + 1)
     }
 
     /**
@@ -537,7 +544,8 @@ class AddiyonKeyboardService : InputMethodService(),
             val charBefore = ic.getTextBeforeCursor(1, 0)
             voiceNeedsLeadingSpace = !charBefore.isNullOrEmpty() && !charBefore.last().isWhitespace()
         }
-        ic.commitText(if (voiceNeedsLeadingSpace) " $text " else "$text ", 1)
+        val finalText = if (voiceNeedsLeadingSpace) " $text " else "$text "
+        ic.commitText(finalText, finalText.length + 1)
         voiceUtteranceStarted = false
         updateSuggestions()
     }

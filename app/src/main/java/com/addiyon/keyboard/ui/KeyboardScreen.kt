@@ -100,6 +100,7 @@ fun KeyboardScreen(
                 onAi = { service.onAiAction() },
                 onClipboard = { service.onClipboardAction() },
                 isListening = service.isListening,
+                voiceState = service.voiceState,
                 onVoice = { service.onVoiceInput() }
             )
 

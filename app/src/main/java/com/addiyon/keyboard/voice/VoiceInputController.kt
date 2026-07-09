@@ -38,12 +38,15 @@ import android.speech.SpeechRecognizer
  * main thread, per the underlying API's own contract; the service only ever
  * drives this from UI callbacks, so that's automatic.
  */
+enum class VoiceInputState { IDLE, SPEAK_NOW, LISTENING }
+
 class VoiceInputController(
     private val context: Context,
     private val onListeningChanged: (Boolean) -> Unit,
     private val onPartialResult: (String) -> Unit,
     private val onFinalResult: (String) -> Unit,
-    private val onError: (message: String) -> Unit
+    private val onError: (message: String) -> Unit,
+    private val onVoiceStateChanged: (VoiceInputState) -> Unit = {}
 ) {
     private var recognizer: SpeechRecognizer? = null
     private var activeLanguageTag: String? = null
@@ -102,6 +105,7 @@ class VoiceInputController(
         current.destroy()
         flushLastPartial()
         onListeningChanged(false)
+        onVoiceStateChanged(VoiceInputState.IDLE)
     }
 
     /** Finalizes whatever interim guess is pending, if any, then clears it. */
@@ -152,6 +156,7 @@ class VoiceInputController(
         val languageTag = activeLanguageTag
         if (userStopped || languageTag == null) {
             onListeningChanged(false)
+            onVoiceStateChanged(VoiceInputState.IDLE)
             return
         }
         restartHandler.postDelayed({
@@ -173,11 +178,25 @@ class VoiceInputController(
     private fun createListener(sessionId: Int): RecognitionListener = object : RecognitionListener {
         private fun isCurrent() = sessionId == generation
 
-        override fun onReadyForSpeech(params: Bundle?) { if (isCurrent()) onListeningChanged(true) }
-        override fun onBeginningOfSpeech() { if (isCurrent()) onListeningChanged(true) }
+        override fun onReadyForSpeech(params: Bundle?) {
+            if (isCurrent()) {
+                onListeningChanged(true)
+                onVoiceStateChanged(VoiceInputState.SPEAK_NOW)
+            }
+        }
+        override fun onBeginningOfSpeech() {
+            if (isCurrent()) {
+                onListeningChanged(true)
+                onVoiceStateChanged(VoiceInputState.LISTENING)
+            }
+        }
         override fun onRmsChanged(rmsdB: Float) = Unit
         override fun onBufferReceived(buffer: ByteArray?) = Unit
-        override fun onEndOfSpeech() = Unit
+        override fun onEndOfSpeech() {
+            if (isCurrent()) {
+                onVoiceStateChanged(VoiceInputState.SPEAK_NOW)
+            }
+        }
 
         override fun onError(error: Int) {
             if (!isCurrent()) return
@@ -199,6 +218,7 @@ class VoiceInputController(
                 else -> {
                     flushLastPartial()
                     onListeningChanged(false)
+                    onVoiceStateChanged(VoiceInputState.IDLE)
                     onError(describeError(error))
                 }
             }
