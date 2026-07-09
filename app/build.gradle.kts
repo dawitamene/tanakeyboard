@@ -42,7 +42,7 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.addiyon.tanakeyboard"
+    namespace = "com.addiyon.keyboard"
     compileSdk = 35
 
     buildFeatures {
@@ -51,7 +51,7 @@ android {
 
 
     defaultConfig {
-        applicationId = "com.addiyon.tanakeyboard"
+        applicationId = "com.addiyon.keyboard"
         minSdk = 24
         targetSdk = 35
         versionCode = autoVersionCode
@@ -135,4 +135,5 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.activity.compose.v191)
+    implementation(libs.androidx.profileinstaller)
 }

@@ -1,23 +1,23 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.TanaKeyboard" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <!-- Primary brand color (Tana palette). -->
-        <item name="colorPrimary">@color/tana_deep</item>
-        <item name="colorPrimaryVariant">@color/tana_deep</item>
-        <item name="colorOnPrimary">@color/white</item>
+    <style name="Theme.AddiyonKeyboard" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <!-- Primary brand color (Addiyon palette). -->
+        <item name="colorPrimary">@color/addiyon_vermillion</item>
+        <item name="colorPrimaryVariant">@color/addiyon_vermillion_dark</item>
+        <item name="colorOnPrimary">@color/addiyon_warm_white</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/tana_lake</item>
-        <item name="colorSecondaryVariant">@color/tana_lake</item>
-        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondary">@color/addiyon_vermillion_dark</item>
+        <item name="colorSecondaryVariant">@color/addiyon_vermillion_dark</item>
+        <item name="colorOnSecondary">@color/addiyon_warm_white</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
 
-    <!-- Launch splash: brand surface + centered Tana logo as the window
+    <!-- Launch splash: brand surface + centered Addiyon logo as the window
          background. MainActivity.setTheme() swaps back to the theme above
          before Compose draws. -->
-    <style name="Theme.TanaKeyboard.Splash" parent="Theme.TanaKeyboard">
+    <style name="Theme.AddiyonKeyboard.Splash" parent="Theme.AddiyonKeyboard">
         <item name="android:windowBackground">@drawable/splash_screen</item>
         <item name="android:statusBarColor">@color/splash_status_bar</item>
         <item name="android:navigationBarColor">@color/splash_background</item>

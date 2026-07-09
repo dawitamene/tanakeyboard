@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Tana Keyboard"
+rootProject.name = "Addiyon Keyboard"
 include(":app")
  

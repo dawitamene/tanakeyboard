@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Addiyon full icon (rounded tile) -> res/drawable/ic_addiyon_icon.xml
+
+     Composited to look IDENTICAL to the adaptive launcher icon
+     (ic_addiyon_background + ic_addiyon_foreground). An adaptive launcher only shows
+     the central 72/108 of each layer (the outer 18dp is mask bleed), which
+     enlarges the visible content 1.5x. This standalone icon renders the whole
+     512 canvas, so without that zoom the አ glyph would sit smaller with extra
+     space around it than it does on the launcher. We reproduce the zoom by
+     scaling the background + glyph together 1.5x about the center, clipped to
+     the rounded square, so the glyph fills the same fraction of the icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="512" android:viewportHeight="512">
+    <group>
+        <clip-path android:pathData="M118,0 L394,0 A118,118 0 0 1 512,118 L512,394 A118,118 0 0 1 394,512 L118,512 A118,118 0 0 1 0,394 L0,118 A118,118 0 0 1 118,0 Z" />
+
+        <!-- Adaptive-icon center-zoom (see file header): the same 1.5x that a
+             circular/squircle launcher mask applies. -->
+        <group android:scaleX="1.5" android:scaleY="1.5" android:pivotX="256" android:pivotY="256">
+            <path android:pathData="M0,0 L512,0 L512,512 L0,512 Z" android:fillColor="#FFEE4D2D" />
+            <path android:pathData="M166.57 378.09L229.84 235.48Q199.4 231.72 185.38 215.64Q171.36 199.57 171.36 171.53L171.36 133.91L219.92 133.91L219.92 162.29Q219.92 182.47 228.64 189.99Q237.36 197.52 257.2 197.52L296.87 197.52L217.18 378.09ZM295.16 378.09Q294.82 347.31 290.03 328.5Q285.24 309.69 276.01 299.26Q266.77 288.83 253.09 283.02L269.17 244.71Q293.45 253.26 310.38 269Q327.31 284.73 336.37 311.06Q345.43 337.4 346.12 378.09Z" android:fillColor="#FFFFF6F0" />
+            <path android:pathData="M0,194 L512,194 L512,221 L0,221 Z" android:fillColor="#FFEE4D2D" />
+            <path android:pathData="M0,322 L512,322 L512,349 L0,349 Z" android:fillColor="#FFEE4D2D" />
+        </group>
+    </group>
+</vector>

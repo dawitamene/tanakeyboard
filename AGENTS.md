@@ -31,6 +31,14 @@ Tana Keyboard is an Android IME (`InputMethodService`) with Amharic (Ge'ez scrip
 - Composables never read `service.currentInputConnection` at composition time (goes stale across input sessions) — they call service methods that re-fetch it on each tap.
 - Corner preview glyph: looked up live via `AmharicTable.bareFormOf` off the shift-resolved letter, not baked into layout data.
 
+## Planning
+
+When the user asks to create a plan or plan something, write a detailed plan as a Markdown file in `plans/` (e.g. `plans/feature-name.md`). Do NOT execute or write any code — only the plan file. The plan should cover the approach, affected files, step-by-step breakdown, and any risks or open questions.
+
+## After every code change
+- Build and install on emulator: `./gradlew installDebug`
+- Generate timestamped APK in `/Users/dev/Shared`: `./gradlew assembleDebug`
+
 ## Conventions
 - kotlin.code.style=official
 - No code comments in generated code (repo convention from prior work)

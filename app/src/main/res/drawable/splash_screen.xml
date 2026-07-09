@@ -2,7 +2,7 @@
 <!--
   Launch splash shown while the process starts (classic windowBackground
   technique, no extra dependency, works on all supported API levels).
-  Brand surface + the centered Tana logo. MainActivity swaps back to the
+  Brand surface + the centered Addiyon logo. MainActivity swaps back to the
   normal app theme in onCreate() before drawing Compose.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
@@ -10,6 +10,6 @@
     <item
         android:width="160dp"
         android:height="160dp"
-        android:drawable="@drawable/ic_tana_icon"
+        android:drawable="@drawable/ic_addiyon_icon"
         android:gravity="center" />
 </layer-list>

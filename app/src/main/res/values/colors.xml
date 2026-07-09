@@ -8,15 +8,18 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Tana brand palette -->
-    <color name="tana_deep">#FF0E3A63</color>     <!-- Deep Tana  (primary)   -->
-    <color name="tana_lake">#FF1B6FB3</color>     <!-- Lake Blue  (secondary) -->
-    <color name="tana_aqua">#FF38A9D4</color>     <!-- Shore Aqua (accent)     -->
-    <color name="tana_sand">#FFE9B872</color>     <!-- Sand       (highlight)  -->
-    <color name="tana_mist">#FFEEF3F7</color>     <!-- Mist       (surface)    -->
-    <color name="tana_ink">#FF0B1722</color>      <!-- Ink        (text)       -->
+    <!-- Addiyon brand palette (Stencil Solid, vermillion) -->
+    <color name="addiyon_vermillion">#FFEE4D2D</color>      <!-- Vermillion (primary) -->
+    <color name="addiyon_vermillion_dark">#FFC63A1E</color> <!-- Vermillion, pressed/dark -->
+    <color name="addiyon_vermillion_tint">#FFFBDDD3</color> <!-- Vermillion tint (containers) -->
+    <color name="addiyon_warm_white">#FFFFF6F0</color>      <!-- Warm white (on-primary) -->
+    <color name="addiyon_ink">#FF17150F</color>             <!-- Ink        (text)       -->
+    <color name="addiyon_charcoal">#FF2A2620</color>        <!-- Charcoal   (dark surface) -->
+    <color name="addiyon_stone">#FF8A8578</color>           <!-- Stone      (secondary text) -->
+    <color name="addiyon_sand">#FFE4DFD3</color>            <!-- Sand       (divider/outline) -->
+    <color name="addiyon_paper">#FFF4F1EA</color>           <!-- Paper      (surface/background) -->
 
     <!-- Splash / launch background (overridden in values-night). -->
-    <color name="splash_background">#FFEEF3F7</color>
-    <color name="splash_status_bar">#FF0E3A63</color>
+    <color name="splash_background">#FFF4F1EA</color>
+    <color name="splash_status_bar">#FFEE4D2D</color>
 </resources>

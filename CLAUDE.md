@@ -4,16 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Tana Keyboard is an Android IME (`InputMethodService`) that provides an Amharic (Ge'ez script)
+Addiyon Keyboard is an Android IME (`InputMethodService`) that provides an Amharic (Ge'ez script)
 keyboard with Latin-to-Fidel transliteration, plus a standard English layout. UI is built entirely
 in Jetpack Compose. `MainActivity` is just a settings/test harness (buttons to open keyboard
-settings and a text field to try typing) — the real product is `TanaKeyboardService`.
+settings and a text field to try typing) — the real product is `AddiyonKeyboardService`.
+
+## Planning
+
+When the user asks to create a plan or plan something, write a detailed, structured plan as a Markdown file in `plans/` (e.g. `plans/feature-name.md`). Do NOT execute or write any code — only the plan file. The plan should cover the approach, affected files, step-by-step breakdown, risks, and open questions.
+
+## After every code change
+
+Always do both after making changes:
+
+1. Install and run on emulator: `./gradlew installDebug`
+2. Generate timestamped APK in `/Users/dev/Shared`: `./gradlew assembleDebug`
 
 ## Commands
 
 - Build debug APK: `./gradlew assembleDebug`
+- Install on emulator/device: `./gradlew installDebug`
 - Run JVM unit tests (no emulator needed): `./gradlew testDebugUnitTest`
-- Run a single unit test class: `./gradlew testDebugUnitTest --tests "com.addiyon.tanakeyboard.transliteration.SomeTest"`
+- Run a single unit test class: `./gradlew testDebugUnitTest --tests "com.addiyon.keyboard.transliteration.SomeTest"`
 - Compile-only check (fast, no test run): `./gradlew compileDebugKotlin`
 - Instrumented tests (needs emulator/device): `./gradlew connectedAndroidTest`
 
@@ -21,7 +33,7 @@ Note: `app/build.gradle.kts` has an `assembleProvider` hook that copies the buil
 `/Users/dev/Shared` with a timestamped filename after every assemble — this is a local
 convenience for sideloading onto a test device, not something to remove or "fix".
 
-To actually try the keyboard: install the debug APK, enable "Tana Keyboard" in
+To actually try the keyboard: install the debug APK, enable "Addiyon Keyboard" in
 Settings > System > Languages & input > On-screen keyboard, then switch to it in any text field.
 
 ## Architecture
@@ -54,7 +66,7 @@ Settings > System > Languages & input > On-screen keyboard, then switch to it in
   `render` is identity, so the buffer IS the composing text. Amharic (`composesInline = false`)
   never touches the field while typing: the raw Latin (`raw`) is surfaced only in a content-width,
   left-aligned preview strip above the suggestion row (`ui/BufferPreviewStrip.kt`, fed by
-  `TanaKeyboardService.amharicBufferLatin`) — its fidel reading (`display`, via `render` =
+  `AddiyonKeyboardService.amharicBufferLatin`) — its fidel reading (`display`, via `render` =
   `Transliterator.transliterate`) isn't repeated there since it's already the first (bold/primary)
   suggestion chip. This is deliberate: composing the raw Latin inline used to be how Amharic
   worked, but `finish()` (called when the input view goes away) can only lock in whatever the
@@ -69,7 +81,7 @@ Settings > System > Languages & input > On-screen keyboard, then switch to it in
 ### The suggestion layer
 
 `suggestion/WordTrie.kt` (pure Kotlin prefix trie, frequency-ranked) ← `suggestion/WordDictionary.kt`
-(Android asset loader) ← `TanaKeyboardService.updateSuggestions()` → `ui/SuggestionBar.kt`.
+(Android asset loader) ← `AddiyonKeyboardService.updateSuggestions()` → `ui/SuggestionBar.kt`.
 
 - Dictionaries are gzip assets (`.dat`, not `.gz` — AGP silently decompresses `.gz` assets at build
   time), one `word<TAB>frequency` line each: `amharic_words.dat` (Hunspell am_ET, ~182k words,
@@ -93,7 +105,7 @@ Settings > System > Languages & input > On-screen keyboard, then switch to it in
 
 ### Service / UI layer
 
-- **`TanaKeyboardService`** is the actual `InputMethodService`. It owns `isAmharic`, `shiftState`
+- **`AddiyonKeyboardService`** is the actual `InputMethodService`. It owns `isAmharic`, `shiftState`
   (`ShiftState`: OFF → SHIFT (one-shot) → CAPS_LOCK → OFF), and the two `WordComposer`s (only the
   one matching the current language is ever fed keys; every mode transition commits the active one
   first). All key handling goes through methods on the service (`onCharacter`, `onDelete`,

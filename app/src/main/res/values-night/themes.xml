@@ -1,14 +1,14 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.TanaKeyboard" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <!-- Primary brand color (Tana palette). -->
-        <item name="colorPrimary">@color/tana_aqua</item>
-        <item name="colorPrimaryVariant">@color/tana_deep</item>
-        <item name="colorOnPrimary">@color/black</item>
+    <style name="Theme.AddiyonKeyboard" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <!-- Primary brand color (Addiyon palette). -->
+        <item name="colorPrimary">@color/addiyon_vermillion</item>
+        <item name="colorPrimaryVariant">@color/addiyon_charcoal</item>
+        <item name="colorOnPrimary">@color/addiyon_ink</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/tana_lake</item>
-        <item name="colorSecondaryVariant">@color/tana_lake</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSecondary">@color/addiyon_vermillion_dark</item>
+        <item name="colorSecondaryVariant">@color/addiyon_vermillion_dark</item>
+        <item name="colorOnSecondary">@color/addiyon_ink</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->

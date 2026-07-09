@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Addiyon Keyboard — brand color palette. Drop into res/values/colors.xml -->
+<resources>
+
+    <!-- Brand -->
+    <color name="vermillion">#FFEE4D2D</color>
+    <color name="vermillion_dark">#FFC63A1E</color>
+    <color name="vermillion_tint">#FFFBDDD3</color>
+    <color name="warm_white">#FFFFF6F0</color>
+
+    <!-- Neutrals -->
+    <color name="ink">#FF17150F</color>
+    <color name="charcoal">#FF2A2620</color>
+    <color name="stone">#FF8A8578</color>
+    <color name="sand">#FFE4DFD3</color>
+    <color name="paper">#FFF4F1EA</color>
+
+    <!-- Semantic aliases -->
+    <color name="primary">#FFEE4D2D</color>
+    <color name="primary_pressed">#FFC63A1E</color>
+    <color name="on_primary">#FFFFF6F0</color>
+    <color name="background">#FFF4F1EA</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="on_background">#FF17150F</color>
+    <color name="text_secondary">#FF8A8578</color>
+    <color name="divider">#FFE4DFD3</color>
+
+</resources>
