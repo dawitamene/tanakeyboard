@@ -160,18 +160,17 @@ class WordTrie private constructor(private val root: Node) {
         deleteCost: Int = 1,
     ): List<FuzzyMatch> {
         if (prefix.isEmpty() || maxEdits <= 0 || limit <= 0) return emptyList()
-        val typed = prefix.map { it.lowercaseChar() }
+        val typed = CharArray(prefix.length) { prefix[it].lowercaseChar() }
 
         // word -> best (lowest) distance found for it.
-        val best = HashMap<String, Int>()
+        val best = HashMap<String, FuzzyMatch>()
         // DP row 0: turning "" (empty word-prefix) into typed[0..j) is j
         // insertions; minSoFar starts as row[last] = typed.size * insertCost.
         val initialRow = IntArray(typed.size + 1) { it * insertCost }
         val costs = Costs(substitutionCost, insertCost, deleteCost)
         searchFuzzy(root, ' ', typed, initialRow, null, initialRow[typed.size], maxEdits, limit, costs, best)
 
-        return best.entries
-            .map { (word, dist) -> FuzzyMatch(word, dist, frequencyOf(word)) }
+        return best.values
             .sortedWith(compareBy({ it.editDistance }, { -it.frequency }))
             .take(limit)
     }
@@ -180,9 +179,11 @@ class WordTrie private constructor(private val root: Node) {
      * Records [word] as a fuzzy hit at [distance] into [best], keeping the
      * lowest distance if it's seen more than once.
      */
-    private fun record(best: HashMap<String, Int>, word: String, distance: Int) {
+    private fun record(best: HashMap<String, FuzzyMatch>, word: String, distance: Int, frequency: Int) {
         val existing = best[word]
-        if (existing == null || distance < existing) best[word] = distance
+        if (existing == null || distance < existing.editDistance) {
+            best[word] = FuzzyMatch(word, distance, frequency)
+        }
     }
 
     /** The three edit weights for a fuzzy walk, bundled to keep signatures small. */
@@ -203,22 +204,23 @@ class WordTrie private constructor(private val root: Node) {
     private fun searchFuzzy(
         node: Node,
         prevLetter: Char,
-        typed: List<Char>,
+        typed: CharArray,
         row: IntArray,
         prevRow: IntArray?,
         minSoFar: Int,
         maxEdits: Int,
         limit: Int,
         costs: Costs,
-        best: HashMap<String, Int>,
+        best: HashMap<String, FuzzyMatch>,
     ) {
         // This node's own prefix is in budget -> if it terminates a word, emit
         // it at the accurate running distance.
-        if (minSoFar <= maxEdits) node.word?.let { record(best, it, minSoFar) }
+        if (minSoFar <= maxEdits) node.word?.let { record(best, it, minSoFar, node.frequency) }
 
         for ((edge, child) in node.children) {
             val next = IntArray(typed.size + 1)
             next[0] = row[0] + costs.delete   // consuming a word char, no typed char
+            var nextMin = next[0]
             for (j in 1..typed.size) {
                 val insert = next[j - 1] + costs.insert
                 val delete = row[j] + costs.delete
@@ -231,30 +233,26 @@ class WordTrie private constructor(private val root: Node) {
                     cost = minOf(cost, prevRow[j - 2] + 1)
                 }
                 next[j] = cost
+                if (cost < nextMin) nextMin = cost
             }
             val childMin = minOf(minSoFar, next[typed.size])
 
             when {
                 // The DP can still make progress (or improve the distance) here.
-                next.min() <= maxEdits ->
+                nextMin <= maxEdits ->
                     searchFuzzy(child, edge, typed, next, row, childMin, maxEdits, limit, costs, best)
 
                 // DP is exhausted for this branch, but we already have an
                 // in-budget prefix above it -> everything below is a valid
                 // completion at that distance; collect the best by frequency.
                 minSoFar <= maxEdits ->
-                    for ((word, _) in collectBest(child, limit)) record(best, word, minSoFar)
+                    for ((word, frequency) in collectBest(child, limit)) {
+                        record(best, word, minSoFar, frequency)
+                    }
 
                 // else: no in-budget prefix and DP can't recover -> prune.
             }
         }
-    }
-
-    /** Frequency of the exact [word] (case-insensitive path), 0 if absent. */
-    private fun frequencyOf(word: String): Int {
-        var node = root
-        for (c in word) node = node.children[c.lowercaseChar()] ?: return 0
-        return node.frequency
     }
 
     /** Top [limit] (word, frequency) pairs in [start]'s subtree, best-first --

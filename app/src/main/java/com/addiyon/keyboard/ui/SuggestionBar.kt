@@ -183,16 +183,21 @@ private fun MicToolbarIcon(
     isListening: Boolean,
     onClick: () -> Unit
 ) {
-    val transition = rememberInfiniteTransition(label = "micPulse")
-    val pulse by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = if (isListening) 1.25f else 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "micPulseScale"
-    )
+    val pulse = if (isListening) {
+        val transition = rememberInfiniteTransition(label = "micPulse")
+        val animated by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.25f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 600, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "micPulseScale"
+        )
+        animated
+    } else {
+        1f
+    }
     Box(
         modifier = Modifier
             .fillMaxHeight()
@@ -208,7 +213,7 @@ private fun MicToolbarIcon(
             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
             modifier = Modifier
                 .size(22.dp)
-                .scale(if (isListening) pulse else 1f)
+                .scale(pulse)
         )
     }
 }

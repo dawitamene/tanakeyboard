@@ -46,22 +46,21 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 
 import com.addiyon.keyboard.ui.keys.repeatingClickable
-import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 import kotlin.math.abs
 
 /**
  * Per-keypress feedback, gated on the user's own preferences (both OFF by
- * default -- see [KeyboardPrefs]). Vibration additionally respects the system
+ * default -- see KeyboardPrefs). Vibration additionally respects the system
  * touch-feedback setting via [View.performHapticFeedback]; sound plays the
- * standard system keypress click. Read fresh on every press so a settings
- * change takes effect immediately.
+ * standard system keypress click. Preference values are cached by the service
+ * and refreshed through its SharedPreferences listener.
  */
-private fun keypressFeedback(view: View) {
-    val context = view.context
-    if (KeyboardPrefs.vibrateOnKeypress(context)) {
+private fun keypressFeedback(view: View, vibrateOnKeypress: Boolean, soundOnKeypress: Boolean) {
+    if (vibrateOnKeypress) {
         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
     }
-    if (KeyboardPrefs.soundOnKeypress(context)) {
+    if (soundOnKeypress) {
+        val context = view.context
         (context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)
             ?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD)
     }
@@ -140,6 +139,8 @@ fun KeyButton(
     showLockIndicator: Boolean = false,
     repeatable: Boolean = false,
     showsPreviewOnPress: Boolean = false,
+    vibrateOnKeypress: Boolean = false,
+    soundOnKeypress: Boolean = false,
     onSwipe: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,
     /**
@@ -177,7 +178,7 @@ fun KeyButton(
 
     val pressModifier = if (repeatable) {
         Modifier.repeatingClickable(interactionSource = interactionSource) {
-            keypressFeedback(view)
+            keypressFeedback(view, vibrateOnKeypress, soundOnKeypress)
             onClick()
         }
     } else if (onLongPress != null) {
@@ -216,14 +217,14 @@ fun KeyButton(
         Modifier
     }
 
-    if (!repeatable) {
+    if (!repeatable && (vibrateOnKeypress || soundOnKeypress)) {
         // Haptic on press-DOWN (clickable's onClick only fires on release,
         // which feels laggy for a keyboard -- iOS buzzes the moment your
         // finger lands).
-        LaunchedEffect(interactionSource) {
+        LaunchedEffect(interactionSource, vibrateOnKeypress, soundOnKeypress) {
             interactionSource.interactions.collect { interaction ->
                 if (interaction is PressInteraction.Press) {
-                    keypressFeedback(view)
+                    keypressFeedback(view, vibrateOnKeypress, soundOnKeypress)
                 }
             }
         }

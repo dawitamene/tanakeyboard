@@ -49,7 +49,9 @@ internal fun KeyRow(
     isAmharic: Boolean,
     isNumberMode: Boolean,
     metrics: KeyboardMetrics,
-    service: AddiyonKeyboardService
+    service: AddiyonKeyboardService,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean
 ) {
     KeyboardRow {
         row.forEach { key ->
@@ -67,7 +69,9 @@ internal fun KeyRow(
                         isAmharic = isAmharic && !isNumberMode,
                         width = metrics.keyWidth,
                         height = metrics.keyHeight,
-                        service = service
+                        service = service,
+                        vibrateOnKeypress = vibrateOnKeypress,
+                        soundOnKeypress = soundOnKeypress
                     )
                 }
 
@@ -76,6 +80,8 @@ internal fun KeyRow(
                         shiftState = service.shiftState,
                         width = metrics.keyWidth,
                         height = metrics.keyHeight,
+                        vibrateOnKeypress = vibrateOnKeypress,
+                        soundOnKeypress = soundOnKeypress,
                         onClick = { service.toggleShift() }
                     )
                 }
@@ -84,6 +90,8 @@ internal fun KeyRow(
                     DeleteKey(
                         width = metrics.keyWidth,
                         height = metrics.keyHeight,
+                        vibrateOnKeypress = vibrateOnKeypress,
+                        soundOnKeypress = soundOnKeypress,
                         onClick = { service.onDelete() }
                     )
                 }
@@ -92,6 +100,8 @@ internal fun KeyRow(
                     SpaceKey(
                         isAmharic = isAmharic,
                         height = metrics.keyHeight,
+                        vibrateOnKeypress = vibrateOnKeypress,
+                        soundOnKeypress = soundOnKeypress,
                         onClick = { service.onSpace() },
                         onSwipe = { service.toggleLanguage() }
                     )
@@ -101,6 +111,8 @@ internal fun KeyRow(
                     EnterKey(
                         action = service.enterAction,
                         height = metrics.keyHeight,
+                        vibrateOnKeypress = vibrateOnKeypress,
+                        soundOnKeypress = soundOnKeypress,
                         onClick = { service.onEnter() }
                     )
                 }
@@ -110,6 +122,8 @@ internal fun KeyRow(
                         isNumberMode = isNumberMode,
                         isAmharic = isAmharic,
                         height = metrics.keyHeight,
+                        vibrateOnKeypress = vibrateOnKeypress,
+                        soundOnKeypress = soundOnKeypress,
                         onClick = { service.toggleNumberMode() }
                     )
                 }
@@ -120,6 +134,8 @@ internal fun KeyRow(
                         isAmharic = service.isAmharic,
                         width = metrics.keyWidth,
                         height = metrics.keyHeight,
+                        vibrateOnKeypress = vibrateOnKeypress,
+                        soundOnKeypress = soundOnKeypress,
                         onClick = { service.toggleSymbolsPage() }
                     )
                 }
@@ -127,6 +143,8 @@ internal fun KeyRow(
                 KeyData.LanguageToggle -> {
                     LanguageToggleKey(
                         height = metrics.keyHeight,
+                        vibrateOnKeypress = vibrateOnKeypress,
+                        soundOnKeypress = soundOnKeypress,
                         onClick = { service.toggleLanguage() }
                     )
                 }

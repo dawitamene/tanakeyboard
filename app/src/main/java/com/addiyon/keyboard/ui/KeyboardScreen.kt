@@ -53,6 +53,8 @@ fun KeyboardScreen(
     val isAmharic = service.isAmharic
     val isShift = service.isShiftEnabled
     val isNumberMode = service.isNumberMode
+    val vibrateOnKeypress = service.vibrateOnKeypress
+    val soundOnKeypress = service.soundOnKeypress
 
     val layout = when (service.numbersMode) {
         NumbersMode.NUMBERS -> NumberLayout
@@ -135,7 +137,9 @@ fun KeyboardScreen(
                             isAmharic = rowIsAmharic,
                             isNumberMode = isNumberMode,
                             metrics = metrics,
-                            service = service
+                            service = service,
+                            vibrateOnKeypress = vibrateOnKeypress,
+                            soundOnKeypress = soundOnKeypress
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                     }

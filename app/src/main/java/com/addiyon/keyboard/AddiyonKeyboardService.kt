@@ -194,6 +194,12 @@ class AddiyonKeyboardService : InputMethodService(),
     var showNumberRow by mutableStateOf(false)
         private set
 
+    var vibrateOnKeypress by mutableStateOf(false)
+        private set
+
+    var soundOnKeypress by mutableStateOf(false)
+        private set
+
     // Registered in onCreate / unregistered in onDestroy. Fires when the user
     // changes the theme in the app (same process -> same prefs instance), so
     // the keyboard recolors live even while it's open (e.g. the in-app Test
@@ -206,6 +212,9 @@ class AddiyonKeyboardService : InputMethodService(),
             }
             if (key == KeyboardPrefs.KEY_NUMBER_ROW) {
                 refreshNumberRow()
+            }
+            if (key == KeyboardPrefs.KEY_VIBRATE || key == KeyboardPrefs.KEY_SOUND) {
+                refreshFeedbackPrefs()
             }
         }
 
@@ -293,21 +302,28 @@ class AddiyonKeyboardService : InputMethodService(),
      * out, so "Th" suggests "The", not "the".
      */
     private fun updateSuggestions() {
-        amharicBufferLatin = if (isAmharic && amharicComposer.isComposing) {
+        val latinBuffer = if (isAmharic && amharicComposer.isComposing) {
             amharicComposer.raw
         } else {
             ""
         }
+        if (amharicBufferLatin != latinBuffer) {
+            amharicBufferLatin = latinBuffer
+        }
 
         if (!::amharicDictionary.isInitialized) {
-            suggestions = emptyList()
+            publishSuggestions(emptyList())
             return
         }
-        suggestions = if (isAmharic) {
+        publishSuggestions(if (isAmharic) {
             amharicSuggestions(amharicBufferLatin)
         } else {
             englishSuggestions()
-        }
+        })
+    }
+
+    private fun publishSuggestions(value: List<String>) {
+        if (suggestions != value) suggestions = value
     }
 
     /**
@@ -324,12 +340,26 @@ class AddiyonKeyboardService : InputMethodService(),
 
         val key = typed.lowercase()
         val exact = englishDictionary.suggestions(key, ENGLISH_EXACT_LIMIT)
-        val fuzzy = englishDictionary
-            .fuzzySuggestions(key, fuzzyEditBudget(key.length), ENGLISH_FUZZY_LIMIT)
-            .filter { it.frequency >= ENGLISH_FUZZY_MIN_FREQUENCY }
-            .map { it.word }
-        return (exact + fuzzy).distinct().take(ENGLISH_SUGGESTION_LIMIT)
-            .map { matchCase(typed, it) }
+        val merged = ArrayList<String>(ENGLISH_SUGGESTION_LIMIT)
+        for (word in exact) {
+            if (word !in merged) merged.add(word)
+        }
+
+        if (merged.size < ENGLISH_EXACT_LIMIT) {
+            val fuzzy = englishDictionary.fuzzySuggestions(
+                key,
+                fuzzyEditBudget(key.length),
+                ENGLISH_FUZZY_LIMIT
+            )
+            for (match in fuzzy) {
+                if (match.frequency >= ENGLISH_FUZZY_MIN_FREQUENCY && match.word !in merged) {
+                    merged.add(match.word)
+                    if (merged.size >= ENGLISH_SUGGESTION_LIMIT) break
+                }
+            }
+        }
+
+        return merged.map { matchCase(typed, it) }
     }
 
     /**
@@ -350,17 +380,25 @@ class AddiyonKeyboardService : InputMethodService(),
         if (latin.isEmpty()) return emptyList()
 
         val readings = Transliterator.readings(latin)
-        val completions = readings.flatMap { amharicDictionary.suggestions(it, AMHARIC_SUGGESTION_LIMIT) }
+        val merged = LinkedHashSet<String>(AMHARIC_SUGGESTION_LIMIT + readings.size)
+        for (reading in readings) merged.add(reading)
 
-        // Fuzzy pass over each fidel reading with the script-aware cost model,
-        // so a mid-syllable near-miss (የተለይ, before the vowel lands on ያ)
-        // still surfaces የተለያ… words. Ranked below the exact completions and
-        // deduped into the same cap; frequency-gated to stay quiet.
-        val fuzzy = if (readings.all { it.length > MAX_FUZZY_READING_LENGTH }) {
-            emptyList()
-        } else {
-            readings.flatMap { reading ->
-                amharicDictionary.fuzzySuggestions(
+        for (reading in readings) {
+            val completions = amharicDictionary.suggestions(reading, AMHARIC_SUGGESTION_LIMIT)
+            for (word in completions) {
+                merged.add(word)
+                if (merged.size > AMHARIC_SUGGESTION_LIMIT) break
+            }
+            if (merged.size > AMHARIC_SUGGESTION_LIMIT) break
+        }
+
+        if (merged.size <= AMHARIC_SUGGESTION_LIMIT &&
+            readings.any { it.length <= MAX_FUZZY_READING_LENGTH }
+        ) {
+            val fuzzy = ArrayList<WordTrie.FuzzyMatch>(AMHARIC_SUGGESTION_LIMIT)
+            for (reading in readings) {
+                if (reading.length > MAX_FUZZY_READING_LENGTH) continue
+                fuzzy += amharicDictionary.fuzzySuggestions(
                     reading,
                     fuzzyEditBudget(reading.length),
                     AMHARIC_SUGGESTION_LIMIT,
@@ -368,11 +406,15 @@ class AddiyonKeyboardService : InputMethodService(),
                     insertCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
                     deleteCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
                 )
-            }.sortedWith(compareBy({ it.editDistance }, { -it.frequency }))
-                .map { it.word }
+            }
+            fuzzy.sortWith(compareBy({ it.editDistance }, { -it.frequency }))
+            for (match in fuzzy) {
+                merged.add(match.word)
+                if (merged.size > AMHARIC_SUGGESTION_LIMIT) break
+            }
         }
 
-        return (readings + completions + fuzzy).distinct().drop(1).take(AMHARIC_SUGGESTION_LIMIT)
+        return merged.asSequence().drop(1).take(AMHARIC_SUGGESTION_LIMIT).toList()
     }
 
     /**
@@ -391,6 +433,11 @@ class AddiyonKeyboardService : InputMethodService(),
     /** Re-derives [showNumberRow] from the saved preference. */
     private fun refreshNumberRow() {
         showNumberRow = KeyboardPrefs.numberRow(this)
+    }
+
+    private fun refreshFeedbackPrefs() {
+        vibrateOnKeypress = KeyboardPrefs.vibrateOnKeypress(this)
+        soundOnKeypress = KeyboardPrefs.soundOnKeypress(this)
     }
 
     /**
@@ -984,6 +1031,7 @@ class AddiyonKeyboardService : InputMethodService(),
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         refreshTheme(resources.configuration)
         refreshNumberRow()
+        refreshFeedbackPrefs()
         KeyboardPrefs.prefs(this).registerOnSharedPreferenceChangeListener(prefsListener)
 
         amharicDictionary = WordDictionary(this, "amharic_words.dat")

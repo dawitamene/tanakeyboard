@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -79,10 +80,16 @@ fun CharacterKey(
     isAmharic: Boolean,
     width: Dp,
     height: Dp,
-    service: AddiyonKeyboardService
+    service: AddiyonKeyboardService,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean
 ) {
-    val effectiveLatin = if (isShift) key.latin.uppercase() else key.latin.lowercase()
-    val amharicChar = Transliterator.transliterate(effectiveLatin)
+    val effectiveLatin = remember(key.latin, isShift) {
+        if (isShift) key.latin.uppercase() else key.latin.lowercase()
+    }
+    val amharicChar = remember(effectiveLatin) {
+        Transliterator.transliterate(effectiveLatin)
+    }
     val isPunctuation = key.latin == "," || key.latin == "."
 
     val primaryText: String
@@ -115,6 +122,8 @@ fun CharacterKey(
         height = height,
         isSpecial = isPunctuation,
         showsPreviewOnPress = true,
+        vibrateOnKeypress = vibrateOnKeypress,
+        soundOnKeypress = soundOnKeypress,
         onLongPress = longPressAction
     ) {
         service.onCharacter(key.latin)
@@ -149,6 +158,8 @@ fun RowScope.ShiftKey(
     shiftState: ShiftState,
     width: Dp,
     height: Dp,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean,
     onClick: () -> Unit
 ) {
     val icon = if (shiftState == ShiftState.OFF) {
@@ -170,6 +181,8 @@ fun RowScope.ShiftKey(
         modifier = Modifier.width(width * KeyWeights.SHIFT),
         height = height,
         isSpecial = true,
+        vibrateOnKeypress = vibrateOnKeypress,
+        soundOnKeypress = soundOnKeypress,
         onClick = onClick
     )
 }
@@ -190,6 +203,8 @@ fun RowScope.ShiftKey(
 fun RowScope.DeleteKey(
     width: Dp,
     height: Dp,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean,
     onClick: () -> Unit
 ) {
     KeyButton(
@@ -198,6 +213,8 @@ fun RowScope.DeleteKey(
         height = height,
         isSpecial = true,
         repeatable = true,
+        vibrateOnKeypress = vibrateOnKeypress,
+        soundOnKeypress = soundOnKeypress,
         onClick = onClick
     )
 }
@@ -218,6 +235,8 @@ fun RowScope.DeleteKey(
 fun RowScope.SpaceKey(
     isAmharic: Boolean,
     height: Dp,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean,
     onClick: () -> Unit,
     onSwipe: () -> Unit
 ) {
@@ -228,6 +247,8 @@ fun RowScope.SpaceKey(
         modifier = Modifier.weight(KeyWeights.SPACE),
         height = height,
         isSpecial = false,
+        vibrateOnKeypress = vibrateOnKeypress,
+        soundOnKeypress = soundOnKeypress,
         onSwipe = onSwipe,
         onClick = onClick
     )
@@ -247,6 +268,8 @@ fun RowScope.SpaceKey(
 fun RowScope.EnterKey(
     action: EnterAction,
     height: Dp,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean,
     onClick: () -> Unit
 ) {
     val icon = when (action) {
@@ -263,6 +286,8 @@ fun RowScope.EnterKey(
         modifier = Modifier.weight(KeyWeights.ENTER),
         height = height,
         isSpecial = true,
+        vibrateOnKeypress = vibrateOnKeypress,
+        soundOnKeypress = soundOnKeypress,
         onClick = onClick
     )
 }
@@ -283,6 +308,8 @@ fun RowScope.NumberToggleKey(
     isNumberMode: Boolean,
     isAmharic: Boolean,
     height: Dp,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean,
     onClick: () -> Unit
 ) {
     KeyButton(
@@ -295,6 +322,8 @@ fun RowScope.NumberToggleKey(
         modifier = Modifier.weight(KeyWeights.NUMBER_TOGGLE),
         height = height,
         isSpecial = true,
+        vibrateOnKeypress = vibrateOnKeypress,
+        soundOnKeypress = soundOnKeypress,
         onClick = onClick
     )
 }
@@ -316,6 +345,8 @@ fun RowScope.SymbolsToggleKey(
     isAmharic: Boolean,
     width: Dp,
     height: Dp,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean,
     onClick: () -> Unit
 ) {
     KeyButton(
@@ -329,6 +360,8 @@ fun RowScope.SymbolsToggleKey(
         modifier = Modifier.width(width * KeyWeights.SYMBOLS_TOGGLE),
         height = height,
         isSpecial = true,
+        vibrateOnKeypress = vibrateOnKeypress,
+        soundOnKeypress = soundOnKeypress,
         onClick = onClick
     )
 }
@@ -347,12 +380,16 @@ fun RowScope.SymbolsToggleKey(
 @Composable
 fun RowScope.LanguageToggleKey(
     height: Dp,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean,
     onClick: () -> Unit
 ) {
     KeyButton(
         modifier = Modifier.weight(KeyWeights.LANGUAGE_TOGGLE),
         height = height,
         isSpecial = true,
+        vibrateOnKeypress = vibrateOnKeypress,
+        soundOnKeypress = soundOnKeypress,
         onClick = onClick,
         content = {
             Column(
