@@ -16,6 +16,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toArgb
@@ -32,6 +33,10 @@ import com.addiyon.keyboard.composing.WordComposer
 import com.addiyon.keyboard.model.EnterAction
 import com.addiyon.keyboard.model.NumbersMode
 import com.addiyon.keyboard.model.ShiftState
+import com.addiyon.keyboard.emoji.EmojiBackspace
+import com.addiyon.keyboard.emoji.EmojiRepository
+import com.addiyon.keyboard.emoji.RecentEmojiStore
+import com.addiyon.keyboard.emoji.SkinToneStore
 import com.addiyon.keyboard.suggestion.WordDictionary
 import com.addiyon.keyboard.suggestion.WordTrie
 import com.addiyon.keyboard.transliteration.AmharicTable
@@ -239,6 +244,32 @@ class AddiyonKeyboardService : InputMethodService(),
     var amharicBufferLatin by mutableStateOf("")
         private set
 
+    /**
+     * True while the emoji picker panel replaces the toolbar + key rows.
+     * Opened from the toolbar's emoji icon; closed by its ABC key, any mode
+     * transition, or a new input session ([onStartInputView]).
+     */
+    var showEmojiPanel by mutableStateOf(false)
+        private set
+
+    /**
+     * The emoji search query. Null = browsing (or panel closed); non-null =
+     * search mode is up, showing the query row + results + the ENGLISH key
+     * rows, whose keypresses are diverted into this string by the guards at
+     * the top of [onCharacter]/[onDelete]/[onSpace]/[onEnter] -- the IME
+     * can't use a TextField to serve itself.
+     */
+    var emojiSearchQuery by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * base emoji -> the skin-tone variant the user last picked, mirrored
+     * from [skinToneStore] so the grid cells can observe it. A state MAP,
+     * not a state of a map: changing one base recomposes only cells reading
+     * that key.
+     */
+    val selectedSkinTones = mutableStateMapOf<String, String>()
+
     // ----------------------------
     // WORD COMPOSITION
     // ----------------------------
@@ -285,6 +316,10 @@ class AddiyonKeyboardService : InputMethodService(),
     // before onCreate().
     private lateinit var amharicDictionary: WordDictionary
     private lateinit var englishDictionary: WordDictionary
+    lateinit var emojiRepository: EmojiRepository
+        private set
+    private lateinit var recentEmojiStore: RecentEmojiStore
+    private lateinit var skinToneStore: SkinToneStore
 
     /**
      * Re-derives [suggestions] from the active composer's current buffer.
@@ -656,8 +691,78 @@ class AddiyonKeyboardService : InputMethodService(),
         runCatching { startActivity(intent) }
     }
 
+    /**
+     * Opens the emoji picker panel. Commits the composing word first, for
+     * the same reason [toggleNumberMode] does -- an emoji must land AFTER
+     * the word, never inside a composing region (this also empties
+     * [amharicBufferLatin], so the preview strip never coexists with the
+     * panel). The repository load is a safe no-op if the sequential startup
+     * chain already started it; the panel shows a loading state until
+     * [EmojiRepository.isReady].
+     */
+    fun openEmojiPanel() {
+        leaveVoiceModeForKeyboardInput()
+        activeComposer.commit()
+        updateSuggestions()
+        emojiRepository.loadAsync()
+        showEmojiPanel = true
+    }
+
+    fun closeEmojiPanel() {
+        showEmojiPanel = false
+        emojiSearchQuery = null
+    }
+
+    /** Enters emoji search mode (query row + English key rows). */
+    fun openEmojiSearch() {
+        emojiSearchQuery = ""
+    }
+
+    /** Leaves search mode back to the browse panel. */
+    fun closeEmojiSearch() {
+        emojiSearchQuery = null
+    }
+
+    /** The search query row's clear (x) button: empty the query, stay in search. */
+    fun clearEmojiSearchQuery() {
+        if (emojiSearchQuery != null) emojiSearchQuery = ""
+    }
+
+    /**
+     * An emoji cell was tapped in the picker. The active composer is already
+     * flushed (see [openEmojiPanel]) and stays empty while the panel is up,
+     * so this writes straight to the field -- deliberately NOT [commitText],
+     * whose composer flush and voice-mode exit are dead weight here. Every
+     * commit path (grid tap, tone popup, search result, search enter) lands
+     * here, so recents recording is centralized.
+     */
+    fun commitEmoji(emoji: String) {
+        currentInputConnection?.commitText(emoji, 1)
+        recentEmojiStore.recordUse(emoji)
+    }
+
+    /**
+     * The recents list frozen for one panel-open: the panel snapshots this
+     * once per open (its composition lifetime), so committing an emoji never
+     * reorders the grid under the user's finger mid-session.
+     */
+    fun recentEmojiSnapshot(): List<String> = recentEmojiStore.snapshot()
+
+    /**
+     * A tone was picked in the long-press popup: remember it (persisted, and
+     * mirrored into [selectedSkinTones] so the cell recomposes to show it).
+     * Picking the base (yellow) clears the preference. The caller commits
+     * the picked emoji separately via [commitEmoji].
+     */
+    fun setSkinTone(base: String, variant: String) {
+        skinToneStore.set(base, variant)
+        if (variant == base) selectedSkinTones.remove(base)
+        else selectedSkinTones[base] = variant
+    }
+
     fun toggleLanguage() {
         leaveVoiceModeForKeyboardInput()
+        closeEmojiPanel()
         activeComposer.commit()
         isAmharic = !isAmharic
         if (!isAmharic && numbersMode == NumbersMode.GEEZ_NUMBERS) {
@@ -683,6 +788,7 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun toggleNumberMode() {
         leaveVoiceModeForKeyboardInput()
+        closeEmojiPanel()
         activeComposer.commit()
         numbersMode = if (numbersMode == NumbersMode.OFF) NumbersMode.NUMBERS else NumbersMode.OFF
         updateSuggestions()
@@ -764,6 +870,18 @@ class AddiyonKeyboardService : InputMethodService(),
      * can't disagree.
      */
     fun onCharacter(latin: String) {
+        // Emoji search intercepts the real English key rows: keystrokes build
+        // the query instead of touching the field. Same shift resolution as
+        // the normal path so the query looks like what was typed (search
+        // itself lowercases).
+        emojiSearchQuery?.let { query ->
+            if (showEmojiPanel) {
+                emojiSearchQuery =
+                    query + (if (isShiftEnabled) latin.uppercase() else latin.lowercase())
+                consumeShiftAfterCharacter()
+                return
+            }
+        }
         leaveVoiceModeForKeyboardInput()
         val output = if (isShiftEnabled) latin.uppercase() else latin.lowercase()
 
@@ -872,6 +990,15 @@ class AddiyonKeyboardService : InputMethodService(),
      * field itself.
      */
     fun onDelete() {
+        // In emoji search, backspace edits the query, not the field. (The
+        // browse panel's own backspace key runs with a null query, so it
+        // falls through to real field deletion below.)
+        emojiSearchQuery?.let { query ->
+            if (showEmojiPanel) {
+                if (query.isNotEmpty()) emojiSearchQuery = query.dropLast(1)
+                return
+            }
+        }
         leaveVoiceModeForKeyboardInput()
         if (activeComposer.onBackspace()) {
             updateSuggestions()
@@ -889,7 +1016,15 @@ class AddiyonKeyboardService : InputMethodService(),
             if (!selected.isNullOrEmpty()) {
                 ic.commitText("", 1)
             } else {
-                ic.deleteSurroundingText(1, 0)
+                // Delete a whole emoji cluster, not one UTF-16 unit -- a
+                // naive (1, 0) would strand half a surrogate pair or behead
+                // a ZWJ sequence joint by joint. For plain BMP text the
+                // cluster length is 1, same as before. 32 units of context
+                // covers the longest real sequences (a family is 11, the
+                // two-tone handshake 15).
+                val before = ic.getTextBeforeCursor(32, 0)
+                val cluster = EmojiBackspace.lastClusterLength(before ?: "")
+                ic.deleteSurroundingText(cluster.coerceAtLeast(1), 0)
             }
         }
         updateSuggestions()
@@ -912,6 +1047,14 @@ class AddiyonKeyboardService : InputMethodService(),
      * inline composed word. With no word in flight it's a plain space.
      */
     fun onSpace() {
+        // CLDR annotations are multi-word ("red heart"), so space belongs to
+        // the emoji search query, not the field.
+        emojiSearchQuery?.let { query ->
+            if (showEmojiPanel) {
+                emojiSearchQuery = "$query "
+                return
+            }
+        }
         leaveVoiceModeForKeyboardInput()
         activeComposer.commit()
         currentInputConnection?.commitText(" ", 1)
@@ -927,6 +1070,16 @@ class AddiyonKeyboardService : InputMethodService(),
      * [onStartInputView].
      */
     fun onEnter() {
+        // In emoji search, enter commits the top result (with its remembered
+        // skin tone) -- it never submits the field's IME action.
+        emojiSearchQuery?.let { query ->
+            if (showEmojiPanel) {
+                emojiRepository.data?.search(query)?.firstOrNull()?.let {
+                    commitEmoji(selectedSkinTones[it.base] ?: it.base)
+                }
+                return
+            }
+        }
         leaveVoiceModeForKeyboardInput()
         activeComposer.commit()
         val ic = currentInputConnection
@@ -1036,6 +1189,20 @@ class AddiyonKeyboardService : InputMethodService(),
 
         amharicDictionary = WordDictionary(this, "amharic_words.dat")
         englishDictionary = WordDictionary(this, "english_words.dat")
+        emojiRepository = EmojiRepository(this)
+        // Both stores decode lazily on first use, and the prefs file is
+        // already loaded in memory by the theme/number-row reads above, so
+        // neither adds startup work here. The tone mirror seeds eagerly:
+        // it's a handful of entries and the grid reads it on first open.
+        recentEmojiStore = RecentEmojiStore(
+            load = { KeyboardPrefs.recentEmojis(this) },
+            save = { KeyboardPrefs.setRecentEmojis(this, it) }
+        )
+        skinToneStore = SkinToneStore(
+            load = { KeyboardPrefs.emojiSkinTones(this) },
+            save = { KeyboardPrefs.setEmojiSkinTones(this, it) }
+        )
+        selectedSkinTones.putAll(skinToneStore.all())
         // Parsing the dictionary lines (~182k Amharic, ~250k English) happens
         // off the main thread; if the user starts typing before a load
         // finishes, suggestions just start appearing once loadAsync's
@@ -1051,7 +1218,12 @@ class AddiyonKeyboardService : InputMethodService(),
         val inactiveDictionary = if (isAmharic) englishDictionary else amharicDictionary
         activeDictionary.loadAsync {
             updateSuggestions()
-            inactiveDictionary.loadAsync { updateSuggestions() }
+            inactiveDictionary.loadAsync {
+                updateSuggestions()
+                // Emoji data last: it doesn't gate typing, and keeping the
+                // loads sequential avoids overlapping allocation storms.
+                emojiRepository.loadAsync()
+            }
         }
     }
 
@@ -1073,6 +1245,8 @@ class AddiyonKeyboardService : InputMethodService(),
         amharicComposer.reset()
         englishComposer.reset()
         voiceComposer.reset()
+        // A new session starts on the keyboard, not a stale emoji panel.
+        closeEmojiPanel()
         // The Enter key adapts to this field's IME action (search/go/send/...).
         resolveEnterAction(editorInfo)
         updateSuggestions()

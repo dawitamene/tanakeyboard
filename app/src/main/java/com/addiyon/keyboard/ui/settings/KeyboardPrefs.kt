@@ -15,6 +15,8 @@ object KeyboardPrefs {
     const val KEY_SOUND = "sound_on_keypress"
     const val KEY_PALETTE = "palette"
     const val KEY_NUMBER_ROW = "number_row"
+    const val KEY_RECENT_EMOJIS = "recent_emojis"
+    const val KEY_EMOJI_SKIN_TONES = "emoji_skin_tones"
 
     /** Exposed so the service can register an OnSharedPreferenceChangeListener. */
     fun prefs(context: Context): SharedPreferences =
@@ -43,4 +45,19 @@ object KeyboardPrefs {
 
     fun setNumberRow(context: Context, value: Boolean) =
         prefs(context).edit().putBoolean(KEY_NUMBER_ROW, value).apply()
+
+    // The two emoji values are opaque encoded strings; their codecs live in
+    // the pure-Kotlin stores (RecentEmojiStore / SkinToneStore), which take
+    // these as load/save lambdas so they stay JVM-testable.
+    fun recentEmojis(context: Context): String? =
+        prefs(context).getString(KEY_RECENT_EMOJIS, null)
+
+    fun setRecentEmojis(context: Context, value: String) =
+        prefs(context).edit().putString(KEY_RECENT_EMOJIS, value).apply()
+
+    fun emojiSkinTones(context: Context): String? =
+        prefs(context).getString(KEY_EMOJI_SKIN_TONES, null)
+
+    fun setEmojiSkinTones(context: Context, value: String) =
+        prefs(context).edit().putString(KEY_EMOJI_SKIN_TONES, value).apply()
 }

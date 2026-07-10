@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Mic
@@ -82,6 +83,7 @@ fun SuggestionArea(
     onFeedback: () -> Unit,
     onAi: () -> Unit,
     onClipboard: () -> Unit,
+    onEmoji: () -> Unit,
     voiceUiState: VoiceUiState = VoiceUiState.Idle,
     onVoice: () -> Unit = {},
     onExitVoice: () -> Unit = {}
@@ -119,6 +121,7 @@ fun SuggestionArea(
             // AI + Clipboard kept for later, commented out for now:
             // ToolbarIcon(Icons.Outlined.AutoAwesome, "AI", onAi)
             // ToolbarIcon(Icons.Outlined.ContentPaste, "Clipboard", onClipboard)
+            ToolbarIcon(Icons.Outlined.EmojiEmotions, "Emoji", onEmoji)
             ToolbarIcon(Icons.Outlined.Settings, "Settings", onOpenSettings)
             ToolbarIcon(Icons.Outlined.MenuBook, "Typing guide", onOpenGuide)
             ToolbarIcon(Icons.Outlined.Feedback, "Feedback", onFeedback)

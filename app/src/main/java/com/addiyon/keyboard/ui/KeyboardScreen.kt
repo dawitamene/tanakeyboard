@@ -18,6 +18,8 @@ import com.addiyon.keyboard.layout.NumberLayout
 import com.addiyon.keyboard.layout.SymbolsLayout
 import com.addiyon.keyboard.model.KeyData
 import com.addiyon.keyboard.model.NumbersMode
+import com.addiyon.keyboard.ui.emoji.EmojiPanel
+import com.addiyon.keyboard.ui.emoji.EmojiSearchHeader
 
 // The optional number row (Latin 1-0), matching Row 1 of NumberLayout so its
 // 10 keys keep maxLetterCount aligned with the letter rows it sits above.
@@ -89,6 +91,41 @@ fun KeyboardScreen(
                 BufferPreviewStrip(latin = service.amharicBufferLatin)
             }
 
+            // Emoji SEARCH mode is not the fixed-height panel: it's the
+            // search header (query + result strip) in place of the
+            // suggestion area, with the real English key rows below --
+            // rendered by the shared key-rows block at the bottom of this
+            // Column, with the layout forced to English.
+            val emojiSearching = service.showEmojiPanel && service.emojiSearchQuery != null
+
+            // The emoji panel replaces BOTH the suggestion strip and the key
+            // rows at exactly their combined height (computed below from the
+            // same metrics the key branch uses), so opening/closing it never
+            // resizes the IME window. The composer is committed on open, so
+            // the BufferPreviewStrip above is never visible alongside it.
+            if (service.showEmojiPanel && !emojiSearching) {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    // Mirror the key branch's sizing exactly: its
+                    // BoxWithConstraints measures width AFTER 4.dp horizontal
+                    // padding (hence -8.dp here), each row is keyHeight plus
+                    // a 6.dp spacer, and the box adds 6.dp vertical padding
+                    // top and bottom. Plus the 40.dp suggestion area.
+                    val showNumberRow =
+                        service.showNumberRow && service.numbersMode == NumbersMode.OFF
+                    val rows = if (showNumberRow) listOf(NumberRowKeys) + layout.rows
+                    else layout.rows
+                    val metrics =
+                        computeKeyboardMetrics(rows = rows, availableWidth = maxWidth - 8.dp)
+                    val panelHeight =
+                        40.dp + (metrics.keyHeight + 6.dp) * rows.size + 12.dp
+                    EmojiPanel(service = service, height = panelHeight)
+                }
+                return@Column
+            }
+
+            if (emojiSearching) {
+                EmojiSearchHeader(service)
+            } else
             // Always present -- across letter AND number/symbol layouts. When
             // there's nothing to suggest (always the case on the numeric pages,
             // where no word composes) it's the quick-action toolbar with the
@@ -103,6 +140,7 @@ fun KeyboardScreen(
                 onFeedback = { service.openFeedbackScreen() },
                 onAi = { service.onAiAction() },
                 onClipboard = { service.onClipboardAction() },
+                onEmoji = { service.openEmojiPanel() },
                 voiceUiState = service.voiceUiState,
                 onVoice = { service.onVoiceInput() },
                 onExitVoice = { service.exitVoiceMode() }
@@ -115,8 +153,14 @@ fun KeyboardScreen(
                     .padding(horizontal = 4.dp, vertical = 6.dp)
             ) {
 
-                val showNumberRow = service.showNumberRow && service.numbersMode == NumbersMode.OFF
-                val rows = if (showNumberRow) listOf(NumberRowKeys) + layout.rows else layout.rows
+                // Emoji search always types on the plain English rows (the
+                // query is Latin, and CLDR keywords are English), whatever
+                // language or number row the keyboard itself is in.
+                val effectiveLayout = if (emojiSearching) EnglishLayout else layout
+                val showNumberRow = !emojiSearching &&
+                    service.showNumberRow && service.numbersMode == NumbersMode.OFF
+                val rows = if (showNumberRow) listOf(NumberRowKeys) + effectiveLayout.rows
+                else effectiveLayout.rows
                 val metrics = computeKeyboardMetrics(rows = rows, availableWidth = maxWidth)
 
                 Column(
@@ -130,7 +174,8 @@ fun KeyboardScreen(
                         // commits its literal character, so it never shows
                         // the Amharic fidel corner preview, regardless of
                         // the active language.
-                        val rowIsAmharic = isAmharic && !(showNumberRow && index == 0)
+                        val rowIsAmharic = isAmharic && !emojiSearching &&
+                            !(showNumberRow && index == 0)
                         KeyRow(
                             row = row,
                             isShift = isShift,
