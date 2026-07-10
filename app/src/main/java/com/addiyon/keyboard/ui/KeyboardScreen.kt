@@ -74,119 +74,122 @@ fun KeyboardScreen(
             .fillMaxWidth()
             .wrapContentHeight()
     ) {
-        // A Column, not a Box: the suggestion strip and the key rows need to
-        // STACK vertically.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
         ) {
-
-            // Amharic-only, shown only while a word is composing (nothing is
-            // written to the field until commit -- see WordComposer's "WHY
-            // AMHARIC COMPOSES OUT-OF-FIELD" doc). Grows the keyboard by
-            // ~40.dp while typing and shrinks back on commit; that's
-            // intended, since the strip is meant to be ephemeral.
+            /*
             if (service.amharicBufferLatin.isNotEmpty()) {
-                BufferPreviewStrip(latin = service.amharicBufferLatin)
+                BufferPreviewStrip(
+                    latin = service.amharicBufferLatin,
+                    modifier = Modifier.padding(start = 24.dp)
+                )
             }
+            */
 
-            // Emoji SEARCH mode is not the fixed-height panel: it's the
-            // search header (query + result strip) in place of the
-            // suggestion area, with the real English key rows below --
-            // rendered by the shared key-rows block at the bottom of this
-            // Column, with the layout forced to English.
-            val emojiSearching = service.showEmojiPanel && service.emojiSearchQuery != null
-
-            // The emoji panel replaces BOTH the suggestion strip and the key
-            // rows at exactly their combined height (computed below from the
-            // same metrics the key branch uses), so opening/closing it never
-            // resizes the IME window. The composer is committed on open, so
-            // the BufferPreviewStrip above is never visible alongside it.
-            if (service.showEmojiPanel && !emojiSearching) {
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    // Mirror the key branch's sizing exactly: its
-                    // BoxWithConstraints measures width AFTER 4.dp horizontal
-                    // padding (hence -8.dp here), each row is keyHeight plus
-                    // a 6.dp spacer, and the box adds 6.dp vertical padding
-                    // top and bottom. Plus the 40.dp suggestion area.
-                    val showNumberRow =
-                        service.showNumberRow && service.numbersMode == NumbersMode.OFF
-                    val rows = if (showNumberRow) listOf(NumberRowKeys) + layout.rows
-                    else layout.rows
-                    val metrics =
-                        computeKeyboardMetrics(rows = rows, availableWidth = maxWidth - 8.dp)
-                    val panelHeight =
-                        40.dp + (metrics.keyHeight + 6.dp) * rows.size + 12.dp
-                    EmojiPanel(service = service, height = panelHeight)
-                }
-                return@Column
-            }
-
-            if (emojiSearching) {
-                EmojiSearchHeader(service)
-            } else
-            // Always present -- across letter AND number/symbol layouts. When
-            // there's nothing to suggest (always the case on the numeric pages,
-            // where no word composes) it's the quick-action toolbar with the
-            // logo; otherwise the suggestion strip.
-            SuggestionArea(
-                suggestions = service.suggestions,
-                isAmharic = isAmharic,
-                onTap = { word -> service.onSuggestionTapped(word) },
-                onOpenSettings = { service.openAppScreen(MainActivity.SCREEN_SETTINGS) },
-                onOpenThemes = { service.openAppScreen(MainActivity.SCREEN_THEMES) },
-                onOpenGuide = { service.openAppScreen(MainActivity.SCREEN_GUIDE) },
-                onFeedback = { service.openFeedbackScreen() },
-                onAi = { service.onAiAction() },
-                onClipboard = { service.onClipboardAction() },
-                onEmoji = { service.openEmojiPanel() },
-                voiceUiState = service.voiceUiState,
-                onVoice = { service.onVoiceInput() },
-                onExitVoice = { service.exitVoiceMode() }
-            )
-
-            BoxWithConstraints(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
-                    .padding(horizontal = 4.dp, vertical = 6.dp)
-            ) {
+            ) keyboardContent@ {
+                // Emoji SEARCH mode is not the fixed-height panel: it's the
+                // search header (query + result strip) in place of the
+                // suggestion area, with the real English key rows below --
+                // rendered by the shared key-rows block at the bottom of this
+                // Column, with the layout forced to English.
+                val emojiSearching = service.showEmojiPanel && service.emojiSearchQuery != null
 
-                // Emoji search always types on the plain English rows (the
-                // query is Latin, and CLDR keywords are English), whatever
-                // language or number row the keyboard itself is in.
-                val effectiveLayout = if (emojiSearching) EnglishLayout else layout
-                val showNumberRow = !emojiSearching &&
-                    service.showNumberRow && service.numbersMode == NumbersMode.OFF
-                val rows = if (showNumberRow) listOf(NumberRowKeys) + effectiveLayout.rows
-                else effectiveLayout.rows
-                val metrics = computeKeyboardMetrics(rows = rows, availableWidth = maxWidth)
+                // The emoji panel replaces BOTH the suggestion strip and the key
+                // rows at exactly their combined height (computed below from the
+                // same metrics the key branch uses), so opening/closing it never
+                // resizes the IME window. The composer is committed on open, so
+                // the BufferPreviewStrip above is never visible alongside it.
+                if (service.showEmojiPanel && !emojiSearching) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        // Mirror the key branch's sizing exactly: its
+                        // BoxWithConstraints measures width AFTER 4.dp horizontal
+                        // padding (hence -8.dp here), each row is keyHeight plus
+                        // a 6.dp spacer, and the box adds 6.dp vertical padding
+                        // top and bottom. Plus the 40.dp suggestion area.
+                        val showNumberRow =
+                            service.showNumberRow && service.numbersMode == NumbersMode.OFF
+                        val rows = if (showNumberRow) listOf(NumberRowKeys) + layout.rows
+                        else layout.rows
+                        val metrics =
+                            computeKeyboardMetrics(rows = rows, availableWidth = maxWidth - 8.dp)
+                        val panelHeight =
+                            40.dp + (metrics.keyHeight + 6.dp) * rows.size + 168.dp
+                        EmojiPanel(service = service, height = panelHeight)
+                    }
+                    return@keyboardContent
+                }
 
-                Column(
+                if (emojiSearching) {
+                    EmojiSearchHeader(service)
+                } else
+                // Always present -- across letter AND number/symbol layouts. When
+                // there's nothing to suggest (always the case on the numeric pages,
+                // where no word composes) it's the quick-action toolbar with the
+                // logo; otherwise the suggestion strip.
+                SuggestionArea(
+                    suggestions = service.suggestions,
+                    isAmharic = isAmharic,
+                    onTap = { word -> service.onSuggestionTapped(word) },
+                    onOpenSettings = { service.openAppScreen(MainActivity.SCREEN_SETTINGS) },
+                    onOpenThemes = { service.openAppScreen(MainActivity.SCREEN_THEMES) },
+                    onOpenGuide = { service.openAppScreen(MainActivity.SCREEN_GUIDE) },
+                    onFeedback = { service.openFeedbackScreen() },
+                    onAi = { service.onAiAction() },
+                    onClipboard = { service.onClipboardAction() },
+                    onEmoji = { service.openEmojiPanel() },
+                    voiceUiState = service.voiceUiState,
+                    onVoice = { service.onVoiceInput() },
+                    onExitVoice = { service.exitVoiceMode() }
+                )
+
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()
+                        .padding(horizontal = 4.dp, vertical = 6.dp)
                 ) {
 
-                    rows.forEachIndexed { index, row ->
-                        // The digit row (row 0 when showNumberRow) always
-                        // commits its literal character, so it never shows
-                        // the Amharic fidel corner preview, regardless of
-                        // the active language.
-                        val rowIsAmharic = isAmharic && !emojiSearching &&
-                            !(showNumberRow && index == 0)
-                        KeyRow(
-                            row = row,
-                            isShift = isShift,
-                            isAmharic = rowIsAmharic,
-                            isNumberMode = isNumberMode,
-                            metrics = metrics,
-                            service = service,
-                            vibrateOnKeypress = vibrateOnKeypress,
-                            soundOnKeypress = soundOnKeypress
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
+                    // Emoji search always types on the plain English rows (the
+                    // query is Latin, and CLDR keywords are English), whatever
+                    // language or number row the keyboard itself is in.
+                    val effectiveLayout = if (emojiSearching) EnglishLayout else layout
+                    val showNumberRow = !emojiSearching &&
+                        service.showNumberRow && service.numbersMode == NumbersMode.OFF
+                    val rows = if (showNumberRow) listOf(NumberRowKeys) + effectiveLayout.rows
+                    else effectiveLayout.rows
+                    val metrics = computeKeyboardMetrics(rows = rows, availableWidth = maxWidth)
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                    ) {
+
+                        rows.forEachIndexed { index, row ->
+                            // The digit row (row 0 when showNumberRow) always
+                            // commits its literal character, so it never shows
+                            // the Amharic fidel corner preview, regardless of
+                            // the active language.
+                            val rowIsAmharic = isAmharic && !emojiSearching &&
+                                !(showNumberRow && index == 0)
+                            KeyRow(
+                                row = row,
+                                isShift = isShift,
+                                isAmharic = rowIsAmharic,
+                                isNumberMode = isNumberMode,
+                                metrics = metrics,
+                                service = service,
+                                vibrateOnKeypress = vibrateOnKeypress,
+                                soundOnKeypress = soundOnKeypress
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
                     }
                 }
             }

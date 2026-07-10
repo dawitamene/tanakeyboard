@@ -8,6 +8,8 @@ import android.content.res.Configuration
 import android.content.pm.ApplicationInfo
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.StrictMode
 import android.text.InputType
 import android.view.KeyEvent
@@ -20,6 +22,8 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -84,6 +88,14 @@ private const val ENGLISH_FUZZY_MIN_FREQUENCY = 500
  * than any word we'd complete against, so the whole prefix is always captured.
  */
 private const val MAX_RESUME_PREFIX = 48
+
+/**
+ * How long the caret must sit still before the cursor-aware resume adopts
+ * the word it landed on. Long enough that a burst of our own edits (and the
+ * selection callbacks they echo back) has fully settled; short enough to
+ * feel immediate after a tap or the last backspace of a run.
+ */
+private const val RESUME_AT_CURSOR_DELAY_MS = 150L
 
 /**
  * Max fidel reading length for fuzzy suggestions. Beyond this the Damerau-
@@ -252,15 +264,27 @@ class AddiyonKeyboardService : InputMethodService(),
     var showEmojiPanel by mutableStateOf(false)
         private set
 
+    /** Drives the debounced cursor-aware resume; see [scheduleResumeWordAtCursor]. */
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     /**
-     * The emoji search query. Null = browsing (or panel closed); non-null =
-     * search mode is up, showing the query row + results + the ENGLISH key
-     * rows, whose keypresses are diverted into this string by the guards at
-     * the top of [onCharacter]/[onDelete]/[onSpace]/[onEnter] -- the IME
-     * can't use a TextField to serve itself.
+     * The emoji search field's state (text + cursor/selection). Null =
+     * browsing (or panel closed); non-null = search mode is up, showing the
+     * query row + results + the ENGLISH key rows, whose keypresses are
+     * diverted into this value by the guards at the top of
+     * [onCharacter]/[onDelete]/[onSpace]/[onEnter] -- the IME can't summon
+     * itself to serve its own TextField, so the search field is a real
+     * (focused, cursor-bearing) BasicTextField whose EDITS all come from
+     * those guards or from direct touch (tap to move the cursor, drag to
+     * select). A full TextFieldValue rather than a String so keystrokes
+     * insert at the cursor, not blindly at the end.
      */
-    var emojiSearchQuery by mutableStateOf<String?>(null)
+    var emojiSearchField by mutableStateOf<TextFieldValue?>(null)
         private set
+
+    /** The emoji search query text; null iff not in search mode. */
+    val emojiSearchQuery: String?
+        get() = emojiSearchField?.text
 
     /**
      * base emoji -> the skin-tone variant the user last picked, mirrored
@@ -299,7 +323,7 @@ class AddiyonKeyboardService : InputMethodService(),
         // OUT-OF-FIELD" doc. Backspace uses the default one-char step so
         // each typed letter can be cleared individually.
         render = Transliterator::transliterate,
-        composesInline = false,
+        composesInline = true,
         onCommit = { rawLatin, fidel -> amharicCommitHistory[fidel] = rawLatin }
     )
 
@@ -449,7 +473,7 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
 
-        return merged.asSequence().take(AMHARIC_SUGGESTION_LIMIT).toList()
+        return merged.asSequence().drop(1).take(AMHARIC_SUGGESTION_LIMIT).toList()
     }
 
     /**
@@ -710,22 +734,32 @@ class AddiyonKeyboardService : InputMethodService(),
 
     fun closeEmojiPanel() {
         showEmojiPanel = false
-        emojiSearchQuery = null
+        emojiSearchField = null
     }
 
     /** Enters emoji search mode (query row + English key rows). */
     fun openEmojiSearch() {
-        emojiSearchQuery = ""
+        emojiSearchField = TextFieldValue()
     }
 
     /** Leaves search mode back to the browse panel. */
     fun closeEmojiSearch() {
-        emojiSearchQuery = null
+        emojiSearchField = null
     }
 
     /** The search query row's clear (x) button: empty the query, stay in search. */
     fun clearEmojiSearchQuery() {
-        if (emojiSearchQuery != null) emojiSearchQuery = ""
+        if (emojiSearchField != null) emojiSearchField = TextFieldValue()
+    }
+
+    /**
+     * The search BasicTextField's onValueChange: the only edits it can
+     * originate itself are touch-driven (cursor moves, selection drags) --
+     * text edits come through the key guards, which write [emojiSearchField]
+     * directly.
+     */
+    fun updateEmojiSearchField(value: TextFieldValue) {
+        if (emojiSearchField != null) emojiSearchField = value
     }
 
     /**
@@ -874,10 +908,10 @@ class AddiyonKeyboardService : InputMethodService(),
         // the query instead of touching the field. Same shift resolution as
         // the normal path so the query looks like what was typed (search
         // itself lowercases).
-        emojiSearchQuery?.let { query ->
+        emojiSearchField?.let { field ->
             if (showEmojiPanel) {
-                emojiSearchQuery =
-                    query + (if (isShiftEnabled) latin.uppercase() else latin.lowercase())
+                emojiSearchField =
+                    field.insertAtCursor(if (isShiftEnabled) latin.uppercase() else latin.lowercase())
                 consumeShiftAfterCharacter()
                 return
             }
@@ -928,10 +962,10 @@ class AddiyonKeyboardService : InputMethodService(),
         val ic = currentInputConnection ?: return
 
         val after = ic.getTextAfterCursor(1, 0)
-        if (!after.isNullOrEmpty() && isWordCharacter(after[0].toString())) return
+        if (!after.isNullOrEmpty() && isEnglishWordChar(after[0])) return
 
         val before = ic.getTextBeforeCursor(MAX_RESUME_PREFIX, 0) ?: return
-        val prefix = before.takeLastWhile { isWordCharacter(it.toString()) }.toString()
+        val prefix = before.takeLastWhile { isEnglishWordChar(it) }.toString()
         if (prefix.isEmpty()) return
 
         ic.beginBatchEdit()
@@ -950,6 +984,16 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     private fun isWordCharacter(output: String) =
         output.all { it.isLetter() || it == '\'' || it == '`' }
+
+    /**
+     * [isWordCharacter] restricted to non-Ethiopic letters, for adopting
+     * field text into the ENGLISH composer -- the caret can land right after
+     * a fidel word (e.g. the commit a language toggle performs), and
+     * `isLetter()` alone would happily adopt that fidel as an "English"
+     * word.
+     */
+    private fun isEnglishWordChar(c: Char) =
+        (c.isLetter() && !isFidelWordChar(c)) || c == '\'' || c == '`'
 
     /** Whether [c] is part of the Ethiopic (Ge'ez/Fidel) Unicode block. */
     private fun isFidelWordChar(c: Char) = c in 'ሀ'..'፿'
@@ -973,13 +1017,35 @@ class AddiyonKeyboardService : InputMethodService(),
         val fidelWord = before.takeLastWhile { isFidelWordChar(it) }
         if (fidelWord.isEmpty()) return
 
-        val rawLatin = amharicCommitHistory[fidelWord] ?: return
+        val rawLatin = latinForCommittedFidel(fidelWord) ?: return
         ic.beginBatchEdit()
         // Ethiopic is entirely within the BMP, so one Char == one code unit;
         // deleteSurroundingText's length is in UTF-16 code units.
         ic.deleteSurroundingText(fidelWord.length, 0)
         amharicComposer.resume(rawLatin)
         ic.endBatchEdit()
+    }
+
+    /**
+     * The raw Latin whose transliteration is exactly [fidel]: an exact
+     * [amharicCommitHistory] hit, or -- when backspaces have eaten the tail
+     * of a committed word, so the remaining prefix was never committed by
+     * itself -- the most recent history entry EXTENDING [fidel], truncated
+     * one Latin character at a time until it renders exactly [fidel] (Latin
+     * and fidel lengths don't track one-to-one: digraphs and vowels merge
+     * into the preceding syllable). Null when this session never committed
+     * a word starting with it.
+     */
+    private fun latinForCommittedFidel(fidel: String): String? {
+        amharicCommitHistory[fidel]?.let { return it }
+        val extending = amharicCommitHistory.entries.lastOrNull { it.key.startsWith(fidel) }
+            ?: return null
+        var latin = extending.value.dropLast(1)
+        while (latin.isNotEmpty()) {
+            if (Transliterator.transliterate(latin) == fidel) return latin
+            latin = latin.dropLast(1)
+        }
+        return null
     }
 
     /**
@@ -992,15 +1058,29 @@ class AddiyonKeyboardService : InputMethodService(),
     fun onDelete() {
         // In emoji search, backspace edits the query, not the field. (The
         // browse panel's own backspace key runs with a null query, so it
-        // falls through to real field deletion below.)
-        emojiSearchQuery?.let { query ->
+        // falls through to real field deletion below.) Deletes the selection
+        // if there is one, else the character before the cursor.
+        emojiSearchField?.let { field ->
             if (showEmojiPanel) {
-                if (query.isNotEmpty()) emojiSearchQuery = query.dropLast(1)
+                emojiSearchField = when {
+                    !field.selection.collapsed -> field.insertAtCursor("")
+                    field.selection.start > 0 -> {
+                        val cut = field.selection.start
+                        TextFieldValue(
+                            text = field.text.removeRange(cut - 1, cut),
+                            selection = TextRange(cut - 1)
+                        )
+                    }
+                    else -> field
+                }
                 return
             }
         }
         leaveVoiceModeForKeyboardInput()
-        if (activeComposer.onBackspace()) {
+        if (isAmharic && amharicComposer.isComposing) {
+            amharicComposer.finish()
+            updateSuggestions()
+        } else if (activeComposer.onBackspace()) {
             updateSuggestions()
             return
         }
@@ -1049,9 +1129,9 @@ class AddiyonKeyboardService : InputMethodService(),
     fun onSpace() {
         // CLDR annotations are multi-word ("red heart"), so space belongs to
         // the emoji search query, not the field.
-        emojiSearchQuery?.let { query ->
+        emojiSearchField?.let { field ->
             if (showEmojiPanel) {
-                emojiSearchQuery = "$query "
+                emojiSearchField = field.insertAtCursor(" ")
                 return
             }
         }
@@ -1245,6 +1325,9 @@ class AddiyonKeyboardService : InputMethodService(),
         amharicComposer.reset()
         englishComposer.reset()
         voiceComposer.reset()
+        // A pending cursor-aware resume belongs to the previous session's
+        // caret position; never let it fire into the new field.
+        mainHandler.removeCallbacks(resumeAtCursorRunnable)
         // A new session starts on the keyboard, not a stale emoji panel.
         closeEmojiPanel()
         // The Enter key adapts to this field's IME action (search/go/send/...).
@@ -1281,6 +1364,13 @@ class AddiyonKeyboardService : InputMethodService(),
      * current composing region; both are -1 when nothing is being composed
      * (always true for Amharic, since it never opens one -- so any selection
      * change while its buffer is non-empty is treated as tap-away).
+     *
+     * This is also what makes suggestions CURSOR-AWARE: once nothing is
+     * composing (including right after an abandon above), a caret that
+     * settles at the end of a word adopts that word back into the composer
+     * ([resumeEnglishWordIfAny] / [resumeAmharicWordIfAny]), so the strip
+     * offers completions wherever the user actually is -- after a backspace,
+     * a tap into existing text, or a jump between words.
      */
     override fun onUpdateSelection(
         oldSelStart: Int,
@@ -1314,12 +1404,50 @@ class AddiyonKeyboardService : InputMethodService(),
             return
         }
 
-        if (!activeComposer.isComposing) return
-
-        if (!cursorInsideComposing) {
+        if (activeComposer.isComposing) {
+            // Movement consistent with our own composing pushes: nothing to do.
+            if (cursorInsideComposing) return
+            // The user walked away from the word we were composing.
             activeComposer.abandon()
             updateSuggestions()
         }
+
+        // Cursor-aware suggestions: if the caret has settled at the end of a
+        // word with nothing composing, adopt that word back into the composer
+        // so the strip offers completions right there -- however the caret
+        // got there (backspace, a tap into existing text, a jump between
+        // words). DEBOUNCED, never inline: resuming mutates the field
+        // (delete + re-compose), and doing that from inside this callback
+        // spawns further callbacks whose stale composing-region bounds
+        // ping-pong against the abandon logic above -- visible as flicker,
+        // and in the worst case a deleteSurroundingText computed against a
+        // mid-storm state that eats more than the word. Waiting for the
+        // caret to go quiet means rapid backspaces stay plain single-char
+        // deletes and exactly one resume runs once the dust settles.
+        scheduleResumeWordAtCursor(collapsed = newSelStart == newSelEnd)
+    }
+
+    private val resumeAtCursorRunnable = Runnable {
+        if (activeComposer.isComposing) return@Runnable
+        if (!isInputViewShown) return@Runnable
+        if (showEmojiPanel || isNumberMode || voiceUiState.isVoiceMode) return@Runnable
+        if (isAmharic) resumeAmharicWordIfAny() else resumeEnglishWordIfAny()
+        updateSuggestions()
+    }
+
+    /**
+     * (Re)arms the debounced resume: every selection callback pushes it
+     * back, so it fires once, [RESUME_AT_CURSOR_DELAY_MS] after the last
+     * cursor movement -- and not at all over an active selection or while a
+     * mode that deliberately committed the word (emoji/numbers/voice) is up.
+     * The runnable re-checks those guards at fire time; they can change
+     * during the delay.
+     */
+    private fun scheduleResumeWordAtCursor(collapsed: Boolean) {
+        mainHandler.removeCallbacks(resumeAtCursorRunnable)
+        if (!collapsed) return
+        if (showEmojiPanel || isNumberMode || voiceUiState.isVoiceMode) return
+        mainHandler.postDelayed(resumeAtCursorRunnable, RESUME_AT_CURSOR_DELAY_MS)
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -1333,6 +1461,7 @@ class AddiyonKeyboardService : InputMethodService(),
         // WordComposer.finish().
         activeComposer.finish()
         updateSuggestions()
+        mainHandler.removeCallbacks(resumeAtCursorRunnable)
         voiceInputController?.stop()
         finalizeVoiceComposing()
         resetVoiceUi()
@@ -1341,9 +1470,23 @@ class AddiyonKeyboardService : InputMethodService(),
 
     override fun onDestroy() {
         super.onDestroy()
+        mainHandler.removeCallbacks(resumeAtCursorRunnable)
         KeyboardPrefs.prefs(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
         voiceInputController?.stop()
         resetVoiceUi()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
     }
+}
+
+/**
+ * Replaces the selection (or, when collapsed, inserts at the cursor) and
+ * leaves the cursor after the inserted text. With "" this is
+ * delete-selection.
+ */
+private fun TextFieldValue.insertAtCursor(insert: String): TextFieldValue {
+    val start = selection.min
+    return TextFieldValue(
+        text = text.replaceRange(start, selection.max, insert),
+        selection = TextRange(start + insert.length)
+    )
 }

@@ -1,6 +1,7 @@
 package com.addiyon.keyboard.ui.emoji
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,40 +15,95 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.addiyon.keyboard.AddiyonKeyboardService
 
-/**
- * Emoji search mode's header, rendered by KeyboardScreen in place of the
- * suggestion strip (with the real ENGLISH key rows below it -- their
- * keypresses are diverted into
- * [AddiyonKeyboardService.emojiSearchQuery] by the service-method guards,
- * because the IME can't pop a TextField to serve itself).
- *
- * Two rows: the query line (back to browse | typed query + cursor bar |
- * clear) and a horizontally scrolling result strip. Tapping a result -- or
- * Enter, for the first one -- commits it with its remembered skin tone.
- */
+private const val EMPTY_SEARCH_EMOJI_LIMIT = 60
+
 @Composable
 fun EmojiSearchHeader(service: AddiyonKeyboardService) {
-    val query = service.emojiSearchQuery ?: return
+    val fieldValue = service.emojiSearchField ?: return
+    val query = fieldValue.text
     val data = service.emojiRepository.data
     val results = remember(data, query) { data?.search(query) ?: emptyList() }
+    val recents = remember { service.recentEmojiSnapshot() }
+    val resultGlyphs = if (query.isBlank()) {
+        val seen = LinkedHashSet<String>()
+        recents.forEach { seen.add(it) }
+        data?.allEmoji?.forEach { emoji ->
+            if (seen.size < EMPTY_SEARCH_EMOJI_LIMIT) {
+                seen.add(service.selectedSkinTones[emoji.base] ?: emoji.base)
+            }
+        }
+        seen.take(EMPTY_SEARCH_EMOJI_LIMIT)
+    } else {
+        results.map { emoji -> service.selectedSkinTones[emoji.base] ?: emoji.base }
+    }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        focusRequester.captureFocus()
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            if (resultGlyphs.isEmpty()) {
+                if (query.isNotBlank()) {
+                    Text(
+                        text = "No emoji found",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+            } else {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(count = resultGlyphs.size) { index ->
+                        val displayed = resultGlyphs[index]
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape)
+                                .clickable { service.commitEmoji(displayed) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = displayed, fontSize = 28.sp)
+                        }
+                    }
+                }
+            }
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -71,34 +127,71 @@ fun EmojiSearchHeader(service: AddiyonKeyboardService) {
                 )
             }
 
-            Row(
-                modifier = Modifier.weight(1f).padding(start = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (query.isEmpty()) {
-                    Text(
-                        text = "Search emoji",
-                        fontSize = 15.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                    )
-                } else {
-                    Text(
-                        text = query,
-                        fontSize = 15.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        // Not weight(1f): the cursor bar must hug the text's
-                        // trailing edge, not be pushed to the row's end.
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
+            // The IME window never gains real window focus (the app behind it
+            // keeps it), and Compose gates the text cursor's blink -- and
+            // selection handles -- on LocalWindowInfo.isWindowFocused. Lie to
+            // just this field so it presents as the active editor it
+            // effectively is; everything else from the real WindowInfo is
+            // kept by delegation.
+            val realWindowInfo = LocalWindowInfo.current
+            val focusedWindowInfo = remember(realWindowInfo) {
+                object : WindowInfo by realWindowInfo {
+                    override val isWindowFocused: Boolean get() = true
                 }
-                Spacer(modifier = Modifier.width(1.dp))
-                Box(
+            }
+            CompositionLocalProvider(LocalWindowInfo provides focusedWindowInfo) {
+                BasicTextField(
+                    value = fieldValue,
+                    onValueChange = { service.updateEmojiSearchField(it) },
                     modifier = Modifier
-                        .width(2.dp)
-                        .height(18.dp)
-                        .background(MaterialTheme.colorScheme.primary)
+                        .weight(1f)
+                        .height(32.dp)
+                        .padding(start = 4.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                            shape = CircleShape
+                        )
+                        .focusRequester(focusRequester)
+                        .onFocusChanged {
+                            if (it.isFocused) focusRequester.captureFocus()
+                        },
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        keyboardType = KeyboardType.Text
+                    ),
+                    decorationBox = { innerTextField ->
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (query.isEmpty()) {
+                                    Text(
+                                        text = "Search emoji",
+                                        fontSize = 15.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
+                    }
                 )
             }
 
@@ -117,40 +210,6 @@ fun EmojiSearchHeader(service: AddiyonKeyboardService) {
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.size(18.dp)
                     )
-                }
-            }
-        }
-
-        // Fixed-height result strip so the key rows below don't shift as
-        // results appear and disappear per keystroke.
-        Box(modifier = Modifier.fillMaxWidth().height(44.dp)) {
-            if (results.isEmpty()) {
-                if (query.isNotBlank()) {
-                    Text(
-                        text = "No emoji found",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-            } else {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    items(count = results.size) { index ->
-                        val emoji = results[index]
-                        val displayed = service.selectedSkinTones[emoji.base] ?: emoji.base
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .clickable { service.commitEmoji(displayed) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(text = displayed, fontSize = 24.sp)
-                        }
-                    }
                 }
             }
         }

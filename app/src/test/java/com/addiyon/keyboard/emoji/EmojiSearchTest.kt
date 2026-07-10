@@ -39,6 +39,20 @@ class EmojiSearchTest {
     }
 
     @Test
+    fun `name token prefix ranks before loose substring matches`() {
+        val flags = EmojiData.parse(
+            listOf(
+                "G\tFlags",
+                emoji("🧪", "test tube", "science"),
+                emoji("🐾", "paw prints", "pet"),
+                emoji("🇪🇹", "flag: Ethiopia", "flag")
+            ).asSequence()
+        )
+
+        assertEquals("🇪🇹", flags.search("et").first().base)
+    }
+
+    @Test
     fun `empty and blank queries match nothing`() {
         assertTrue(data.search("").isEmpty())
         assertTrue(data.search("   ").isEmpty())

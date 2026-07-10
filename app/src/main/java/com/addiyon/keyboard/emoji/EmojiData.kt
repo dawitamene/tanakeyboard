@@ -69,17 +69,37 @@ class EmojiData(val groups: List<EmojiGroup>) {
         val q = query.trim().lowercase()
         if (q.isEmpty()) return emptyList()
 
-        val prefixMatches = ArrayList<Emoji>()
+        val namePrefixMatches = ArrayList<Emoji>()
+        val nameTokenPrefixMatches = ArrayList<Emoji>()
+        val keywordPrefixMatches = ArrayList<Emoji>()
         val containsMatches = ArrayList<Emoji>()
         for (emoji in allEmoji) {
-            if (emoji.searchHaystack.startsWith(q)) {
-                prefixMatches.add(emoji)
-                if (prefixMatches.size >= limit) break
-            } else if (containsMatches.size < limit && emoji.searchHaystack.contains(q)) {
+            val separator = emoji.searchHaystack.indexOf(HAYSTACK_SEPARATOR)
+            val name = if (separator >= 0) {
+                emoji.searchHaystack.substring(0, separator)
+            } else {
+                emoji.searchHaystack
+            }
+            val keywords = if (separator >= 0) {
+                emoji.searchHaystack.substring(separator + 1)
+            } else {
+                ""
+            }
+
+            if (name.startsWith(q)) {
+                if (namePrefixMatches.size < limit) namePrefixMatches.add(emoji)
+            } else if (startsToken(name, q)) {
+                if (nameTokenPrefixMatches.size < limit) nameTokenPrefixMatches.add(emoji)
+            } else if (startsToken(keywords, q)) {
+                if (keywordPrefixMatches.size < limit) keywordPrefixMatches.add(emoji)
+            } else if (containsMatches.size < limit &&
+                (name.contains(q) || keywords.contains(q))
+            ) {
                 containsMatches.add(emoji)
             }
         }
-        return (prefixMatches + containsMatches).take(limit)
+        return (namePrefixMatches + nameTokenPrefixMatches + keywordPrefixMatches + containsMatches)
+            .take(limit)
     }
 
     companion object {
@@ -88,6 +108,22 @@ class EmojiData(val groups: List<EmojiGroup>) {
         // Separates name from keywords in the haystack. Never occurs in CLDR
         // names/keywords, so a query can't accidentally straddle the two.
         private const val HAYSTACK_SEPARATOR = '\u001F'
+
+        private fun startsToken(text: String, query: String): Boolean {
+            var tokenStart = true
+            for (index in text.indices) {
+                val char = text[index]
+                if (char.isLetterOrDigit()) {
+                    if (tokenStart && text.startsWith(query, startIndex = index)) {
+                        return true
+                    }
+                    tokenStart = false
+                } else {
+                    tokenStart = true
+                }
+            }
+            return false
+        }
 
         /**
          * Parses `emoji.dat` lines (already decompressed) into [EmojiData].

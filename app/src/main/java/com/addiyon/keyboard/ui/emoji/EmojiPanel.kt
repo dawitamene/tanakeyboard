@@ -1,6 +1,7 @@
 package com.addiyon.keyboard.ui.emoji
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
@@ -100,7 +102,10 @@ fun EmojiPanel(
             }
         }
 
-        SearchPill(onClick = { service.openEmojiSearch() })
+        SearchPill(
+            onBack = { service.closeEmojiPanel() },
+            onClick = { service.openEmojiSearch() }
+        )
 
         EmojiGrid(
             cells = browse.cells,
@@ -160,18 +165,44 @@ private class BrowseList(data: EmojiData, recents: List<String>) {
 }
 
 @Composable
-private fun SearchPill(onClick: () -> Unit) {
+private fun SearchPill(
+    onBack: () -> Unit,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(40.dp)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .clip(CircleShape)
+                .clickable(onClick = onBack)
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                contentDescription = "Back to keyboard",
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
         Row(
             modifier = Modifier
-                .fillMaxSize()
+                .weight(1f)
+                .fillMaxHeight()
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surface)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    shape = CircleShape
+                )
                 .clickable(onClick = onClick)
                 .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically
