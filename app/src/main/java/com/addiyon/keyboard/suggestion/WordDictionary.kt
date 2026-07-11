@@ -104,12 +104,18 @@ class WordDictionary(context: Context, private val assetName: String) {
     fun suggestions(prefix: String, limit: Int = 3): List<String> =
         trie?.suggestions(prefix, limit) ?: emptyList()
 
+    fun suggestionEntries(prefix: String, limit: Int = 3): List<WordTrie.Suggestion> =
+        trie?.suggestionEntries(prefix, limit) ?: emptyList()
+
+    fun frequencyOf(word: String): Int? =
+        trie?.frequencyOf(word)
+
     /**
      * Whether [word] is an exact dictionary entry. False (not an error) if
      * the dictionary hasn't finished loading yet -- see
      * [com.addiyon.keyboard.suggestion.CandidateRanker].
      */
-    fun isWord(word: String): Boolean = trie?.frequencyOf(word) != null
+    fun isWord(word: String): Boolean = frequencyOf(word) != null
 
     /**
      * Fuzzy / typo-tolerant completions of [prefix] -- see

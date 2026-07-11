@@ -36,6 +36,8 @@ Tana Keyboard is an Android IME (`InputMethodService`) with Amharic (Ge'ez scrip
 When the user asks to create a plan or plan something, write a detailed plan as a Markdown file in `plans/` (e.g. `plans/feature-name.md`). Do NOT execute or write any code — only the plan file. The plan should cover the approach, affected files, step-by-step breakdown, and any risks or open questions.
 
 ## After every code change
+- Run the relevant test(s) for the changed behavior. Prefer the focused test class/target when possible; broaden the test run when shared behavior is affected.
+- When adding a new feature, add or update tests that cover that feature.
 - Build and install on emulator: `./gradlew installDebug`
 - Generate timestamped APK in `/Users/dev/Shared`: `./gradlew assembleDebug`
 

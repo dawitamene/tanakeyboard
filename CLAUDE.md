@@ -15,10 +15,12 @@ When the user asks to create a plan or plan something, write a detailed, structu
 
 ## After every code change
 
-Always do both after making changes:
+Always do the relevant verification after making changes:
 
-1. Install and run on emulator: `./gradlew installDebug`
-2. Generate timestamped APK in `/Users/dev/Shared`: `./gradlew assembleDebug`
+1. Run the relevant test(s) for the changed behavior. Prefer a focused test class/target when possible; broaden the test run when shared behavior is affected.
+2. When adding a new feature, add or update tests that cover that feature.
+3. Install and run on emulator: `./gradlew installDebug`
+4. Generate timestamped APK in `/Users/dev/Shared`: `./gradlew assembleDebug`
 
 ## Commands
 

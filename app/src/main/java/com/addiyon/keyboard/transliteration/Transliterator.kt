@@ -82,6 +82,8 @@ package com.addiyon.keyboard.transliteration
  */
 object Transliterator {
 
+    data class CandidateReading(val text: String, val isQuirk: Boolean)
+
     fun transliterate(latin: String): String {
         val out = StringBuilder(latin.length)
         forEachGreedyUnit(latin) { text -> out.append(text) }
@@ -111,7 +113,12 @@ object Transliterator {
      * renderings ([renderings], primary family form first, then each
      * alternate family in [AmharicTable.consonantAlternates] order).
      */
-    private class UnitOption(val length: Int, val segRank: Int, val renderings: List<String>)
+    private class UnitOption(
+        val length: Int,
+        val segRank: Int,
+        val renderings: List<String>,
+        val isQuirk: Boolean = false
+    )
 
     /**
      * The candidate unit choices starting at position [i]: normally exactly
@@ -130,14 +137,27 @@ object Transliterator {
                 .firstOrNull { latin.startsWith(it, i, ignoreCase = true) }
 
         if (greedyConsonant != null) {
-            val options = mutableListOf(consonantUnit(latin, i, greedyConsonant, segRank = 0))
+            val greedy = consonantUnit(latin, i, greedyConsonant, segRank = 0)
+            val options = mutableListOf(greedy)
+            if (greedy.length > greedyConsonant.length) {
+                options.add(
+                    consonantUnit(
+                        latin,
+                        i,
+                        greedyConsonant,
+                        segRank = 1,
+                        consumeFollowingVowel = false,
+                        isQuirk = true
+                    )
+                )
+            }
             if (greedyConsonant.length > 1) {
                 val splitConsonant = AmharicTable.singleCharConsonants
                     .firstOrNull { latin.startsWith(it, i) }
                     ?: AmharicTable.singleCharConsonants
                         .firstOrNull { latin.startsWith(it, i, ignoreCase = true) }
                 if (splitConsonant != null) {
-                    options.add(consonantUnit(latin, i, splitConsonant, segRank = 1))
+                    options.add(consonantUnit(latin, i, splitConsonant, segRank = 2))
                 }
             }
             return options
@@ -157,10 +177,21 @@ object Transliterator {
      * [UnitOption.renderings] are progressively less-primary readings of the
      * SAME segmentation and vowel choice.
      */
-    private fun consonantUnit(latin: String, i: Int, consonant: String, segRank: Int): UnitOption {
+    private fun consonantUnit(
+        latin: String,
+        i: Int,
+        consonant: String,
+        segRank: Int,
+        consumeFollowingVowel: Boolean = true,
+        isQuirk: Boolean = false
+    ): UnitOption {
         var pos = i + consonant.length
-        val vowel = AmharicTable.vowels
-            .firstOrNull { (spelling, _) -> latin.startsWith(spelling, pos, ignoreCase = true) }
+        val vowel = if (consumeFollowingVowel) {
+            AmharicTable.vowels
+                .firstOrNull { (spelling, _) -> latin.startsWith(spelling, pos, ignoreCase = true) }
+        } else {
+            null
+        }
         val vowelIndex: Int?
         if (vowel == null) {
             vowelIndex = null
@@ -174,7 +205,7 @@ object Transliterator {
             AmharicTable.consonantAlternates[consonant]?.let { addAll(it) }
         }
         val renderings = families.map { family -> renderFamily(family, vowelIndex) }
-        return UnitOption(length = pos - i, segRank = segRank, renderings = renderings)
+        return UnitOption(length = pos - i, segRank = segRank, renderings = renderings, isQuirk = isQuirk)
     }
 
     private fun renderFamily(family: AmharicTable.Family, vowelIndex: Int?): String = when {
@@ -201,14 +232,38 @@ object Transliterator {
             else -> null
         }
         val renderings = buildList {
+            if (bareVowel.spelling.equals("a", ignoreCase = true)) {
+                addAll(aBareVowelRenderings(bareVowel.familyKey))
+                return@buildList
+            }
             add(AmharicTable.families.getValue(bareVowel.familyKey).forms[bareVowel.index].toString())
             flippedKey?.let { add(AmharicTable.families.getValue(it).forms[bareVowel.index].toString()) }
         }
         return UnitOption(length = bareVowel.spelling.length, segRank = 0, renderings = renderings)
     }
 
+    private fun aBareVowelRenderings(primaryFamilyKey: String): List<String> {
+        val glottal = AmharicTable.families.getValue("'")
+        val pharyngeal = AmharicTable.families.getValue("`")
+        return if (primaryFamilyKey == "'") {
+            listOf(
+                glottal.forms[0].toString(),
+                pharyngeal.forms[3].toString(),
+                pharyngeal.forms[0].toString(),
+                glottal.forms[3].toString()
+            )
+        } else {
+            listOf(
+                pharyngeal.forms[0].toString(),
+                pharyngeal.forms[3].toString(),
+                glottal.forms[0].toString(),
+                glottal.forms[3].toString()
+            )
+        }
+    }
+
     /** One fully-assembled path through the lattice: its rendered text and the ordered per-unit rank pairs used to sort it. */
-    private class PathCandidate(val rankKey: List<Int>, val text: String)
+    private class PathCandidate(val rankKey: List<Int>, val text: String, val isQuirk: Boolean)
 
     private val RANK_KEY_COMPARATOR = Comparator<List<Int>> { a, b ->
         val n = minOf(a.size, b.size)
@@ -219,8 +274,10 @@ object Transliterator {
         a.size.compareTo(b.size)
     }
 
+    private const val DEFAULT_CANDIDATE_LIMIT = 48
+
     /** Internal beam width: generous enough that dedup/cap at the public [candidates] limit never starves a real exact-match reading. */
-    private const val BEAM_WIDTH = 48
+    private const val BEAM_WIDTH = 96
 
     /**
      * The distinct plausible fidel readings of [latin], greedy reading always
@@ -241,15 +298,24 @@ object Transliterator {
      * Deduped (by rendered text, keeping the lowest-ranked path) and capped
      * at [limit].
      */
-    fun candidates(latin: String, limit: Int = 24): List<String> {
+    fun candidates(latin: String, limit: Int = DEFAULT_CANDIDATE_LIMIT): List<String> {
+        return candidateReadings(latin, limit).map { it.text }
+    }
+
+    fun candidateReadings(latin: String, limit: Int = DEFAULT_CANDIDATE_LIMIT): List<CandidateReading> {
         if (latin.isEmpty()) return emptyList()
         val memo = HashMap<Int, List<PathCandidate>>()
-        return bestFrom(latin, 0, memo).asSequence().map { it.text }.distinct().take(limit).toList()
+        return bestFrom(latin, 0, memo)
+            .asSequence()
+            .distinctBy { it.text }
+            .take(limit)
+            .map { CandidateReading(it.text, it.isQuirk) }
+            .toList()
     }
 
     private fun bestFrom(latin: String, i: Int, memo: HashMap<Int, List<PathCandidate>>): List<PathCandidate> {
         memo[i]?.let { return it }
-        if (i == latin.length) return listOf(PathCandidate(emptyList(), ""))
+        if (i == latin.length) return listOf(PathCandidate(emptyList(), "", isQuirk = false))
 
         val options = unitOptionsAt(latin, i)
         val results = ArrayList<PathCandidate>()
@@ -261,7 +327,13 @@ object Transliterator {
                     rankKey.add(option.segRank)
                     rankKey.add(familyRank)
                     rankKey.addAll(suffix.rankKey)
-                    results.add(PathCandidate(rankKey, renderText + suffix.text))
+                    results.add(
+                        PathCandidate(
+                            rankKey,
+                            renderText + suffix.text,
+                            option.isQuirk || suffix.isQuirk
+                        )
+                    )
                 }
             }
         }

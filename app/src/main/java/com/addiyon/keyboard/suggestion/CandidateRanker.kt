@@ -1,23 +1,30 @@
 package com.addiyon.keyboard.suggestion
 
 /**
- * Reorders a list of transliteration readings (see
- * [com.addiyon.keyboard.transliteration.Transliterator.candidates]) so an
- * exact dictionary match wins the commit slot over a structurally-greedier
- * reading that isn't a real word -- "fkr" -> ፍቅር (a word) beats the greedy
- * ፍክር (not a word).
- *
- * A STABLE PARTITION, nothing more: candidates that are exact dictionary
- * words come first (in the engine's own structural order), then everything
- * else (also in structural order). No frequency-based reordering -- among
- * multiple exact matches, or when nothing matches, the engine's greedy-first
- * order is deterministic and stays put; the Amharic dictionary's frequencies
- * are a heuristic, not real corpus data, so they aren't a reordering signal.
- *
- * Pure Kotlin, JVM-testable without a real dictionary -- [isWord] is any
- * predicate, so tests inject a fake.
+ * Reorders transliteration readings and dictionary results without touching
+ * the deterministic composing buffer. The legacy [rank] API is still a stable
+ * exact-word partition; [bestCommitCandidate] and [rankAmharic] add the scored
+ * Amharic suggestion behavior used by the service.
  */
 object CandidateRanker {
+    data class DictionaryWord(val word: String, val frequency: Int)
+    data class FuzzyWord(val word: String, val frequency: Int, val editDistance: Int)
+
+    private data class ScoredSuggestion(
+        val word: String,
+        val score: Int,
+        val sourceRank: Int,
+        val structuralIndex: Int
+    )
+
+    private const val EXACT_WORD_BONUS = 160_000
+    private const val LITERAL_BONUS = 120_000
+    private const val COMPLETION_BONUS = 80_000
+    private const val FUZZY_BONUS = 40_000
+    private const val STRUCTURAL_PENALTY = 180
+    private const val COMPLETION_LENGTH_PENALTY = 20
+    private const val FUZZY_EDIT_PENALTY = 5_000
+
     fun rank(candidates: List<String>, isWord: (String) -> Boolean): List<String> {
         val exact = ArrayList<String>(candidates.size)
         val rest = ArrayList<String>(candidates.size)
@@ -27,4 +34,138 @@ object CandidateRanker {
         exact.addAll(rest)
         return exact
     }
+
+    fun bestCommitCandidate(
+        candidates: List<String>,
+        frequencyOf: (String) -> Int?
+    ): String? {
+        if (candidates.isEmpty()) return null
+        var bestWord: String? = null
+        var bestScore = Int.MIN_VALUE
+        for ((index, candidate) in candidates.withIndex()) {
+            val frequency = frequencyOf(candidate) ?: continue
+            val score = exactScore(frequency, index)
+            if (score > bestScore) {
+                bestScore = score
+                bestWord = candidate
+            }
+        }
+        return bestWord ?: candidates.first()
+    }
+
+    fun rankAmharic(
+        readings: List<String>,
+        limit: Int,
+        frequencyOf: (String) -> Int?,
+        completionsForPrefix: (String, Int) -> List<DictionaryWord>,
+        visibleReadings: List<String> = emptyList(),
+        fuzzyWords: List<FuzzyWord> = emptyList()
+    ): List<String> {
+        if (readings.isEmpty() || limit <= 0) return emptyList()
+
+        val scored = ArrayList<ScoredSuggestion>()
+        var hasExactReading = false
+
+        for ((index, reading) in readings.withIndex()) {
+            val frequency = frequencyOf(reading) ?: continue
+            hasExactReading = true
+            scored.add(
+                ScoredSuggestion(
+                    reading,
+                    exactScore(frequency, index),
+                    sourceRank = 0,
+                    structuralIndex = index
+                )
+            )
+        }
+
+        if (!hasExactReading) {
+            scored.add(
+                ScoredSuggestion(
+                    readings.first(),
+                    LITERAL_BONUS,
+                    sourceRank = 1,
+                    structuralIndex = 0
+                )
+            )
+            for ((index, reading) in visibleReadings.withIndex()) {
+                if (reading == readings.first()) continue
+                scored.add(
+                    ScoredSuggestion(
+                        reading,
+                        visibleReadingScore(index + 1),
+                        sourceRank = 1,
+                        structuralIndex = index + 1
+                    )
+                )
+            }
+        }
+
+        for ((index, reading) in readings.withIndex()) {
+            val completions = completionsForPrefix(reading, limit)
+            for (completion in completions) {
+                if (completion.word == reading) continue
+                scored.add(
+                    ScoredSuggestion(
+                        completion.word,
+                        completionScore(
+                            completion.frequency,
+                            index,
+                            completion.word.length - reading.length
+                        ),
+                        sourceRank = 2,
+                        structuralIndex = index
+                    )
+                )
+            }
+        }
+
+        for (word in fuzzyWords) {
+            scored.add(
+                ScoredSuggestion(
+                    word.word,
+                    fuzzyScore(word.frequency, word.editDistance),
+                    sourceRank = 3,
+                    structuralIndex = Int.MAX_VALUE
+                )
+            )
+        }
+
+        return scored
+            .groupBy { it.word }
+            .values
+            .map { options ->
+                options.maxWithOrNull(
+                    compareBy<ScoredSuggestion> { it.score }
+                        .thenByDescending { -it.sourceRank }
+                        .thenByDescending { -it.structuralIndex }
+                )!!
+            }
+            .sortedWith(
+                compareByDescending<ScoredSuggestion> { it.score }
+                    .thenBy { it.sourceRank }
+                    .thenBy { it.structuralIndex }
+                    .thenBy { it.word }
+            )
+            .map { it.word }
+            .take(limit)
+    }
+
+    private fun exactScore(frequency: Int, structuralIndex: Int): Int =
+        EXACT_WORD_BONUS + frequencyScore(frequency) - structuralIndex * STRUCTURAL_PENALTY
+
+    private fun completionScore(frequency: Int, structuralIndex: Int, lengthDelta: Int): Int =
+        COMPLETION_BONUS +
+            frequencyScore(frequency) -
+            structuralIndex * STRUCTURAL_PENALTY -
+            lengthDelta.coerceAtLeast(0) * COMPLETION_LENGTH_PENALTY
+
+    private fun fuzzyScore(frequency: Int, editDistance: Int): Int =
+        FUZZY_BONUS + frequencyScore(frequency) - editDistance * FUZZY_EDIT_PENALTY
+
+    private fun visibleReadingScore(index: Int): Int =
+        LITERAL_BONUS - index * STRUCTURAL_PENALTY
+
+    private fun frequencyScore(frequency: Int): Int =
+        frequency.coerceAtLeast(0).coerceAtMost(30_000)
 }

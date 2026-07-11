@@ -141,14 +141,18 @@ class TransliteratorTest {
     @Test
     fun twoFormLettersOfferBothFormsAsCandidates() {
         // Each of these families is reachable un-shifted via its alternate.
-        // "h" has TWO alternates: the ሐ case form, then the velar ኀ series.
-        assertEquals(setOf("ህ", "ሕ", "ኅ"), Transliterator.candidates("h").toSet())
+        // "h" has TWO alternates: the velar ኀ series, then the ሐ case form.
+        assertEquals(listOf("ህ", "ኅ", "ሕ"), Transliterator.candidates("h"))
         assertEquals(setOf("ስ", "ሥ"), Transliterator.candidates("s").toSet())
-        assertEquals(setOf("አ", "ዐ"), Transliterator.candidates("a").toSet())
+        assertEquals(listOf("አ", "ዓ", "ዐ", "ኣ"), Transliterator.candidates("a"))
+        assertEquals(listOf("ች", "ጭ"), Transliterator.candidates("c"))
+        assertEquals(listOf("ፕ", "ጵ"), Transliterator.candidates("p"))
         // "ts": both forms (ጽ/ፅ) plus the separated t+s reading.
         assertTrue(Transliterator.candidates("ts").containsAll(listOf("ጽ", "ፅ", "ትስ")))
         // A whole word: the ሠ variant rides along behind the greedy one.
-        assertEquals(listOf("ሰላም", "ሠላም"), Transliterator.candidates("selam"))
+        val selam = Transliterator.candidates("selam")
+        assertEquals("ሰላም", selam.first())
+        assertTrue("ሠላም" in selam)
     }
 
     @Test
@@ -158,7 +162,9 @@ class TransliteratorTest {
         // two easily-confused families are both reachable without shift.
         assertEquals("ክ", Transliterator.transliterate("k"))
         assertEquals(listOf("ክ", "ቅ"), Transliterator.candidates("k"))
-        assertEquals(listOf("ካ", "ቃ"), Transliterator.candidates("ka"))
+        val ka = Transliterator.candidates("ka")
+        assertEquals("ካ", ka.first())
+        assertTrue("ቃ" in ka)
     }
 
     @Test
@@ -167,7 +173,9 @@ class TransliteratorTest {
         // ጥ) rides along as a secondary reading, reachable without shift.
         assertEquals("ት", Transliterator.transliterate("t"))
         assertEquals(listOf("ት", "ጥ"), Transliterator.candidates("t"))
-        assertEquals(listOf("ታ", "ጣ"), Transliterator.candidates("ta"))
+        val ta = Transliterator.candidates("ta")
+        assertEquals("ታ", ta.first())
+        assertTrue("ጣ" in ta)
     }
 
     @Test
@@ -196,10 +204,8 @@ class TransliteratorTest {
 
     @Test
     fun dedupesIdenticalRenderings() {
-        // "m" and "l" have no alternates and no digraph -- a word built only
-        // from them produces exactly one candidate, no accidental duplicates
-        // from the lattice traversal.
-        assertEquals(1, Transliterator.candidates("mala").size)
+        val readings = Transliterator.candidates("mala")
+        assertEquals(readings.toSet().size, readings.size)
     }
 
     @Test
@@ -217,7 +223,30 @@ class TransliteratorTest {
         // "T" has no entry of its own in consonantAlternates (only "t" ->
         // T is defined, not the reverse), so it has exactly one candidate.
         assertEquals(listOf("ጥ"), Transliterator.candidates("T"))
-        assertEquals(setOf("ዐ", "አ"), Transliterator.candidates("A").toSet())
+        assertEquals(setOf("ጵ", "ፕ"), Transliterator.candidates("P").toSet())
+        assertEquals(setOf("ዐ", "ዓ", "አ", "ኣ"), Transliterator.candidates("A").toSet())
+    }
+
+    @Test
+    fun vowelAfterConsonantCanSplitIntoBareConsonantAndStandaloneVowel() {
+        assertEquals("ባ", Transliterator.transliterate("ba"))
+        assertTrue("ብአ" in Transliterator.candidates("ba"))
+        assertTrue("ብአድ" in Transliterator.candidates("bad"))
+        assertTrue(
+            Transliterator.candidateReadings("bad")
+                .first { it.text == "ብአድ" }
+                .isQuirk
+        )
+    }
+
+    @Test
+    fun firstLetterAlternatesSurviveSplitVowelCandidateExpansion() {
+        assertTrue("ጭላዳ" in Transliterator.candidates("clada"))
+    }
+
+    @Test
+    fun mixedPAndTAlternatesSurviveSplitVowelCandidateExpansion() {
+        assertTrue("ጴንጤ" in Transliterator.candidates("pientie"))
     }
 
     // ----- punctuation ---------------------------------------------------

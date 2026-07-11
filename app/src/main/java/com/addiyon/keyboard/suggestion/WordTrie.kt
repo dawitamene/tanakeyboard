@@ -33,6 +33,7 @@ import java.util.PriorityQueue
  * [com.addiyon.keyboard.transliteration.AmharicTable].
  */
 class WordTrie private constructor(private val root: Node) {
+    data class Suggestion(val word: String, val frequency: Int)
 
     private class Node {
         val children = HashMap<Char, Node>()
@@ -69,7 +70,10 @@ class WordTrie private constructor(private val root: Node) {
      * rather than the whole subtree. This keeps latency flat as the dictionary
      * grows (short, high-fan-out prefixes like "e" no longer scan everything).
      */
-    fun suggestions(prefix: String, limit: Int = 3): List<String> {
+    fun suggestions(prefix: String, limit: Int = 3): List<String> =
+        suggestionEntries(prefix, limit).map { it.word }
+
+    fun suggestionEntries(prefix: String, limit: Int = 3): List<Suggestion> {
         if (prefix.isEmpty() || limit <= 0) return emptyList()
 
         var node = root
@@ -77,7 +81,7 @@ class WordTrie private constructor(private val root: Node) {
             node = node.children[c.lowercaseChar()] ?: return emptyList()
         }
 
-        val results = ArrayList<String>(limit)
+        val results = ArrayList<Suggestion>(limit)
         // Each Candidate is either a subtree to expand (node != null, priority =
         // subtreeMaxFrequency) or a word to emit (emit != null, priority =
         // frequency). Highest priority pops first.
@@ -91,7 +95,7 @@ class WordTrie private constructor(private val root: Node) {
                 continue
             }
             val n = c.node!!
-            n.word?.let { frontier.add(Candidate(n.frequency, null, it)) }
+            n.word?.let { frontier.add(Candidate(n.frequency, null, Suggestion(it, n.frequency))) }
             for (child in n.children.values) {
                 frontier.add(Candidate(child.subtreeMaxFrequency, child, null))
             }
@@ -99,7 +103,7 @@ class WordTrie private constructor(private val root: Node) {
         return results
     }
 
-    private class Candidate(val priority: Int, val node: Node?, val emit: String?)
+    private class Candidate(val priority: Int, val node: Node?, val emit: Suggestion?)
 
     /**
      * The stored frequency of [word] if it's an exact entry (case-insensitive
@@ -280,11 +284,11 @@ class WordTrie private constructor(private val root: Node) {
         while (results.size < limit) {
             val c = frontier.poll() ?: break
             if (c.emit != null) {
-                results.add(c.emit to c.priority)
+                results.add(c.emit.word to c.emit.frequency)
                 continue
             }
             val n = c.node!!
-            n.word?.let { frontier.add(Candidate(n.frequency, null, it)) }
+            n.word?.let { frontier.add(Candidate(n.frequency, null, Suggestion(it, n.frequency))) }
             for (child in n.children.values) {
                 frontier.add(Candidate(child.subtreeMaxFrequency, child, null))
             }

@@ -329,13 +329,10 @@ class AddiyonKeyboardService : InputMethodService(),
     /**
      * Re-derives [suggestions] from the active composer's current buffer.
      *
-     * Amharic is keyed off the LIVE TRANSLITERATED fidel prefix (exactly
-     * what's already shown in the composing region), not the raw Latin
-     * buffer -- reversing fidel back to a Latin spelling to look words up
-     * would be ambiguous, since the forward transliteration mapping isn't
-     * reliably invertible. See
-     * [com.addiyon.keyboard.suggestion.WordTrie]'s class doc for the
-     * full reasoning.
+     * Amharic keeps the raw Latin in the composing region, then generates
+     * multiple fidel readings from that buffer and checks each reading against
+     * the dictionary. Prefix-only readings stay alive for completions without
+     * being shown as standalone words.
      *
      * English lookups are lowercased (the dictionary stores every entry
      * lowercase) and the user's typed case pattern is restored on the way
@@ -356,19 +353,16 @@ class AddiyonKeyboardService : InputMethodService(),
 
     /**
      * The reading that lands in the field when the current Amharic word is
-     * committed: the top of [CandidateRanker.rank] over
-     * [Transliterator.candidates], i.e. a dictionary-exact reading if one
-     * exists, else the structurally greedy one. Falls back to the plain
-     * greedy [Transliterator.transliterate] when the dictionary hasn't
-     * finished loading (or somehow ranks nothing) so typing is never
-     * blocked on it. Recomputed fresh from [raw] every call -- see
-     * [amharicComposer]'s commitTransform doc.
+     * committed: the best exact dictionary reading if one exists, else the
+     * structurally greedy reading. Longer completions remain tap-only.
      */
     private fun topAmharicCandidate(raw: String): String {
         if (raw.isEmpty()) return ""
         if (!::amharicDictionary.isInitialized) return Transliterator.transliterate(raw)
-        val ranked = CandidateRanker.rank(Transliterator.candidates(raw), amharicDictionary::isWord)
-        return ranked.firstOrNull() ?: Transliterator.transliterate(raw)
+        return CandidateRanker.bestCommitCandidate(
+            Transliterator.candidates(raw),
+            amharicDictionary::frequencyOf
+        ) ?: Transliterator.transliterate(raw)
     }
 
     private fun publishSuggestions(value: List<String>) {
@@ -412,59 +406,63 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     /**
-     * Amharic suggestions: the live word's RANKED readings first (dictionary-
-     * exact match promoted ahead of the structurally greedy one -- see
-     * [CandidateRanker]), then dictionary completions, as one scrollable
-     * strip.
-     *
-     * The field itself shows the raw, romanized Latin while typing -- the
-     * fidel readings live ONLY in this strip, so unlike the old greedy-in-
-     * field design nothing is dropped here: the first (highlighted) chip is
-     * exactly what space/enter would commit ([topAmharicCandidate]). Every
-     * ranked reading is also used as a dictionary prefix -- an ambiguous
-     * buffer searches every plausible reading's completions -- appended,
-     * deduped, capped at [AMHARIC_SUGGESTION_LIMIT]. Tapping any chip
-     * replaces the in-field word ([WordComposer.commitSuggestion]).
+     * Amharic suggestions are scored from exact dictionary readings,
+     * prefix completions, the current literal fallback, and fuzzy matches.
+     * Dead alternates are hidden unless they lead to a word.
      */
     private fun amharicSuggestions(latin: String): List<String> {
         if (latin.isEmpty()) return emptyList()
 
-        val readings = CandidateRanker.rank(Transliterator.candidates(latin), amharicDictionary::isWord)
-        val merged = LinkedHashSet<String>(AMHARIC_SUGGESTION_LIMIT + readings.size)
-        for (reading in readings) merged.add(reading)
-
-        for (reading in readings) {
-            val completions = amharicDictionary.suggestions(reading, AMHARIC_SUGGESTION_LIMIT)
-            for (word in completions) {
-                merged.add(word)
-                if (merged.size > AMHARIC_SUGGESTION_LIMIT) break
+        val candidateReadings = Transliterator.candidateReadings(latin)
+        val readings = candidateReadings.map { it.text }
+        val visibleReadings = candidateReadings
+            .filter { latin.length == 1 || it.isQuirk }
+            .map { it.text }
+        val completionCache = HashMap<String, List<CandidateRanker.DictionaryWord>>()
+        val completionsForPrefix = { prefix: String, limit: Int ->
+            completionCache.getOrPut(prefix) {
+                amharicDictionary.suggestionEntries(prefix, limit).map {
+                    CandidateRanker.DictionaryWord(it.word, it.frequency)
+                }
             }
-            if (merged.size > AMHARIC_SUGGESTION_LIMIT) break
         }
 
-        if (merged.size <= AMHARIC_SUGGESTION_LIMIT &&
-            readings.any { it.length <= MAX_FUZZY_READING_LENGTH }
+        val ranked = CandidateRanker.rankAmharic(
+            readings = readings,
+            limit = AMHARIC_SUGGESTION_LIMIT,
+            frequencyOf = amharicDictionary::frequencyOf,
+            completionsForPrefix = completionsForPrefix,
+            visibleReadings = visibleReadings
+        )
+        if (ranked.size >= AMHARIC_SUGGESTION_LIMIT ||
+            readings.none { it.length <= MAX_FUZZY_READING_LENGTH }
         ) {
-            val fuzzy = ArrayList<WordTrie.FuzzyMatch>(AMHARIC_SUGGESTION_LIMIT)
-            for (reading in readings) {
-                if (reading.length > MAX_FUZZY_READING_LENGTH) continue
-                fuzzy += amharicDictionary.fuzzySuggestions(
-                    reading,
-                    fuzzyEditBudget(reading.length),
-                    AMHARIC_SUGGESTION_LIMIT,
-                    AMHARIC_FIDEL_COST,
-                    insertCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
-                    deleteCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
-                )
-            }
-            fuzzy.sortWith(compareBy({ it.editDistance }, { -it.frequency }))
-            for (match in fuzzy) {
-                merged.add(match.word)
-                if (merged.size > AMHARIC_SUGGESTION_LIMIT) break
+            return ranked
+        }
+
+        val fuzzy = ArrayList<CandidateRanker.FuzzyWord>(AMHARIC_SUGGESTION_LIMIT)
+        for (reading in readings) {
+            if (reading.length > MAX_FUZZY_READING_LENGTH) continue
+            for (match in amharicDictionary.fuzzySuggestions(
+                reading,
+                fuzzyEditBudget(reading.length),
+                AMHARIC_SUGGESTION_LIMIT,
+                AMHARIC_FIDEL_COST,
+                insertCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
+                deleteCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
+            )) {
+                fuzzy += CandidateRanker.FuzzyWord(match.word, match.frequency, match.editDistance)
             }
         }
 
-        return merged.asSequence().take(AMHARIC_SUGGESTION_LIMIT).toList()
+        return CandidateRanker.rankAmharic(
+            readings = readings,
+            limit = AMHARIC_SUGGESTION_LIMIT,
+            frequencyOf = amharicDictionary::frequencyOf,
+            completionsForPrefix = completionsForPrefix,
+            visibleReadings = visibleReadings,
+            fuzzyWords = fuzzy
+        )
     }
 
     /**

@@ -250,8 +250,8 @@ object AmharicTable {
      * to its Nth alternate (1-based); a consonant with fewer alternates than
      * that just renders as itself and dedupes away.
      *
-     *   - h/H -> [the other case form, then the velar ኀ series]: typing "h"
-     *     surfaces ሀ… , ሐ… and ኀ… readings.
+     *   - h/H -> [the velar ኀ series, then the other case form]: typing "h"
+     *     surfaces ሀ… , ኀ… and ሐ… readings.
      *   - s/S -> [the other case form]: ሰ… and ሠ….
      *   - ts/Ts -> [the other case form]: ጸ… and ፀ….
      *   - k -> [the ቀ (q) series]: typing "k" primarily writes ከ/ክ but also
@@ -259,21 +259,25 @@ object AmharicTable {
      *     to confuse and share a key in the user's head.
      *   - t -> [the ጠ (T) series]: typing "t" primarily writes ተ/ት but also
      *     offers the ጥ family as a secondary reading.
+     *   - c/C -> [the other case form]: ቸ… and ጨ….
+     *   - p/P -> [the other case form]: ፐ… and ጰ….
      *
-     * c/C (ቸ/ጨ) is still left out: it'd flip on nearly every common word,
-     * burying the useful readings under noise. It stays reachable the old way,
-     * by pressing shift. Bare vowels a/A etc. have the same duality but are
-     * handled through [bareVowels] directly, not this map.
+     * Bare vowels a/A etc. have the same duality but are handled through
+     * [bareVowels] directly, not this map.
      */
     val consonantAlternates: Map<String, List<Family>> = mapOf(
-        "h" to listOf(families.getValue("H"), velarH),
-        "H" to listOf(families.getValue("h"), velarH),
+        "h" to listOf(velarH, families.getValue("H")),
+        "H" to listOf(velarH, families.getValue("h")),
         "s" to listOf(families.getValue("S")),
         "S" to listOf(families.getValue("s")),
         "ts" to listOf(families.getValue("Ts")),
         "Ts" to listOf(families.getValue("ts")),
         "k" to listOf(families.getValue("q")),
-        "t" to listOf(families.getValue("T"))
+        "t" to listOf(families.getValue("T")),
+        "c" to listOf(families.getValue("C")),
+        "C" to listOf(families.getValue("ch")),
+        "p" to listOf(families.getValue("P")),
+        "P" to listOf(families.getValue("p"))
     )
 
     /**
