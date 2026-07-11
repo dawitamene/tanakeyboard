@@ -236,6 +236,10 @@ private fun AmharicSuggestionStrip(
         verticalAlignment = Alignment.CenterVertically
     ) {
         suggestions.forEachIndexed { index, word ->
+            // The first chip is the space-commit target -- see
+            // AddiyonKeyboardService.topAmharicCandidate -- so it's
+            // highlighted (tinted + bold) to mark it as the default.
+            val isTop = index == 0
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -245,11 +249,12 @@ private fun AmharicSuggestionStrip(
                 Text(
                     text = word,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
+                    fontWeight = if (isTop) FontWeight.Bold else FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = if (isTop) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface
                 )
             }
 

@@ -102,6 +102,22 @@ class WordTrie private constructor(private val root: Node) {
     private class Candidate(val priority: Int, val node: Node?, val emit: String?)
 
     /**
+     * The stored frequency of [word] if it's an exact entry (case-insensitive
+     * path match, a la [suggestions]), else null. O(word length); used by
+     * [com.addiyon.keyboard.suggestion.CandidateRanker] to promote a
+     * dictionary-exact transliteration reading ahead of the structurally
+     * greedy one.
+     */
+    fun frequencyOf(word: String): Int? {
+        if (word.isEmpty()) return null
+        var node = root
+        for (c in word) {
+            node = node.children[c.lowercaseChar()] ?: return null
+        }
+        return node.word?.let { node.frequency }
+    }
+
+    /**
      * Cost of substituting one character for another during fuzzy matching.
      * Returns 0 when the two are "equal enough" to not count as an edit. The
      * default is uniform (any mismatch costs 1); the Amharic path injects a

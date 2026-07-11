@@ -69,6 +69,39 @@ class WordTrieTest {
         assertEquals(listOf("go", "good", "google"), t.suggestions("go"))
     }
 
+    // ---- frequencyOf --------------------------------------------------------
+
+    @Test
+    fun frequencyOfReturnsTheStoredFrequencyForAnExactWord() {
+        val t = trie("selam" to 42)
+        assertEquals(42, t.frequencyOf("selam"))
+    }
+
+    @Test
+    fun frequencyOfIsNullForAMiss() {
+        val t = trie("selam" to 42)
+        assertEquals(null, t.frequencyOf("xyz"))
+    }
+
+    @Test
+    fun frequencyOfIsNullForAPrefixThatIsNotItselfAWord() {
+        val t = trie("selam" to 42)
+        assertEquals(null, t.frequencyOf("sel"))
+    }
+
+    @Test
+    fun frequencyOfIsNullForAnEmptyWord() {
+        val t = trie("selam" to 42)
+        assertEquals(null, t.frequencyOf(""))
+    }
+
+    @Test
+    fun frequencyOfMatchesCaseInsensitively() {
+        val t = trie("England" to 500)
+        assertEquals(500, t.frequencyOf("england"))
+        assertEquals(500, t.frequencyOf("ENGLAND"))
+    }
+
     // ---- fuzzySuggestions -------------------------------------------------
 
     private fun WordTrie.fuzzyWords(prefix: String, maxEdits: Int, limit: Int = 3) =

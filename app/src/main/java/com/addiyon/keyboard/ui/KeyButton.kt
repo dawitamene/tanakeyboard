@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -143,6 +144,7 @@ fun KeyButton(
     soundOnKeypress: Boolean = false,
     onSwipe: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,
+    testTag: String? = null,
     /**
      * Optional custom face for the key, replacing the icon/[primaryText]
      * layout entirely (still centered, and still wrapped in all the press /
@@ -234,6 +236,7 @@ fun KeyButton(
         modifier = modifier
             .height(height)
             .padding(horizontal = 3.dp)
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
             .then(pressModifier)
             .then(swipeModifier),
         shape = RoundedCornerShape(6.dp),

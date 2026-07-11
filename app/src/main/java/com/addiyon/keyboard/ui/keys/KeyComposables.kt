@@ -37,6 +37,7 @@ import com.addiyon.keyboard.model.NumbersMode
 import com.addiyon.keyboard.model.ShiftState
 import com.addiyon.keyboard.transliteration.Transliterator
 import com.addiyon.keyboard.ui.KeyButton
+import com.addiyon.keyboard.ui.KeyboardTestTags
 import com.addiyon.keyboard.ui.icons.ShiftIconFilled
 import com.addiyon.keyboard.ui.icons.ShiftIconOutlined
 /**
@@ -124,7 +125,8 @@ fun CharacterKey(
         showsPreviewOnPress = true,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
-        onLongPress = longPressAction
+        onLongPress = longPressAction,
+        testTag = KeyboardTestTags.character(key.latin)
     ) {
         service.onCharacter(key.latin)
     }
@@ -183,6 +185,7 @@ fun RowScope.ShiftKey(
         isSpecial = true,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
+        testTag = KeyboardTestTags.KEY_SHIFT,
         onClick = onClick
     )
 }
@@ -215,6 +218,7 @@ fun RowScope.DeleteKey(
         repeatable = true,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
+        testTag = KeyboardTestTags.KEY_DELETE,
         onClick = onClick
     )
 }
@@ -250,6 +254,7 @@ fun RowScope.SpaceKey(
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
         onSwipe = onSwipe,
+        testTag = KeyboardTestTags.KEY_SPACE,
         onClick = onClick
     )
 }
@@ -288,6 +293,7 @@ fun RowScope.EnterKey(
         isSpecial = true,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
+        testTag = KeyboardTestTags.KEY_ENTER,
         onClick = onClick
     )
 }
@@ -324,6 +330,7 @@ fun RowScope.NumberToggleKey(
         isSpecial = true,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
+        testTag = KeyboardTestTags.KEY_NUMBER_TOGGLE,
         onClick = onClick
     )
 }
@@ -362,6 +369,7 @@ fun RowScope.SymbolsToggleKey(
         isSpecial = true,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
+        testTag = KeyboardTestTags.KEY_SYMBOLS_TOGGLE,
         onClick = onClick
     )
 }
@@ -391,6 +399,7 @@ fun RowScope.LanguageToggleKey(
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
         onClick = onClick,
+        testTag = KeyboardTestTags.KEY_LANGUAGE_TOGGLE,
         content = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

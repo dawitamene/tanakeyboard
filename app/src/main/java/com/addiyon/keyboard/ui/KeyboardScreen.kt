@@ -79,15 +79,6 @@ fun KeyboardScreen(
                 .fillMaxWidth()
                 .wrapContentHeight()
         ) {
-            /*
-            if (service.amharicBufferLatin.isNotEmpty()) {
-                BufferPreviewStrip(
-                    latin = service.amharicBufferLatin,
-                    modifier = Modifier.padding(start = 24.dp)
-                )
-            }
-            */
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -104,7 +95,7 @@ fun KeyboardScreen(
                 // rows at exactly their combined height (computed below from the
                 // same metrics the key branch uses), so opening/closing it never
                 // resizes the IME window. The composer is committed on open, so
-                // the BufferPreviewStrip above is never visible alongside it.
+                // no composing word is ever visible alongside it.
                 if (service.showEmojiPanel && !emojiSearching) {
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         // Mirror the key branch's sizing exactly: its

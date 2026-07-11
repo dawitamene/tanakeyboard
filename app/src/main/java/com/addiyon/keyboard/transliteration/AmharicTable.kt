@@ -219,12 +219,12 @@ object AmharicTable {
         families.keys.sortedByDescending { it.length }
 
     /**
-     * The single-letter subset of [consonantsByLength], used for the
-     * "separated" reading ([Transliterator.transliterateSplit]) that resolves
-     * an ambiguous digraph like "sh" as two consonants (ስ+ህ) instead of one
-     * (ሽ). Every multi-letter spelling breaks down into single letters that
-     * all exist here ("sh"->s+h, "ts"->t+s, "gn"->g+n, ...), so a split
-     * reading is always producible.
+     * The single-letter subset of [consonantsByLength], used by
+     * [Transliterator.candidates] for the "separated" reading at a digraph
+     * position that resolves an ambiguous digraph like "sh" as two
+     * consonants (ስ+ህ) instead of one (ሽ). Every multi-letter spelling
+     * breaks down into single letters that all exist here ("sh"->s+h,
+     * "ts"->t+s, "gn"->g+n, ...), so a split reading is always producible.
      */
     val singleCharConsonants: List<String> =
         consonantsByLength.filter { it.length == 1 }
@@ -284,6 +284,46 @@ object AmharicTable {
      */
     val maxAlternateLevel: Int =
         maxOf(1, consonantAlternates.values.maxOfOrNull { it.size } ?: 0)
+
+    /**
+     * Multi-tap alternate cycles: pressing the SAME key again within the
+     * multi-tap window (see AddiyonKeyboardService.MULTI_TAP_TIMEOUT_MS)
+     * REPLACES the just-typed Latin with the next spelling in its cycle,
+     * instead of appending a new letter -- so a user can reach the alternate
+     * families without shift or SERA spellings they may not know:
+     *
+     *   a -> አ ዓ ዐ ኣ      (glottal bare, pharyngeal+a, pharyngeal bare-A,
+     *                        glottal+a -- the four "a"-looking standalones)
+     *   u/i/o -> ኡ/ኢ/ኦ then ዑ/ዒ/ዖ   e -> እ then ዕ
+     *   k -> ክ ቅ    h -> ህ ሕ    s -> ስ ሥ    t -> ት ጥ
+     *   c -> ች ጭ    p -> ፕ ጵ    (+ uppercase inverses, so shift-first
+     *                              taps can cycle back the other way)
+     *
+     * Keyed by the shift-RESOLVED output of the keypress; entries are Latin
+     * spellings substituted into the raw buffer, so the whole-buffer
+     * transliteration keeps working unchanged (after a consonant, "`a" makes
+     * "se" + double-tapped "a" read ሰዓ -- the ሰዓት case). The service skips a
+     * cycle step when it wouldn't change the rendered word in the current
+     * context (e.g. "A" after a consonant is just the same vowel again).
+     */
+    val multiTapCycles: Map<String, List<String>> = mapOf(
+        "a" to listOf("a", "`a", "A", "'a"),
+        "u" to listOf("u", "`u"),
+        "i" to listOf("i", "`i"),
+        "o" to listOf("o", "`o"),
+        "e" to listOf("e", "`"),
+        "k" to listOf("k", "q"),
+        "h" to listOf("h", "H"),
+        "H" to listOf("H", "h"),
+        "s" to listOf("s", "S"),
+        "S" to listOf("S", "s"),
+        "t" to listOf("t", "T"),
+        "T" to listOf("T", "t"),
+        "c" to listOf("c", "C"),
+        "C" to listOf("C", "c"),
+        "p" to listOf("p", "P"),
+        "P" to listOf("P", "p")
+    )
 
     /**
      * Ethiopic punctuation for the two punctuation keys on the Amharic

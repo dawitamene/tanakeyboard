@@ -4,6 +4,7 @@ import com.addiyon.keyboard.layout.AmharicLayout
 import com.addiyon.keyboard.model.KeyData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TransliteratorTest {
@@ -104,65 +105,50 @@ class TransliteratorTest {
         assertEquals("ዐስተር", Transliterator.transliterate("Aster"))
     }
 
-    // ----- separated reading (digraph disambiguation) --------------------
+    // ----- candidates(): the suggestion-strip / commit-ranking readings ---
 
     @Test
-    fun splitReadingSeparatesDigraphs() {
-        // The whole point: "shn" greedily is ሽን, but separated is ስህን.
-        assertEquals("ሽን", Transliterator.transliterate("shn"))
-        assertEquals("ስህን", Transliterator.transliterateSplit("shn"))
-
-        // A real word: ስህተት ("mistake"), which greedy mangles to ሽተት.
-        assertEquals("ሽተት", Transliterator.transliterate("shtet"))
-        assertEquals("ስህተት", Transliterator.transliterateSplit("shtet"))
-
-        // ts / gn split too.
-        assertEquals("ትስ", Transliterator.transliterateSplit("ts"))
-        assertEquals("ግን", Transliterator.transliterateSplit("gn"))
+    fun emptyBufferHasNoCandidates() {
+        assertEquals(emptyList<String>(), Transliterator.candidates(""))
     }
 
     @Test
-    fun splitEqualsGreedyWhenNoDigraph() {
-        // No digraph -> nothing to separate -> identical, which is how the
-        // service detects "unambiguous, offer nothing extra".
-        for (word in listOf("selam", "bet", "አማርኛ", "s", "hulet")) {
+    fun candidatesZeroIsAlwaysTheGreedyReading() {
+        for (word in listOf("r", "sh", "shtet", "h", "s", "a", "ts", "selam", "k", "ka", "t", "ta", "fkr")) {
             assertEquals(
+                "candidates(\"$word\")[0] must equal the greedy reading",
                 Transliterator.transliterate(word),
-                Transliterator.transliterateSplit(word)
+                Transliterator.candidates(word).first()
             )
         }
     }
 
-    // ----- readings(): the suggestion-strip candidates -------------------
-
     @Test
-    fun unambiguousBufferHasOneReading() {
+    fun unambiguousBufferHasOneCandidate() {
         // "r" -> just ር (no digraph, no case-alternate family).
-        assertEquals(listOf("ር"), Transliterator.readings("r"))
-        // The greedy reading is always first.
-        assertEquals("ር", Transliterator.readings("r").first())
+        assertEquals(listOf("ር"), Transliterator.candidates("r"))
     }
 
     @Test
-    fun digraphBufferOffersBothReadings() {
-        // "sh" -> greedy ሽ then separated ስህ.
-        assertEquals(listOf("ሽ", "ስህ"), Transliterator.readings("sh"))
-        // "shtet" -> greedy ሽተት, the ጠ-family alternate ሽጠጥ (every "t" flips to
-        // its ጥ reading), then the separated ስህተት.
-        assertEquals(listOf("ሽተት", "ሽጠጥ", "ስህተት"), Transliterator.readings("shtet"))
+    fun digraphPositionOffersTheSplitReading() {
+        // "sh": greedy ሽ, then the separated ስህ (+ the s/S family alternate
+        // riding along on the split's "s" unit).
+        val readings = Transliterator.candidates("sh")
+        assertEquals("ሽ", readings.first())
+        assertTrue("ስህ" in readings)
     }
 
     @Test
-    fun twoFormLettersOfferBothForms() {
+    fun twoFormLettersOfferBothFormsAsCandidates() {
         // Each of these families is reachable un-shifted via its alternate.
         // "h" has TWO alternates: the ሐ case form, then the velar ኀ series.
-        assertEquals(listOf("ህ", "ሕ", "ኅ"), Transliterator.readings("h"))   // ሀ/ሐ/ኀ
-        assertEquals(listOf("ስ", "ሥ"), Transliterator.readings("s"))   // ሰ/ሠ
-        assertEquals(listOf("አ", "ዐ"), Transliterator.readings("a"))   // glottal/pharyngeal
+        assertEquals(setOf("ህ", "ሕ", "ኅ"), Transliterator.candidates("h").toSet())
+        assertEquals(setOf("ስ", "ሥ"), Transliterator.candidates("s").toSet())
+        assertEquals(setOf("አ", "ዐ"), Transliterator.candidates("a").toSet())
         // "ts": both forms (ጽ/ፅ) plus the separated t+s reading.
-        assertEquals(listOf("ጽ", "ፅ", "ትስ"), Transliterator.readings("ts"))
+        assertTrue(Transliterator.candidates("ts").containsAll(listOf("ጽ", "ፅ", "ትስ")))
         // A whole word: the ሠ variant rides along behind the greedy one.
-        assertEquals(listOf("ሰላም", "ሠላም"), Transliterator.readings("selam"))
+        assertEquals(listOf("ሰላም", "ሠላም"), Transliterator.candidates("selam"))
     }
 
     @Test
@@ -171,8 +157,8 @@ class TransliteratorTest {
         // ቅ, = the "q" family) rides along as a secondary reading -- so the
         // two easily-confused families are both reachable without shift.
         assertEquals("ክ", Transliterator.transliterate("k"))
-        assertEquals(listOf("ክ", "ቅ"), Transliterator.readings("k"))
-        assertEquals(listOf("ካ", "ቃ"), Transliterator.readings("ka"))
+        assertEquals(listOf("ክ", "ቅ"), Transliterator.candidates("k"))
+        assertEquals(listOf("ካ", "ቃ"), Transliterator.candidates("ka"))
     }
 
     @Test
@@ -180,13 +166,58 @@ class TransliteratorTest {
         // "t" primarily writes the ተ series (bare ት), but the ጠ series (bare
         // ጥ) rides along as a secondary reading, reachable without shift.
         assertEquals("ት", Transliterator.transliterate("t"))
-        assertEquals(listOf("ት", "ጥ"), Transliterator.readings("t"))
-        assertEquals(listOf("ታ", "ጣ"), Transliterator.readings("ta"))
+        assertEquals(listOf("ት", "ጥ"), Transliterator.candidates("t"))
+        assertEquals(listOf("ታ", "ጣ"), Transliterator.candidates("ta"))
     }
 
     @Test
-    fun emptyBufferHasNoReadings() {
-        assertEquals(emptyList<String>(), Transliterator.readings(""))
+    fun fkrCandidatesIncludeTheQFamilyReading() {
+        // The motivating example: "fkr" greedily reads ፍክር (not a word), but
+        // ፍቅር (a real word) must be reachable so CandidateRanker can promote
+        // it via the dictionary.
+        assertEquals("ፍክር", Transliterator.transliterate("fkr"))
+        assertTrue("ፍቅር" in Transliterator.candidates("fkr"))
+    }
+
+    @Test
+    fun mixedPerUnitAlternatesAreReachable() {
+        // The old uniform-alternate-level scheme could only flip EVERY
+        // consonant to its Nth alternate at once, so "t primary + k
+        // alternate" was never offered even though both are plausible. The
+        // lattice explores per-unit combinations, so it must be present.
+        val readings = Transliterator.candidates("tak")
+        // Primary+primary is the greedy reading.
+        assertEquals(Transliterator.transliterate("tak"), readings.first())
+        // "t" alternate (ጠ family, ጣ) + "k" primary (ክ) -- a MIXED choice.
+        assertTrue("ጣክ" in readings)
+        // "t" primary (ታ) + "k" alternate (ቀ family, ቅ) -- the other mix.
+        assertTrue("ታቅ" in readings)
+    }
+
+    @Test
+    fun dedupesIdenticalRenderings() {
+        // "m" and "l" have no alternates and no digraph -- a word built only
+        // from them produces exactly one candidate, no accidental duplicates
+        // from the lattice traversal.
+        assertEquals(1, Transliterator.candidates("mala").size)
+    }
+
+    @Test
+    fun capsAtTheRequestedLimit() {
+        val readings = Transliterator.candidates("shtet", limit = 2)
+        assertEquals(2, readings.size)
+        assertEquals(Transliterator.transliterate("shtet"), readings[0])
+    }
+
+    @Test
+    fun caseSensitivityIsPreservedInCandidates() {
+        // H/T/C keep their distinct families; case-insensitive letters don't
+        // spuriously gain alternates from the other case.
+        assertEquals(setOf("ሕ", "ህ", "ኅ"), Transliterator.candidates("H").toSet())
+        // "T" has no entry of its own in consonantAlternates (only "t" ->
+        // T is defined, not the reverse), so it has exactly one candidate.
+        assertEquals(listOf("ጥ"), Transliterator.candidates("T"))
+        assertEquals(setOf("ዐ", "አ"), Transliterator.candidates("A").toSet())
     }
 
     // ----- punctuation ---------------------------------------------------

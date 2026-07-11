@@ -60,23 +60,26 @@ Settings > System > Languages & input > On-screen keyboard, then switch to it in
   uppercase family, so shift should be a no-op for it and falls through to the case-insensitive pass.
 - **`WordComposer`** (`composing/`) owns the live "being-typed" word: appends to a raw
   `StringBuilder` and re-runs a `render` lambda on the whole buffer. There's one instance per
-  language, differing in `render` and a `composesInline: Boolean` flag. English (`composesInline =
-  true`, the default) pushes the rendered buffer into the `InputConnection`'s composing region
-  (`setComposingText`) on every keystroke, so it's underlined in the field until committed —
-  `render` is identity, so the buffer IS the composing text. Amharic (`composesInline = false`)
-  never touches the field while typing: the raw Latin (`raw`) is surfaced only in a content-width,
-  left-aligned preview strip above the suggestion row (`ui/BufferPreviewStrip.kt`, fed by
-  `AddiyonKeyboardService.amharicBufferLatin`) — its fidel reading (`display`, via `render` =
-  `Transliterator.transliterate`) isn't repeated there since it's already the first (bold/primary)
-  suggestion chip. This is deliberate: composing the raw Latin inline used to be how Amharic
-  worked, but `finish()` (called when the input view goes away) can only lock in whatever the
-  composing region *currently shows* — so an uncommitted word left the raw Latin stranded in the
-  field. With `composesInline = false`, `finish()`/`abandon()` are pure buffer discards for Amharic
-  (nothing was ever written to the field to strand), while `commit()`/`commitSuggestion()` still
-  work unchanged for both languages — they use `commitText` directly, which needs no composing
-  region. Backspace removes one Latin character at a time in both languages, so the user clears the
-  composed word letter by letter. It's fed an `InputConnection` *lambda*, not a captured reference,
-  because the system swaps `InputConnection` instances between input sessions.
+  language; both compose inline (the rendered buffer is pushed into the `InputConnection`'s
+  composing region on every keystroke, underlined in the field), differing in `render` and a
+  `discardOnExit: Boolean` flag. English (`discardOnExit = false`, the default): `render` is
+  identity, the buffer IS the composing text, and leaving the word (`finish()` on input-view hide,
+  `abandon()` on cursor tap-away) finalizes whatever the region shows. Amharic (`discardOnExit =
+  true`): `render` = `Transliterator.transliterate`, so the field live-shows the *greedy fidel
+  reading* — which is why `amharicSuggestions` drops its first entry (the greedy reading) from the
+  strip, offering only alternate readings and completions — and the in-field word is *tentative*:
+  `finish()`/`abandon()` DELETE it from the field rather than committing, so nothing ever commits
+  except space/enter/punctuation (`commit()`) or a tapped chip (`commitSuggestion()`). This
+  discard-on-exit rule is the load-bearing part — finalize-on-exit semantics for Amharic were tried
+  and reverted twice as "auto commit" (words the user never accepted got locked in by hiding the
+  keyboard or moving the cursor). The one exception: a word adopted from already-committed field
+  text by `resume()` (see the `resumed` flag) is *restored* on exit, never deleted — otherwise
+  walking the caret back to an old word and tapping away would destroy committed text. The raw
+  Latin (`raw`) is also mirrored to a preview strip above the suggestion row
+  (`ui/BufferPreviewStrip.kt`, fed by `AddiyonKeyboardService.amharicBufferLatin`). Backspace
+  removes one Latin character at a time in both languages, so the user clears the composed word
+  letter by letter. It's fed an `InputConnection` *lambda*, not a captured reference, because the
+  system swaps `InputConnection` instances between input sessions.
 
 ### The suggestion layer
 

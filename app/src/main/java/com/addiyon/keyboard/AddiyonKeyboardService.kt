@@ -8,9 +8,8 @@ import android.content.res.Configuration
 import android.content.pm.ApplicationInfo
 import android.inputmethodservice.InputMethodService
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.os.StrictMode
+import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
@@ -41,6 +40,7 @@ import com.addiyon.keyboard.emoji.EmojiBackspace
 import com.addiyon.keyboard.emoji.EmojiRepository
 import com.addiyon.keyboard.emoji.RecentEmojiStore
 import com.addiyon.keyboard.emoji.SkinToneStore
+import com.addiyon.keyboard.suggestion.CandidateRanker
 import com.addiyon.keyboard.suggestion.WordDictionary
 import com.addiyon.keyboard.suggestion.WordTrie
 import com.addiyon.keyboard.transliteration.AmharicTable
@@ -83,19 +83,15 @@ private const val ENGLISH_SUGGESTION_LIMIT = ENGLISH_EXACT_LIMIT + ENGLISH_FUZZY
 private const val ENGLISH_FUZZY_MIN_FREQUENCY = 500
 
 /**
- * How far back to scan for an already-typed word when the user resumes typing
- * at the end of it (see [AddiyonKeyboardService.resumeEnglishWordIfAny]). Longer
- * than any word we'd complete against, so the whole prefix is always captured.
+ * Multi-tap window for the Amharic alternate cycles
+ * ([AmharicTable.multiTapCycles]): a second tap of the SAME key within this
+ * many milliseconds swaps the just-typed letter for its next alternate form
+ * (a -> አ ዓ ዐ ኣ, k -> ክ ቅ, h -> ህ ሕ, ...) instead of typing it again.
+ * Past the window the key types normally, so deliberate double letters just
+ * need an un-hurried second tap. This is THE tuning knob for how the cycling
+ * feels: higher = easier to cycle, but slower fast-typing of real doubles.
  */
-private const val MAX_RESUME_PREFIX = 48
-
-/**
- * How long the caret must sit still before the cursor-aware resume adopts
- * the word it landed on. Long enough that a burst of our own edits (and the
- * selection callbacks they echo back) has fully settled; short enough to
- * feel immediate after a tap or the last backspace of a run.
- */
-private const val RESUME_AT_CURSOR_DELAY_MS = 150L
+private const val MULTI_TAP_TIMEOUT_MS = 300L
 
 /**
  * Max fidel reading length for fuzzy suggestions. Beyond this the Damerau-
@@ -246,26 +242,12 @@ class AddiyonKeyboardService : InputMethodService(),
         private set
 
     /**
-     * The Amharic in-progress word's raw Latin, mirrored out-of-field for
-     * [com.addiyon.keyboard.ui.BufferPreviewStrip] (its fidel reading
-     * isn't duplicated here -- it's already the first suggestion chip).
-     * Empty ("") whenever nothing is composing, which is how the strip knows
-     * to hide itself. Kept in lockstep with [amharicComposer] by
-     * [updateSuggestions].
-     */
-    var amharicBufferLatin by mutableStateOf("")
-        private set
-
-    /**
      * True while the emoji picker panel replaces the toolbar + key rows.
      * Opened from the toolbar's emoji icon; closed by its ABC key, any mode
      * transition, or a new input session ([onStartInputView]).
      */
     var showEmojiPanel by mutableStateOf(false)
         private set
-
-    /** Drives the debounced cursor-aware resume; see [scheduleResumeWordAtCursor]. */
-    private val mainHandler = Handler(Looper.getMainLooper())
 
     /**
      * The emoji search field's state (text + cursor/selection). Null =
@@ -307,24 +289,23 @@ class AddiyonKeyboardService : InputMethodService(),
     // taps into gets a fresh one), so we always re-read it at the moment
     // of use -- same reasoning as the KeyboardScreen comment about not
     // capturing an InputConnection at composition time.
-    // Bounded LRU of fidel -> raw Latin for Amharic words committed this
-    // session, so the caret can walk back to an earlier word and resume
-    // typing it -- see [resumeAmharicWordIfAny]. Declared before
-    // [amharicComposer] since its onCommit callback captures this.
-    private val amharicCommitHistory = object : LinkedHashMap<String, String>(64, 0.75f, true) {
-        override fun removeEldestEntry(e: MutableMap.MutableEntry<String, String>) = size > 200
-    }
-
     private val amharicComposer = WordComposer(
         inputConnection = { currentInputConnection },
-        // render produces the fidel used for the suggestion strip and
-        // commit. composesInline = false: nothing is written to the field
-        // while typing -- see WordComposer's "WHY AMHARIC COMPOSES
-        // OUT-OF-FIELD" doc. Backspace uses the default one-char step so
-        // each typed letter can be cleared individually.
-        render = Transliterator::transliterate,
-        composesInline = true,
-        onCommit = { rawLatin, fidel -> amharicCommitHistory[fidel] = rawLatin }
+        // commitTransform picks the word that lands in the field on space/
+        // enter/exit-of-a-resumed-word: the top-RANKED transliteration
+        // candidate (dictionary-exact match promoted over the structurally
+        // greedy one -- see CandidateRanker), falling back to the plain
+        // greedy reading when the dictionary isn't loaded yet or ranking
+        // finds nothing. Recomputed from the CURRENT buffer at every commit
+        // site (WordComposer never caches it), so it can't go stale relative
+        // to what's in the buffer. discardOnExit: the inline (raw Latin)
+        // word is TENTATIVE -- leaving it without space/enter/punctuation/a
+        // tapped suggestion removes it from the field instead of committing
+        // it; see WordComposer's "WHY AMHARIC DISCARDS ON EXIT" doc.
+        // Backspace uses the default one-char step so each typed letter can
+        // be cleared individually.
+        commitTransform = { raw -> topAmharicCandidate(raw) },
+        discardOnExit = true
     )
 
     private val englishComposer = WordComposer(
@@ -361,24 +342,33 @@ class AddiyonKeyboardService : InputMethodService(),
      * out, so "Th" suggests "The", not "the".
      */
     private fun updateSuggestions() {
-        val latinBuffer = if (isAmharic && amharicComposer.isComposing) {
-            amharicComposer.raw
-        } else {
-            ""
-        }
-        if (amharicBufferLatin != latinBuffer) {
-            amharicBufferLatin = latinBuffer
-        }
-
         if (!::amharicDictionary.isInitialized) {
             publishSuggestions(emptyList())
             return
         }
         publishSuggestions(if (isAmharic) {
-            amharicSuggestions(amharicBufferLatin)
+            val latinBuffer = if (amharicComposer.isComposing) amharicComposer.raw else ""
+            amharicSuggestions(latinBuffer)
         } else {
             englishSuggestions()
         })
+    }
+
+    /**
+     * The reading that lands in the field when the current Amharic word is
+     * committed: the top of [CandidateRanker.rank] over
+     * [Transliterator.candidates], i.e. a dictionary-exact reading if one
+     * exists, else the structurally greedy one. Falls back to the plain
+     * greedy [Transliterator.transliterate] when the dictionary hasn't
+     * finished loading (or somehow ranks nothing) so typing is never
+     * blocked on it. Recomputed fresh from [raw] every call -- see
+     * [amharicComposer]'s commitTransform doc.
+     */
+    private fun topAmharicCandidate(raw: String): String {
+        if (raw.isEmpty()) return ""
+        if (!::amharicDictionary.isInitialized) return Transliterator.transliterate(raw)
+        val ranked = CandidateRanker.rank(Transliterator.candidates(raw), amharicDictionary::isWord)
+        return ranked.firstOrNull() ?: Transliterator.transliterate(raw)
     }
 
     private fun publishSuggestions(value: List<String>) {
@@ -394,7 +384,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * the way out via [matchCase].
      */
     private fun englishSuggestions(): List<String> {
-        val typed = englishComposer.display
+        val typed = englishComposer.raw
         if (typed.isEmpty()) return emptyList()
 
         val key = typed.lowercase()
@@ -422,23 +412,24 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     /**
-     * Amharic suggestions: the live word's own readings first, then dictionary
-     * completions of each, as one scrollable strip.
+     * Amharic suggestions: the live word's RANKED readings first (dictionary-
+     * exact match promoted ahead of the structurally greedy one -- see
+     * [CandidateRanker]), then dictionary completions, as one scrollable
+     * strip.
      *
-     * The field shows the raw Latin being typed; the strip offers its fidel
-     * readings, and [suggestions]`[0]` (the greedy reading) is what space
-     * commits in its place. The leading entries are [Transliterator.readings]:
-     * the greedy reading, plus the alternate-form and digraph-split readings
-     * when the buffer is ambiguous (so "sh" leads with ሽ, ስህ and "s" leads
-     * with ስ, ሠ; "r" is unambiguous and leads with just ር). Every reading is
-     * then used as a dictionary
-     * prefix -- so an ambiguous buffer searches BOTH ሽ… and ስህ… words -- and
-     * the completions are appended, deduped, capped at [AMHARIC_SUGGESTION_LIMIT].
+     * The field itself shows the raw, romanized Latin while typing -- the
+     * fidel readings live ONLY in this strip, so unlike the old greedy-in-
+     * field design nothing is dropped here: the first (highlighted) chip is
+     * exactly what space/enter would commit ([topAmharicCandidate]). Every
+     * ranked reading is also used as a dictionary prefix -- an ambiguous
+     * buffer searches every plausible reading's completions -- appended,
+     * deduped, capped at [AMHARIC_SUGGESTION_LIMIT]. Tapping any chip
+     * replaces the in-field word ([WordComposer.commitSuggestion]).
      */
     private fun amharicSuggestions(latin: String): List<String> {
         if (latin.isEmpty()) return emptyList()
 
-        val readings = Transliterator.readings(latin)
+        val readings = CandidateRanker.rank(Transliterator.candidates(latin), amharicDictionary::isWord)
         val merged = LinkedHashSet<String>(AMHARIC_SUGGESTION_LIMIT + readings.size)
         for (reading in readings) merged.add(reading)
 
@@ -473,7 +464,7 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
 
-        return merged.asSequence().drop(1).take(AMHARIC_SUGGESTION_LIMIT).toList()
+        return merged.asSequence().take(AMHARIC_SUGGESTION_LIMIT).toList()
     }
 
     /**
@@ -718,11 +709,9 @@ class AddiyonKeyboardService : InputMethodService(),
     /**
      * Opens the emoji picker panel. Commits the composing word first, for
      * the same reason [toggleNumberMode] does -- an emoji must land AFTER
-     * the word, never inside a composing region (this also empties
-     * [amharicBufferLatin], so the preview strip never coexists with the
-     * panel). The repository load is a safe no-op if the sequential startup
-     * chain already started it; the panel shows a loading state until
-     * [EmojiRepository.isReady].
+     * the word, never inside a composing region. The repository load is a
+     * safe no-op if the sequential startup chain already started it; the
+     * panel shows a loading state until [EmojiRepository.isReady].
      */
     fun openEmojiPanel() {
         leaveVoiceModeForKeyboardInput()
@@ -797,6 +786,7 @@ class AddiyonKeyboardService : InputMethodService(),
     fun toggleLanguage() {
         leaveVoiceModeForKeyboardInput()
         closeEmojiPanel()
+        resetMultiTap()
         activeComposer.commit()
         isAmharic = !isAmharic
         if (!isAmharic && numbersMode == NumbersMode.GEEZ_NUMBERS) {
@@ -870,6 +860,84 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     // ----------------------------
+    // MULTI-TAP ALTERNATES (Amharic)
+    // ----------------------------
+    //
+    // Re-tapping the same key within MULTI_TAP_TIMEOUT_MS cycles the letter
+    // just typed through its alternate families (AmharicTable.multiTapCycles)
+    // by REPLACING its Latin spelling in the composer buffer -- the whole-
+    // buffer transliteration then re-renders, so the swap can never disagree
+    // with what a fresh typing of that spelling would produce.
+
+    /** The shift-resolved key output that started the current cycle, or null. */
+    private var multiTapKey: String? = null
+
+    /** The Latin currently sitting at the end of the buffer for that key. */
+    private var multiTapInserted = ""
+
+    /** Index into the key's cycle list that [multiTapInserted] came from. */
+    private var multiTapIndex = 0
+
+    /** Uptime of the last tap of [multiTapKey]; the window is measured from here. */
+    private var multiTapTime = 0L
+
+    /**
+     * Any action that isn't "the same key again" ends the cycle: the next
+     * tap of that key must TYPE, not mutate whatever the buffer ends with
+     * now. (The buffer-tail check in [applyMultiTap] is the backstop; this
+     * keeps the state honest at every word boundary.)
+     */
+    private fun resetMultiTap() {
+        multiTapKey = null
+    }
+
+    /** A fresh Amharic letter was appended: it becomes the cycle anchor. */
+    private fun startMultiTap(output: String, now: Long) {
+        if (AmharicTable.multiTapCycles.containsKey(output)) {
+            multiTapKey = output
+            multiTapInserted = output
+            multiTapIndex = 0
+            multiTapTime = now
+        } else {
+            multiTapKey = null
+        }
+    }
+
+    /**
+     * If [output] is a rapid re-tap of the cycle anchor, swap the buffer tail
+     * for the next alternate spelling and return true (the keypress is
+     * consumed). Steps that wouldn't change the rendered word in the current
+     * context are skipped -- e.g. "A" after a consonant reads as the same
+     * vowel "a", so the a-cycle goes ላ -> ልዓ -> ልኣ there while a standalone
+     * "a" walks the full አ -> ዓ -> ዐ -> ኣ. Returns false when the tap should
+     * type normally.
+     */
+    private fun applyMultiTap(output: String, now: Long): Boolean {
+        val key = multiTapKey ?: return false
+        if (output != key || now - multiTapTime > MULTI_TAP_TIMEOUT_MS) return false
+        val cycle = AmharicTable.multiTapCycles[key] ?: return false
+        val raw = amharicComposer.raw
+        // Empty buffer (commit/abandon since the anchor tap) or an edited
+        // tail: the anchor is gone, type normally.
+        if (raw.isEmpty() || !raw.endsWith(multiTapInserted)) return false
+
+        val stem = raw.dropLast(multiTapInserted.length)
+        val currentDisplay = Transliterator.transliterate(raw)
+        for (step in 1..cycle.size) {
+            val index = (multiTapIndex + step) % cycle.size
+            val candidate = cycle[index]
+            if (Transliterator.transliterate(stem + candidate) == currentDisplay) continue
+            amharicComposer.replaceLast(multiTapInserted.length, candidate)
+            multiTapIndex = index
+            multiTapInserted = candidate
+            multiTapTime = now
+            return true
+        }
+        // No alternate renders differently here; let the tap type normally.
+        return false
+    }
+
+    // ----------------------------
     // KEY HANDLERS (called from the UI)
     // ----------------------------
     //
@@ -888,12 +956,13 @@ class AddiyonKeyboardService : InputMethodService(),
      * carries (e.g. "S" for the S key). We resolve shift here so callers
      * (the UI) don't need to know about the composer or shift state.
      *
-     * On the letter layouts, both languages compose: Amharic because a
-     * keypress is ambiguous until the syllable ends (out-of-field -- see the
-     * preview strip fed by [amharicBufferLatin] -- so
-     * nothing touches the target field until commit), English so the current
-     * word stays replaceable by a tapped suggestion (inline, underlined, in
-     * the field). Word-terminating keys
+     * On the letter layouts, both languages compose the raw Latin inline
+     * (underlined, in the field's composing region) as the user types, so
+     * the current word stays replaceable by a tapped suggestion. For Amharic
+     * nothing is transliterated into the field until commit -- a keypress is
+     * ambiguous until the syllable (or word) ends, so the fidel readings
+     * only ever live in the suggestion strip (see [amharicSuggestions])
+     * while typing. Word-terminating keys
      * ("." and ",", the only non-word keys on either letter layout) and
      * everything on the numeric pages commit directly -- flushing the
      * composer first, so "hello" + "." lands as "hello." rather than
@@ -920,58 +989,31 @@ class AddiyonKeyboardService : InputMethodService(),
         val output = if (isShiftEnabled) latin.uppercase() else latin.lowercase()
 
         when {
-            isNumberMode -> currentInputConnection?.commitText(output, 1)
+            isNumberMode -> {
+                resetMultiTap()
+                currentInputConnection?.commitText(output, 1)
+            }
             !isWordCharacter(output) -> {
+                resetMultiTap()
                 activeComposer.commit()
                 val text = if (isAmharic) Transliterator.transliterate(output) else output
                 currentInputConnection?.commitText(text, 1)
             }
             isAmharic -> {
-                if (!amharicComposer.isComposing) resumeAmharicWordIfAny()
-                amharicComposer.onCharacter(output)
+                val now = SystemClock.uptimeMillis()
+                if (!applyMultiTap(output, now)) {
+                    amharicComposer.onCharacter(output)
+                    startMultiTap(output, now)
+                }
             }
             else -> {
-                if (!englishComposer.isComposing) resumeEnglishWordIfAny()
+                resetMultiTap()
                 englishComposer.onCharacter(output)
             }
         }
 
         consumeShiftAfterCharacter()
         updateSuggestions()
-    }
-
-    /**
-     * When the caret sits at the end of an already-typed English word and the
-     * user starts typing again, adopt that word into the composer so the new
-     * keystrokes EXTEND it rather than starting a fresh one. Without this,
-     * typing "infor", moving away, then coming back and typing "mation" would
-     * offer completions of "mation" instead of "information".
-     *
-     * We turn the trailing run of word characters before the caret into the
-     * composing region (delete it, re-insert it as composing text via
-     * [WordComposer.resume]) and seed the buffer with it. Guards:
-     *
-     *  - English only. The Amharic buffer is romanized Latin behind the fidel
-     *    shown in the field, and reversing fidel back to that Latin isn't
-     *    reliable (see WordTrie's class doc), so there's nothing safe to adopt.
-     *  - Skip if a word character immediately FOLLOWS the caret -- the user is
-     *    editing mid-word, and adopting only the prefix would strand the
-     *    suffix. Better to leave that alone.
-     */
-    private fun resumeEnglishWordIfAny() {
-        val ic = currentInputConnection ?: return
-
-        val after = ic.getTextAfterCursor(1, 0)
-        if (!after.isNullOrEmpty() && isEnglishWordChar(after[0])) return
-
-        val before = ic.getTextBeforeCursor(MAX_RESUME_PREFIX, 0) ?: return
-        val prefix = before.takeLastWhile { isEnglishWordChar(it) }.toString()
-        if (prefix.isEmpty()) return
-
-        ic.beginBatchEdit()
-        ic.deleteSurroundingText(prefix.length, 0)
-        englishComposer.resume(prefix)
-        ic.endBatchEdit()
     }
 
     /**
@@ -984,69 +1026,6 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     private fun isWordCharacter(output: String) =
         output.all { it.isLetter() || it == '\'' || it == '`' }
-
-    /**
-     * [isWordCharacter] restricted to non-Ethiopic letters, for adopting
-     * field text into the ENGLISH composer -- the caret can land right after
-     * a fidel word (e.g. the commit a language toggle performs), and
-     * `isLetter()` alone would happily adopt that fidel as an "English"
-     * word.
-     */
-    private fun isEnglishWordChar(c: Char) =
-        (c.isLetter() && !isFidelWordChar(c)) || c == '\'' || c == '`'
-
-    /** Whether [c] is part of the Ethiopic (Ge'ez/Fidel) Unicode block. */
-    private fun isFidelWordChar(c: Char) = c in 'ሀ'..'፿'
-
-    /**
-     * Amharic counterpart to [resumeEnglishWordIfAny]. The field holds fidel,
-     * not the raw Latin the composer needs, and reverse-transliterating fidel
-     * in general is ambiguous (see WordTrie's class doc) -- so this only
-     * resumes a word this *session* actually committed, via
-     * [amharicCommitHistory], which remembers the raw Latin for exactly the
-     * fidel it produced. Older or pasted fidel simply falls through to
-     * starting a fresh word -- a limitation, not a corruption risk.
-     */
-    private fun resumeAmharicWordIfAny() {
-        val ic = currentInputConnection ?: return
-
-        val after = ic.getTextAfterCursor(1, 0)
-        if (!after.isNullOrEmpty() && isFidelWordChar(after[0])) return
-
-        val before = ic.getTextBeforeCursor(MAX_RESUME_PREFIX, 0)?.toString() ?: return
-        val fidelWord = before.takeLastWhile { isFidelWordChar(it) }
-        if (fidelWord.isEmpty()) return
-
-        val rawLatin = latinForCommittedFidel(fidelWord) ?: return
-        ic.beginBatchEdit()
-        // Ethiopic is entirely within the BMP, so one Char == one code unit;
-        // deleteSurroundingText's length is in UTF-16 code units.
-        ic.deleteSurroundingText(fidelWord.length, 0)
-        amharicComposer.resume(rawLatin)
-        ic.endBatchEdit()
-    }
-
-    /**
-     * The raw Latin whose transliteration is exactly [fidel]: an exact
-     * [amharicCommitHistory] hit, or -- when backspaces have eaten the tail
-     * of a committed word, so the remaining prefix was never committed by
-     * itself -- the most recent history entry EXTENDING [fidel], truncated
-     * one Latin character at a time until it renders exactly [fidel] (Latin
-     * and fidel lengths don't track one-to-one: digraphs and vowels merge
-     * into the preceding syllable). Null when this session never committed
-     * a word starting with it.
-     */
-    private fun latinForCommittedFidel(fidel: String): String? {
-        amharicCommitHistory[fidel]?.let { return it }
-        val extending = amharicCommitHistory.entries.lastOrNull { it.key.startsWith(fidel) }
-            ?: return null
-        var latin = extending.value.dropLast(1)
-        while (latin.isNotEmpty()) {
-            if (Transliterator.transliterate(latin) == fidel) return latin
-            latin = latin.dropLast(1)
-        }
-        return null
-    }
 
     /**
      * Backspace pressed. Try to shrink the active composing buffer first --
@@ -1077,10 +1056,8 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
         leaveVoiceModeForKeyboardInput()
-        if (isAmharic && amharicComposer.isComposing) {
-            amharicComposer.finish()
-            updateSuggestions()
-        } else if (activeComposer.onBackspace()) {
+        resetMultiTap()
+        if (activeComposer.onBackspace()) {
             updateSuggestions()
             return
         }
@@ -1119,12 +1096,12 @@ class AddiyonKeyboardService : InputMethodService(),
     /**
      * Space commits any in-flight word first, then inserts a space.
      *
-     * [WordComposer.commit] inserts the rendered word: for Amharic that's the
-     * first time anything from this word reaches the field at all, landing
-     * as the greedy fidel reading (the same as suggestions[0]) -- so space
-     * picks the default reading and a tap is only needed for a NON-default
-     * one -- and the preview strip disappears; for English it finalizes the
-     * inline composed word. With no word in flight it's a plain space.
+     * [WordComposer.commit] replaces the underlined raw Latin with its
+     * commitTransform: for Amharic that's the top-ranked fidel reading (the
+     * same as suggestions[0], highlighted in the strip) -- so space picks
+     * the default reading and a tap is only needed for a NON-default one;
+     * for English it finalizes the inline composed word as-is. With no word
+     * in flight it's a plain space.
      */
     fun onSpace() {
         // CLDR annotations are multi-word ("red heart"), so space belongs to
@@ -1136,6 +1113,7 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
         leaveVoiceModeForKeyboardInput()
+        resetMultiTap()
         activeComposer.commit()
         currentInputConnection?.commitText(" ", 1)
         updateSuggestions()
@@ -1161,6 +1139,7 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
         leaveVoiceModeForKeyboardInput()
+        resetMultiTap()
         activeComposer.commit()
         val ic = currentInputConnection
         if (enterAction == EnterAction.NEWLINE) {
@@ -1221,6 +1200,7 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun onSuggestionTapped(word: String) {
         leaveVoiceModeForKeyboardInput()
+        resetMultiTap()
         activeComposer.commitSuggestion(word)
         updateSuggestions()
     }
@@ -1235,15 +1215,18 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     override fun onCreateInputView(): View {
+        val inputView = AddiyonKeyboardView(this)
         window?.window?.decorView?.let { decorView ->
             decorView.setViewTreeLifecycleOwner(this)
             decorView.setViewTreeSavedStateRegistryOwner(this)
         }
+        inputView.setViewTreeLifecycleOwner(this)
+        inputView.setViewTreeSavedStateRegistryOwner(this)
 
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        ensureLifecycleStarted()
         updateSystemNavigationBar()
 
-        return AddiyonKeyboardView(this)
+        return inputView
     }
 
     override fun onCreate() {
@@ -1325,9 +1308,7 @@ class AddiyonKeyboardService : InputMethodService(),
         amharicComposer.reset()
         englishComposer.reset()
         voiceComposer.reset()
-        // A pending cursor-aware resume belongs to the previous session's
-        // caret position; never let it fire into the new field.
-        mainHandler.removeCallbacks(resumeAtCursorRunnable)
+        resetMultiTap()
         // A new session starts on the keyboard, not a stale emoji panel.
         closeEmojiPanel()
         // The Enter key adapts to this field's IME action (search/go/send/...).
@@ -1338,7 +1319,7 @@ class AddiyonKeyboardService : InputMethodService(),
         // and make sure the nav bar strip is colored correctly every time
         // the keyboard becomes visible again.
         refreshTheme(resources.configuration)
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        ensureLifecycleResumed()
         maybeStartPendingVoiceAfterPermission()
     }
 
@@ -1355,22 +1336,14 @@ class AddiyonKeyboardService : InputMethodService(),
      * movement is consistent with our own edits and we ignore it. If the
      * cursor has landed outside that region, the user has visibly walked
      * away from the word we were composing, so we abandon it -- for English
-     * that freezes the underlined text in place; for Amharic there's no
-     * composing region (nothing was written to the field), so it's a pure
-     * buffer discard -- otherwise the next keystroke would keep rewriting a
-     * region that's no longer near the caret.
+     * that freezes the underlined text in place; for Amharic the tentative
+     * word is removed from the field (walking away is not an accept
+     * gesture -- see [WordComposer.abandon]) -- otherwise the next
+     * keystroke would keep rewriting a region that's no longer near the
+     * caret.
      *
      * candidatesStart / candidatesEnd are the framework's view of the
-     * current composing region; both are -1 when nothing is being composed
-     * (always true for Amharic, since it never opens one -- so any selection
-     * change while its buffer is non-empty is treated as tap-away).
-     *
-     * This is also what makes suggestions CURSOR-AWARE: once nothing is
-     * composing (including right after an abandon above), a caret that
-     * settles at the end of a word adopts that word back into the composer
-     * ([resumeEnglishWordIfAny] / [resumeAmharicWordIfAny]), so the strip
-     * offers completions wherever the user actually is -- after a backspace,
-     * a tap into existing text, or a jump between words.
+     * current composing region; both are -1 when nothing is being composed.
      */
     override fun onUpdateSelection(
         oldSelStart: Int,
@@ -1411,43 +1384,6 @@ class AddiyonKeyboardService : InputMethodService(),
             activeComposer.abandon()
             updateSuggestions()
         }
-
-        // Cursor-aware suggestions: if the caret has settled at the end of a
-        // word with nothing composing, adopt that word back into the composer
-        // so the strip offers completions right there -- however the caret
-        // got there (backspace, a tap into existing text, a jump between
-        // words). DEBOUNCED, never inline: resuming mutates the field
-        // (delete + re-compose), and doing that from inside this callback
-        // spawns further callbacks whose stale composing-region bounds
-        // ping-pong against the abandon logic above -- visible as flicker,
-        // and in the worst case a deleteSurroundingText computed against a
-        // mid-storm state that eats more than the word. Waiting for the
-        // caret to go quiet means rapid backspaces stay plain single-char
-        // deletes and exactly one resume runs once the dust settles.
-        scheduleResumeWordAtCursor(collapsed = newSelStart == newSelEnd)
-    }
-
-    private val resumeAtCursorRunnable = Runnable {
-        if (activeComposer.isComposing) return@Runnable
-        if (!isInputViewShown) return@Runnable
-        if (showEmojiPanel || isNumberMode || voiceUiState.isVoiceMode) return@Runnable
-        if (isAmharic) resumeAmharicWordIfAny() else resumeEnglishWordIfAny()
-        updateSuggestions()
-    }
-
-    /**
-     * (Re)arms the debounced resume: every selection callback pushes it
-     * back, so it fires once, [RESUME_AT_CURSOR_DELAY_MS] after the last
-     * cursor movement -- and not at all over an active selection or while a
-     * mode that deliberately committed the word (emoji/numbers/voice) is up.
-     * The runnable re-checks those guards at fire time; they can change
-     * during the delay.
-     */
-    private fun scheduleResumeWordAtCursor(collapsed: Boolean) {
-        mainHandler.removeCallbacks(resumeAtCursorRunnable)
-        if (!collapsed) return
-        if (showEmojiPanel || isNumberMode || voiceUiState.isVoiceMode) return
-        mainHandler.postDelayed(resumeAtCursorRunnable, RESUME_AT_CURSOR_DELAY_MS)
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -1456,25 +1392,47 @@ class AddiyonKeyboardService : InputMethodService(),
         // finalize the composing region IN PLACE (no new text inserted) --
         // using commit()/commitText here duplicated the word, because the
         // framework also finalizes the still-active composing region as the
-        // session ends. For Amharic there's nothing in the field to
-        // finalize, so this discards the uncommitted buffer instead. See
+        // session ends. For Amharic the tentative in-field word is removed
+        // (a hidden keyboard is not an accept gesture) unless it was resumed
+        // from already-committed text, which is restored. See
         // WordComposer.finish().
         activeComposer.finish()
         updateSuggestions()
-        mainHandler.removeCallbacks(resumeAtCursorRunnable)
         voiceInputController?.stop()
         finalizeVoiceComposing()
         resetVoiceUi()
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        pauseLifecycleIfResumed()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        mainHandler.removeCallbacks(resumeAtCursorRunnable)
         KeyboardPrefs.prefs(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
         voiceInputController?.stop()
         resetVoiceUi()
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        if (lifecycleRegistry.currentState != Lifecycle.State.DESTROYED) {
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        }
+    }
+
+    private fun ensureLifecycleStarted() {
+        val state = lifecycleRegistry.currentState
+        if (state == Lifecycle.State.DESTROYED) return
+        if (!state.isAtLeast(Lifecycle.State.STARTED)) {
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        }
+    }
+
+    private fun ensureLifecycleResumed() {
+        ensureLifecycleStarted()
+        if (lifecycleRegistry.currentState == Lifecycle.State.STARTED) {
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        }
+    }
+
+    private fun pauseLifecycleIfResumed() {
+        if (lifecycleRegistry.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        }
     }
 }
 

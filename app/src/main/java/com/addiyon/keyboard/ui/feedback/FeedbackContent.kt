@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.R
@@ -27,6 +28,11 @@ import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 /** Feedback destinations, shared by every place that offers "Send feedback". */
 const val FEEDBACK_EMAIL = "keyboard@addiyon.com"
 const val TELEGRAM_USERNAME = "addiyonkeyboard"
+
+object FeedbackTestTags {
+    const val TELEGRAM = "feedback.telegram"
+    const val EMAIL = "feedback.email"
+}
 
 /**
  * Launches the mail composer to the feedback address. [extraFlags] lets a
@@ -71,6 +77,7 @@ fun FeedbackOptions(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag(FeedbackTestTags.TELEGRAM)
             .clickable(onClick = onTelegram)
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -90,6 +97,7 @@ fun FeedbackOptions(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag(FeedbackTestTags.EMAIL)
             .clickable(onClick = onEmail)
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically

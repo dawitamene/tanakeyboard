@@ -105,6 +105,13 @@ class WordDictionary(context: Context, private val assetName: String) {
         trie?.suggestions(prefix, limit) ?: emptyList()
 
     /**
+     * Whether [word] is an exact dictionary entry. False (not an error) if
+     * the dictionary hasn't finished loading yet -- see
+     * [com.addiyon.keyboard.suggestion.CandidateRanker].
+     */
+    fun isWord(word: String): Boolean = trie?.frequencyOf(word) != null
+
+    /**
      * Fuzzy / typo-tolerant completions of [prefix] -- see
      * [WordTrie.fuzzySuggestions]. Empty until the dictionary has loaded. The
      * Amharic caller injects a script-aware [substitutionCost]; English uses
