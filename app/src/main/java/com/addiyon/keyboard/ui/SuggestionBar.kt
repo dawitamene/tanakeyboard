@@ -76,6 +76,7 @@ import com.addiyon.keyboard.voice.isVoiceMode
 fun SuggestionArea(
     suggestions: List<String>,
     isAmharic: Boolean,
+    isPredictions: Boolean = false,
     onTap: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenThemes: () -> Unit,
@@ -130,7 +131,7 @@ fun SuggestionArea(
         } else {
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 if (isAmharic) {
-                    AmharicSuggestionStrip(suggestions, onTap)
+                    AmharicSuggestionStrip(suggestions, isPredictions, onTap)
                 } else {
                     EnglishSuggestionStrip(suggestions, onTap)
                 }
@@ -224,6 +225,7 @@ private fun MicToolbarIcon(
 @Composable
 private fun AmharicSuggestionStrip(
     suggestions: List<String>,
+    isPredictions: Boolean,
     onTap: (String) -> Unit
 ) {
     Row(
@@ -238,8 +240,10 @@ private fun AmharicSuggestionStrip(
         suggestions.forEachIndexed { index, word ->
             // The first chip is the space-commit target -- see
             // AddiyonKeyboardService.topAmharicCandidate -- so it's
-            // highlighted (tinted + bold) to mark it as the default.
-            val isTop = index == 0
+            // highlighted (tinted + bold) to mark it as the default. Not
+            // for next-word PREDICTIONS: nothing is composing there, space
+            // just inserts a space, so no chip is "the default".
+            val isTop = index == 0 && !isPredictions
             Box(
                 modifier = Modifier
                     .fillMaxHeight()

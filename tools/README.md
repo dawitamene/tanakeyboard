@@ -20,6 +20,41 @@ python3 tools/build_amharic_dict.py Term_Frequency.txt
 - The source dump itself is gitignored (17MB); keep it wherever convenient
   and pass its path.
 
+## `build_ngrams.py`
+
+Regenerates `app/src/main/assets/amharic_ngrams.dat`, the Amharic bigram /
+trigram next-word model loaded by `suggestion/NgramDictionary.kt` →
+`suggestion/NgramModel.kt`, from a raw pre-tokenized corpus (one sentence per
+line, tokens space-separated — e.g. `CACO_TEXT.txt`):
+
+```sh
+python3 tools/build_ngrams.py CACO_TEXT.txt
+```
+
+- Tokenization matches `build_amharic_dict.py` (NFC, gemination marks
+  stripped, pure Ethiopic-syllable words only). Every non-word token —
+  punctuation, quotes, numbers, Latin, mixed abbreviations — is an n-gram
+  **boundary**, so no bigram/trigram ever spans it.
+- Pruning (all tunable via flags): vocabulary count ≥ 2; bigram contexts with
+  total count ≥ 4, successors count ≥ 3, top 8 per context; trigrams only
+  where the (w1, w2) context survived as a bigram, successors count ≥ 3,
+  top 6, and dropped when identical to their bigram backoff prefix.
+- Output: a binary word-ID model (vocab table + sorted context arrays +
+  offset/successor/weight arrays, big-endian, weights log-quantized to a
+  byte), gzipped with `mtime=0` for byte-stable output. Current size:
+  ~87k bigram contexts + ~51k trigram contexts, ~2 MB gzipped.
+- `--test-fixture` builds the tiny JVM-test model from the checked-in mini
+  corpus:
+
+```sh
+python3 tools/build_ngrams.py --test-fixture \
+    app/src/test/resources/ngram_mini_corpus.txt \
+    app/src/test/resources/ngram_fixture.dat
+```
+
+- The corpus itself is gitignored (249MB); keep it wherever convenient and
+  pass its path.
+
 ## `build_english_dict.py`
 
 Regenerates `app/src/main/assets/english_words.dat`, the English suggestion

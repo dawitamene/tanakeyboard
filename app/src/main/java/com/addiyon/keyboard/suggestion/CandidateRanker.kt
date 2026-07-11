@@ -25,6 +25,14 @@ object CandidateRanker {
     private const val COMPLETION_LENGTH_PENALTY = 20
     private const val FUZZY_EDIT_PENALTY = 5_000
 
+    // N-gram context boost: base + scaled model weight (0-255), capped well
+    // below both the 40k source-tier gaps and the 30k frequency band, so
+    // context reorders candidates *within* their tier but can never promote
+    // e.g. a fuzzy match over a completion.
+    private const val NGRAM_BASE_BONUS = 2_000
+    private const val NGRAM_WEIGHT_SCALE = 31
+    private const val NGRAM_MAX_BONUS = 10_000
+
     fun rank(candidates: List<String>, isWord: (String) -> Boolean): List<String> {
         val exact = ArrayList<String>(candidates.size)
         val rest = ArrayList<String>(candidates.size)
@@ -65,7 +73,8 @@ object CandidateRanker {
         completionsForPrefix: (String, Int) -> List<DictionaryWord>,
         visibleReadings: List<String> = emptyList(),
         fuzzyWords: List<FuzzyWord> = emptyList(),
-        quirkReadings: Set<String> = emptySet()
+        quirkReadings: Set<String> = emptySet(),
+        ngramNext: Map<String, Int> = emptyMap()
     ): List<String> {
         if (readings.isEmpty() || limit <= 0) return emptyList()
 
@@ -83,7 +92,7 @@ object CandidateRanker {
             scored.add(
                 ScoredSuggestion(
                     reading,
-                    exactScore(frequency, index),
+                    exactScore(frequency, index) + ngramBoost(ngramNext, reading),
                     sourceRank = 0,
                     structuralIndex = index
                 )
@@ -123,7 +132,7 @@ object CandidateRanker {
                             completion.frequency,
                             index,
                             completion.word.length - reading.length
-                        ),
+                        ) + ngramBoost(ngramNext, completion.word),
                         sourceRank = 2,
                         structuralIndex = index
                     )
@@ -173,6 +182,12 @@ object CandidateRanker {
 
     private fun fuzzyScore(frequency: Int, editDistance: Int): Int =
         FUZZY_BONUS + frequencyScore(frequency) - editDistance * FUZZY_EDIT_PENALTY
+
+    private fun ngramBoost(ngramNext: Map<String, Int>, word: String): Int {
+        val weight = ngramNext[word] ?: return 0
+        return (NGRAM_BASE_BONUS + weight * NGRAM_WEIGHT_SCALE)
+            .coerceAtMost(NGRAM_MAX_BONUS)
+    }
 
     private fun visibleReadingScore(index: Int): Int =
         LITERAL_BONUS - index * STRUCTURAL_PENALTY

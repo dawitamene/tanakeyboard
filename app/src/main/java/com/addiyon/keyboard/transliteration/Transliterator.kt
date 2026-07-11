@@ -202,7 +202,12 @@ object Transliterator {
         bareVowelUnit(latin, i)?.let { return listOf(it) }
 
         val char = latin[i]
-        return listOf(UnitOption(length = 1, segRank = 0, renderings = listOf((AmharicTable.punctuation[char] ?: char).toString())))
+        val renderings = if (char == '.') {
+            listOf("።", ".")
+        } else {
+            listOf((AmharicTable.punctuation[char] ?: char).toString())
+        }
+        return listOf(UnitOption(length = 1, segRank = 0, renderings = renderings))
     }
 
     /**

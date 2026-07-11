@@ -41,6 +41,9 @@ import com.addiyon.keyboard.emoji.EmojiRepository
 import com.addiyon.keyboard.emoji.RecentEmojiStore
 import com.addiyon.keyboard.emoji.SkinToneStore
 import com.addiyon.keyboard.suggestion.CandidateRanker
+import com.addiyon.keyboard.suggestion.NgramContext
+import com.addiyon.keyboard.suggestion.NgramDictionary
+import com.addiyon.keyboard.suggestion.NgramModel
 import com.addiyon.keyboard.suggestion.WordDictionary
 import com.addiyon.keyboard.suggestion.WordTrie
 import com.addiyon.keyboard.transliteration.AmharicTable
@@ -60,6 +63,13 @@ import com.addiyon.keyboard.voice.isVoiceMode
  * generous.
  */
 private const val AMHARIC_SUGGESTION_LIMIT = 10
+
+/**
+ * Max next-word prediction chips shown when the Amharic buffer is empty
+ * (right after a commit): pure bigram/trigram predictions from the words
+ * before the cursor, zero keystrokes typed.
+ */
+private const val NEXT_WORD_LIMIT = 6
 
 /**
  * English strip capacity: exact-prefix completions first, then up to
@@ -100,6 +110,19 @@ private const val MULTI_TAP_TIMEOUT_MS = 300L
  * still run at any length.
  */
 private const val MAX_FUZZY_READING_LENGTH = 12
+
+/**
+ * How many candidate readings get a fuzzy pass when the strip underfills.
+ * Readings are rank-ordered (greedy/most-plausible first) and each fuzzy
+ * call is a bounded-edit-distance trie walk -- running it for all ~48
+ * readings took >150ms per keystroke on a desktop JVM (visibly worse on a
+ * phone) exactly in the type-then-clear scenario the strip underfills in.
+ * The top few readings carry virtually all real correction value.
+ */
+private const val MAX_FUZZY_READINGS = 6
+
+/** LRU capacity for per-word suggestion memoization -- see [amharicSuggestionCache]. */
+private const val SUGGESTION_CACHE_SIZE = 64
 
 /**
  * Length-scaled edit budget for fuzzy matching: none for buffers too short to
@@ -242,6 +265,16 @@ class AddiyonKeyboardService : InputMethodService(),
         private set
 
     /**
+     * True when [suggestions] holds next-word PREDICTIONS (empty Amharic
+     * buffer, context from the field) rather than completions of a word
+     * being typed. The strip renders prediction chips without the chip-0
+     * "space commits this" highlight, because with nothing composing, space
+     * just inserts a space.
+     */
+    var suggestionsArePredictions by mutableStateOf(false)
+        private set
+
+    /**
      * True while the emoji picker panel replaces the toolbar + key rows.
      * Opened from the toolbar's emoji icon; closed by its ABC key, any mode
      * transition, or a new input session ([onStartInputView]).
@@ -321,6 +354,7 @@ class AddiyonKeyboardService : InputMethodService(),
     // before onCreate().
     private lateinit var amharicDictionary: WordDictionary
     private lateinit var englishDictionary: WordDictionary
+    private lateinit var amharicNgrams: NgramDictionary
     lateinit var emojiRepository: EmojiRepository
         private set
     private lateinit var recentEmojiStore: RecentEmojiStore
@@ -343,12 +377,68 @@ class AddiyonKeyboardService : InputMethodService(),
             publishSuggestions(emptyList())
             return
         }
-        publishSuggestions(if (isAmharic) {
+        if (isAmharic) {
             val latinBuffer = if (amharicComposer.isComposing) amharicComposer.raw else ""
-            amharicSuggestions(latinBuffer)
+            if (latinBuffer.isEmpty()) {
+                // Word boundary: the field text before the (next) composing
+                // region can change here, so the per-word caches are stale.
+                composingNgramBoost = null
+                amharicSuggestionCache.clear()
+                // Nothing composing: offer next-word PREDICTIONS from the
+                // committed words before the cursor (empty when there's no
+                // usable context, restoring the toolbar icons).
+                publishSuggestions(
+                    ngramPredictions(NEXT_WORD_LIMIT).map { it.word },
+                    arePredictions = true
+                )
+            } else {
+                publishSuggestions(amharicSuggestions(latinBuffer))
+            }
         } else {
-            englishSuggestions()
-        })
+            publishSuggestions(englishSuggestions())
+        }
+    }
+
+    /**
+     * Per-word caches. While a word is composing, the committed text before
+     * the composing region cannot change (any outside edit moves the cursor,
+     * which abandons the composition), so the n-gram context -- and with it
+     * the whole latin-buffer -> suggestions mapping -- is stable for the
+     * word's lifetime. [composingNgramBoost] avoids re-fetching
+     * `getTextBeforeCursor` (a synchronous binder round-trip to the editor
+     * app) on every keystroke; [amharicSuggestionCache] makes retyping a
+     * state we've already ranked -- most importantly BACKSPACING back
+     * through the prefixes just typed -- a lookup instead of a fresh
+     * transliterate + trie-walk pass. Both reset at every word boundary.
+     */
+    private var composingNgramBoost: Map<String, Int>? = null
+    private val amharicSuggestionCache =
+        object : LinkedHashMap<String, List<String>>(SUGGESTION_CACHE_SIZE, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<String>>) =
+                size > SUGGESTION_CACHE_SIZE
+        }
+
+    /**
+     * Bigram/trigram next-word predictions for the words preceding the
+     * cursor (see [NgramContext.extract]); empty until the model loads or
+     * when the field gives no context. While composing, the raw-Latin
+     * composing region sits immediately before the cursor and would read as
+     * a hard boundary, so it's stripped from the tail first.
+     */
+    private fun ngramPredictions(limit: Int): List<NgramModel.Prediction> {
+        if (!::amharicNgrams.isInitialized) return emptyList()
+        val raw = if (amharicComposer.isComposing) amharicComposer.raw else ""
+        val before = currentInputConnection
+            ?.getTextBeforeCursor(NgramContext.WINDOW + raw.length, 0)
+            ?: return emptyList()
+        val field = if (raw.isNotEmpty() && before.endsWith(raw)) {
+            before.subSequence(0, before.length - raw.length)
+        } else {
+            before
+        }
+        val context = NgramContext.extract(field)
+        val prev1 = context.prev1 ?: return emptyList()
+        return amharicNgrams.predict(context.prev2, prev1, limit)
     }
 
     /**
@@ -367,8 +457,10 @@ class AddiyonKeyboardService : InputMethodService(),
         ) ?: Transliterator.transliterate(raw)
     }
 
-    private fun publishSuggestions(value: List<String>) {
+    private fun publishSuggestions(value: List<String>, arePredictions: Boolean = false) {
         if (suggestions != value) suggestions = value
+        val predictions = arePredictions && value.isNotEmpty()
+        if (suggestionsArePredictions != predictions) suggestionsArePredictions = predictions
     }
 
     /**
@@ -414,11 +506,24 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     private fun amharicSuggestions(latin: String): List<String> {
         if (latin.isEmpty()) return emptyList()
+        if (amharicDictionary.isReady) {
+            amharicSuggestionCache[latin]?.let { return it }
+        }
 
         val candidateReadings = Transliterator.candidateReadings(latin)
         val readings = candidateReadings.map { it.text }
+        // Quirk (structural split) readings are only SHOWN when the
+        // dictionary knows the word -- same trust-the-dictionary rule as the
+        // vowel-alternate chip below. Splits like "ba" -> ብአ are legal
+        // readings of almost any buffer, so unfiltered they flood the strip
+        // with fabricated spellings ("ameri" -> አመርኢ, አምኢሪ, ...). They all
+        // remain completion prefixes regardless (a split can still LEAD to a
+        // real word), just not standalone chips.
         val visibleReadings = candidateReadings
-            .filter { latin.length == 1 || it.isQuirk }
+            .filter {
+                latin.length == 1 ||
+                    (it.isQuirk && amharicDictionary.isWord(it.text))
+            }
             .map { it.text }
         // Structural split readings: kept for completions/quirk chips, but not
         // allowed to win the default over the natural greedy reading.
@@ -441,26 +546,49 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
 
+        // Context-aware nudge: candidates the n-gram model predicts to
+        // follow the previous words get a small within-tier boost. Computed
+        // once per composing word -- see [composingNgramBoost].
+        val ngramNext = composingNgramBoost
+            ?: ngramPredictions(AMHARIC_SUGGESTION_LIMIT)
+                .associate { it.word to it.weight }
+                .also { composingNgramBoost = it }
+
         val ranked = CandidateRanker.rankAmharic(
             readings = readings,
             limit = AMHARIC_SUGGESTION_LIMIT,
             frequencyOf = amharicDictionary::frequencyOf,
             completionsForPrefix = completionsForPrefix,
             visibleReadings = visibleReadings,
-            quirkReadings = quirkReadings
+            quirkReadings = quirkReadings,
+            ngramNext = ngramNext
         )
         if (ranked.size >= AMHARIC_SUGGESTION_LIMIT ||
             readings.none { it.length <= MAX_FUZZY_READING_LENGTH }
         ) {
-            return pinVowelAlternate(ranked, vowelAlternate)
+            return pinVowelAlternate(ranked, vowelAlternate).also {
+                if (amharicDictionary.isReady) amharicSuggestionCache[latin] = it
+            }
         }
 
+        // Fuzzy pass, bounded three ways to keep the worst keystroke cheap:
+        // only the top [MAX_FUZZY_READINGS] readings (rank order -- the rest
+        // are deep alternates that almost never contribute a correction),
+        // the full 2-edit budget only for the TOP reading (an alternate
+        // reading is already a variation; giving all of them 2 edits is
+        // what made long non-word buffers freeze), and stop as soon as the
+        // strip's worth of matches is gathered.
         val fuzzy = ArrayList<CandidateRanker.FuzzyWord>(AMHARIC_SUGGESTION_LIMIT)
+        var fuzzyReadings = 0
         for (reading in readings) {
             if (reading.length > MAX_FUZZY_READING_LENGTH) continue
+            if (fuzzyReadings >= MAX_FUZZY_READINGS || fuzzy.size >= AMHARIC_SUGGESTION_LIMIT) break
+            val budget = fuzzyEditBudget(reading.length)
+                .coerceAtMost(if (fuzzyReadings == 0) 2 else 1)
+            fuzzyReadings++
             for (match in amharicDictionary.fuzzySuggestions(
                 reading,
-                fuzzyEditBudget(reading.length),
+                budget,
                 AMHARIC_SUGGESTION_LIMIT,
                 AMHARIC_FIDEL_COST,
                 insertCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
@@ -478,10 +606,13 @@ class AddiyonKeyboardService : InputMethodService(),
                 completionsForPrefix = completionsForPrefix,
                 visibleReadings = visibleReadings,
                 fuzzyWords = fuzzy,
-                quirkReadings = quirkReadings
+                quirkReadings = quirkReadings,
+                ngramNext = ngramNext
             ),
             vowelAlternate
-        )
+        ).also {
+            if (amharicDictionary.isReady) amharicSuggestionCache[latin] = it
+        }
     }
 
     /**
@@ -1062,7 +1193,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * not chop the word.
      */
     private fun isWordCharacter(output: String) =
-        output.all { it.isLetter() || it == '\'' || it == '`' }
+        output.all { it.isLetter() || it == '\'' || it == '`' || (isAmharic && (it == '.' || it == '/')) }
 
     /**
      * Backspace pressed. Try to shrink the active composing buffer first --
@@ -1289,6 +1420,7 @@ class AddiyonKeyboardService : InputMethodService(),
 
         amharicDictionary = WordDictionary(this, "amharic_words.dat")
         englishDictionary = WordDictionary(this, "english_words.dat")
+        amharicNgrams = NgramDictionary(this, "amharic_ngrams.dat")
         emojiRepository = EmojiRepository(this)
         // Both stores decode lazily on first use, and the prefs file is
         // already loaded in memory by the theme/number-row reads above, so
@@ -1320,9 +1452,13 @@ class AddiyonKeyboardService : InputMethodService(),
             updateSuggestions()
             inactiveDictionary.loadAsync {
                 updateSuggestions()
-                // Emoji data last: it doesn't gate typing, and keeping the
+                // Then the n-gram model (small next to the tries), then
+                // emoji data last: neither gates typing, and keeping the
                 // loads sequential avoids overlapping allocation storms.
-                emojiRepository.loadAsync()
+                amharicNgrams.loadAsync {
+                    updateSuggestions()
+                    emojiRepository.loadAsync()
+                }
             }
         }
     }
@@ -1419,6 +1555,11 @@ class AddiyonKeyboardService : InputMethodService(),
             if (cursorInsideComposing) return
             // The user walked away from the word we were composing.
             activeComposer.abandon()
+            updateSuggestions()
+        } else {
+            // Nothing composing, but next-word predictions depend on the
+            // words before the cursor -- refresh them (or clear stale ones)
+            // whenever the cursor lands somewhere new.
             updateSuggestions()
         }
     }

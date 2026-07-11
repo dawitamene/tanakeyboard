@@ -14,6 +14,7 @@
 # Raw Amharic corpus frequency dump (17MB source data for
 # tools/build_amharic_dict.py) -- keep out of the repo.
 /Term_Frequency.txt
+/CACO_TEXT.txt
 .externalNativeBuild
 .cxx
 local.properties

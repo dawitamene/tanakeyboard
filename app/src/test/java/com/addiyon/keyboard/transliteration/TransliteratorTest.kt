@@ -296,6 +296,15 @@ class TransliteratorTest {
         assertEquals("ሰላም።", Transliterator.transliterate("selam."))
     }
 
+    @Test
+    fun abbreviationCandidatesIncludeLiteralPunctuation() {
+        val aDot = Transliterator.candidates("a.")
+        assertTrue("ዓ." in aDot)
+        assertTrue("ዓ።" in aDot)
+        val doSlashR = Transliterator.candidates("do/r")
+        assertTrue("ዶ/ር" in doSlashR)
+    }
+
     /**
      * The property whose violation motivated all of the above: every
      * character key on the Amharic layout must transliterate to something

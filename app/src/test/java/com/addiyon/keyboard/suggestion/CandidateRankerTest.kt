@@ -15,7 +15,8 @@ class CandidateRankerTest {
         trie: WordTrie,
         visibleReadings: List<String> = emptyList(),
         fuzzyWords: List<CandidateRanker.FuzzyWord> = emptyList(),
-        quirkReadings: Set<String> = emptySet()
+        quirkReadings: Set<String> = emptySet(),
+        ngramNext: Map<String, Int> = emptyMap()
     ): List<String> =
         CandidateRanker.rankAmharic(
             readings = readings,
@@ -28,7 +29,8 @@ class CandidateRankerTest {
             },
             visibleReadings = visibleReadings,
             fuzzyWords = fuzzyWords,
-            quirkReadings = quirkReadings
+            quirkReadings = quirkReadings,
+            ngramNext = ngramNext
         )
 
     @Test
@@ -182,5 +184,48 @@ class CandidateRankerTest {
             fuzzyWords = listOf(CandidateRanker.FuzzyWord("የተለያዩ", 500, 1))
         )
         assertEquals(listOf("የተለይ", "የተለያዩ"), ranked)
+    }
+
+    @Test
+    fun ngramBoostReordersWithinTheExactTier() {
+        // Both readings are words with frequencies 9_000 vs 10_000; a
+        // context boost (max 10_000 > the 1_000 gap) flips the order.
+        val words = trie("ሰላም" to 9_000, "ሠላም" to 10_000)
+        val ranked = rankAmharic(
+            listOf("ሰላም", "ሠላም"), words,
+            ngramNext = mapOf("ሰላም" to 255)
+        )
+        assertEquals(listOf("ሰላም", "ሠላም"), ranked)
+        // Same input without context keeps the frequency order -- proving
+        // the flip above came from the boost, and that an empty map is a
+        // strict no-op.
+        assertEquals(
+            listOf("ሠላም", "ሰላም"),
+            rankAmharic(listOf("ሰላም", "ሠላም"), words)
+        )
+    }
+
+    @Test
+    fun ngramBoostAppliesToCompletions() {
+        val words = trie("ቤተሰብ" to 9_000, "ቤተመንግስት" to 10_000)
+        val ranked = rankAmharic(
+            listOf("ቤተ"), words,
+            ngramNext = mapOf("ቤተሰብ" to 200)
+        )
+        assertEquals("ቤተሰብ", ranked.first { it != "ቤተ" })
+    }
+
+    @Test
+    fun ngramBoostCannotPromoteAcrossTiers() {
+        // ቤቱ is an exact reading (weakest possible frequency); ቤተሰብ is only
+        // a completion (of the alternate reading ቤተ). Even a maximal context
+        // boost on a maximal-frequency completion must not displace the
+        // exact word from the top.
+        val words = trie("ቤቱ" to 1, "ቤተሰብ" to 30_000)
+        val ranked = rankAmharic(
+            listOf("ቤተ", "ቤቱ"), words,
+            ngramNext = mapOf("ቤተሰብ" to 255)
+        )
+        assertEquals("ቤቱ", ranked.first())
     }
 }
