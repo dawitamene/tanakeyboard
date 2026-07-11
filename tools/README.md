@@ -1,5 +1,25 @@
 # tools
 
+## `build_amharic_dict.py`
+
+Regenerates `app/src/main/assets/amharic_words.dat`, the Amharic suggestion
+dictionary loaded by `suggestion/WordDictionary.kt`, from a corpus
+term-frequency dump (one `frequency<TAB>token` line, single header line):
+
+```sh
+python3 tools/build_amharic_dict.py Term_Frequency.txt
+```
+
+- Keeps pure Ethiopic-syllable words with frequency ≥ 2 (singletons in
+  scraped corpora are disproportionately typos) and common abbreviations
+  (`ዓ.ም`, `ዶ/ር`, `ት/ቤት`, …) with frequency ≥ 50; drops punctuation tokens,
+  numbers, Latin fragments, and anything containing digits.
+- Output: gzip, `word<TAB>frequency` per line, **sorted by the word**
+  (UTF-16 code-unit order) — required by `WordTrie.build`'s streaming
+  flat-array construction, which throws on unsorted input. ~411k entries.
+- The source dump itself is gitignored (17MB); keep it wherever convenient
+  and pass its path.
+
 ## `build_english_dict.py`
 
 Regenerates `app/src/main/assets/english_words.dat`, the English suggestion
@@ -11,7 +31,8 @@ python3 tools/build_english_dict.py
 
 - Needs Python 3 and internet the first time (downloads are cached in
   `tools/.cache/`, which is gitignored).
-- Output: gzip, `word<TAB>frequency` per line, sorted by descending frequency,
+- Output: gzip, `word<TAB>frequency` per line, sorted by the lowercased word
+  (UTF-16 code-unit order, same requirement as the Amharic asset above),
   ~250k entries. Entries carry **canonical casing** so proper nouns suggest
   capitalized ("england" typed → "England" suggested); `WordTrie` matches
   case-insensitively and returns the stored casing.

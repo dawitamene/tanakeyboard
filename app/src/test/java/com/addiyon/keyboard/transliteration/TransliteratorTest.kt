@@ -4,6 +4,7 @@ import com.addiyon.keyboard.layout.AmharicLayout
 import com.addiyon.keyboard.model.KeyData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -176,6 +177,43 @@ class TransliteratorTest {
         val ta = Transliterator.candidates("ta")
         assertEquals("ታ", ta.first())
         assertTrue("ጣ" in ta)
+    }
+
+    @Test
+    fun eOffersTheIeOrderAsSecondaryReading() {
+        // "e" after a consonant primarily writes order 1 (ለ/በ/መ), but the
+        // order-5 "ie" form (ሌ/ቤ/ሜ) rides along as a secondary reading, so the
+        // user doesn't have to type "ie".
+        assertEquals("ለ", Transliterator.transliterate("le"))
+        val le = Transliterator.candidates("le")
+        assertEquals("ለ", le.first())
+        // The order-5 alternate ranks immediately after the primary reading.
+        assertEquals("ሌ", le[1])
+        val be = Transliterator.candidates("be")
+        assertEquals("በ", be.first())
+        assertEquals("ቤ", be[1])
+        // Reaches the same glyph as spelling the vowel "ie" outright.
+        assertTrue("ቤት" in Transliterator.candidates("bet"))
+        // Greedy transliteration is unchanged (primary order only).
+        assertEquals("በት", Transliterator.transliterate("bet"))
+    }
+
+    @Test
+    fun vowelAlternateReadingFlipsEveryESyllableToItsIeOrder() {
+        // The clean "write it with the ie vowel" secondary reading: same
+        // segmentation as the greedy reading, only the e-order flips to order 5.
+        assertEquals("ሜ", Transliterator.vowelAlternateReading("me"))
+        assertEquals("ሜላት", Transliterator.vowelAlternateReading("melat"))
+        assertEquals("ቤት", Transliterator.vowelAlternateReading("bet"))
+        // Reaches the same glyphs as spelling the vowel "ie" outright.
+        assertEquals(Transliterator.transliterate("mielat"), Transliterator.vowelAlternateReading("melat"))
+        // Every e in the word flips, not just the first.
+        assertEquals("ቤቤ", Transliterator.vowelAlternateReading("bebe"))
+        assertEquals("ሴላም", Transliterator.vowelAlternateReading("selam"))
+        // Null when there's nothing to flip (no e syllable).
+        assertNull(Transliterator.vowelAlternateReading("bota"))
+        assertNull(Transliterator.vowelAlternateReading("selam".replace("e", "a")))
+        assertNull(Transliterator.vowelAlternateReading(""))
     }
 
     @Test

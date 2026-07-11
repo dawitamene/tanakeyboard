@@ -78,6 +78,26 @@ object AmharicTable {
     )
 
     /**
+     * Vowel spelling -> ORDERED alternate order-indices offered as secondary
+     * readings of a consonant+vowel syllable (the primary index still comes
+     * from [vowels]). Same idea as [consonantAlternates] but flipping the
+     * VOWEL order instead of the consonant family, so a user doesn't have to
+     * know a less-common SERA spelling.
+     *
+     *   - "e" -> [4]: "e" primarily writes order 1 (le -> ለ, be -> በ, me -> መ),
+     *     but the order-5 "ie" form (ሌ / ቤ / ሜ) rides along as a secondary
+     *     reading -- so common words like ቤት surface from "bet" without the
+     *     user having to type "biet". The alternate glyph is identical to
+     *     spelling the vowel "ie" outright.
+     *
+     * Applied only when a vowel actually matched after the consonant; a bare
+     * consonant (no vowel) has no vowel alternate.
+     */
+    val vowelAlternates: Map<String, List<Int>> = mapOf(
+        "e" to listOf(4)
+    )
+
+    /**
      * A bare (unprefixed) vowel: its Latin spelling, the consonant family it
      * resolves against, and the index into that [Family.forms].
      */

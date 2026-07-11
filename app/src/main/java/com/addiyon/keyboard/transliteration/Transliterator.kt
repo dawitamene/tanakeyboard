@@ -91,6 +91,35 @@ object Transliterator {
     }
 
     /**
+     * The greedy reading with every consonant+vowel unit that has a vowel
+     * alternate ([AmharicTable.vowelAlternates]) rendered in that alternate
+     * order instead -- i.e. every "e" syllable shown as its order-5 "ie" form
+     * ("melat" -> ሜላት, "me" -> ሜ). Same segmentation and family choices as the
+     * greedy reading, only the vowel order flips, so this is the clean single
+     * alternate the user means by "write it with the ie vowel" -- offered as a
+     * secondary suggestion chip. Returns null when nothing flips (no vowel
+     * alternate applies), i.e. the reading would just equal [transliterate].
+     */
+    fun vowelAlternateReading(latin: String): String? {
+        if (latin.isEmpty()) return null
+        val out = StringBuilder(latin.length)
+        var flipped = false
+        var i = 0
+        while (i < latin.length) {
+            val greedy = unitOptionsAt(latin, i)[0]
+            val flip = greedy.vowelFlip
+            if (flip != null) {
+                out.append(flip)
+                flipped = true
+            } else {
+                out.append(greedy.renderings[0])
+            }
+            i += greedy.length
+        }
+        return if (flipped) out.toString() else null
+    }
+
+    /**
      * Walks [latin] left to right emitting the greedy rendering of each unit
      * -- combined digraphs, primary family forms, no alternates. Used by
      * [transliterate].
@@ -112,12 +141,19 @@ object Transliterator {
      * single-letter alternative at a digraph position), and its ordered
      * renderings ([renderings], primary family form first, then each
      * alternate family in [AmharicTable.consonantAlternates] order).
+     *
+     * [vowelFlip] is the primary-family rendering of this unit with its vowel
+     * flipped to the FIRST alternate order in [AmharicTable.vowelAlternates]
+     * (e.g. "me" -> ሜ instead of መ), or null when the unit has no such vowel
+     * alternate. Used by [vowelAlternateReading] to build the clean "every e
+     * as its ie order" reading without disturbing the greedy segmentation.
      */
     private class UnitOption(
         val length: Int,
         val segRank: Int,
         val renderings: List<String>,
-        val isQuirk: Boolean = false
+        val isQuirk: Boolean = false,
+        val vowelFlip: String? = null
     )
 
     /**
@@ -192,20 +228,43 @@ object Transliterator {
         } else {
             null
         }
-        val vowelIndex: Int?
+        val vowelIndices: List<Int?>
+        val vowelAlternateIndices: List<Int>
         if (vowel == null) {
-            vowelIndex = null
+            vowelIndices = listOf(null)
+            vowelAlternateIndices = emptyList()
         } else {
-            vowelIndex = vowel.second
             pos += vowel.first.length
+            vowelAlternateIndices = AmharicTable.vowelAlternates[vowel.first] ?: emptyList()
+            vowelIndices = buildList {
+                add(vowel.second)
+                addAll(vowelAlternateIndices)
+            }
         }
 
         val families = buildList {
             add(AmharicTable.families.getValue(consonant))
             AmharicTable.consonantAlternates[consonant]?.let { addAll(it) }
         }
-        val renderings = families.map { family -> renderFamily(family, vowelIndex) }
-        return UnitOption(length = pos - i, segRank = segRank, renderings = renderings, isQuirk = isQuirk)
+        val primaryFamily = families.first()
+        // Primary-vowel readings first (family primary, then family alternates),
+        // then the same across each alternate vowel order -- so vowel alternates
+        // ride along as strictly-secondary readings without disturbing the
+        // existing consonant-alternate ordering.
+        val renderings = buildList {
+            for (vowelIndex in vowelIndices) {
+                for (family in families) add(renderFamily(family, vowelIndex))
+            }
+        }
+        val vowelFlip = vowelAlternateIndices.firstOrNull()
+            ?.let { renderFamily(primaryFamily, it) }
+        return UnitOption(
+            length = pos - i,
+            segRank = segRank,
+            renderings = renderings,
+            isQuirk = isQuirk,
+            vowelFlip = vowelFlip
+        )
     }
 
     private fun renderFamily(family: AmharicTable.Family, vowelIndex: Int?): String = when {

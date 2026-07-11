@@ -2,6 +2,7 @@ package com.addiyon.keyboard.suggestion
 
 import com.addiyon.keyboard.transliteration.AmharicTable
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -67,6 +68,45 @@ class WordTrieTest {
     fun exactWordIsAlsoASuggestionForItsOwnPrefix() {
         val t = trie("go" to 100, "good" to 60, "google" to 40)
         assertEquals(listOf("go", "good", "google"), t.suggestions("go"))
+    }
+
+    // ---- sorted streaming build (the Sequence overload) ---------------------
+
+    @Test
+    fun sequenceBuildRejectsUnsortedInput() {
+        assertThrows(IllegalArgumentException::class.java) {
+            WordTrie.build(sequenceOf("banana" to 1, "apple" to 1))
+        }
+        // A word followed by its own proper prefix is also out of order.
+        assertThrows(IllegalArgumentException::class.java) {
+            WordTrie.build(sequenceOf("apples" to 1, "apple" to 1))
+        }
+        // Sortedness is over the LOWERCASED key: "Apple" then "apple" is a
+        // duplicate key, not a violation.
+        WordTrie.build(sequenceOf("Apple" to 1, "apple" to 2))
+    }
+
+    @Test
+    fun sequenceBuildAcceptsSortedInputAndMatchesListBuild() {
+        val words = listOf("go" to 100, "good" to 60, "google" to 40, "gopher" to 5)
+        val t = WordTrie.build(words.asSequence())
+        assertEquals(listOf("go", "good", "google"), t.suggestions("go"))
+        assertEquals(5, t.frequencyOf("gopher"))
+    }
+
+    @Test
+    fun sequenceBuildDuplicateKeyKeepsHigherFrequencyForm() {
+        val t = WordTrie.build(sequenceOf("Polish" to 900, "polish" to 100))
+        assertEquals(listOf("Polish"), t.suggestions("pol"))
+        assertEquals(900, t.frequencyOf("polish"))
+    }
+
+    @Test
+    fun wordsWithNonLetterCharsAreStoredAndCompleted() {
+        // Amharic abbreviations carry '.' and '/' on trie edges.
+        val t = trie("ዓ.ም" to 10_000, "ዓመት" to 5_000)
+        assertEquals(listOf("ዓ.ም", "ዓመት"), t.suggestions("ዓ", limit = 2))
+        assertEquals(10_000, t.frequencyOf("ዓ.ም"))
     }
 
     // ---- frequencyOf --------------------------------------------------------

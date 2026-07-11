@@ -5,16 +5,39 @@ import java.util.PriorityQueue
 /**
  * A prefix trie over words, ranked by frequency.
  *
+ * COMPACT FLAT-ARRAY REPRESENTATION:
+ *
+ * Nodes are not objects. The whole trie lives in parallel primitive arrays
+ * indexed by node id -- edge char in, terminal frequency, subtree max, and a
+ * (offset, count) slice into a shared [childIndices] array whose entries are
+ * the node's children in ascending edge-char order (child lookup is a binary
+ * search over that slice). At dictionary scale this matters enormously: the
+ * Amharic asset is ~411k words / ~680k trie nodes, which as one object +
+ * HashMap per node (the previous design) costs well over 100MB of heap in an
+ * IME process; as flat arrays it's ~15MB, and building it allocates no
+ * intermediate node graph at all (see [build]), so there's no GC-pause spike
+ * during the background load either.
+ *
  * CASE-INSENSITIVE MATCHING, CANONICAL CASING PRESERVED:
  *
  * Path edges are keyed by the *lowercased* character, so a lookup prefix
  * matches regardless of the case it's typed in ("eng", "Eng", "ENG" all reach
- * the same node). Each terminal node stores the word's *canonical* display
- * form separately (see [Node.word]) rather than rebuilding it from the path --
- * that's what lets the English dictionary carry proper-noun casing ("england"
- * on the path, "England" as the stored/returned word) while still being found
- * from a lowercase prefix. For scripts without case (Ge'ez/Fidel)
- * `lowercaseChar()` is the identity, so this is a no-op there.
+ * the same node). A word's display form is reconstructed from its (lowercased)
+ * path; the [canonicalWord] map holds the display form for only those words
+ * where the two differ (English proper nouns and contractions -- "england" on
+ * the path, "England" stored) rather than storing a String per word. For
+ * scripts without case (Ge'ez/Fidel) `lowercaseChar()` is the identity and the
+ * map is empty.
+ *
+ * SORTED-INPUT STREAMING BUILD:
+ *
+ * [build] requires its input ordered by the lowercased key in UTF-16
+ * code-unit order (plain `String.compareTo`) and throws on out-of-order input
+ * -- the bundled `.dat` assets are sorted that way by their `tools/` build
+ * scripts, and the unit test that loads the real assets catches any drift.
+ * Sorted input is what lets the trie be built in one streaming pass with a
+ * stack of open path frames (children finalize before parents, post-order),
+ * emitting straight into the flat arrays.
  *
  * WHY THE AMHARIC SIDE IS KEYED BY FIDEL, NOT LATIN:
  *
@@ -32,28 +55,57 @@ import java.util.PriorityQueue
  * emulator, the same reasoning documented on
  * [com.addiyon.keyboard.transliteration.AmharicTable].
  */
-class WordTrie private constructor(private val root: Node) {
+class WordTrie private constructor(
+    /** Edge char (lowercased) leading into each node; unused for the root. */
+    private val edgeChar: CharArray,
+    /** Terminal frequency per node, or [NO_WORD] if no word ends there. */
+    private val frequency: IntArray,
+    /** Highest terminal frequency in each node's subtree (itself included). */
+    private val subtreeMax: IntArray,
+    private val childOffset: IntArray,
+    private val childCount: IntArray,
+    /** All child lists, concatenated; each node's slice is edge-sorted. */
+    private val childIndices: IntArray,
+    /** node id -> display form, only where it differs from the node's path. */
+    private val canonicalWord: HashMap<Int, String>,
+    private val root: Int,
+) {
     data class Suggestion(val word: String, val frequency: Int)
 
-    private class Node {
-        val children = HashMap<Char, Node>()
+    private fun isWordNode(node: Int) = frequency[node] != NO_WORD
 
-        /**
-         * Canonical display form of the word ending at this node, or null if
-         * no word ends here. Stored rather than reconstructed from the path
-         * because the path is lowercased for case-insensitive matching while
-         * this preserves the original casing (e.g. path "england" -> "England").
-         */
-        var word: String? = null
-        var frequency: Int = 0
+    /** Display form of the word terminating at [node], whose path is [path]. */
+    private fun wordAt(node: Int, path: String): String = canonicalWord[node] ?: path
 
-        /**
-         * Highest [frequency] of any complete word in this node's subtree
-         * (itself included). Precomputed at build time so [suggestions] can run
-         * a best-first search -- expanding only branches that could still beat
-         * what's already been emitted -- instead of scanning the whole subtree.
-         */
-        var subtreeMaxFrequency: Int = 0
+    /** Binary search of [node]'s edge-sorted child slice for edge [c]. */
+    private fun childOf(node: Int, c: Char): Int {
+        var lo = childOffset[node]
+        var hi = lo + childCount[node] - 1
+        while (lo <= hi) {
+            val mid = (lo + hi) ushr 1
+            val child = childIndices[mid]
+            val edge = edgeChar[child]
+            when {
+                edge < c -> lo = mid + 1
+                edge > c -> hi = mid - 1
+                else -> return child
+            }
+        }
+        return -1
+    }
+
+    /** Node reached by walking [prefix] (lowercased) from the root, and the
+     *  lowercased path walked, or null if the prefix isn't in the trie. */
+    private fun descend(prefix: String): Pair<Int, String>? {
+        var node = root
+        val path = StringBuilder(prefix.length)
+        for (c in prefix) {
+            val lc = c.lowercaseChar()
+            node = childOf(node, lc)
+            if (node < 0) return null
+            path.append(lc)
+        }
+        return node to path.toString()
     }
 
     /**
@@ -62,31 +114,27 @@ class WordTrie private constructor(private val root: Node) {
      * The returned strings carry each word's canonical casing.
      *
      * Best-first search: a max-heap of pending items ordered by an upper bound
-     * on the frequency still reachable through them (a node's
-     * [Node.subtreeMaxFrequency], a word's own frequency). Because any word in
-     * a subtree has frequency <= that subtree's max, popping a word means no
-     * un-expanded branch could contain a higher one -- so we stop as soon as
-     * [limit] words are emitted, touching work proportional to the results
-     * rather than the whole subtree. This keeps latency flat as the dictionary
-     * grows (short, high-fan-out prefixes like "e" no longer scan everything).
+     * on the frequency still reachable through them (a node's [subtreeMax], a
+     * word's own frequency). Because any word in a subtree has frequency <=
+     * that subtree's max, popping a word means no un-expanded branch could
+     * contain a higher one -- so we stop as soon as [limit] words are emitted,
+     * touching work proportional to the results rather than the whole subtree.
+     * This keeps latency flat as the dictionary grows (short, high-fan-out
+     * prefixes like "e" no longer scan everything).
      */
     fun suggestions(prefix: String, limit: Int = 3): List<String> =
         suggestionEntries(prefix, limit).map { it.word }
 
     fun suggestionEntries(prefix: String, limit: Int = 3): List<Suggestion> {
         if (prefix.isEmpty() || limit <= 0) return emptyList()
-
-        var node = root
-        for (c in prefix) {
-            node = node.children[c.lowercaseChar()] ?: return emptyList()
-        }
+        val (start, startPath) = descend(prefix) ?: return emptyList()
 
         val results = ArrayList<Suggestion>(limit)
-        // Each Candidate is either a subtree to expand (node != null, priority =
-        // subtreeMaxFrequency) or a word to emit (emit != null, priority =
-        // frequency). Highest priority pops first.
+        // Each Candidate is either a subtree to expand (node >= 0, priority =
+        // subtreeMax, path = the node's lowercased path) or a word to emit
+        // (emit != null, priority = frequency). Highest priority pops first.
         val frontier = PriorityQueue<Candidate>(compareByDescending { it.priority })
-        frontier.add(Candidate(node.subtreeMaxFrequency, node, null))
+        frontier.add(Candidate(subtreeMax[start], start, startPath, null))
 
         while (results.size < limit) {
             val c = frontier.poll() ?: break
@@ -94,16 +142,23 @@ class WordTrie private constructor(private val root: Node) {
                 results.add(c.emit)
                 continue
             }
-            val n = c.node!!
-            n.word?.let { frontier.add(Candidate(n.frequency, null, Suggestion(it, n.frequency))) }
-            for (child in n.children.values) {
-                frontier.add(Candidate(child.subtreeMaxFrequency, child, null))
+            val n = c.node
+            if (isWordNode(n)) {
+                frontier.add(Candidate(frequency[n], -1, "", Suggestion(wordAt(n, c.path), frequency[n])))
+            }
+            forEachChild(n) { child ->
+                frontier.add(Candidate(subtreeMax[child], child, c.path + edgeChar[child], null))
             }
         }
         return results
     }
 
-    private class Candidate(val priority: Int, val node: Node?, val emit: Suggestion?)
+    private class Candidate(val priority: Int, val node: Int, val path: String, val emit: Suggestion?)
+
+    private inline fun forEachChild(node: Int, action: (Int) -> Unit) {
+        val off = childOffset[node]
+        for (i in off until off + childCount[node]) action(childIndices[i])
+    }
 
     /**
      * The stored frequency of [word] if it's an exact entry (case-insensitive
@@ -116,9 +171,10 @@ class WordTrie private constructor(private val root: Node) {
         if (word.isEmpty()) return null
         var node = root
         for (c in word) {
-            node = node.children[c.lowercaseChar()] ?: return null
+            node = childOf(node, c.lowercaseChar())
+            if (node < 0) return null
         }
-        return node.word?.let { node.frequency }
+        return if (isWordNode(node)) frequency[node] else null
     }
 
     /**
@@ -188,7 +244,8 @@ class WordTrie private constructor(private val root: Node) {
         // insertions; minSoFar starts as row[last] = typed.size * insertCost.
         val initialRow = IntArray(typed.size + 1) { it * insertCost }
         val costs = Costs(substitutionCost, insertCost, deleteCost)
-        searchFuzzy(root, ' ', typed, initialRow, null, initialRow[typed.size], maxEdits, limit, costs, best)
+        val path = StringBuilder()
+        searchFuzzy(root, ' ', typed, initialRow, null, initialRow[typed.size], maxEdits, limit, costs, best, path)
 
         return best.values
             .sortedWith(compareBy({ it.editDistance }, { -it.frequency }))
@@ -219,10 +276,11 @@ class WordTrie private constructor(private val root: Node) {
      * [prevLetter]); [prevLetter] is that edge, used with the row two levels up
      * (passed as [prevRow]) for the transposition term. [minSoFar] is the least
      * `row[last]` seen from the root down to [node] -- the running fuzzy-prefix
-     * distance. See [fuzzySuggestions] for the two regimes.
+     * distance. [path] holds [node]'s lowercased path (appended/truncated as
+     * the walk descends/returns). See [fuzzySuggestions] for the two regimes.
      */
     private fun searchFuzzy(
-        node: Node,
+        node: Int,
         prevLetter: Char,
         typed: CharArray,
         row: IntArray,
@@ -232,12 +290,16 @@ class WordTrie private constructor(private val root: Node) {
         limit: Int,
         costs: Costs,
         best: HashMap<String, FuzzyMatch>,
+        path: StringBuilder,
     ) {
         // This node's own prefix is in budget -> if it terminates a word, emit
         // it at the accurate running distance.
-        if (minSoFar <= maxEdits) node.word?.let { record(best, it, minSoFar, node.frequency) }
+        if (minSoFar <= maxEdits && isWordNode(node)) {
+            record(best, wordAt(node, path.toString()), minSoFar, frequency[node])
+        }
 
-        for ((edge, child) in node.children) {
+        forEachChild(node) { child ->
+            val edge = edgeChar[child]
             val next = IntArray(typed.size + 1)
             next[0] = row[0] + costs.delete   // consuming a word char, no typed char
             var nextMin = next[0]
@@ -259,14 +321,17 @@ class WordTrie private constructor(private val root: Node) {
 
             when {
                 // The DP can still make progress (or improve the distance) here.
-                nextMin <= maxEdits ->
-                    searchFuzzy(child, edge, typed, next, row, childMin, maxEdits, limit, costs, best)
+                nextMin <= maxEdits -> {
+                    path.append(edge)
+                    searchFuzzy(child, edge, typed, next, row, childMin, maxEdits, limit, costs, best, path)
+                    path.setLength(path.length - 1)
+                }
 
                 // DP is exhausted for this branch, but we already have an
                 // in-budget prefix above it -> everything below is a valid
                 // completion at that distance; collect the best by frequency.
                 minSoFar <= maxEdits ->
-                    for ((word, frequency) in collectBest(child, limit)) {
+                    for ((word, frequency) in collectBest(child, path.toString() + edge, limit)) {
                         record(best, word, minSoFar, frequency)
                     }
 
@@ -275,70 +340,209 @@ class WordTrie private constructor(private val root: Node) {
         }
     }
 
-    /** Top [limit] (word, frequency) pairs in [start]'s subtree, best-first --
-     *  the same bounded search as [suggestions], from an arbitrary node. */
-    private fun collectBest(start: Node, limit: Int): List<Pair<String, Int>> {
+    /** Top [limit] (word, frequency) pairs in [start]'s subtree (whose
+     *  lowercased path is [startPath]), best-first -- the same bounded search
+     *  as [suggestions], from an arbitrary node. */
+    private fun collectBest(start: Int, startPath: String, limit: Int): List<Pair<String, Int>> {
         val results = ArrayList<Pair<String, Int>>(limit)
         val frontier = PriorityQueue<Candidate>(compareByDescending { it.priority })
-        frontier.add(Candidate(start.subtreeMaxFrequency, start, null))
+        frontier.add(Candidate(subtreeMax[start], start, startPath, null))
         while (results.size < limit) {
             val c = frontier.poll() ?: break
             if (c.emit != null) {
                 results.add(c.emit.word to c.emit.frequency)
                 continue
             }
-            val n = c.node!!
-            n.word?.let { frontier.add(Candidate(n.frequency, null, Suggestion(it, n.frequency))) }
-            for (child in n.children.values) {
-                frontier.add(Candidate(child.subtreeMaxFrequency, child, null))
+            val n = c.node
+            if (isWordNode(n)) {
+                frontier.add(Candidate(frequency[n], -1, "", Suggestion(wordAt(n, c.path), frequency[n])))
+            }
+            forEachChild(n) { child ->
+                frontier.add(Candidate(subtreeMax[child], child, c.path + edgeChar[child], null))
             }
         }
         return results
     }
 
     companion object {
-        /**
-         * Builds a trie from (word, frequency) pairs. Keys are matched
-         * case-insensitively; when two words share a lowercased key (e.g.
-         * "polish"/"Polish") the higher-frequency one wins its stored form --
-         * deterministic and independent of input order.
-         */
-        fun build(words: List<Pair<String, Int>>): WordTrie = build(words.asSequence())
+        /** Sentinel in [frequency] marking "no word terminates at this node".
+         *  A sentinel rather than 0 so genuinely-zero frequencies still work. */
+        private const val NO_WORD = Int.MIN_VALUE
 
         /**
-         * Same as the [List] overload, but consumes a [Sequence] so a caller
-         * streaming lines off disk (e.g. [WordDictionary]) never has to
-         * materialize the full (word, frequency) list before building the
-         * trie -- halving peak memory during the load, which matters on
-         * low-RAM devices where that allocation spike can stall the main
-         * thread via GC.
+         * Builds a trie from (word, frequency) pairs, sorting them first --
+         * the convenience entry point for small in-memory lists (tests). Keys
+         * are matched case-insensitively; when two words share a lowercased
+         * key (e.g. "polish"/"Polish") the higher-frequency one wins its
+         * stored form -- deterministic and independent of input order.
+         */
+        fun build(words: List<Pair<String, Int>>): WordTrie =
+            build(words.sortedBy { lowercaseKey(it.first) }.asSequence())
+
+        /**
+         * Streaming build from a [Sequence] ALREADY SORTED by the lowercased
+         * key in UTF-16 code-unit order (throws [IllegalArgumentException]
+         * otherwise -- fail fast rather than silently mis-building). A caller
+         * streaming lines off disk (e.g. [WordDictionary], whose `.dat` assets
+         * are sorted at asset-build time) never materializes the word list OR
+         * an intermediate node graph: a stack of open path frames emits
+         * finalized nodes straight into the flat arrays, so peak load memory
+         * is essentially the final trie itself -- which matters on low-RAM
+         * devices where an allocation spike can stall the main thread via GC.
          */
         fun build(words: Sequence<Pair<String, Int>>): WordTrie {
-            val root = Node()
+            val builder = Builder()
             for ((word, frequency) in words) {
                 if (word.isEmpty()) continue
-                var node = root
-                for (c in word) {
-                    node = node.children.getOrPut(c.lowercaseChar()) { Node() }
-                }
-                if (node.word == null || frequency > node.frequency) {
-                    node.word = word
-                    node.frequency = frequency
-                }
+                builder.add(word, frequency)
             }
-            computeSubtreeMax(root)
-            return WordTrie(root)
+            return builder.finish()
         }
 
-        /** Post-order fill of [Node.subtreeMaxFrequency] over the whole trie. */
-        private fun computeSubtreeMax(node: Node): Int {
-            var max = if (node.word != null) node.frequency else 0
-            for (child in node.children.values) {
-                val childMax = computeSubtreeMax(child)
-                if (childMax > max) max = childMax
+        /** The word as trie-path key: each char lowercased, matching how
+         *  edges are keyed and how lookups lowercase the prefix. */
+        private fun lowercaseKey(word: String): String {
+            val sb = StringBuilder(word.length)
+            for (c in word) sb.append(c.lowercaseChar())
+            return sb.toString()
+        }
+    }
+
+    /** Growable IntArray, to build the flat arrays without boxing. */
+    private class IntList(initialCapacity: Int = 1024) {
+        private var array = IntArray(initialCapacity)
+        var size = 0
+            private set
+
+        fun add(value: Int) {
+            if (size == array.size) array = array.copyOf(size * 2)
+            array[size++] = value
+        }
+
+        operator fun get(index: Int) = array[index]
+
+        fun clear() {
+            size = 0
+        }
+
+        fun toArray() = array.copyOf(size)
+    }
+
+    /**
+     * Streaming trie builder over sorted input. The stack holds one [Frame]
+     * per char of the current word's lowercased key (plus the root at the
+     * bottom); when the next word diverges from the previous one, the frames
+     * below the divergence point are finalized -- their children are already
+     * final (post-order), so each flushes its child list contiguously into
+     * [childIndices] and appends itself to the node arrays.
+     */
+    private class Builder {
+        private val edgeChar = StringBuilder()
+        private val frequency = IntList()
+        private val subtreeMax = IntList()
+        private val childOffset = IntList()
+        private val childCount = IntList()
+        private val childIndices = IntList()
+        private val canonicalWord = HashMap<Int, String>()
+
+        private class Frame(var edge: Char) {
+            var frequency = NO_WORD
+            var canonical: String? = null
+            val children = IntList(initialCapacity = 4)
+
+            fun reset(edge: Char) {
+                this.edge = edge
+                frequency = NO_WORD
+                canonical = null
+                children.clear()
             }
-            node.subtreeMaxFrequency = max
-            return max
+        }
+
+        // stack[0] is the root frame; stack[d] corresponds to prevKey[d - 1].
+        private val stack = ArrayList<Frame>().apply { add(Frame(' ')) }
+        private var depth = 0
+        private var prevKey = ""
+
+        fun add(word: String, freq: Int) {
+            val key = lowercaseKey(word)
+            val commonPrefix = commonPrefixLength(prevKey, key)
+            // Sorted means: key extends prevKey, equals it, or diverges with a
+            // strictly greater char. A shorter key that never diverges (a
+            // proper prefix of prevKey) or a smaller divergence char is out of
+            // order.
+            val inOrder = when {
+                commonPrefix == key.length -> key.length == prevKey.length
+                commonPrefix == prevKey.length -> true
+                else -> key[commonPrefix] > prevKey[commonPrefix]
+            }
+            require(inOrder) {
+                "input not sorted: \"$word\" (key \"$key\") after key \"$prevKey\""
+            }
+
+            while (depth > commonPrefix) popFrame()
+            for (i in commonPrefix until key.length) pushFrame(key[i])
+
+            // Duplicate lowercased keys (adjacent, since sorted): the
+            // higher-frequency entry wins both the frequency and the stored
+            // display form -- deterministic and independent of input order.
+            val frame = stack[depth]
+            if (frame.frequency == NO_WORD || freq > frame.frequency) {
+                frame.frequency = freq
+                frame.canonical = if (word != key) word else null
+            }
+            prevKey = key
+        }
+
+        fun finish(): WordTrie {
+            while (depth > 0) popFrame()
+            val root = finalizeFrame(stack[0])
+            return WordTrie(
+                edgeChar = CharArray(edgeChar.length) { edgeChar[it] },
+                frequency = frequency.toArray(),
+                subtreeMax = subtreeMax.toArray(),
+                childOffset = childOffset.toArray(),
+                childCount = childCount.toArray(),
+                childIndices = childIndices.toArray(),
+                canonicalWord = canonicalWord,
+                root = root,
+            )
+        }
+
+        private fun pushFrame(edge: Char) {
+            depth++
+            if (depth == stack.size) stack.add(Frame(edge)) else stack[depth].reset(edge)
+        }
+
+        private fun popFrame() {
+            val node = finalizeFrame(stack[depth])
+            depth--
+            stack[depth].children.add(node)
+        }
+
+        /** Emits [frame] as a node (children already emitted) and returns its id. */
+        private fun finalizeFrame(frame: Frame): Int {
+            val node = frequency.size
+            val kids = frame.children
+            childOffset.add(childIndices.size)
+            childCount.add(kids.size)
+            var max = frame.frequency
+            for (i in 0 until kids.size) {
+                val child = kids[i]
+                childIndices.add(child)
+                if (subtreeMax[child] > max) max = subtreeMax[child]
+            }
+            edgeChar.append(frame.edge)
+            frequency.add(frame.frequency)
+            subtreeMax.add(max)
+            frame.canonical?.let { canonicalWord[node] = it }
+            return node
+        }
+
+        private fun commonPrefixLength(a: String, b: String): Int {
+            val n = minOf(a.length, b.length)
+            var i = 0
+            while (i < n && a[i] == b[i]) i++
+            return i
         }
     }
 }

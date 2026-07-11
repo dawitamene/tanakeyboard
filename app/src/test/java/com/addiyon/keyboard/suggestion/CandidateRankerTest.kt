@@ -3,6 +3,7 @@ package com.addiyon.keyboard.suggestion
 import com.addiyon.keyboard.transliteration.Transliterator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CandidateRankerTest {
@@ -13,7 +14,8 @@ class CandidateRankerTest {
         readings: List<String>,
         trie: WordTrie,
         visibleReadings: List<String> = emptyList(),
-        fuzzyWords: List<CandidateRanker.FuzzyWord> = emptyList()
+        fuzzyWords: List<CandidateRanker.FuzzyWord> = emptyList(),
+        quirkReadings: Set<String> = emptySet()
     ): List<String> =
         CandidateRanker.rankAmharic(
             readings = readings,
@@ -25,7 +27,8 @@ class CandidateRankerTest {
                 }
             },
             visibleReadings = visibleReadings,
-            fuzzyWords = fuzzyWords
+            fuzzyWords = fuzzyWords,
+            quirkReadings = quirkReadings
         )
 
     @Test
@@ -127,6 +130,46 @@ class CandidateRankerTest {
             visibleReadings = listOf("ሰልአም")
         )
         assertEquals(listOf("ሰላም"), ranked)
+    }
+
+    @Test
+    fun aQuirkSplitDictionaryWordDoesNotHijackTheGreedyDefault() {
+        // "me": greedy መ isn't a dictionary word, but the structural split ም+እ
+        // (ምእ) is. The split must NOT become the default -- greedy መ stays the
+        // literal default, and ምእ only rides along as a quirk/completion chip.
+        val ranked = rankAmharic(
+            readings = listOf("መ", "ምእ", "ምዕ"),
+            trie = trie("ምእ" to 900, "ምዕ" to 900, "ምእመናን" to 500),
+            visibleReadings = listOf("ምእ", "ምዕ"),
+            quirkReadings = setOf("ምእ", "ምዕ")
+        )
+        assertEquals("መ", ranked.first())
+        assertTrue("ምእ" in ranked)      // still offered as a chip
+        assertTrue("ምእመናን" in ranked)   // split-prefix completion still works
+    }
+
+    @Test
+    fun bestCommitCandidateIgnoresQuirkSplitWords() {
+        // Same "me" case for the commit slot: space must land መ, not the split
+        // dictionary word ምእ.
+        val commit = CandidateRanker.bestCommitCandidate(
+            listOf("መ", "ምእ", "ምዕ"),
+            frequencyOf = mapOf("ምእ" to 900, "ምዕ" to 900)::get,
+            quirkReadings = setOf("ምእ", "ምዕ")
+        )
+        assertEquals("መ", commit)
+    }
+
+    @Test
+    fun bestCommitCandidateStillPromotesNonQuirkExactWords() {
+        // "fkr": greedy ፍክር isn't a word, ፍቅር (a same-segmentation family swap,
+        // not a quirk) is -- it must still win the commit.
+        val commit = CandidateRanker.bestCommitCandidate(
+            listOf("ፍክር", "ፍቅር"),
+            frequencyOf = mapOf("ፍቅር" to 900)::get,
+            quirkReadings = emptySet()
+        )
+        assertEquals("ፍቅር", commit)
     }
 
     @Test

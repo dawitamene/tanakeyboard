@@ -3,9 +3,11 @@
 Regenerates app/src/main/assets/english_words.dat -- the English suggestion
 dictionary consumed by suggestion/WordDictionary.kt -> WordTrie.kt.
 
-Output format (unchanged, so the loader needs no changes):
+Output format:
     - one `word<TAB>frequency` line per entry, UTF-8
-    - sorted by descending frequency
+    - sorted by the lowercased word (UTF-16 code-unit order) -- required by
+      WordTrie.build's streaming flat-array construction, which throws on
+      unsorted input
     - gzip-compressed, written with a `.dat` extension (NOT `.gz`) because the
       Android Gradle Plugin auto-decompresses `.gz` assets at build time.
 
@@ -180,7 +182,15 @@ def main():
     for word, freq in CONTRACTIONS.items():
         put(word, freq)
 
-    rows = sorted(out.values(), key=lambda wf: (-wf[1], wf[0]))
+    # Sorted by the lowercased word in UTF-16 code-unit order: WordTrie.build
+    # streams the asset into a flat-array trie and REQUIRES sorted input (it
+    # throws otherwise). Per-char lower() mirrors Kotlin's Char.lowercaseChar()
+    # edge keying; the assert guards the chars where the two could disagree
+    # (multi-char lowercasing, non-BMP code points).
+    assert all(
+        len(c.lower()) == 1 and ord(c) <= 0xFFFF for w, _ in out.values() for c in w
+    ), "word has a char whose lowercasing Kotlin's lowercaseChar() can't mirror"
+    rows = sorted(out.values(), key=lambda wf: "".join(c.lower() for c in wf[0]))
 
     buf = io.BytesIO()
     # mtime=0 keeps the gzip output byte-stable across runs for the same input.

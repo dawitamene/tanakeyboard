@@ -359,9 +359,11 @@ class AddiyonKeyboardService : InputMethodService(),
     private fun topAmharicCandidate(raw: String): String {
         if (raw.isEmpty()) return ""
         if (!::amharicDictionary.isInitialized) return Transliterator.transliterate(raw)
+        val candidateReadings = Transliterator.candidateReadings(raw)
         return CandidateRanker.bestCommitCandidate(
-            Transliterator.candidates(raw),
-            amharicDictionary::frequencyOf
+            candidateReadings.map { it.text },
+            amharicDictionary::frequencyOf,
+            quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet()
         ) ?: Transliterator.transliterate(raw)
     }
 
@@ -418,6 +420,18 @@ class AddiyonKeyboardService : InputMethodService(),
         val visibleReadings = candidateReadings
             .filter { latin.length == 1 || it.isQuirk }
             .map { it.text }
+        // Structural split readings: kept for completions/quirk chips, but not
+        // allowed to win the default over the natural greedy reading.
+        val quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet()
+        // The order-5 "ie" reading of any "e" syllables, offered as a secondary
+        // chip so "melat" reaches ሜላት / "me" reaches ሜ without typing "ie" --
+        // but only when the dictionary backs it (the reading is a word or the
+        // prefix of one; suggestionEntries covers both). An alternate the
+        // dictionary has never seen (e.g. ኬዴምት for "kedemt") is a fabricated
+        // spelling, and pinning it would bypass the same trust-the-dictionary
+        // rule every other dead alternate in the strip already follows.
+        val vowelAlternate = Transliterator.vowelAlternateReading(latin)
+            ?.takeIf { amharicDictionary.suggestionEntries(it, 1).isNotEmpty() }
         val completionCache = HashMap<String, List<CandidateRanker.DictionaryWord>>()
         val completionsForPrefix = { prefix: String, limit: Int ->
             completionCache.getOrPut(prefix) {
@@ -432,12 +446,13 @@ class AddiyonKeyboardService : InputMethodService(),
             limit = AMHARIC_SUGGESTION_LIMIT,
             frequencyOf = amharicDictionary::frequencyOf,
             completionsForPrefix = completionsForPrefix,
-            visibleReadings = visibleReadings
+            visibleReadings = visibleReadings,
+            quirkReadings = quirkReadings
         )
         if (ranked.size >= AMHARIC_SUGGESTION_LIMIT ||
             readings.none { it.length <= MAX_FUZZY_READING_LENGTH }
         ) {
-            return ranked
+            return pinVowelAlternate(ranked, vowelAlternate)
         }
 
         val fuzzy = ArrayList<CandidateRanker.FuzzyWord>(AMHARIC_SUGGESTION_LIMIT)
@@ -455,14 +470,38 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
 
-        return CandidateRanker.rankAmharic(
-            readings = readings,
-            limit = AMHARIC_SUGGESTION_LIMIT,
-            frequencyOf = amharicDictionary::frequencyOf,
-            completionsForPrefix = completionsForPrefix,
-            visibleReadings = visibleReadings,
-            fuzzyWords = fuzzy
+        return pinVowelAlternate(
+            CandidateRanker.rankAmharic(
+                readings = readings,
+                limit = AMHARIC_SUGGESTION_LIMIT,
+                frequencyOf = amharicDictionary::frequencyOf,
+                completionsForPrefix = completionsForPrefix,
+                visibleReadings = visibleReadings,
+                fuzzyWords = fuzzy,
+                quirkReadings = quirkReadings
+            ),
+            vowelAlternate
         )
+    }
+
+    /**
+     * Force the vowel-order alternate (e.g. "melat" -> ሜላት) to sit directly
+     * behind the default reading as the "secondary option" chip, above the
+     * dictionary's own split-reading matches -- which is what the user means by
+     * "write it with the ie vowel". Left in place when it's already the default
+     * (position 0, e.g. "bet" -> ቤት is itself a dictionary word), and a no-op
+     * when there's no e-syllable to flip. The caller only passes an alternate
+     * the dictionary recognizes (word or word prefix) -- see
+     * [amharicSuggestions] -- so this never pins a fabricated spelling.
+     * Result is re-capped to the limit.
+     */
+    private fun pinVowelAlternate(ranked: List<String>, vowelAlternate: String?): List<String> {
+        if (vowelAlternate == null || ranked.firstOrNull() == vowelAlternate) return ranked
+        val pinned = ArrayList<String>(ranked.size + 1)
+        pinned.addAll(ranked)
+        pinned.remove(vowelAlternate)
+        pinned.add(minOf(1, pinned.size), vowelAlternate)
+        return pinned.take(AMHARIC_SUGGESTION_LIMIT)
     }
 
     /**

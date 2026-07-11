@@ -13,13 +13,19 @@ import java.util.zip.GZIPInputStream
  * One instance per bundled asset (currently Amharic and English).
  *
  * Reads a gzip-compressed asset, one `word<TAB>frequency` pair per line
- * once decompressed. The bundled assets:
+ * once decompressed, SORTED by the lowercased word in UTF-16 code-unit order
+ * -- [WordTrie.build] streams the lines into its flat-array trie and throws
+ * on unsorted input, so the `tools/` scripts that generate the assets sort
+ * them at build time (a unit test loads the real assets to catch drift). The
+ * bundled assets:
  *
- *   - `amharic_words.dat`: the Hunspell `am_ET` word list (public domain,
- *     Ge'ez Frontier Foundation), ~182k words; since it carries no real
- *     frequency data, frequency is a rough starter heuristic (shorter words
- *     rank higher). Swapping in a proper frequency-ranked list later (e.g.
- *     built from Wikipedia + news corpora) is just replacing the asset.
+ *   - `amharic_words.dat`: built by `tools/build_amharic_dict.py` from a
+ *     corpus term-frequency dump, ~411k entries with real corpus
+ *     frequencies: pure-fidel words (frequency >= 2 -- singletons in
+ *     scraped corpora are disproportionately typos) plus common
+ *     abbreviations like ዓ.ም / ዶ/ር (frequency >= 50), which can't be
+ *     composed (period/slash commit the word) but still surface as
+ *     tap-to-complete suggestions for their fidel prefix.
  *   - `english_words.dat`: derived from the OpenSubtitles-based
  *     FrequencyWords full list (hermitdave/FrequencyWords, MIT), ~250k
  *     words with real corpus frequencies. The source tokenizer splits
@@ -37,7 +43,7 @@ import java.util.zip.GZIPInputStream
  * would leave a source file named `words.txt.gz` bundled as a *plain,
  * uncompressed* `words.txt` instead. `.dat` sidesteps that.
  *
- * Parsing ~182k lines and building a trie is fast in absolute terms but
+ * Parsing ~411k lines and building a trie is fast in absolute terms but
  * still real work, so it happens on a background thread rather than
  * blocking the IME's `onCreate` -- [loadAsync] posts the result back to the
  * main thread when ready, since [suggestions] and every UI read of

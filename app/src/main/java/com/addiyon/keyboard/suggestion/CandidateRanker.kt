@@ -37,12 +37,17 @@ object CandidateRanker {
 
     fun bestCommitCandidate(
         candidates: List<String>,
-        frequencyOf: (String) -> Int?
+        frequencyOf: (String) -> Int?,
+        quirkReadings: Set<String> = emptySet()
     ): String? {
         if (candidates.isEmpty()) return null
         var bestWord: String? = null
         var bestScore = Int.MIN_VALUE
         for ((index, candidate) in candidates.withIndex()) {
+            // A dictionary hit on a structural SPLIT (quirk) reading -- e.g.
+            // "me" re-segmented as ም+እ -- must not hijack the commit from the
+            // natural greedy reading (መ). Quirks stay tap-only suggestions.
+            if (candidate in quirkReadings) continue
             val frequency = frequencyOf(candidate) ?: continue
             val score = exactScore(frequency, index)
             if (score > bestScore) {
@@ -59,7 +64,8 @@ object CandidateRanker {
         frequencyOf: (String) -> Int?,
         completionsForPrefix: (String, Int) -> List<DictionaryWord>,
         visibleReadings: List<String> = emptyList(),
-        fuzzyWords: List<FuzzyWord> = emptyList()
+        fuzzyWords: List<FuzzyWord> = emptyList(),
+        quirkReadings: Set<String> = emptySet()
     ): List<String> {
         if (readings.isEmpty() || limit <= 0) return emptyList()
 
@@ -67,6 +73,11 @@ object CandidateRanker {
         var hasExactReading = false
 
         for ((index, reading) in readings.withIndex()) {
+            // Structural SPLIT (quirk) readings never win the promoted "exact
+            // word" default -- otherwise a dictionary hit on the re-segmented
+            // ም+እ would suppress the greedy መ for "me". They still surface as
+            // completion prefixes below and as quirk chips via visibleReadings.
+            if (reading in quirkReadings) continue
             val frequency = frequencyOf(reading) ?: continue
             hasExactReading = true
             scored.add(
