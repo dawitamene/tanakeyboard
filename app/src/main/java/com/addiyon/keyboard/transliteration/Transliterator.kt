@@ -90,6 +90,9 @@ object Transliterator {
         return out.toString()
     }
 
+    fun hasExplicitFamilySelection(latin: String): Boolean =
+        AmharicTable.explicitFamilySpellings.any(latin::contains)
+
     /**
      * The greedy reading with every consonant+vowel unit that has a vowel
      * alternate ([AmharicTable.vowelAlternates]) rendered in that alternate
@@ -117,6 +120,33 @@ object Transliterator {
             i += greedy.length
         }
         return if (flipped) out.toString() else null
+    }
+
+    fun consonantAlternateReading(latin: String): String? {
+        if (latin.isEmpty()) return null
+        val out = StringBuilder(latin.length)
+        var flipped = false
+        var i = 0
+        while (i < latin.length) {
+            val greedy = unitOptionsAt(latin, i)[0]
+            val flip = greedy.consonantFlip
+            if (flip != null) {
+                out.append(flip)
+                flipped = true
+            } else {
+                out.append(greedy.renderings[0])
+            }
+            i += greedy.length
+        }
+        return if (flipped) out.toString() else null
+    }
+
+    fun bareVowelAlternateReading(latin: String): String? {
+        if (latin.isEmpty()) return null
+        val unit = bareVowelUnit(latin, 0) ?: return null
+        if (unit.length != latin.length) return null
+        return unit.renderings.getOrNull(1)
+            ?.takeIf { it != unit.renderings.first() }
     }
 
     /**
@@ -153,7 +183,8 @@ object Transliterator {
         val segRank: Int,
         val renderings: List<String>,
         val isQuirk: Boolean = false,
-        val vowelFlip: String? = null
+        val vowelFlip: String? = null,
+        val consonantFlip: String? = null
     )
 
     /**
@@ -240,7 +271,10 @@ object Transliterator {
             vowelAlternateIndices = emptyList()
         } else {
             pos += vowel.first.length
-            vowelAlternateIndices = AmharicTable.vowelAlternates[vowel.first] ?: emptyList()
+            vowelAlternateIndices =
+                AmharicTable.consonantVowelAlternates[consonant to vowel.first]
+                    ?: AmharicTable.vowelAlternates[vowel.first]
+                    ?: emptyList()
             vowelIndices = buildList {
                 add(vowel.second)
                 addAll(vowelAlternateIndices)
@@ -263,12 +297,15 @@ object Transliterator {
         }
         val vowelFlip = vowelAlternateIndices.firstOrNull()
             ?.let { renderFamily(primaryFamily, it) }
+        val consonantFlip = families.getOrNull(1)
+            ?.let { renderFamily(it, vowelIndices.first()) }
         return UnitOption(
             length = pos - i,
             segRank = segRank,
             renderings = renderings,
             isQuirk = isQuirk,
-            vowelFlip = vowelFlip
+            vowelFlip = vowelFlip,
+            consonantFlip = consonantFlip
         )
     }
 
@@ -290,18 +327,21 @@ object Transliterator {
             ?: AmharicTable.bareVowels.firstOrNull { latin.startsWith(it.spelling, i, ignoreCase = true) }
             ?: return null
 
-        val flippedKey = when (bareVowel.familyKey) {
-            "'" -> "`"
-            "`" -> "'"
-            else -> null
-        }
         val renderings = buildList {
             if (bareVowel.spelling.equals("a", ignoreCase = true)) {
                 addAll(aBareVowelRenderings(bareVowel.familyKey))
                 return@buildList
             }
             add(AmharicTable.families.getValue(bareVowel.familyKey).forms[bareVowel.index].toString())
-            flippedKey?.let { add(AmharicTable.families.getValue(it).forms[bareVowel.index].toString()) }
+            val alternates = AmharicTable.bareVowelAlternates[bareVowel.spelling]
+                ?: when (bareVowel.familyKey) {
+                    "'" -> listOf("`" to bareVowel.index)
+                    "`" -> listOf("'" to bareVowel.index)
+                    else -> emptyList()
+                }
+            for ((familyKey, index) in alternates) {
+                add(AmharicTable.families.getValue(familyKey).forms[index].toString())
+            }
         }
         return UnitOption(length = bareVowel.spelling.length, segRank = 0, renderings = renderings)
     }
@@ -369,11 +409,15 @@ object Transliterator {
     fun candidateReadings(latin: String, limit: Int = DEFAULT_CANDIDATE_LIMIT): List<CandidateReading> {
         if (latin.isEmpty()) return emptyList()
         val memo = HashMap<Int, List<PathCandidate>>()
-        return bestFrom(latin, 0, memo)
-            .asSequence()
+        val preferred = buildList {
+            add(CandidateReading(transliterate(latin), isQuirk = false))
+            vowelAlternateReading(latin)?.let { add(CandidateReading(it, isQuirk = false)) }
+            consonantAlternateReading(latin)?.let { add(CandidateReading(it, isQuirk = false)) }
+        }
+        return (preferred.asSequence() + bestFrom(latin, 0, memo).asSequence()
+            .map { CandidateReading(it.text, it.isQuirk) })
             .distinctBy { it.text }
             .take(limit)
-            .map { CandidateReading(it.text, it.isQuirk) }
             .toList()
     }
 

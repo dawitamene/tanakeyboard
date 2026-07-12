@@ -165,21 +165,6 @@ internal class WordComposer(
     }
 
     /**
-     * Multi-tap alternate cycling: swap the last [count] raw characters for
-     * [replacement] and re-render, as one atomic buffer edit (a backspace +
-     * append pair would push two composing updates and briefly show the
-     * stem alone). The caller guarantees the tail being replaced is what it
-     * previously inserted -- see AddiyonKeyboardService's multi-tap state.
-     */
-    fun replaceLast(count: Int, replacement: String) {
-        if (count > buffer.length) return
-        buffer.setLength(buffer.length - count)
-        buffer.append(replacement)
-        rawDirty = true
-        pushComposing()
-    }
-
-    /**
      * Backspace pressed. Returns true if we absorbed the backspace (the
      * buffer had something to delete), false if the caller should apply
      * its own delete-from-text-field fallback.

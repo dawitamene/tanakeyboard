@@ -11,27 +11,32 @@ import java.util.PriorityQueue
  * indexed by node id -- edge char in, terminal frequency, subtree max, and a
  * (offset, count) slice into a shared [childIndices] array whose entries are
  * the node's children in ascending edge-char order (child lookup is a binary
- * search over that slice). At dictionary scale this matters enormously: the
- * Amharic asset is ~411k words / ~680k trie nodes, which as one object +
- * HashMap per node (the previous design) costs well over 100MB of heap in an
- * IME process; as flat arrays it's ~15MB, and building it allocates no
+ * search over that slice). At dictionary scale this matters enormously: at
+ * the English asset's ~250k words, one object + HashMap per node (the
+ * previous design) costs well over 100MB of heap in an IME process; as flat
+ * arrays it's a few MB, and building it allocates no
  * intermediate node graph at all (see [build]), so there's no GC-pause spike
  * during the background load either.
  *
- * CASE-INSENSITIVE MATCHING, CANONICAL CASING PRESERVED:
+ * NORMALIZED MATCHING, CANONICAL FORM PRESERVED:
  *
- * Path edges are keyed by the *lowercased* character, so a lookup prefix
- * matches regardless of the case it's typed in ("eng", "Eng", "ENG" all reach
- * the same node). A word's display form is reconstructed from its (lowercased)
- * path; the [canonicalWord] map holds the display form for only those words
- * where the two differ (English proper nouns and contractions -- "england" on
- * the path, "England" stored) rather than storing a String per word. For
- * scripts without case (Ge'ez/Fidel) `lowercaseChar()` is the identity and the
- * map is empty.
+ * Path edges are keyed by a per-character normalizer ([keyChar], chosen at
+ * build time), so a lookup prefix matches any spelling that normalizes the
+ * same way. English uses the default `lowercaseChar()` ("eng", "Eng", "ENG"
+ * all reach the same node); Amharic injects
+ * [com.addiyon.keyboard.transliteration.EthiopicNormalizer.normalize], which
+ * folds homophone spelling variants (ሀገር / ሃገር / ሐገር / ኀገር all reach the
+ * same node) -- Ge'ez has no case, so homoglyph folding is that script's
+ * exact analogue of case-insensitivity. A word's display form is
+ * reconstructed from its (normalized) path; the [canonicalWord] map holds the
+ * display form for only those words where the two differ (English proper
+ * nouns and contractions -- "england" on the path, "England" stored; Amharic
+ * words whose corpus-canonical spelling uses a variant character -- "ሀይል" on
+ * the path, "ኃይል" stored) rather than storing a String per word.
  *
  * SORTED-INPUT STREAMING BUILD:
  *
- * [build] requires its input ordered by the lowercased key in UTF-16
+ * [build] requires its input ordered by the normalized key in UTF-16
  * code-unit order (plain `String.compareTo`) and throws on out-of-order input
  * -- the bundled `.dat` assets are sorted that way by their `tools/` build
  * scripts, and the unit test that loads the real assets catches any drift.
@@ -56,7 +61,7 @@ import java.util.PriorityQueue
  * [com.addiyon.keyboard.transliteration.AmharicTable].
  */
 class WordTrie private constructor(
-    /** Edge char (lowercased) leading into each node; unused for the root. */
+    /** Edge char (normalized via [keyChar]) into each node; unused for the root. */
     private val edgeChar: CharArray,
     /** Terminal frequency per node, or [NO_WORD] if no word ends there. */
     private val frequency: IntArray,
@@ -69,6 +74,9 @@ class WordTrie private constructor(
     /** node id -> display form, only where it differs from the node's path. */
     private val canonicalWord: HashMap<Int, String>,
     private val root: Int,
+    /** Per-character key normalizer edges were built with; lookups apply the
+     *  same one. Default `lowercaseChar()`; Amharic injects homoglyph folding. */
+    private val keyChar: (Char) -> Char,
 ) {
     data class Suggestion(val word: String, val frequency: Int)
 
@@ -94,24 +102,25 @@ class WordTrie private constructor(
         return -1
     }
 
-    /** Node reached by walking [prefix] (lowercased) from the root, and the
-     *  lowercased path walked, or null if the prefix isn't in the trie. */
+    /** Node reached by walking [prefix] (normalized) from the root, and the
+     *  normalized path walked, or null if the prefix isn't in the trie. */
     private fun descend(prefix: String): Pair<Int, String>? {
         var node = root
         val path = StringBuilder(prefix.length)
         for (c in prefix) {
-            val lc = c.lowercaseChar()
-            node = childOf(node, lc)
+            val kc = keyChar(c)
+            node = childOf(node, kc)
             if (node < 0) return null
-            path.append(lc)
+            path.append(kc)
         }
         return node to path.toString()
     }
 
     /**
-     * Up to [limit] words that start with [prefix] (case-insensitively),
-     * highest frequency first. Empty if [prefix] is empty or matches nothing.
-     * The returned strings carry each word's canonical casing.
+     * Up to [limit] words that start with [prefix] (matched under [keyChar]:
+     * case-insensitively for English, homoglyph-folded for Amharic), highest
+     * frequency first. Empty if [prefix] is empty or matches nothing. The
+     * returned strings carry each word's canonical form.
      *
      * Best-first search: a max-heap of pending items ordered by an upper bound
      * on the frequency still reachable through them (a node's [subtreeMax], a
@@ -131,7 +140,7 @@ class WordTrie private constructor(
 
         val results = ArrayList<Suggestion>(limit)
         // Each Candidate is either a subtree to expand (node >= 0, priority =
-        // subtreeMax, path = the node's lowercased path) or a word to emit
+        // subtreeMax, path = the node's normalized path) or a word to emit
         // (emit != null, priority = frequency). Highest priority pops first.
         val frontier = PriorityQueue<Candidate>(compareByDescending { it.priority })
         frontier.add(Candidate(subtreeMax[start], start, startPath, null))
@@ -161,8 +170,8 @@ class WordTrie private constructor(
     }
 
     /**
-     * The stored frequency of [word] if it's an exact entry (case-insensitive
-     * path match, a la [suggestions]), else null. O(word length); used by
+     * The stored frequency of [word] if it's an exact entry (normalized path
+     * match, a la [suggestions]), else null. O(word length); used by
      * [com.addiyon.keyboard.suggestion.CandidateRanker] to promote a
      * dictionary-exact transliteration reading ahead of the structurally
      * greedy one.
@@ -171,7 +180,7 @@ class WordTrie private constructor(
         if (word.isEmpty()) return null
         var node = root
         for (c in word) {
-            node = childOf(node, c.lowercaseChar())
+            node = childOf(node, keyChar(c))
             if (node < 0) return null
         }
         return if (isWordNode(node)) frequency[node] else null
@@ -184,8 +193,9 @@ class WordTrie private constructor(
      * script-aware cost (a wrong vowel on the right consonant is cheaper than a
      * wrong consonant) -- see
      * [com.addiyon.keyboard.transliteration.AmharicTable.fidelSubstitutionCost].
-     * Characters here are already lowercased (trie edges and the lookup prefix
-     * are lowercased before matching), matching how [suggestions] keys nodes.
+     * Characters here are already normalized (trie edges and the lookup prefix
+     * go through [keyChar] before matching), matching how [suggestions] keys
+     * nodes.
      */
     fun interface SubstitutionCost {
         fun of(typedChar: Char, wordChar: Char): Int
@@ -197,7 +207,7 @@ class WordTrie private constructor(
 
     /**
      * Up to [limit] words whose *prefix* is within [maxEdits] of [prefix]
-     * (case-insensitively), for typo / near-miss correction ("informtion" ->
+     * (matched under [keyChar]), for typo / near-miss correction ("informtion" ->
      * "information"; over Fidel, የተለይ -> የተለያ… with the Amharic cost model).
      * Ordered by (editDistance asc, frequency desc). Empty for an empty prefix,
      * `maxEdits <= 0`, or no match within budget.
@@ -236,7 +246,7 @@ class WordTrie private constructor(
         deleteCost: Int = 1,
     ): List<FuzzyMatch> {
         if (prefix.isEmpty() || maxEdits <= 0 || limit <= 0) return emptyList()
-        val typed = CharArray(prefix.length) { prefix[it].lowercaseChar() }
+        val typed = CharArray(prefix.length) { keyChar(prefix[it]) }
 
         // word -> best (lowest) distance found for it.
         val best = HashMap<String, FuzzyMatch>()
@@ -276,7 +286,7 @@ class WordTrie private constructor(
      * [prevLetter]); [prevLetter] is that edge, used with the row two levels up
      * (passed as [prevRow]) for the transposition term. [minSoFar] is the least
      * `row[last]` seen from the root down to [node] -- the running fuzzy-prefix
-     * distance. [path] holds [node]'s lowercased path (appended/truncated as
+     * distance. [path] holds [node]'s normalized path (appended/truncated as
      * the walk descends/returns). See [fuzzySuggestions] for the two regimes.
      */
     private fun searchFuzzy(
@@ -341,7 +351,7 @@ class WordTrie private constructor(
     }
 
     /** Top [limit] (word, frequency) pairs in [start]'s subtree (whose
-     *  lowercased path is [startPath]), best-first -- the same bounded search
+     *  normalized path is [startPath]), best-first -- the same bounded search
      *  as [suggestions], from an arbitrary node. */
     private fun collectBest(start: Int, startPath: String, limit: Int): List<Pair<String, Int>> {
         val results = ArrayList<Pair<String, Int>>(limit)
@@ -371,16 +381,20 @@ class WordTrie private constructor(
 
         /**
          * Builds a trie from (word, frequency) pairs, sorting them first --
-         * the convenience entry point for small in-memory lists (tests). Keys
-         * are matched case-insensitively; when two words share a lowercased
-         * key (e.g. "polish"/"Polish") the higher-frequency one wins its
-         * stored form -- deterministic and independent of input order.
+         * the convenience entry point for small in-memory lists (tests).
+         * Keys are matched under [keyChar] (default: case-insensitively);
+         * when two words share a normalized key (e.g. "polish"/"Polish") the
+         * higher-frequency one wins its stored form -- deterministic and
+         * independent of input order.
          */
-        fun build(words: List<Pair<String, Int>>): WordTrie =
-            build(words.sortedBy { lowercaseKey(it.first) }.asSequence())
+        fun build(
+            words: List<Pair<String, Int>>,
+            keyChar: (Char) -> Char = Char::lowercaseChar,
+        ): WordTrie =
+            build(words.sortedBy { key(it.first, keyChar) }.asSequence(), keyChar)
 
         /**
-         * Streaming build from a [Sequence] ALREADY SORTED by the lowercased
+         * Streaming build from a [Sequence] ALREADY SORTED by the normalized
          * key in UTF-16 code-unit order (throws [IllegalArgumentException]
          * otherwise -- fail fast rather than silently mis-building). A caller
          * streaming lines off disk (e.g. [WordDictionary], whose `.dat` assets
@@ -390,8 +404,11 @@ class WordTrie private constructor(
          * is essentially the final trie itself -- which matters on low-RAM
          * devices where an allocation spike can stall the main thread via GC.
          */
-        fun build(words: Sequence<Pair<String, Int>>): WordTrie {
-            val builder = Builder()
+        fun build(
+            words: Sequence<Pair<String, Int>>,
+            keyChar: (Char) -> Char = Char::lowercaseChar,
+        ): WordTrie {
+            val builder = Builder(keyChar)
             for ((word, frequency) in words) {
                 if (word.isEmpty()) continue
                 builder.add(word, frequency)
@@ -399,11 +416,11 @@ class WordTrie private constructor(
             return builder.finish()
         }
 
-        /** The word as trie-path key: each char lowercased, matching how
-         *  edges are keyed and how lookups lowercase the prefix. */
-        private fun lowercaseKey(word: String): String {
+        /** The word as trie-path key: each char through [keyChar], matching
+         *  how edges are keyed and how lookups normalize the prefix. */
+        private fun key(word: String, keyChar: (Char) -> Char): String {
             val sb = StringBuilder(word.length)
-            for (c in word) sb.append(c.lowercaseChar())
+            for (c in word) sb.append(keyChar(c))
             return sb.toString()
         }
     }
@@ -430,13 +447,13 @@ class WordTrie private constructor(
 
     /**
      * Streaming trie builder over sorted input. The stack holds one [Frame]
-     * per char of the current word's lowercased key (plus the root at the
+     * per char of the current word's normalized key (plus the root at the
      * bottom); when the next word diverges from the previous one, the frames
      * below the divergence point are finalized -- their children are already
      * final (post-order), so each flushes its child list contiguously into
      * [childIndices] and appends itself to the node arrays.
      */
-    private class Builder {
+    private class Builder(private val keyChar: (Char) -> Char) {
         private val edgeChar = StringBuilder()
         private val frequency = IntList()
         private val subtreeMax = IntList()
@@ -464,7 +481,7 @@ class WordTrie private constructor(
         private var prevKey = ""
 
         fun add(word: String, freq: Int) {
-            val key = lowercaseKey(word)
+            val key = key(word, keyChar)
             val commonPrefix = commonPrefixLength(prevKey, key)
             // Sorted means: key extends prevKey, equals it, or diverges with a
             // strictly greater char. A shorter key that never diverges (a
@@ -482,7 +499,7 @@ class WordTrie private constructor(
             while (depth > commonPrefix) popFrame()
             for (i in commonPrefix until key.length) pushFrame(key[i])
 
-            // Duplicate lowercased keys (adjacent, since sorted): the
+            // Duplicate normalized keys (adjacent, since sorted): the
             // higher-frequency entry wins both the frequency and the stored
             // display form -- deterministic and independent of input order.
             val frame = stack[depth]
@@ -505,6 +522,7 @@ class WordTrie private constructor(
                 childIndices = childIndices.toArray(),
                 canonicalWord = canonicalWord,
                 root = root,
+                keyChar = keyChar,
             )
         }
 

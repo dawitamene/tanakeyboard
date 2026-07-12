@@ -86,6 +86,11 @@ class KeyboardLayoutInvariantTest {
     }
 
     @Test
+    fun slashIsAvailableOnTheFirstNumericPage() {
+        assertTrue(KeyData.Character("/") in NumberLayout.rows.flatten())
+    }
+
+    @Test
     fun amharicLetterKeysAllHaveFidelPreviews() {
         val keys = AmharicLayout.rows.flatten().filterIsInstance<KeyData.Character>()
         for (key in keys) {

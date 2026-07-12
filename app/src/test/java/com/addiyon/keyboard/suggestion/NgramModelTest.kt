@@ -19,6 +19,10 @@ import java.util.zip.GZIPInputStream
  * (እንደ, ምን) -> [አደርክ, ዋልክ] kept, while (ዛሬ, ምን) is dropped as identical
  * to its bigram backoff. ቡና/ሻይ and ውሃ/ወተት never pair (punctuation and
  * number boundaries), so none of them enter the vocabulary.
+ *
+ * Fixture mode carries no dictionary, so words are stored as their FOLDED
+ * forms (ዓለም -> አለም); the real asset stores dictionary display forms over
+ * the same folded ordering. Context lookups fold either way.
  */
 class NgramModelTest {
 
@@ -66,9 +70,21 @@ class NgramModelTest {
     @Test
     fun geminatedSpellingsMergeIntoOneCount() {
         // ሰላ፝ም + ሰላም x2 merge to count 3 -> weight round(ln(3) * 24) = 26.
+        // The corpus spells the successor ዓለም; the fixture stores its folded
+        // form አለም (no dictionary to supply a display form in fixture mode).
         val predictions = model.predict(null, "ሰላም", 5)
-        assertEquals(listOf("ዓለም"), predictions.map { it.word })
+        assertEquals(listOf("አለም"), predictions.map { it.word })
         assertEquals(26, predictions.single().weight)
+    }
+
+    @Test
+    fun contextWordsMatchAcrossHomoglyphSpellings() {
+        // The user may have committed a variant spelling; the folded binary
+        // search must still find the context (ሠላም folds to ሰላም).
+        assertEquals(listOf("አለም"), model.predict(null, "ሠላም", 5).map { it.word })
+        // And a folded word queried in its corpus spelling (ዓለም) resolves
+        // too -- it just has no successors in the mini corpus.
+        assertTrue(model.predict("ሠላም", "ዓለም", 5).isEmpty())
     }
 
     @Test

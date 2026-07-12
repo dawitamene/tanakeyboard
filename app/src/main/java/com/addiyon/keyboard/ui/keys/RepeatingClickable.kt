@@ -40,9 +40,13 @@ internal fun Modifier.repeatingClickable(
     enabled: Boolean = true,
     initialDelayMillis: Long = 400,
     repeatDelayMillis: Long = 50,
+    onPressStart: () -> Unit = {},
+    onPressEnd: () -> Unit = {},
     onClick: () -> Unit
 ): Modifier = composed {
     val currentOnClick = rememberUpdatedState(onClick)
+    val currentOnPressStart = rememberUpdatedState(onPressStart)
+    val currentOnPressEnd = rememberUpdatedState(onPressEnd)
 
     if (!enabled) {
         this
@@ -56,6 +60,7 @@ internal fun Modifier.repeatingClickable(
 
                     val press = PressInteraction.Press(down.position)
                     launch { interactionSource.emit(press) }
+                    currentOnPressStart.value()
 
                     val repeatJob = launch {
                         currentOnClick.value()
@@ -66,10 +71,14 @@ internal fun Modifier.repeatingClickable(
                         }
                     }
 
-                    val up = awaitPointerEventScope {
-                        waitForUpOrCancellation()
+                    val up = try {
+                        awaitPointerEventScope {
+                            waitForUpOrCancellation()
+                        }
+                    } finally {
+                        repeatJob.cancel()
+                        currentOnPressEnd.value()
                     }
-                    repeatJob.cancel()
 
                     launch {
                         interactionSource.emit(

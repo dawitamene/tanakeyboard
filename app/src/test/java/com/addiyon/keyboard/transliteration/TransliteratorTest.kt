@@ -96,6 +96,15 @@ class TransliteratorTest {
     }
 
     @Test
+    fun lowercaseBareVowelsOfferPharyngealSecondaries() {
+        assertEquals(listOf("ኡ", "ዑ"), Transliterator.candidates("u"))
+        assertEquals(listOf("እ", "ዒ", "ዕ"), Transliterator.candidates("e"))
+        assertEquals("ዑ", Transliterator.bareVowelAlternateReading("u"))
+        assertEquals("ዒ", Transliterator.bareVowelAlternateReading("e"))
+        assertNull(Transliterator.bareVowelAlternateReading("bet"))
+    }
+
+    @Test
     fun uppercaseBareVowelsArePharyngealFamily() {
         assertEquals("ዐ", Transliterator.transliterate("A"))
         assertEquals("ዑ", Transliterator.transliterate("U"))
@@ -166,6 +175,37 @@ class TransliteratorTest {
         val ka = Transliterator.candidates("ka")
         assertEquals("ካ", ka.first())
         assertTrue("ቃ" in ka)
+    }
+
+    @Test
+    fun haOffersTheFirstOrderFormAndHuaUsesTheLabializedForm() {
+        assertEquals("ሃ", Transliterator.transliterate("ha"))
+        assertEquals("ሀ", Transliterator.candidates("ha")[1])
+        assertEquals("ሗ", Transliterator.transliterate("hua"))
+    }
+
+    @Test
+    fun uppercaseNAndQReachTheirDedicatedFamilies() {
+        val nFamily = listOf("Ne", "Nu", "Ni", "Na", "Nie", "N", "No", "Nua")
+            .joinToString("") { Transliterator.transliterate(it) }
+        val qFamily = listOf("Qe", "Qu", "Qi", "Qa", "Qie", "Q", "Qo")
+            .joinToString("") { Transliterator.transliterate(it) }
+        assertEquals("ኘኙኚኛኜኝኞኟ", nFamily)
+        assertEquals("ቐቑቒቓቔቕቖ", qFamily)
+    }
+
+    @Test
+    fun preferredConsonantAlternateReadingSurvivesLongWordCandidateCaps() {
+        assertTrue("አለቃሽን" in Transliterator.candidates("alekashn"))
+        assertTrue("አልቆጠረችኝ" in Transliterator.candidates("alkoterechgn"))
+        assertEquals("አጨ", Transliterator.candidates("aCe").first())
+        assertEquals("አጨ", Transliterator.candidates("ace").first { it == "አጨ" })
+    }
+
+    @Test
+    fun uppercaseCIsDetectedAsAnExplicitFamilySelection() {
+        assertTrue(Transliterator.hasExplicitFamilySelection("aCe"))
+        assertTrue(!Transliterator.hasExplicitFamilySelection("ace"))
     }
 
     @Test

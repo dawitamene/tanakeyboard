@@ -169,19 +169,6 @@ class WordComposerTest {
         assertFalse(c.onBackspace())
     }
     @Test
-    fun replaceLastSwapsTheBufferTail() {
-        val c = composer()
-        c.onCharacter("s")
-        c.onCharacter("e")
-        c.onCharacter("a")
-        c.replaceLast(1, "`a")
-        assertEquals("se`a", c.raw)
-        // A replacement longer than the buffer is refused, not a crash.
-        c.replaceLast(99, "x")
-        assertEquals("se`a", c.raw)
-    }
-
-    @Test
     fun finishReportsTheWordViaOnCommitWhenNotDiscarding() {
         var committed: Pair<String, String>? = null
         val c = composer(

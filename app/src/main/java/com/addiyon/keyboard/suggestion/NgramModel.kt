@@ -1,5 +1,6 @@
 package com.addiyon.keyboard.suggestion
 
+import com.addiyon.keyboard.transliteration.EthiopicNormalizer
 import java.io.DataInputStream
 import java.io.IOException
 import java.io.InputStream
@@ -14,6 +15,13 @@ import java.io.InputStream
  * successor slices already ordered by corpus count. [predict] looks up the
  * trigram context (prev2, prev1) first and backs off to the bigram context
  * (prev1) for any remaining slots.
+ *
+ * The vocabulary stores each word's canonical DISPLAY form but is sorted by
+ * its [EthiopicNormalizer]-folded key (format v2), and [wordId] folds the
+ * lookup word before the binary search -- so a context word committed in any
+ * variant spelling (ሃገር for ሀገር) still finds its predictions, while
+ * predictions themselves always come out canonically spelled, matching the
+ * dictionary's suggestion strings exactly.
  */
 class NgramModel private constructor(
     private val vocab: Array<String>,
@@ -89,9 +97,23 @@ class NgramModel private constructor(
         }
     }
 
+    /** Binary search over the folded-key-ordered vocab; the probe words are
+     *  folded on the fly (a handful of log2(vocab) comparisons per call). */
     private fun wordId(word: String): Int? {
-        val index = vocab.asList().binarySearch(word)
-        return if (index >= 0) index else null
+        if (word.isEmpty()) return null
+        val key = EthiopicNormalizer.normalize(word)
+        var lo = 0
+        var hi = vocab.size - 1
+        while (lo <= hi) {
+            val mid = (lo + hi) ushr 1
+            val cmp = EthiopicNormalizer.normalize(vocab[mid]).compareTo(key)
+            when {
+                cmp < 0 -> lo = mid + 1
+                cmp > 0 -> hi = mid - 1
+                else -> return mid
+            }
+        }
+        return null
     }
 
     private fun IntArray.binarySearch(key: Int): Int =
@@ -101,7 +123,9 @@ class NgramModel private constructor(
         java.util.Arrays.binarySearch(this, key)
 
     companion object {
-        private const val VERSION = 1
+        // v2: vocab sorted by folded key, entries are dictionary display
+        // forms. A v1 asset would binary-search wrongly -> reject loudly.
+        private const val VERSION = 2
 
         /**
          * Parses the raw (already un-gzipped) model bytes. Throws

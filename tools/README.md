@@ -10,39 +10,72 @@ term-frequency dump (one `frequency<TAB>token` line, single header line):
 python3 tools/build_amharic_dict.py Term_Frequency.txt
 ```
 
-- Keeps pure Ethiopic-syllable words with frequency ≥ 2 (singletons in
-  scraped corpora are disproportionately typos) and common abbreviations
-  (`ዓ.ም`, `ዶ/ር`, `ት/ቤት`, …) with frequency ≥ 50; drops punctuation tokens,
-  numbers, Latin fragments, and anything containing digits.
-- Output: gzip, `word<TAB>frequency` per line, **sorted by the word**
+- **Homoglyph folding**: spelling variants of the same word (ሀ/ሃ/ሐ/ኀ, ሰ/ሠ,
+  አ/ኣ/ዐ, ጸ/ፀ …) are merged — frequencies summed, the most frequent spelling
+  kept as the display form. The fold table is a hand-mirrored copy of
+  `transliteration/EthiopicNormalizer.kt` (keep in sync; `BundledAssetTest`
+  catches drift).
+- **Corpora** (frequency evidence, counts summed after folding): the CACO
+  dump passed on the command line plus the vendored
+  `term_frequency_yididiyan.txt.gz` (from
+  [yididiyan/amharic_spell_corrector](https://github.com/yididiyan/amharic_spell_corrector),
+  a similar-scale corpus; the upstream file's accidentally-duplicated tail
+  block was deduplicated when vendoring). Keeps pure Ethiopic-syllable words
+  with combined frequency ≥ 10 on corpus evidence alone; rarer words
+  (frequency 2–9) only when a validation wordlist also attests their folded
+  form — rare tokens in a scraped corpus are disproportionately typos
+  (~97% of freq-50+ tokens are wordlist-attested vs ~12% of freq-2–4).
+- **Validation wordlists**: `am_et_hunspell_words.txt.gz` (Hunspell am_ET
+  expansion, recovered from this repo's git history) and
+  `wordlist_abdulmunim.txt.gz` (curated, from
+  [abdulmunimjemal/AmharicSpellCheckerEngine](https://github.com/abdulmunimjemal/AmharicSpellCheckerEngine)).
+- **Enrichment**: abdulmunim words not already kept are added at frequency 1
+  (rank floor: they complete, but below every corpus-attested word). The
+  Hunspell list is attestation-only — it's machine-expanded and was the old,
+  low-quality dictionary.
+- Common abbreviations (`ዓ.ም`, `ዶ/ር`, `ት/ቤት`, …) with frequency ≥ 50 are kept
+  without a wordlist check; drops punctuation tokens, numbers, Latin
+  fragments, and anything containing digits.
+- Output: gzip, `word<TAB>frequency` per line, **sorted by the folded key**
   (UTF-16 code-unit order) — required by `WordTrie.build`'s streaming
-  flat-array construction, which throws on unsorted input. ~411k entries.
-- The source dump itself is gitignored (17MB); keep it wherever convenient
+  flat-array construction, which throws on unsorted input. ~254k entries.
+- The CACO dump itself is gitignored (17MB); keep it wherever convenient
   and pass its path.
 
 ## `build_ngrams.py`
 
 Regenerates `app/src/main/assets/amharic_ngrams.dat`, the Amharic bigram /
 trigram next-word model loaded by `suggestion/NgramDictionary.kt` →
-`suggestion/NgramModel.kt`, from a raw pre-tokenized corpus (one sentence per
-line, tokens space-separated — e.g. `CACO_TEXT.txt`):
+`suggestion/NgramModel.kt`, from one or more raw corpora (counts summed;
+pre-tokenized like `CACO_TEXT.txt` and raw text like the abdulmunim corpus
+both work):
 
 ```sh
-python3 tools/build_ngrams.py CACO_TEXT.txt
+python3 tools/build_ngrams.py CACO_TEXT.txt amharic_corpus_abdulmunim.txt
 ```
 
-- Tokenization matches `build_amharic_dict.py` (NFC, gemination marks
-  stripped, pure Ethiopic-syllable words only). Every non-word token —
-  punctuation, quotes, numbers, Latin, mixed abbreviations — is an n-gram
-  **boundary**, so no bigram/trigram ever spans it.
-- Pruning (all tunable via flags): vocabulary count ≥ 2; bigram contexts with
-  total count ≥ 4, successors count ≥ 3, top 8 per context; trigrams only
-  where the (w1, w2) context survived as a bigram, successors count ≥ 3,
-  top 6, and dropped when identical to their bigram backoff prefix.
-- Output: a binary word-ID model (vocab table + sorted context arrays +
-  offset/successor/weight arrays, big-endian, weights log-quantized to a
-  byte), gzipped with `mtime=0` for byte-stable output. Current size:
-  ~87k bigram contexts + ~51k trigram contexts, ~2 MB gzipped.
+- **Regenerate the dictionary first** — every n-gram token is homoglyph-folded
+  and must resolve to an `amharic_words.dat` entry, and is counted **as that
+  entry's display form**. Variant spellings pool their evidence, corpus junk
+  never enters the model, and prediction strings match dictionary suggestion
+  strings exactly (the ranker's n-gram boost and `NgramModel`'s context
+  lookup both match on folded keys). Unknown words block pair adjacency
+  without acting as sentence boundaries.
+- Tokenization: NFC, gemination marks stripped. A token with edge punctuation
+  around an Ethiopic core (`በቴሌግራም።`, `«ሰላም»`) contributes the core plus a
+  boundary on the punctuation side; standalone punctuation, numbers, Latin,
+  and mixed tokens (`ዓ.ም`, `በ2007`) are wholly **boundaries**, so no
+  bigram/trigram ever spans them.
+- Pruning (all tunable via flags): bigram contexts with total count ≥ 4,
+  successors count ≥ 3, top 8 per context; trigrams only where the (w1, w2)
+  context survived as a bigram, successors count ≥ 3, top 6, and dropped when
+  identical to their bigram backoff prefix.
+- Output: a binary word-ID model, **format v2** (vocab table sorted by folded
+  key + sorted context arrays + offset/successor/weight arrays, big-endian,
+  weights log-quantized to a byte), gzipped with `mtime=0` for byte-stable
+  output. `NgramModel.kt` rejects v1 assets loudly.
+- The abdulmunim corpus re-downloads from that repo's LFS media URL (see
+  `.gitignore`); like `CACO_TEXT.txt` it stays out of the repo.
 - `--test-fixture` builds the tiny JVM-test model from the checked-in mini
   corpus:
 

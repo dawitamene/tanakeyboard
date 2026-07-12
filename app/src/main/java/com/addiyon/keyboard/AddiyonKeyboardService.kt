@@ -9,7 +9,6 @@ import android.content.pm.ApplicationInfo
 import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.os.StrictMode
-import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
@@ -40,6 +39,7 @@ import com.addiyon.keyboard.emoji.EmojiBackspace
 import com.addiyon.keyboard.emoji.EmojiRepository
 import com.addiyon.keyboard.emoji.RecentEmojiStore
 import com.addiyon.keyboard.emoji.SkinToneStore
+import com.addiyon.keyboard.suggestion.AmharicPrefixCompletion
 import com.addiyon.keyboard.suggestion.CandidateRanker
 import com.addiyon.keyboard.suggestion.NgramContext
 import com.addiyon.keyboard.suggestion.NgramDictionary
@@ -47,6 +47,7 @@ import com.addiyon.keyboard.suggestion.NgramModel
 import com.addiyon.keyboard.suggestion.WordDictionary
 import com.addiyon.keyboard.suggestion.WordTrie
 import com.addiyon.keyboard.transliteration.AmharicTable
+import com.addiyon.keyboard.transliteration.EthiopicNormalizer
 import com.addiyon.keyboard.suggestion.matchCase
 import com.addiyon.keyboard.transliteration.Transliterator
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
@@ -91,17 +92,6 @@ private const val ENGLISH_SUGGESTION_LIMIT = ENGLISH_EXACT_LIMIT + ENGLISH_FUZZY
  * same-family vowel substitution is in budget), so it uses no gate.
  */
 private const val ENGLISH_FUZZY_MIN_FREQUENCY = 500
-
-/**
- * Multi-tap window for the Amharic alternate cycles
- * ([AmharicTable.multiTapCycles]): a second tap of the SAME key within this
- * many milliseconds swaps the just-typed letter for its next alternate form
- * (a -> አ ዓ ዐ ኣ, k -> ክ ቅ, h -> ህ ሕ, ...) instead of typing it again.
- * Past the window the key types normally, so deliberate double letters just
- * need an un-hurried second tap. This is THE tuning knob for how the cycling
- * feels: higher = easier to cycle, but slower fast-typing of real doubles.
- */
-private const val MULTI_TAP_TIMEOUT_MS = 300L
 
 /**
  * Max fidel reading length for fuzzy suggestions. Beyond this the Damerau-
@@ -373,6 +363,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * out, so "Th" suggests "The", not "the".
      */
     private fun updateSuggestions() {
+        if (!suggestionRefreshGate.requestRefresh()) return
         if (!::amharicDictionary.isInitialized) {
             publishSuggestions(emptyList())
             return
@@ -453,7 +444,8 @@ class AddiyonKeyboardService : InputMethodService(),
         return CandidateRanker.bestCommitCandidate(
             candidateReadings.map { it.text },
             amharicDictionary::frequencyOf,
-            quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet()
+            quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet(),
+            preferGreedy = Transliterator.hasExplicitFamilySelection(raw)
         ) ?: Transliterator.transliterate(raw)
     }
 
@@ -502,7 +494,6 @@ class AddiyonKeyboardService : InputMethodService(),
     /**
      * Amharic suggestions are scored from exact dictionary readings,
      * prefix completions, the current literal fallback, and fuzzy matches.
-     * Dead alternates are hidden unless they lead to a word.
      */
     private fun amharicSuggestions(latin: String): List<String> {
         if (latin.isEmpty()) return emptyList()
@@ -512,37 +503,44 @@ class AddiyonKeyboardService : InputMethodService(),
 
         val candidateReadings = Transliterator.candidateReadings(latin)
         val readings = candidateReadings.map { it.text }
-        // Quirk (structural split) readings are only SHOWN when the
-        // dictionary knows the word -- same trust-the-dictionary rule as the
-        // vowel-alternate chip below. Splits like "ba" -> ብአ are legal
-        // readings of almost any buffer, so unfiltered they flood the strip
-        // with fabricated spellings ("ameri" -> አመርኢ, አምኢሪ, ...). They all
-        // remain completion prefixes regardless (a split can still LEAD to a
-        // real word), just not standalone chips.
-        val visibleReadings = candidateReadings
-            .filter {
-                latin.length == 1 ||
-                    (it.isQuirk && amharicDictionary.isWord(it.text))
-            }
-            .map { it.text }
+        val visibleReadings = readings
         // Structural split readings: kept for completions/quirk chips, but not
         // allowed to win the default over the natural greedy reading.
         val quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet()
-        // The order-5 "ie" reading of any "e" syllables, offered as a secondary
-        // chip so "melat" reaches ሜላት / "me" reaches ሜ without typing "ie" --
-        // but only when the dictionary backs it (the reading is a word or the
-        // prefix of one; suggestionEntries covers both). An alternate the
-        // dictionary has never seen (e.g. ኬዴምት for "kedemt") is a fabricated
-        // spelling, and pinning it would bypass the same trust-the-dictionary
-        // rule every other dead alternate in the strip already follows.
-        val vowelAlternate = Transliterator.vowelAlternateReading(latin)
-            ?.takeIf { amharicDictionary.suggestionEntries(it, 1).isNotEmpty() }
+        // The preferred vowel alternate is offered as a secondary chip -- but
+        // only when it is a MULTI-character dictionary word (ቤት for "bet").
+        // Pinning it on every second keystroke is pure noise otherwise: ሌ for
+        // "le" / ቤ for "be" tell the user nothing (and single fidels sneak
+        // into the dictionary as corpus tokenizer artifacts, so the word
+        // check alone doesn't catch them; bare-vowel alternates like ኣ even
+        // fold to the same word as the greedy አ). A suppressed alternate is
+        // still a candidate reading, so its completions (ሌላ, ቤቶች, ...)
+        // surface through the completion tier as before -- the pin is all
+        // that's dropped. While the dictionary is still loading there is no
+        // word signal; keep the old always-pin behavior for that brief window.
+        val preferredAlternate = (
+            Transliterator.vowelAlternateReading(latin)
+                ?: Transliterator.bareVowelAlternateReading(latin)
+            )?.takeIf {
+                it.length > 1 && (!amharicDictionary.isReady || amharicDictionary.isWord(it))
+            }
         val completionCache = HashMap<String, List<CandidateRanker.DictionaryWord>>()
+        val dictionaryLookup = { prefix: String, limit: Int ->
+            amharicDictionary.suggestionEntries(prefix, limit).map {
+                CandidateRanker.DictionaryWord(it.word, it.frequency)
+            }
+        }
+        // Direct dictionary completions first; when they don't fill the strip,
+        // synthesize the rest by stripping a productive prefix (የ-, በ-, ...)
+        // and completing the remainder from stems -- see
+        // [AmharicPrefixCompletion] for why synthesized forms are discounted.
         val completionsForPrefix = { prefix: String, limit: Int ->
             completionCache.getOrPut(prefix) {
-                amharicDictionary.suggestionEntries(prefix, limit).map {
-                    CandidateRanker.DictionaryWord(it.word, it.frequency)
-                }
+                val direct = dictionaryLookup(prefix, limit)
+                if (direct.size >= limit) direct
+                else direct + AmharicPrefixCompletion.complete(
+                    prefix, limit - direct.size, direct, dictionaryLookup
+                )
             }
         }
 
@@ -551,7 +549,9 @@ class AddiyonKeyboardService : InputMethodService(),
         // once per composing word -- see [composingNgramBoost].
         val ngramNext = composingNgramBoost
             ?: ngramPredictions(AMHARIC_SUGGESTION_LIMIT)
-                .associate { it.word to it.weight }
+                // Folded keys, matching CandidateRanker.ngramBoost's folded
+                // lookup, so a variant-spelled candidate still gets its boost.
+                .associate { EthiopicNormalizer.normalize(it.word) to it.weight }
                 .also { composingNgramBoost = it }
 
         val ranked = CandidateRanker.rankAmharic(
@@ -561,12 +561,13 @@ class AddiyonKeyboardService : InputMethodService(),
             completionsForPrefix = completionsForPrefix,
             visibleReadings = visibleReadings,
             quirkReadings = quirkReadings,
-            ngramNext = ngramNext
+            ngramNext = ngramNext,
+            preferGreedy = Transliterator.hasExplicitFamilySelection(latin)
         )
         if (ranked.size >= AMHARIC_SUGGESTION_LIMIT ||
             readings.none { it.length <= MAX_FUZZY_READING_LENGTH }
         ) {
-            return pinVowelAlternate(ranked, vowelAlternate).also {
+            return pinPreferredAlternate(ranked, preferredAlternate).also {
                 if (amharicDictionary.isReady) amharicSuggestionCache[latin] = it
             }
         }
@@ -598,7 +599,7 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
 
-        return pinVowelAlternate(
+        return pinPreferredAlternate(
             CandidateRanker.rankAmharic(
                 readings = readings,
                 limit = AMHARIC_SUGGESTION_LIMIT,
@@ -607,31 +608,29 @@ class AddiyonKeyboardService : InputMethodService(),
                 visibleReadings = visibleReadings,
                 fuzzyWords = fuzzy,
                 quirkReadings = quirkReadings,
-                ngramNext = ngramNext
+                ngramNext = ngramNext,
+                preferGreedy = Transliterator.hasExplicitFamilySelection(latin)
             ),
-            vowelAlternate
+            preferredAlternate
         ).also {
             if (amharicDictionary.isReady) amharicSuggestionCache[latin] = it
         }
     }
 
     /**
-     * Force the vowel-order alternate (e.g. "melat" -> ሜላት) to sit directly
-     * behind the default reading as the "secondary option" chip, above the
-     * dictionary's own split-reading matches -- which is what the user means by
-     * "write it with the ie vowel". Left in place when it's already the default
-     * (position 0, e.g. "bet" -> ቤት is itself a dictionary word), and a no-op
-     * when there's no e-syllable to flip. The caller only passes an alternate
-     * the dictionary recognizes (word or word prefix) -- see
-     * [amharicSuggestions] -- so this never pins a fabricated spelling.
-     * Result is re-capped to the limit.
+     * Force the preferred alternate to sit directly behind the default reading.
+     * Left in place when it is already the default, and a no-op when there is no
+     * alternate. Result is re-capped to the limit.
      */
-    private fun pinVowelAlternate(ranked: List<String>, vowelAlternate: String?): List<String> {
-        if (vowelAlternate == null || ranked.firstOrNull() == vowelAlternate) return ranked
+    private fun pinPreferredAlternate(
+        ranked: List<String>,
+        preferredAlternate: String?
+    ): List<String> {
+        if (preferredAlternate == null || ranked.firstOrNull() == preferredAlternate) return ranked
         val pinned = ArrayList<String>(ranked.size + 1)
         pinned.addAll(ranked)
-        pinned.remove(vowelAlternate)
-        pinned.add(minOf(1, pinned.size), vowelAlternate)
+        pinned.remove(preferredAlternate)
+        pinned.add(minOf(1, pinned.size), preferredAlternate)
         return pinned.take(AMHARIC_SUGGESTION_LIMIT)
     }
 
@@ -954,7 +953,6 @@ class AddiyonKeyboardService : InputMethodService(),
     fun toggleLanguage() {
         leaveVoiceModeForKeyboardInput()
         closeEmojiPanel()
-        resetMultiTap()
         activeComposer.commit()
         isAmharic = !isAmharic
         if (!isAmharic && numbersMode == NumbersMode.GEEZ_NUMBERS) {
@@ -1028,84 +1026,6 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     // ----------------------------
-    // MULTI-TAP ALTERNATES (Amharic)
-    // ----------------------------
-    //
-    // Re-tapping the same key within MULTI_TAP_TIMEOUT_MS cycles the letter
-    // just typed through its alternate families (AmharicTable.multiTapCycles)
-    // by REPLACING its Latin spelling in the composer buffer -- the whole-
-    // buffer transliteration then re-renders, so the swap can never disagree
-    // with what a fresh typing of that spelling would produce.
-
-    /** The shift-resolved key output that started the current cycle, or null. */
-    private var multiTapKey: String? = null
-
-    /** The Latin currently sitting at the end of the buffer for that key. */
-    private var multiTapInserted = ""
-
-    /** Index into the key's cycle list that [multiTapInserted] came from. */
-    private var multiTapIndex = 0
-
-    /** Uptime of the last tap of [multiTapKey]; the window is measured from here. */
-    private var multiTapTime = 0L
-
-    /**
-     * Any action that isn't "the same key again" ends the cycle: the next
-     * tap of that key must TYPE, not mutate whatever the buffer ends with
-     * now. (The buffer-tail check in [applyMultiTap] is the backstop; this
-     * keeps the state honest at every word boundary.)
-     */
-    private fun resetMultiTap() {
-        multiTapKey = null
-    }
-
-    /** A fresh Amharic letter was appended: it becomes the cycle anchor. */
-    private fun startMultiTap(output: String, now: Long) {
-        if (AmharicTable.multiTapCycles.containsKey(output)) {
-            multiTapKey = output
-            multiTapInserted = output
-            multiTapIndex = 0
-            multiTapTime = now
-        } else {
-            multiTapKey = null
-        }
-    }
-
-    /**
-     * If [output] is a rapid re-tap of the cycle anchor, swap the buffer tail
-     * for the next alternate spelling and return true (the keypress is
-     * consumed). Steps that wouldn't change the rendered word in the current
-     * context are skipped -- e.g. "A" after a consonant reads as the same
-     * vowel "a", so the a-cycle goes ላ -> ልዓ -> ልኣ there while a standalone
-     * "a" walks the full አ -> ዓ -> ዐ -> ኣ. Returns false when the tap should
-     * type normally.
-     */
-    private fun applyMultiTap(output: String, now: Long): Boolean {
-        val key = multiTapKey ?: return false
-        if (output != key || now - multiTapTime > MULTI_TAP_TIMEOUT_MS) return false
-        val cycle = AmharicTable.multiTapCycles[key] ?: return false
-        val raw = amharicComposer.raw
-        // Empty buffer (commit/abandon since the anchor tap) or an edited
-        // tail: the anchor is gone, type normally.
-        if (raw.isEmpty() || !raw.endsWith(multiTapInserted)) return false
-
-        val stem = raw.dropLast(multiTapInserted.length)
-        val currentDisplay = Transliterator.transliterate(raw)
-        for (step in 1..cycle.size) {
-            val index = (multiTapIndex + step) % cycle.size
-            val candidate = cycle[index]
-            if (Transliterator.transliterate(stem + candidate) == currentDisplay) continue
-            amharicComposer.replaceLast(multiTapInserted.length, candidate)
-            multiTapIndex = index
-            multiTapInserted = candidate
-            multiTapTime = now
-            return true
-        }
-        // No alternate renders differently here; let the tap type normally.
-        return false
-    }
-
-    // ----------------------------
     // KEY HANDLERS (called from the UI)
     // ----------------------------
     //
@@ -1158,24 +1078,17 @@ class AddiyonKeyboardService : InputMethodService(),
 
         when {
             isNumberMode -> {
-                resetMultiTap()
                 currentInputConnection?.commitText(output, 1)
             }
             !isWordCharacter(output) -> {
-                resetMultiTap()
                 activeComposer.commit()
                 val text = if (isAmharic) Transliterator.transliterate(output) else output
                 currentInputConnection?.commitText(text, 1)
             }
             isAmharic -> {
-                val now = SystemClock.uptimeMillis()
-                if (!applyMultiTap(output, now)) {
-                    amharicComposer.onCharacter(output)
-                    startMultiTap(output, now)
-                }
+                amharicComposer.onCharacter(output)
             }
             else -> {
-                resetMultiTap()
                 englishComposer.onCharacter(output)
             }
         }
@@ -1192,8 +1105,17 @@ class AddiyonKeyboardService : InputMethodService(),
      * layout today, but if one is ever added it must feed the composer,
      * not chop the word.
      */
-    private fun isWordCharacter(output: String) =
-        output.all { it.isLetter() || it == '\'' || it == '`' || (isAmharic && (it == '.' || it == '/')) }
+    private fun isWordCharacter(output: String) = isComposingWordCharacter(output)
+
+    private val suggestionRefreshGate = SuggestionRefreshGate()
+
+    fun onDeleteGestureStart() {
+        suggestionRefreshGate.beginDeleteGesture()
+    }
+
+    fun onDeleteGestureEnd() {
+        if (suggestionRefreshGate.endDeleteGesture()) updateSuggestions()
+    }
 
     /**
      * Backspace pressed. Try to shrink the active composing buffer first --
@@ -1224,7 +1146,6 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
         leaveVoiceModeForKeyboardInput()
-        resetMultiTap()
         if (activeComposer.onBackspace()) {
             updateSuggestions()
             return
@@ -1281,7 +1202,6 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
         leaveVoiceModeForKeyboardInput()
-        resetMultiTap()
         activeComposer.commit()
         currentInputConnection?.commitText(" ", 1)
         updateSuggestions()
@@ -1307,7 +1227,6 @@ class AddiyonKeyboardService : InputMethodService(),
             }
         }
         leaveVoiceModeForKeyboardInput()
-        resetMultiTap()
         activeComposer.commit()
         val ic = currentInputConnection
         if (enterAction == EnterAction.NEWLINE) {
@@ -1368,7 +1287,6 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun onSuggestionTapped(word: String) {
         leaveVoiceModeForKeyboardInput()
-        resetMultiTap()
         activeComposer.commitSuggestion(word)
         updateSuggestions()
     }
@@ -1418,7 +1336,7 @@ class AddiyonKeyboardService : InputMethodService(),
         refreshFeedbackPrefs()
         KeyboardPrefs.prefs(this).registerOnSharedPreferenceChangeListener(prefsListener)
 
-        amharicDictionary = WordDictionary(this, "amharic_words.dat")
+        amharicDictionary = WordDictionary(this, "amharic_words.dat", EthiopicNormalizer::normalize)
         englishDictionary = WordDictionary(this, "english_words.dat")
         amharicNgrams = NgramDictionary(this, "amharic_ngrams.dat")
         emojiRepository = EmojiRepository(this)
@@ -1435,7 +1353,7 @@ class AddiyonKeyboardService : InputMethodService(),
             save = { KeyboardPrefs.setEmojiSkinTones(this, it) }
         )
         selectedSkinTones.putAll(skinToneStore.all())
-        // Parsing the dictionary lines (~182k Amharic, ~250k English) happens
+        // Parsing the dictionary lines (~254k Amharic, ~250k English) happens
         // off the main thread; if the user starts typing before a load
         // finishes, suggestions just start appearing once loadAsync's
         // callback lands (main thread, per WordDictionary's contract).
@@ -1481,7 +1399,6 @@ class AddiyonKeyboardService : InputMethodService(),
         amharicComposer.reset()
         englishComposer.reset()
         voiceComposer.reset()
-        resetMultiTap()
         // A new session starts on the keyboard, not a stale emoji panel.
         closeEmojiPanel()
         // The Enter key adapts to this field's IME action (search/go/send/...).

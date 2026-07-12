@@ -1,5 +1,6 @@
 package com.addiyon.keyboard.suggestion
 
+import com.addiyon.keyboard.transliteration.EthiopicNormalizer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -14,17 +15,19 @@ import java.util.zip.GZIPInputStream
  * [WordTrie.build] path as [WordDictionary.load].
  *
  * This is the guard for the asset<->trie contract: [WordTrie.build]'s
- * streaming construction requires the lines sorted by the lowercased word in
+ * streaming construction requires the lines sorted by the normalized key in
  * UTF-16 code-unit order and throws otherwise, so merely building here proves
- * the `tools/` scripts and the Kotlin side agree on that order (Python's
- * code-point sort vs Kotlin's `lowercaseChar` keying is exactly the kind of
- * drift this would catch). The content assertions pin down that regeneration
- * didn't silently break cleaning (junk tokens) or casing (proper nouns).
+ * the `tools/` scripts and the Kotlin side agree on that order -- Python's
+ * code-point sort vs Kotlin's `lowercaseChar` keying, or the two hand-mirrored
+ * copies of the homoglyph fold table (build_amharic_dict.py vs
+ * [EthiopicNormalizer]) drifting apart, are exactly what this would catch.
+ * The content assertions pin down that regeneration didn't silently break
+ * cleaning (junk tokens), casing (proper nouns), or homoglyph merging.
  */
 class BundledAssetTest {
 
     /** Same line format as [WordDictionary.load]: `word<TAB>frequency`. */
-    private fun loadAsset(name: String): WordTrie {
+    private fun loadAsset(name: String, keyChar: (Char) -> Char = Char::lowercaseChar): WordTrie {
         // Working directory is the app module for Gradle test JVMs, the repo
         // root for some IDE runners -- accept either.
         val file = listOf("src/main/assets/$name", "app/src/main/assets/$name")
@@ -39,14 +42,15 @@ class BundledAssetTest {
                     val word = line.substring(0, tab)
                     val frequency = line.substring(tab + 1).toIntOrNull() ?: return@mapNotNull null
                     word to frequency
-                }
+                },
+                keyChar,
             )
         }
     }
 
     @Test
     fun amharicAssetBuildsAndContainsRealWordsButNoJunk() {
-        val t = loadAsset("amharic_words.dat")
+        val t = loadAsset("amharic_words.dat", EthiopicNormalizer::normalize)
 
         // Top corpus words present, with real (large) frequencies.
         val naw = t.frequencyOf("ነው")
@@ -63,6 +67,35 @@ class BundledAssetTest {
         // Kept abbreviations are suggestable from their fidel prefix.
         assertNotNull(t.frequencyOf("ዓ.ም"))
         assertTrue(t.suggestions("ዓ.", limit = 5).isNotEmpty())
+
+        // Homoglyph variants merged at asset-build time: every spelling of
+        // "country" resolves to the same (summed) entry...
+        val hager = t.frequencyOf("ሀገር")
+        assertNotNull(hager)
+        assertEquals(hager, t.frequencyOf("ሃገር"))
+        assertEquals(hager, t.frequencyOf("ሐገር"))
+        assertEquals(hager, t.frequencyOf("ኀገር"))
+        // ...and the corpus-canonical spelling survives as the display form
+        // even when it uses a variant character (ኃይል's key path is ሀይል).
+        assertTrue(t.suggestions("ሀይ", limit = 5).contains("ኃይል"))
+        assertTrue(t.suggestions("ኃይ", limit = 5).contains("ኃይል"))
+
+        // Prefix-stripping fallback over the real asset: ስለ + a stem the
+        // corpus knows (ቴክኖሎጂ) must surface for the typed prefix ስለቴክኖ,
+        // whether the prefixed form happens to be stored directly or is
+        // synthesized by [AmharicPrefixCompletion] from the stem.
+        val lookup = { prefix: String, limit: Int ->
+            t.suggestionEntries(prefix, limit).map {
+                CandidateRanker.DictionaryWord(it.word, it.frequency)
+            }
+        }
+        val direct = lookup("ስለቴክኖ", 3)
+        val combined = direct +
+            AmharicPrefixCompletion.complete("ስለቴክኖ", 3 - direct.size, direct, lookup)
+        assertTrue(
+            "expected ስለቴክኖሎጂ among $combined",
+            combined.any { it.word == "ስለቴክኖሎጂ" }
+        )
 
         // Tokenizer junk from the source dump must have been filtered out.
         assertNull(t.frequencyOf("።"))

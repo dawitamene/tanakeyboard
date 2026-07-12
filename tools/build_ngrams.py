@@ -4,24 +4,37 @@ Regenerates app/src/main/assets/amharic_ngrams.dat -- the Amharic bigram /
 trigram next-word model consumed by suggestion/NgramModel.kt (via
 suggestion/NgramDictionary.kt).
 
-Source: a raw Amharic corpus (e.g. CACO_TEXT.txt), one pre-tokenized sentence
-per line with tokens separated by spaces (punctuation and numbers are already
-their own tokens).
+Source: one or more raw Amharic corpora (e.g. CACO_TEXT.txt plus the
+abdulmunim web/social-media corpus), one sentence-ish line each; counts from
+all corpora are summed. Pre-tokenized text (punctuation as its own token) and
+raw text (punctuation attached to words) both work -- see tokenization.
 
-Tokenization mirrors build_amharic_dict.py exactly: NFC-normalize, strip the
-combining gemination marks U+135D-U+135F, and keep only tokens fully made of
-Ethiopic syllables (WORD_RE). Every other token -- Ethiopic punctuation,
-quotes, digits, Latin, mixed abbreviations like "ዓ.ም" -- is an n-gram
-BOUNDARY: word runs are split there and at line ends, so no bigram or trigram
-ever spans punctuation or a number.
+Tokenization mirrors build_amharic_dict.py: NFC-normalize, strip the
+combining gemination marks U+135D-U+135F. A whitespace token fully made of
+Ethiopic syllables (WORD_RE) is a word. A token with leading/trailing
+punctuation around a syllabic core ("በቴሌግራም።", "«ሰላም»") contributes the core
+as a word plus an n-gram BOUNDARY on the punctuation side(s). Everything else
+-- standalone punctuation, digits, Latin, mixed abbreviations like "ዓ.ም" or
+"በ2007" -- is wholly a boundary: word runs split there and at line ends, so
+no bigram or trigram ever spans punctuation or a number.
 
-Counting is three passes to keep memory bounded on a ~250MB corpus:
-  1. unigram counts -> kept vocabulary (count >= MIN_WORD_FREQ, same
-     singleton-typo rule as the dictionary);
-  2. bigram counts over kept-vocab words; prune to contexts with total count
+FOLDING + DICTIONARY GATING (this is what ties the model to the dictionary):
+every word is homoglyph-FOLDED (table imported from build_amharic_dict.py)
+and must resolve to an entry of the built amharic_words.dat; it is then
+counted AS THAT ENTRY'S DISPLAY FORM. So variant spellings merge into one
+context (ሀገር/ሃገር/ሐገር evidence pools), every prediction the model can emit
+is a real, canonically spelled dictionary word, and prediction strings agree
+exactly with dictionary suggestion strings (the n-gram boost in
+CandidateRanker matches on normalized keys). Corpus junk never enters the
+model: a token whose folded form isn't in the dictionary is skipped -- it
+breaks pair adjacency (no bigram is counted across it) without acting as a
+sentence boundary. Regenerate the dictionary BEFORE the n-gram model.
+
+Counting is two passes per corpus to keep memory bounded (~330MB total):
+  1. bigram counts over dictionary words; prune to contexts with total count
      >= --bigram-min-context, successors with count >= --bigram-min-succ,
      top --k-bigram successors per context;
-  3. trigram counts ONLY where (w1, w2) survived as a bigram context (a
+  2. trigram counts ONLY where (w1, w2) survived as a bigram context (a
      useful trigram context is by definition a frequent bigram); prune
      successors with count >= --trigram-min-succ, top --k-trigram.
 
@@ -29,10 +42,12 @@ Output: a binary model, gzip-compressed (mtime=0 -> byte-stable), written
 with a `.dat` extension (NOT `.gz`; AGP auto-decompresses `.gz` assets).
 All integers big-endian to match Kotlin's DataInputStream:
 
-    magic "ANGM" (4 bytes), version u8 = 1
+    magic "ANGM" (4 bytes), version u8 = 2
     vocabCount: int32
-    vocab: vocabCount x (u16 UTF-8 byte length + bytes),
-           sorted by code point; word id = index
+    vocab: vocabCount x (u16 UTF-8 byte length + bytes), DISPLAY forms
+           sorted by their FOLDED key in UTF-16 code-unit order (folded keys
+           are unique -- one dictionary entry per key), so the Kotlin side
+           can binary-search by folded key; word id = index
     bigramContextCount: int32
     bigramContexts:   int32[n]    context word ids, ascending
     bigramOffsets:    int32[n+1]  into the successor arrays
@@ -42,8 +57,12 @@ All integers big-endian to match Kotlin's DataInputStream:
     trigramContexts:  int64[m]    (id1 << 32) | id2, ascending
     trigramOffsets / trigramSuccessors / trigramWeights: as bigram section
 
-Run:  python3 tools/build_ngrams.py CACO_TEXT.txt
-Test fixture (tiny model for JVM unit tests):
+Version history: v2 = folded-key vocab order + dictionary-gated display
+forms (NgramModel.kt rejects v1 assets loudly).
+
+Run:  python3 tools/build_ngrams.py CACO_TEXT.txt amharic_corpus_abdulmunim.txt
+Test fixture (tiny model for JVM unit tests; no dictionary gating, display =
+folded form):
       python3 tools/build_ngrams.py --test-fixture \
           app/src/test/resources/ngram_mini_corpus.txt \
           app/src/test/resources/ngram_fixture.dat
@@ -60,24 +79,42 @@ import sys
 import unicodedata
 from collections import Counter
 
+# Shared with the dictionary build: the homoglyph fold table (hand-mirror of
+# transliteration/EthiopicNormalizer.kt) and the word/character classes.
+from build_amharic_dict import fold, SYLLABLE, WORD_RE, GEMINATION_RE
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, ".."))
 DEFAULT_OUT = os.path.join(REPO, "app", "src", "main", "assets", "amharic_ngrams.dat")
+DICT_ASSET = os.path.join(REPO, "app", "src", "main", "assets", "amharic_words.dat")
 
-MIN_WORD_FREQ = 2
-
-# Keep in sync with build_amharic_dict.py.
-SYLLABLE = r"ሀ-ፚᎀ-ᎏⶀ-ⷞꬁ-ꬮ"
-WORD_RE = re.compile(rf"^[{SYLLABLE}]+$")
-GEMINATION_RE = re.compile(r"[፝-፟]")
+# A syllabic core with optional junk on either edge -- but a digit or Latin
+# letter anywhere disqualifies the token entirely (matching the old
+# whole-token rule for "በ2007"-style tokens, where the Ethiopic fragment is
+# not a free-standing word).
+EDGE_RE = re.compile(rf"^([^{SYLLABLE}0-9A-Za-z]*)([{SYLLABLE}]+)([^{SYLLABLE}0-9A-Za-z]*)$")
 
 MAGIC = b"ANGM"
-VERSION = 1
+VERSION = 2
 
 
-def word_runs(path):
-    """Yields lists of normalized Ethiopic words; runs break at any
-    non-word token and at line ends."""
+def load_display_map():
+    """folded key -> display form, from the BUILT dictionary asset -- the
+    single source of truth for what a real word is and how it's spelled."""
+    display = {}
+    with gzip.open(DICT_ASSET, "rt", encoding="utf-8") as f:
+        for line in f:
+            word = line.rsplit("\t", 1)[0]
+            if WORD_RE.match(word):  # abbreviations can't be n-gram tokens
+                display[fold(word)] = word
+    return display
+
+
+def word_runs(path, canonical):
+    """Yields lists over each boundary-free stretch of the corpus, one entry
+    per word: the word's canonical form per `canonical(normalized token)`, or
+    None for a word the dictionary doesn't know (it blocks pair adjacency
+    but, unlike punctuation, does not end the run)."""
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
             run = []
@@ -86,8 +123,21 @@ def word_runs(path):
                     "", unicodedata.normalize("NFC", token)
                 )
                 if WORD_RE.match(token):
-                    run.append(token)
-                elif run:
+                    run.append(canonical(token))
+                    continue
+                m = EDGE_RE.match(token)
+                if m is None:
+                    # Wholly non-word token: hard boundary.
+                    if run:
+                        yield run
+                        run = []
+                    continue
+                lead, core, trail = m.groups()
+                if lead and run:  # boundary BEFORE the core («ሰላም)
+                    yield run
+                    run = []
+                run.append(canonical(core))
+                if trail:  # boundary AFTER the core (በቴሌግራም።)
                     yield run
                     run = []
             if run:
@@ -126,7 +176,12 @@ def build_model(bigrams, trigrams):
         vocab.update(w for w, _ in succs)
     for word in vocab:
         assert all(ord(c) <= 0xFFFF for c in word), f"non-BMP char in {word!r}"
-    vocab = sorted(vocab)
+    # Sorted by FOLDED key so the Kotlin side can binary-search a folded
+    # lookup; keys must be unique for that search to be well-defined (they
+    # are: one dictionary entry -- one folded key).
+    vocab = sorted(vocab, key=fold)
+    for a, b in zip(vocab, vocab[1:]):
+        assert fold(a) < fold(b), f"duplicate folded vocab key: {a!r} / {b!r}"
     word_id = {w: i for i, w in enumerate(vocab)}
 
     out = io.BytesIO()
@@ -176,10 +231,12 @@ def build_model(bigrams, trigrams):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[1])
-    parser.add_argument("corpus")
-    parser.add_argument("out", nargs="?", default=DEFAULT_OUT)
+    parser.add_argument("corpora", nargs="+")
+    parser.add_argument("--out", default=DEFAULT_OUT)
     parser.add_argument("--test-fixture", action="store_true",
-                        help="tiny-corpus mode: no pruning thresholds")
+                        help="tiny-corpus mode: no pruning thresholds, no "
+                             "dictionary gating (display = folded form); "
+                             "pass <corpus> <out> as the two positionals")
     parser.add_argument("--bigram-min-context", type=int, default=4)
     parser.add_argument("--bigram-min-succ", type=int, default=3)
     parser.add_argument("--k-bigram", type=int, default=8)
@@ -190,43 +247,44 @@ def main():
         args.bigram_min_context = 1
         args.bigram_min_succ = 1
         args.trigram_min_succ = 1
-        min_word_freq = 1
+        # Fixture mode: <corpus> <out> as positionals, dictionary-independent
+        # (the fixture must not change whenever the real dictionary does).
+        corpora = args.corpora[:1]
+        out = args.corpora[1] if len(args.corpora) > 1 else args.out
+        canonical = fold
     else:
-        min_word_freq = MIN_WORD_FREQ
+        corpora = args.corpora
+        out = args.out
+        display = load_display_map()
+        print(f"dictionary: {len(display):,} folded keys", file=sys.stderr)
+        canonical = lambda token: display.get(fold(token))  # noqa: E731
 
-    # Pass 1: vocabulary.
-    unigrams = Counter()
-    for run in word_runs(args.corpus):
-        unigrams.update(run)
-    vocab = {w for w, c in unigrams.items() if c >= min_word_freq}
-    print(f"pass 1: {len(unigrams):,} unique words, kept {len(vocab):,}",
-          file=sys.stderr)
-    del unigrams
-
-    # Pass 2: bigrams over kept-vocab words.
+    # Pass 1: bigrams over dictionary words.
     bigram_counts = {}
-    for run in word_runs(args.corpus):
-        for a, b in zip(run, run[1:]):
-            if a in vocab and b in vocab:
-                bigram_counts.setdefault(a, Counter())[b] += 1
+    for path in corpora:
+        for run in word_runs(path, canonical):
+            for a, b in zip(run, run[1:]):
+                if a is not None and b is not None:
+                    bigram_counts.setdefault(a, Counter())[b] += 1
     raw_bigram_contexts = len(bigram_counts)
     bigrams = prune(bigram_counts, args.bigram_min_succ, args.k_bigram,
                     args.bigram_min_context)
     del bigram_counts
-    print(f"pass 2: {raw_bigram_contexts:,} bigram contexts, "
+    print(f"pass 1: {raw_bigram_contexts:,} bigram contexts, "
           f"kept {len(bigrams):,} "
           f"({sum(len(s) for s in bigrams.values()):,} successors)",
           file=sys.stderr)
 
-    # Pass 3: trigrams gated on surviving bigram contexts.
+    # Pass 2: trigrams gated on surviving bigram contexts.
     kept_pairs = {
         (ctx, w) for ctx, succs in bigrams.items() for w, _ in succs
     }
     trigram_counts = {}
-    for run in word_runs(args.corpus):
-        for a, b, c in zip(run, run[1:], run[2:]):
-            if (a, b) in kept_pairs and c in vocab:
-                trigram_counts.setdefault((a, b), Counter())[c] += 1
+    for path in corpora:
+        for run in word_runs(path, canonical):
+            for a, b, c in zip(run, run[1:], run[2:]):
+                if (a, b) in kept_pairs and c is not None:
+                    trigram_counts.setdefault((a, b), Counter())[c] += 1
     raw_trigram_contexts = len(trigram_counts)
     trigrams = prune(trigram_counts, args.trigram_min_succ, args.k_trigram)
     del trigram_counts
@@ -236,15 +294,15 @@ def main():
         ctx: succs for ctx, succs in trigrams.items()
         if [w for w, _ in succs] != [w for w, _ in bigrams.get(ctx[1], [])][:len(succs)]
     }
-    print(f"pass 3: {raw_trigram_contexts:,} trigram contexts, "
+    print(f"pass 2: {raw_trigram_contexts:,} trigram contexts, "
           f"kept {len(trigrams):,} "
           f"({sum(len(s) for s in trigrams.values()):,} successors)",
           file=sys.stderr)
 
     data, vocab_count, raw_size = build_model(bigrams, trigrams)
-    with open(args.out, "wb") as f:
+    with open(out, "wb") as f:
         f.write(data)
-    print(f"wrote {args.out}")
+    print(f"wrote {out}")
     print(f"  vocab: {vocab_count:,}")
     print(f"  raw: {raw_size:,} bytes, gzip: {len(data):,} bytes")
 

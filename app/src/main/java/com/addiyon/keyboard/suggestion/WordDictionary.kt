@@ -13,19 +13,25 @@ import java.util.zip.GZIPInputStream
  * One instance per bundled asset (currently Amharic and English).
  *
  * Reads a gzip-compressed asset, one `word<TAB>frequency` pair per line
- * once decompressed, SORTED by the lowercased word in UTF-16 code-unit order
- * -- [WordTrie.build] streams the lines into its flat-array trie and throws
- * on unsorted input, so the `tools/` scripts that generate the assets sort
- * them at build time (a unit test loads the real assets to catch drift). The
- * bundled assets:
+ * once decompressed, SORTED by the word's normalized key ([keyChar]) in
+ * UTF-16 code-unit order -- [WordTrie.build] streams the lines into its
+ * flat-array trie and throws on unsorted input, so the `tools/` scripts that
+ * generate the assets sort them at build time (a unit test loads the real
+ * assets to catch drift). The bundled assets:
  *
- *   - `amharic_words.dat`: built by `tools/build_amharic_dict.py` from a
- *     corpus term-frequency dump, ~411k entries with real corpus
- *     frequencies: pure-fidel words (frequency >= 2 -- singletons in
- *     scraped corpora are disproportionately typos) plus common
- *     abbreviations like ዓ.ም / ዶ/ር (frequency >= 50), which can't be
- *     composed (period/slash commit the word) but still surface as
- *     tap-to-complete suggestions for their fidel prefix.
+ *   - `amharic_words.dat`: built by `tools/build_amharic_dict.py` from two
+ *     corpus term-frequency dumps plus curated wordlists (see
+ *     tools/README.md), ~254k entries: pure-fidel words (frequent ones kept
+ *     on corpus evidence alone; rare ones only when a validation wordlist
+ *     also attests them -- rare tokens in a scraped corpus are
+ *     disproportionately typos; wordlist words the corpora never saw ride
+ *     along at frequency 1 as rank-floor completions)
+ *     plus common abbreviations like ዓ.ም / ዶ/ር (frequency >= 50), which
+ *     can't be composed (period/slash commit the word) but still surface as
+ *     tap-to-complete suggestions for their fidel prefix. Homoglyph
+ *     spelling variants (ሀገር / ሃገር / ሐገር / ኀገር) are merged at asset-build
+ *     time -- frequencies summed, most frequent spelling kept as display
+ *     form -- and matched via [EthiopicNormalizer]-folded trie keys.
  *   - `english_words.dat`: derived from the OpenSubtitles-based
  *     FrequencyWords full list (hermitdave/FrequencyWords, MIT), ~250k
  *     words with real corpus frequencies. The source tokenizer splits
@@ -43,14 +49,24 @@ import java.util.zip.GZIPInputStream
  * would leave a source file named `words.txt.gz` bundled as a *plain,
  * uncompressed* `words.txt` instead. `.dat` sidesteps that.
  *
- * Parsing ~411k lines and building a trie is fast in absolute terms but
+ * Parsing a couple hundred thousand lines and building a trie is fast in
+ * absolute terms but
  * still real work, so it happens on a background thread rather than
  * blocking the IME's `onCreate` -- [loadAsync] posts the result back to the
  * main thread when ready, since [suggestions] and every UI read of
  * [isReady] must only ever happen on the main thread (this class does no
  * locking of its own for that reason).
  */
-class WordDictionary(context: Context, private val assetName: String) {
+class WordDictionary(
+    context: Context,
+    private val assetName: String,
+    /** Per-character key normalizer for [WordTrie] matching. Default:
+     *  case-insensitive; the Amharic dictionary injects
+     *  [com.addiyon.keyboard.transliteration.EthiopicNormalizer.normalize]
+     *  to fold homoglyph spelling variants. The bundled asset must be sorted
+     *  by this same key (the `tools/` build script mirrors the fold table). */
+    private val keyChar: (Char) -> Char = Char::lowercaseChar,
+) {
 
     private val appContext = context.applicationContext
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -100,7 +116,8 @@ class WordDictionary(context: Context, private val assetName: String) {
                         val word = line.substring(0, tab)
                         val frequency = line.substring(tab + 1).toIntOrNull() ?: return@mapNotNull null
                         word to frequency
-                    }
+                    },
+                    keyChar,
                 )
             }
         }

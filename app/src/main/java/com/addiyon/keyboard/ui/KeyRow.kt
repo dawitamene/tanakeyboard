@@ -92,6 +92,8 @@ internal fun KeyRow(
                         height = metrics.keyHeight,
                         vibrateOnKeypress = vibrateOnKeypress,
                         soundOnKeypress = soundOnKeypress,
+                        onPressStart = { service.onDeleteGestureStart() },
+                        onPressEnd = { service.onDeleteGestureEnd() },
                         onClick = { service.onDelete() }
                     )
                 }

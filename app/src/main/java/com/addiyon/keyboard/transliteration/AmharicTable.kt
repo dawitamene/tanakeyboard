@@ -27,7 +27,8 @@ package com.addiyon.keyboard.transliteration
  *   dictionary) can be unit-tested on the JVM without an emulator.
  *
  * - Keys are CASE-SENSITIVE. The scheme distinguishes h/H (ሀ/ሐ), t/T (ተ/ጠ),
- *   c-family ch/C (ቸ/ጨ), etc., so lookups must never be lowercased blindly;
+ *   c/C (ቸ/ጨ), n/N (ነ/ኘ), q/Q (ቀ/ቐ), etc., so lookups must never be
+ *   lowercased blindly;
  *   the key press pipeline decides case (via shift state) before it gets here.
  */
 object AmharicTable {
@@ -97,6 +98,10 @@ object AmharicTable {
         "e" to listOf(4)
     )
 
+    val consonantVowelAlternates: Map<Pair<String, String>, List<Int>> = mapOf(
+        ("h" to "a") to listOf(0)
+    )
+
     /**
      * A bare (unprefixed) vowel: its Latin spelling, the consonant family it
      * resolves against, and the index into that [Family.forms].
@@ -143,6 +148,10 @@ object AmharicTable {
         BareVowel("E", "`", BARE_FORM_INDEX)
     )
 
+    val bareVowelAlternates: Map<String, List<Pair<String, Int>>> = mapOf(
+        "e" to listOf("`" to 2, "`" to BARE_FORM_INDEX)
+    )
+
     /**
      * Every consonant family in the scheme, keyed by its (case-sensitive)
      * Latin spelling. Forms are copied verbatim, row by row, from the
@@ -160,7 +169,7 @@ object AmharicTable {
      */
     private val baseFamilies: Map<String, Family> = mapOf(
         // ----- ሀ series -------------------------------------------------
-        "h" to Family("ሀሁሂሃሄህሆ"),
+        "h" to Family("ሀሁሂሃሄህሆ", ua = 'ሗ'),
         "H" to Family("ሐሑሒሓሔሕሖ"),
 
         // ----- ለ / መ / ሠ-block ------------------------------------------
@@ -173,6 +182,7 @@ object AmharicTable {
 
         // ----- ቀ / በ / ቨ -------------------------------------------------
         "q" to Family("ቀቁቂቃቄቅቆ", ua = 'ቋ'),
+        "Q" to Family("ቐቑቒቓቔቕቖ"),
         "b" to Family("በቡቢባቤብቦ", ua = 'ቧ'),
         "v" to Family("ቨቩቪቫቬቭቮ"),
 
@@ -221,7 +231,8 @@ object AmharicTable {
     val families: Map<String, Family> = baseFamilies + mapOf(
         // Keyboard aliases -- see the doc above [baseFamilies].
         "x" to baseFamilies.getValue("sh"),
-        "c" to baseFamilies.getValue("ch")
+        "c" to baseFamilies.getValue("ch"),
+        "N" to baseFamilies.getValue("gn")
     )
 
     /**
@@ -237,6 +248,12 @@ object AmharicTable {
      */
     val consonantsByLength: List<String> =
         families.keys.sortedByDescending { it.length }
+
+    val explicitFamilySpellings: Set<String> = families.keys
+        .filterTo(linkedSetOf()) { spelling ->
+            val lowercase = spelling.lowercase()
+            spelling != lowercase && families[spelling] != families[lowercase]
+        }
 
     /**
      * The single-letter subset of [consonantsByLength], used by
@@ -308,46 +325,6 @@ object AmharicTable {
      */
     val maxAlternateLevel: Int =
         maxOf(1, consonantAlternates.values.maxOfOrNull { it.size } ?: 0)
-
-    /**
-     * Multi-tap alternate cycles: pressing the SAME key again within the
-     * multi-tap window (see AddiyonKeyboardService.MULTI_TAP_TIMEOUT_MS)
-     * REPLACES the just-typed Latin with the next spelling in its cycle,
-     * instead of appending a new letter -- so a user can reach the alternate
-     * families without shift or SERA spellings they may not know:
-     *
-     *   a -> አ ዓ ዐ ኣ      (glottal bare, pharyngeal+a, pharyngeal bare-A,
-     *                        glottal+a -- the four "a"-looking standalones)
-     *   u/i/o -> ኡ/ኢ/ኦ then ዑ/ዒ/ዖ   e -> እ then ዕ
-     *   k -> ክ ቅ    h -> ህ ሕ    s -> ስ ሥ    t -> ት ጥ
-     *   c -> ች ጭ    p -> ፕ ጵ    (+ uppercase inverses, so shift-first
-     *                              taps can cycle back the other way)
-     *
-     * Keyed by the shift-RESOLVED output of the keypress; entries are Latin
-     * spellings substituted into the raw buffer, so the whole-buffer
-     * transliteration keeps working unchanged (after a consonant, "`a" makes
-     * "se" + double-tapped "a" read ሰዓ -- the ሰዓት case). The service skips a
-     * cycle step when it wouldn't change the rendered word in the current
-     * context (e.g. "A" after a consonant is just the same vowel again).
-     */
-    val multiTapCycles: Map<String, List<String>> = mapOf(
-        "a" to listOf("a", "`a", "A", "'a"),
-        "u" to listOf("u", "`u"),
-        "i" to listOf("i", "`i"),
-        "o" to listOf("o", "`o"),
-        "e" to listOf("e", "`"),
-        "k" to listOf("k", "q"),
-        "h" to listOf("h", "H"),
-        "H" to listOf("H", "h"),
-        "s" to listOf("s", "S"),
-        "S" to listOf("S", "s"),
-        "t" to listOf("t", "T"),
-        "T" to listOf("T", "t"),
-        "c" to listOf("c", "C"),
-        "C" to listOf("C", "c"),
-        "p" to listOf("p", "P"),
-        "P" to listOf("P", "p")
-    )
 
     /**
      * Ethiopic punctuation for the two punctuation keys on the Amharic

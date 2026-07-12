@@ -31,7 +31,8 @@ KeyData.Character("&"),
 KeyData.Character("-"),
 KeyData.Character("+"),
 KeyData.Character("("),
-KeyData.Character(")")
+KeyData.Character(")"),
+KeyData.Character("/")
 ),
 
 // Row 3

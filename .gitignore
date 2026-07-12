@@ -11,10 +11,13 @@
 /build
 /captures
 /tools/.cache
-# Raw Amharic corpus frequency dump (17MB source data for
-# tools/build_amharic_dict.py) -- keep out of the repo.
+# Raw Amharic corpus source data (17MB/249MB/81MB, for
+# tools/build_amharic_dict.py and tools/build_ngrams.py) -- keep out of the
+# repo. amharic_corpus_abdulmunim.txt re-downloads from the LFS media URL of
+# abdulmunimjemal/AmharicSpellCheckerEngine data/amharic_corpus.txt.
 /Term_Frequency.txt
 /CACO_TEXT.txt
+/amharic_corpus_abdulmunim.txt
 .externalNativeBuild
 .cxx
 local.properties

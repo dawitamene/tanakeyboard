@@ -191,11 +191,8 @@ fun RowScope.ShiftKey(
 }
 
 /**
- * Delete/backspace key. Fixed width (see [ShiftKey]'s doc for why this key
- * in particular needs to be layout-invariant rather than weighted) -- it's
- * the one key present in row 3 of every layout (letters, Numbers, Symbols),
- * so it's the key where a weight-based, row-relative width would otherwise
- * visibly differ depending on which layout is showing.
+ * Delete/backspace key. Its width matches the outer control key on every
+ * layout so the control row fills the available width exactly.
  *
  * [repeatable] is set so holding the key down deletes continuously (one
  * character immediately, then repeating every ~50ms after a short initial
@@ -208,6 +205,8 @@ fun RowScope.DeleteKey(
     height: Dp,
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean,
+    onPressStart: () -> Unit,
+    onPressEnd: () -> Unit,
     onClick: () -> Unit
 ) {
     KeyButton(
@@ -216,6 +215,8 @@ fun RowScope.DeleteKey(
         height = height,
         isSpecial = true,
         repeatable = true,
+        onRepeatPressStart = onPressStart,
+        onRepeatPressEnd = onPressEnd,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
         testTag = KeyboardTestTags.KEY_DELETE,

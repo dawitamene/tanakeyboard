@@ -139,6 +139,8 @@ fun KeyButton(
     iconTint: Color = MaterialTheme.colorScheme.onSurface,
     showLockIndicator: Boolean = false,
     repeatable: Boolean = false,
+    onRepeatPressStart: () -> Unit = {},
+    onRepeatPressEnd: () -> Unit = {},
     showsPreviewOnPress: Boolean = false,
     vibrateOnKeypress: Boolean = false,
     soundOnKeypress: Boolean = false,
@@ -179,7 +181,11 @@ fun KeyButton(
     val tightText = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
 
     val pressModifier = if (repeatable) {
-        Modifier.repeatingClickable(interactionSource = interactionSource) {
+        Modifier.repeatingClickable(
+            interactionSource = interactionSource,
+            onPressStart = onRepeatPressStart,
+            onPressEnd = onRepeatPressEnd
+        ) {
             keypressFeedback(view, vibrateOnKeypress, soundOnKeypress)
             onClick()
         }

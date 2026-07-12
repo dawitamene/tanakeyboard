@@ -83,13 +83,39 @@ class CandidateRankerTest {
     }
 
     @Test
-    fun smartRankingHidesDeadAlternatesWhenAnExactWordExists() {
+    fun explicitUppercaseFamilyKeepsGreedyReadingAheadOfDictionaryAlternates() {
+        val readings = Transliterator.candidates("aCe")
+        val words = trie("አቸ" to 900, "አቼ" to 800)
+        val ranked = CandidateRanker.rankAmharic(
+            readings = readings,
+            limit = 10,
+            frequencyOf = words::frequencyOf,
+            completionsForPrefix = { _, _ -> emptyList() },
+            preferGreedy = Transliterator.hasExplicitFamilySelection("aCe")
+        )
+        val committed = CandidateRanker.bestCommitCandidate(
+            readings,
+            words::frequencyOf,
+            preferGreedy = Transliterator.hasExplicitFamilySelection("aCe")
+        )
+        assertEquals("አጨ", ranked.first())
+        assertEquals("አጨ", committed)
+        assertTrue("አቸ" in ranked)
+        assertTrue("አቼ" in readings)
+    }
+
+    @Test
+    fun hidesDeepAlternatesButKeepsTheGreedyLiteralWhenAnExactWordExists() {
+        // The exact word wins, and the DEEP structural alternates (መስጠጥ, መስተጥ)
+        // are hidden -- but the greedy literal (መስተት, index 0, what's shown
+        // inline while typing) is always kept as the second chip so the user
+        // can still commit exactly what they typed.
         val words = trie("መስጠት" to 900)
         val ranked = rankAmharic(
             listOf("መስተት", "መስጠጥ", "መስጠት", "መስተጥ"),
             words
         )
-        assertEquals(listOf("መስጠት"), ranked)
+        assertEquals(listOf("መስጠት", "መስተት"), ranked)
     }
 
     @Test
@@ -101,10 +127,13 @@ class CandidateRankerTest {
     }
 
     @Test
-    fun exactDictionaryEvidenceBeatsGreedyLiteralFallback() {
-        val words = trie("ፍቅር" to 700)
+    fun exactDictionaryWordLeadsWithTheGreedyLiteralKeptSecond() {
+        // "fkr": the real word ፍቅር leads, but the greedy literal ፍክር (shown
+        // inline) is kept as the second chip, ahead of any completion.
+        val words = trie("ፍቅር" to 700, "ፍቅረኛ" to 200)
         val ranked = rankAmharic(listOf("ፍክር", "ፍቅር"), words)
-        assertEquals("ፍቅር", ranked.first())
+        assertEquals("ፍቅር", ranked[0])
+        assertEquals("ፍክር", ranked[1])
     }
 
     @Test
@@ -122,6 +151,17 @@ class CandidateRankerTest {
             visibleReadings = listOf("ብአ")
         )
         assertEquals(listOf("ባ", "ብአ"), ranked)
+    }
+
+    @Test
+    fun allStructuralReadingsCanAppearWhenTheDictionaryHasNoMatch() {
+        val readings = listOf("አለካሽን", "አለቃሽን")
+        val ranked = rankAmharic(
+            readings = readings,
+            trie = trie(),
+            visibleReadings = readings
+        )
+        assertEquals(readings, ranked)
     }
 
     @Test
@@ -190,19 +230,33 @@ class CandidateRankerTest {
     fun ngramBoostReordersWithinTheExactTier() {
         // Both readings are words with frequencies 9_000 vs 10_000; a
         // context boost (max 10_000 > the 1_000 gap) flips the order.
-        val words = trie("ሰላም" to 9_000, "ሠላም" to 10_000)
+        // (ሰላም/ሰላሳ, not a homoglyph pair like ሰላም/ሠላም -- boost keys are
+        // folded, so homoglyph variants would collect the SAME boost.)
+        val words = trie("ሰላም" to 9_000, "ሰላሳ" to 10_000)
         val ranked = rankAmharic(
-            listOf("ሰላም", "ሠላም"), words,
+            listOf("ሰላም", "ሰላሳ"), words,
             ngramNext = mapOf("ሰላም" to 255)
         )
-        assertEquals(listOf("ሰላም", "ሠላም"), ranked)
+        assertEquals(listOf("ሰላም", "ሰላሳ"), ranked)
         // Same input without context keeps the frequency order -- proving
         // the flip above came from the boost, and that an empty map is a
         // strict no-op.
         assertEquals(
-            listOf("ሠላም", "ሰላም"),
-            rankAmharic(listOf("ሰላም", "ሠላም"), words)
+            listOf("ሰላሳ", "ሰላም"),
+            rankAmharic(listOf("ሰላም", "ሰላሳ"), words)
         )
+    }
+
+    @Test
+    fun ngramBoostMatchesVariantSpellingsOfTheSameWord() {
+        // The boost map is keyed by folded spelling; a candidate typed in a
+        // variant spelling (ሠላም) must still collect the boost for ሰላም.
+        val words = trie("ሠላም" to 9_000, "ሰላሳ" to 10_000)
+        val ranked = rankAmharic(
+            listOf("ሠላም", "ሰላሳ"), words,
+            ngramNext = mapOf("ሰላም" to 255)
+        )
+        assertEquals(listOf("ሠላም", "ሰላሳ"), ranked)
     }
 
     @Test

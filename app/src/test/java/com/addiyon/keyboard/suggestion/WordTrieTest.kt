@@ -1,6 +1,7 @@
 package com.addiyon.keyboard.suggestion
 
 import com.addiyon.keyboard.transliteration.AmharicTable
+import com.addiyon.keyboard.transliteration.EthiopicNormalizer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -140,6 +141,53 @@ class WordTrieTest {
         val t = trie("England" to 500)
         assertEquals(500, t.frequencyOf("england"))
         assertEquals(500, t.frequencyOf("ENGLAND"))
+    }
+
+    // ---- Ethiopic homoglyph-folded keying (the Amharic keyChar) ------------
+
+    private fun amharicTrie(vararg words: Pair<String, Int>) =
+        WordTrie.build(words.toList(), EthiopicNormalizer::normalize)
+
+    @Test
+    fun ethiopicPrefixMatchesAcrossHomoglyphSpellings() {
+        // ኃይል is stored under the folded path ሀይል, so any variant spelling of
+        // the prefix reaches it -- the fidel analogue of case-insensitivity.
+        val t = amharicTrie("ኃይል" to 500)
+        assertEquals(listOf("ኃይል"), t.suggestions("ሀይ"))
+        assertEquals(listOf("ኃይል"), t.suggestions("ሃይ"))
+        assertEquals(listOf("ኃይል"), t.suggestions("ሐይ"))
+        assertEquals(listOf("ኃይል"), t.suggestions("ኃይ"))
+    }
+
+    @Test
+    fun ethiopicSuggestionsReturnTheStoredCanonicalSpelling() {
+        val t = amharicTrie("ፀሐይ" to 400, "ሰላም" to 900)
+        // Typed with plain ጸ/ሀ, suggested with the stored ፀ/ሐ spelling.
+        assertEquals(listOf("ፀሐይ"), t.suggestions("ጸሀ"))
+    }
+
+    @Test
+    fun ethiopicFrequencyOfMatchesAcrossHomoglyphSpellings() {
+        val t = amharicTrie("ሀገር" to 6_000)
+        assertEquals(6_000, t.frequencyOf("ሃገር"))
+        assertEquals(6_000, t.frequencyOf("ሐገር"))
+        assertEquals(6_000, t.frequencyOf("ኀገር"))
+    }
+
+    @Test
+    fun ethiopicCollisionKeepsHigherFrequencySpelling() {
+        // Same folded key; the higher-frequency spelling wins the display
+        // form -- exactly the "polish"/"Polish" rule over fidel.
+        val t = amharicTrie("ሃገር" to 100, "ሀገር" to 900)
+        assertEquals(listOf("ሀገር"), t.suggestions("ኀገ"))
+    }
+
+    @Test
+    fun defaultKeyDoesNotFoldEthiopicVariants() {
+        // Without the normalizer (the English trie's default), variant
+        // spellings stay distinct entries.
+        val t = trie("ሀገር" to 900)
+        assertEquals(emptyList<String>(), t.suggestions("ሃገ"))
     }
 
     // ---- fuzzySuggestions -------------------------------------------------

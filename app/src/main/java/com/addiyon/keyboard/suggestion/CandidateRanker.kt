@@ -1,5 +1,7 @@
 package com.addiyon.keyboard.suggestion
 
+import com.addiyon.keyboard.transliteration.EthiopicNormalizer
+
 /**
  * Reorders transliteration readings and dictionary results without touching
  * the deterministic composing buffer. The legacy [rank] API is still a stable
@@ -46,9 +48,11 @@ object CandidateRanker {
     fun bestCommitCandidate(
         candidates: List<String>,
         frequencyOf: (String) -> Int?,
-        quirkReadings: Set<String> = emptySet()
+        quirkReadings: Set<String> = emptySet(),
+        preferGreedy: Boolean = false
     ): String? {
         if (candidates.isEmpty()) return null
+        if (preferGreedy) return candidates.first()
         var bestWord: String? = null
         var bestScore = Int.MIN_VALUE
         for ((index, candidate) in candidates.withIndex()) {
@@ -74,12 +78,14 @@ object CandidateRanker {
         visibleReadings: List<String> = emptyList(),
         fuzzyWords: List<FuzzyWord> = emptyList(),
         quirkReadings: Set<String> = emptySet(),
-        ngramNext: Map<String, Int> = emptyMap()
+        ngramNext: Map<String, Int> = emptyMap(),
+        preferGreedy: Boolean = false
     ): List<String> {
         if (readings.isEmpty() || limit <= 0) return emptyList()
 
         val scored = ArrayList<ScoredSuggestion>()
         var hasExactReading = false
+        var greedyIsExactWord = false
 
         for ((index, reading) in readings.withIndex()) {
             // Structural SPLIT (quirk) readings never win the promoted "exact
@@ -89,6 +95,7 @@ object CandidateRanker {
             if (reading in quirkReadings) continue
             val frequency = frequencyOf(reading) ?: continue
             hasExactReading = true
+            if (index == 0) greedyIsExactWord = true
             scored.add(
                 ScoredSuggestion(
                     reading,
@@ -99,7 +106,14 @@ object CandidateRanker {
             )
         }
 
-        if (!hasExactReading) {
+        // The greedy reading (readings[0]) is what's shown inline while typing,
+        // so it must ALWAYS be a tap-committable chip -- even when a dictionary
+        // word on an alternate reading outranks it (e.g. "fkr": ፍቅር is a word,
+        // the literal ፍክር isn't). The LITERAL tier sits below exact words but
+        // above completions/fuzzy, so it lands right after the dictionary hits
+        // and before any other suggestion. Skipped only when the greedy reading
+        // is itself an exact word (already scored higher, in the loop above).
+        if (!greedyIsExactWord) {
             scored.add(
                 ScoredSuggestion(
                     readings.first(),
@@ -108,6 +122,12 @@ object CandidateRanker {
                     structuralIndex = 0
                 )
             )
+        }
+
+        if (!hasExactReading) {
+            // Deeper structural alternates (non-greedy, non-word) only clutter
+            // the strip once a real dictionary word exists, so they stay gated
+            // on the no-exact-word case -- unlike the greedy literal above.
             for ((index, reading) in visibleReadings.withIndex()) {
                 if (reading == readings.first()) continue
                 scored.add(
@@ -151,7 +171,7 @@ object CandidateRanker {
             )
         }
 
-        return scored
+        val ranked = scored
             .groupBy { it.word }
             .values
             .map { options ->
@@ -169,6 +189,11 @@ object CandidateRanker {
             )
             .map { it.word }
             .take(limit)
+        if (!preferGreedy || ranked.firstOrNull() == readings.first()) return ranked
+        return buildList {
+            add(readings.first())
+            addAll(ranked.filterNot { it == readings.first() })
+        }.take(limit)
     }
 
     private fun exactScore(frequency: Int, structuralIndex: Int): Int =
@@ -183,8 +208,13 @@ object CandidateRanker {
     private fun fuzzyScore(frequency: Int, editDistance: Int): Int =
         FUZZY_BONUS + frequencyScore(frequency) - editDistance * FUZZY_EDIT_PENALTY
 
+    /** [ngramNext] is keyed by folded spelling (see the service's boost-map
+     *  construction), so a candidate in any variant spelling still collects
+     *  its boost. Plain-spelled keys are unaffected: folding is identity on
+     *  them. */
     private fun ngramBoost(ngramNext: Map<String, Int>, word: String): Int {
-        val weight = ngramNext[word] ?: return 0
+        if (ngramNext.isEmpty()) return 0
+        val weight = ngramNext[EthiopicNormalizer.normalize(word)] ?: return 0
         return (NGRAM_BASE_BONUS + weight * NGRAM_WEIGHT_SCALE)
             .coerceAtMost(NGRAM_MAX_BONUS)
     }
