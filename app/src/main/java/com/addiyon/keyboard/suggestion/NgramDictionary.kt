@@ -7,14 +7,22 @@ import android.os.Process
 import java.util.zip.GZIPInputStream
 
 /**
- * Android-facing loader for the bundled Amharic n-gram model -- the same
- * thin-wrapper shape as [WordDictionary], but around [NgramModel]. Reads
- * `amharic_ngrams.dat` (binary, gzip; built by `tools/build_ngrams.py`,
- * `.dat` not `.gz` for the same AGP reason documented on [WordDictionary])
- * on a background thread and posts readiness to the main thread; all reads
- * must stay on the main thread, so no locking here either.
+ * Android-facing loader for a bundled n-gram model -- the same thin-wrapper
+ * shape as [WordDictionary], but around [NgramModel]. Reads its asset
+ * (`amharic_ngrams.dat` / `english_ngrams.dat`; binary, gzip; built by
+ * `tools/build_ngrams.py`, `.dat` not `.gz` for the same AGP reason documented
+ * on [WordDictionary]) on a background thread and posts readiness to the main
+ * thread; all reads must stay on the main thread, so no locking here either.
+ *
+ * [normalize] is the fold the asset's vocab was sorted by and that
+ * [NgramModel.wordId] binary-searches with -- Amharic homoglyph fold for
+ * `amharic_ngrams.dat`, per-char lowercase for `english_ngrams.dat`.
  */
-class NgramDictionary(context: Context, private val assetName: String) {
+class NgramDictionary(
+    context: Context,
+    private val assetName: String,
+    private val normalize: (String) -> String
+) {
 
     private val appContext = context.applicationContext
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -37,7 +45,7 @@ class NgramDictionary(context: Context, private val assetName: String) {
         Thread {
             Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
             val loaded = appContext.assets.open(assetName).use { raw ->
-                GZIPInputStream(raw).use { NgramModel.parse(it) }
+                GZIPInputStream(raw).use { NgramModel.parse(it, normalize) }
             }
             mainHandler.post {
                 model = loaded

@@ -7,7 +7,9 @@ sealed class KeyData {
     // in CharacterKey, so it always agrees with what tapping the key types;
     // a second baked-in glyph field is exactly what let the two drift apart.
     data class Character(
-        val latin: String
+        val latin: String,
+        val width: Float = 1f,
+        val isSpecial: Boolean = false
     ) : KeyData()
 
     data object Shift : KeyData()
@@ -21,6 +23,9 @@ sealed class KeyData {
     data object NumberToggle : KeyData()
 
     data object SymbolsToggle : KeyData()
+
+    /** The "1234" key on the numbers page: opens the phone-style keypad. */
+    data object KeypadToggle : KeyData()
 
     data object LanguageToggle : KeyData()
 }

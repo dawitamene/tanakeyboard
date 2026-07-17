@@ -14,6 +14,7 @@ import com.addiyon.keyboard.model.KeyData
 import com.addiyon.keyboard.ui.keys.CharacterKey
 import com.addiyon.keyboard.ui.keys.DeleteKey
 import com.addiyon.keyboard.ui.keys.EnterKey
+import com.addiyon.keyboard.ui.keys.KeypadToggleKey
 import com.addiyon.keyboard.ui.keys.LanguageToggleKey
 import com.addiyon.keyboard.ui.keys.NumberToggleKey
 import com.addiyon.keyboard.ui.keys.ShiftKey
@@ -53,13 +54,25 @@ internal fun KeyRow(
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean
 ) {
+    val isKeypad = service.numbersMode == com.addiyon.keyboard.model.NumbersMode.KEYPAD
     KeyboardRow {
         row.forEach { key ->
             when (key) {
 
                 is KeyData.Character -> {
+                    // In an email field the letter layouts' comma key becomes
+                    // an "@" key (Gboard-style): addresses need "@" constantly
+                    // and "," never. A runtime remap rather than layout data,
+                    // so both languages' layouts get it; the numeric pages
+                    // keep their literal comma.
+                    val effectiveKey =
+                        if (key.latin == "," && !isNumberMode && service.isEmailField) {
+                            key.copy(latin = "@", isSpecial = true)
+                        } else {
+                            key
+                        }
                     CharacterKey(
-                        key = key,
+                        key = effectiveKey,
                         isShift = isShift,
                         // Not raw isAmharic: on the numeric pages every key
                         // commits its literal character (no transliteration),
@@ -89,6 +102,7 @@ internal fun KeyRow(
                 KeyData.Delete -> {
                     DeleteKey(
                         width = metrics.keyWidth,
+                        widthMultiplier = if (isKeypad) 0.7f else com.addiyon.keyboard.ui.keys.KeyWeights.DELETE,
                         height = metrics.keyHeight,
                         vibrateOnKeypress = vibrateOnKeypress,
                         soundOnKeypress = soundOnKeypress,
@@ -101,6 +115,7 @@ internal fun KeyRow(
                 KeyData.Space -> {
                     SpaceKey(
                         isAmharic = isAmharic,
+                        fixedWidth = if (isKeypad) metrics.keyWidth * 0.7f else null,
                         height = metrics.keyHeight,
                         vibrateOnKeypress = vibrateOnKeypress,
                         soundOnKeypress = soundOnKeypress,
@@ -112,6 +127,7 @@ internal fun KeyRow(
                 KeyData.Enter -> {
                     EnterKey(
                         action = service.enterAction,
+                        fixedWidth = if (isKeypad) metrics.keyWidth * 0.7f else null,
                         height = metrics.keyHeight,
                         vibrateOnKeypress = vibrateOnKeypress,
                         soundOnKeypress = soundOnKeypress,
@@ -123,6 +139,7 @@ internal fun KeyRow(
                     NumberToggleKey(
                         isNumberMode = isNumberMode,
                         isAmharic = isAmharic,
+                        fixedWidth = if (isKeypad) metrics.keyWidth * 0.7f else null,
                         height = metrics.keyHeight,
                         vibrateOnKeypress = vibrateOnKeypress,
                         soundOnKeypress = soundOnKeypress,
@@ -135,10 +152,20 @@ internal fun KeyRow(
                         numbersMode = service.numbersMode,
                         isAmharic = service.isAmharic,
                         width = metrics.keyWidth,
+                        widthMultiplier = if (isKeypad) 0.75f else com.addiyon.keyboard.ui.keys.KeyWeights.SYMBOLS_TOGGLE,
                         height = metrics.keyHeight,
                         vibrateOnKeypress = vibrateOnKeypress,
                         soundOnKeypress = soundOnKeypress,
                         onClick = { service.toggleSymbolsPage() }
+                    )
+                }
+
+                KeyData.KeypadToggle -> {
+                    KeypadToggleKey(
+                        height = metrics.keyHeight,
+                        vibrateOnKeypress = vibrateOnKeypress,
+                        soundOnKeypress = soundOnKeypress,
+                        onClick = { service.openKeypad() }
                     )
                 }
 

@@ -4,6 +4,7 @@ import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.layout.AmharicLayout
 import com.addiyon.keyboard.layout.EnglishLayout
 import com.addiyon.keyboard.layout.GeezNumbersLayout
+import com.addiyon.keyboard.layout.KeypadLayout
 import com.addiyon.keyboard.layout.MoreSymbolsLayout
 import com.addiyon.keyboard.layout.NumberLayout
 import com.addiyon.keyboard.layout.SymbolsLayout
@@ -18,21 +19,21 @@ class KeyboardMetricsTest {
     fun tenCharacterTopRowDefinesLetterWidth() {
         val metrics = computeKeyboardMetrics(EnglishLayout.rows, 320.dp)
         assertEquals(32.dp, metrics.keyWidth)
-        assertEquals(36.dp, metrics.keyHeight)
+        assertEquals(35.dp, metrics.keyHeight)
     }
 
     @Test
     fun heightIsCappedAtTheUpperBoundOnWideScreens() {
         val metrics = computeKeyboardMetrics(AmharicLayout.rows, 1000.dp)
         assertEquals(100.dp, metrics.keyWidth)
-        assertEquals(46.dp, metrics.keyHeight)
+        assertEquals(45.dp, metrics.keyHeight)
     }
 
     @Test
     fun heightIsCappedAtTheLowerBoundOnNarrowScreens() {
         val metrics = computeKeyboardMetrics(NumberLayout.rows, 240.dp)
         assertEquals(24.dp, metrics.keyWidth)
-        assertEquals(36.dp, metrics.keyHeight)
+        assertEquals(35.dp, metrics.keyHeight)
     }
 
     @Test
@@ -43,6 +44,48 @@ class KeyboardMetricsTest {
         )
         val metrics = computeKeyboardMetrics(rows, 300.dp)
         assertEquals(100.dp, metrics.keyWidth)
+    }
+
+    @Test
+    fun keypadColumnsOverrideTheCharacterCountHeuristic() {
+        val metrics = computeKeyboardMetrics(KeypadLayout.rows, 420.dp, columns = KeypadLayout.columns)
+        assertEquals(420.dp / 5.3f, metrics.keyWidth)
+        assertEquals(45.dp, metrics.keyHeight)
+    }
+
+    @Test
+    fun keypadFixedRowsFillItsDeclaredColumnsExactly() {
+        val columns = KeypadLayout.columns!!
+        assertEquals(columns, 0.7f + 3 * 1.3f + 0.7f, 0.0001f)
+        assertEquals(columns, 0.7f + 0.55f + 0.75f + 1.3f + 0.65f + 0.65f + 0.7f, 0.0001f)
+    }
+
+    @Test
+    fun keypadUsesTheSameKeyHeightAsStandardLayouts() {
+        val keypad = computeKeyboardMetrics(KeypadLayout.rows, 320.dp, columns = KeypadLayout.columns)
+        val symbols = computeKeyboardMetrics(SymbolsLayout.rows, 320.dp)
+        assertEquals(symbols.keyHeight, keypad.keyHeight)
+    }
+
+    @Test
+    fun fixedRowAreaHeightDoesNotDependOnTheVisibleRowCount() {
+        assertEquals(205.dp, keyboardRowsHeight(35.dp, rowCount = 5))
+        assertEquals(164.dp, keyboardRowsHeight(35.dp, rowCount = 4))
+        assertEquals(205.dp, keyboardRowsHeight(37.dp, rowCount = 5, rowSpacing = 4.dp))
+    }
+
+    @Test
+    fun fourRowKeypadExpandsToTheMainFiveRowHeight() {
+        val keypadKeyHeight = expandedKeyHeight(
+            baseKeyHeight = 35.dp,
+            targetRowCount = keyboardRowCount(numberRowEnabled = true),
+            actualRowCount = 4
+        )
+        assertEquals(47.25.dp, keypadKeyHeight)
+        assertEquals(
+            keyboardRowsHeight(35.dp, rowCount = 5),
+            keyboardRowsHeight(keypadKeyHeight, rowCount = 4, rowSpacing = 4.dp)
+        )
     }
 
     @Test

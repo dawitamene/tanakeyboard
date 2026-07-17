@@ -4,6 +4,10 @@ internal class SuggestionRefreshGate {
     private var blocked = false
     private var pending = false
 
+    /** True while a held-delete gesture is repeating (between begin and end). */
+    val isDeleteGestureActive: Boolean
+        get() = blocked
+
     fun beginDeleteGesture() {
         if (blocked) return
         blocked = true

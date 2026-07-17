@@ -48,11 +48,14 @@ KeyData.Character("?"),
 KeyData.Delete
 ),
 
-// Row 4
+// Row 4: the "12/34" key (KeypadToggle, opening the phone-style keypad --
+// see KeypadLayout) takes the letter layouts' language-toggle slot rather
+// than adding a seventh key; language switching stays available here via
+// the space bar swipe.
 listOf(
 KeyData.NumberToggle,
 KeyData.Character(","),
-KeyData.LanguageToggle,
+KeyData.KeypadToggle,
 KeyData.Space,
 KeyData.Character("."),
 KeyData.Enter

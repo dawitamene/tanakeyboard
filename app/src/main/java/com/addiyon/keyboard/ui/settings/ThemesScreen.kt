@@ -9,22 +9,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
+import com.addiyon.keyboard.ui.AppPageTopBar
 import com.addiyon.keyboard.ui.theme.CustomKeyboardTheme
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 import com.addiyon.keyboard.ui.theme.PaletteCategory
@@ -53,7 +48,6 @@ import com.addiyon.keyboard.ui.theme.PaletteCategory
  * keyboard -- it's persisted to prefs and the IME service picks it up; the
  * app's own UI is not recolored.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemesScreen(
     onBack: () -> Unit,
@@ -76,18 +70,12 @@ fun ThemesScreen(
     }
 
     Scaffold(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = { Text(strings.themes) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+            AppPageTopBar(
+                title = strings.themes,
+                onBack = onBack,
+                backContentDescription = strings.back
             )
         }
     ) { innerPadding ->

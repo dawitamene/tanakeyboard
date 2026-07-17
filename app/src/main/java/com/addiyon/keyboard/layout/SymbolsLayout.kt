@@ -22,18 +22,7 @@ KeyData.Character("0")
 ),
 
 // Row 2
-listOf(
-KeyData.Character("~"),
-KeyData.Character("`"),
-KeyData.Character("|"),
-KeyData.Character("•"),
-KeyData.Character("√"),
-KeyData.Character("π"),
-KeyData.Character("÷"),
-KeyData.Character("×"),
-KeyData.Character("°"),
-KeyData.Character("^")
-),
+ExtendedSymbolsRow,
 
 // Row 3
 listOf(

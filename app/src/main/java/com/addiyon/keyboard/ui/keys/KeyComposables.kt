@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Backspace
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SpaceBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -92,6 +93,7 @@ fun CharacterKey(
         Transliterator.transliterate(effectiveLatin)
     }
     val isPunctuation = key.latin == "," || key.latin == "."
+    val isSpecialSlot = key.usesSpecialBackground()
 
     val primaryText: String
     val secondaryText: String?
@@ -115,13 +117,21 @@ fun CharacterKey(
         secondarySize = 10.sp
     }
 
+    // Uppercase Latin glyphs span the full cap height, so at the shared
+    // default size they read visibly bigger than lowercase ones -- shrink
+    // them a touch. Applies in both language modes (the Amharic key face is
+    // the same Latin letter); punctuation and digits are unaffected.
+    val isUppercaseLetter =
+        effectiveLatin.length == 1 && effectiveLatin[0].isUpperCase()
+
     KeyButton(
         primaryText = primaryText,
+        primaryFontSize = if (isUppercaseLetter) 20.sp else 23.sp,
         secondaryText = secondaryText,
         secondaryFontSize = secondarySize,
-        modifier = Modifier.width(width),
+        modifier = Modifier.width(width * key.width),
         height = height,
-        isSpecial = isPunctuation,
+        isSpecial = isSpecialSlot,
         showsPreviewOnPress = true,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
@@ -131,6 +141,9 @@ fun CharacterKey(
         service.onCharacter(key.latin)
     }
 }
+
+internal fun KeyData.Character.usesSpecialBackground(): Boolean =
+    isSpecial || latin == "," || latin == "."
 
 
 /**
@@ -202,6 +215,7 @@ fun RowScope.ShiftKey(
 @Composable
 fun RowScope.DeleteKey(
     width: Dp,
+    widthMultiplier: Float = KeyWeights.DELETE,
     height: Dp,
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean,
@@ -211,7 +225,7 @@ fun RowScope.DeleteKey(
 ) {
     KeyButton(
         icon = Icons.Outlined.Backspace,
-        modifier = Modifier.width(width * KeyWeights.DELETE),
+        modifier = Modifier.width(width * widthMultiplier),
         height = height,
         isSpecial = true,
         repeatable = true,
@@ -239,6 +253,7 @@ fun RowScope.DeleteKey(
 @Composable
 fun RowScope.SpaceKey(
     isAmharic: Boolean,
+    fixedWidth: Dp? = null,
     height: Dp,
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean,
@@ -246,12 +261,18 @@ fun RowScope.SpaceKey(
     onSwipe: () -> Unit
 ) {
     KeyButton(
-        primaryText = if (isAmharic) "አማርኛ" else "English",
+        primaryText = if (fixedWidth == null) {
+            if (isAmharic) "አማርኛ" else "English"
+        } else {
+            null
+        },
+        icon = if (fixedWidth != null) Icons.Outlined.SpaceBar else null,
         primaryFontSize = 16.sp,
         iconTint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-        modifier = Modifier.weight(KeyWeights.SPACE),
+        modifier = fixedWidth?.let { Modifier.width(it) }
+            ?: Modifier.weight(KeyWeights.SPACE),
         height = height,
-        isSpecial = false,
+        isSpecial = fixedWidth != null,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
         onSwipe = onSwipe,
@@ -273,6 +294,7 @@ fun RowScope.SpaceKey(
 @Composable
 fun RowScope.EnterKey(
     action: EnterAction,
+    fixedWidth: Dp? = null,
     height: Dp,
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean,
@@ -289,7 +311,8 @@ fun RowScope.EnterKey(
     }
     KeyButton(
         icon = icon,
-        modifier = Modifier.weight(KeyWeights.ENTER),
+        modifier = fixedWidth?.let { Modifier.width(it) }
+            ?: Modifier.weight(KeyWeights.ENTER),
         height = height,
         isSpecial = true,
         vibrateOnKeypress = vibrateOnKeypress,
@@ -314,6 +337,7 @@ fun RowScope.EnterKey(
 fun RowScope.NumberToggleKey(
     isNumberMode: Boolean,
     isAmharic: Boolean,
+    fixedWidth: Dp? = null,
     height: Dp,
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean,
@@ -326,7 +350,8 @@ fun RowScope.NumberToggleKey(
             else -> "?123"
         },
         primaryFontSize = 14.sp,
-        modifier = Modifier.weight(KeyWeights.NUMBER_TOGGLE),
+        modifier = fixedWidth?.let { Modifier.width(it) }
+            ?: Modifier.weight(KeyWeights.NUMBER_TOGGLE),
         height = height,
         isSpecial = true,
         vibrateOnKeypress = vibrateOnKeypress,
@@ -345,13 +370,16 @@ fun RowScope.NumberToggleKey(
  * When Amharic mode is on the key cycles four ways: NUMBERS -> GEEZ_NUMBERS
  * -> SYMBOLS -> MORE_SYMBOLS -> NUMBERS, with "፩፪" on the NUMBERS page
  * hinting the Ge'ez numerals layer. When Amharic is off it cycles through
- * NUMBERS -> SYMBOLS -> MORE_SYMBOLS -> NUMBERS.
+ * NUMBERS -> SYMBOLS -> MORE_SYMBOLS -> NUMBERS. On the KEYPAD it reads
+ * "*#(" and exits to NUMBERS -- the digit pad has no room for symbols, so
+ * the key advertises where they live.
  */
 @Composable
 fun RowScope.SymbolsToggleKey(
     numbersMode: NumbersMode,
     isAmharic: Boolean,
     width: Dp,
+    widthMultiplier: Float = KeyWeights.SYMBOLS_TOGGLE,
     height: Dp,
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean,
@@ -359,19 +387,65 @@ fun RowScope.SymbolsToggleKey(
 ) {
     KeyButton(
         primaryText = when {
+            numbersMode == NumbersMode.KEYPAD -> "*#("
             numbersMode == NumbersMode.NUMBERS && isAmharic -> "፩፪"
             numbersMode == NumbersMode.SYMBOLS -> "<>/"
             numbersMode == NumbersMode.MORE_SYMBOLS -> "123"
             else -> "=\\<"
         },
         primaryFontSize = 14.sp,
-        modifier = Modifier.width(width * KeyWeights.SYMBOLS_TOGGLE),
+        modifier = Modifier.width(width * widthMultiplier),
         height = height,
         isSpecial = true,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
         testTag = KeyboardTestTags.KEY_SYMBOLS_TOGGLE,
         onClick = onClick
+    )
+}
+
+/**
+ * The keypad key on the NUMBERS page: opens the phone-style keypad
+ * (NumbersMode.KEYPAD). It stands in the letter layouts' language-toggle
+ * slot (same weight -> the surrounding keys keep their positions), and like
+ * that key it wears a stacked two-line face -- "12" over "34", the Gboard
+ * numeric-pad glyph -- via KeyButton's content slot. The keypad's own
+ * "ABC"/"*#(" keys are the ways back out.
+ */
+@Composable
+fun RowScope.KeypadToggleKey(
+    height: Dp,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean,
+    onClick: () -> Unit
+) {
+    KeyButton(
+        modifier = Modifier.weight(KeyWeights.KEYPAD_TOGGLE),
+        height = height,
+        isSpecial = true,
+        vibrateOnKeypress = vibrateOnKeypress,
+        soundOnKeypress = soundOnKeypress,
+        testTag = KeyboardTestTags.KEY_KEYPAD_TOGGLE,
+        onClick = onClick,
+        content = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "12",
+                    fontSize = 13.sp,
+                    lineHeight = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "34",
+                    fontSize = 13.sp,
+                    lineHeight = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
     )
 }
 

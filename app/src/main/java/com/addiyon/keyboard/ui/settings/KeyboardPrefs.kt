@@ -15,6 +15,7 @@ object KeyboardPrefs {
     const val KEY_SOUND = "sound_on_keypress"
     const val KEY_PALETTE = "palette"
     const val KEY_NUMBER_ROW = "number_row"
+    const val KEY_AMHARIC_MODE = "amharic_mode"
     const val KEY_RECENT_EMOJIS = "recent_emojis"
     const val KEY_EMOJI_SKIN_TONES = "emoji_skin_tones"
 
@@ -45,6 +46,15 @@ object KeyboardPrefs {
 
     fun setNumberRow(context: Context, value: Boolean) =
         prefs(context).edit().putBoolean(KEY_NUMBER_ROW, value).apply()
+
+    // The keyboard's active language (Amharic by default), persisted so the
+    // user's choice survives the IME service being destroyed -- e.g. after
+    // switching to another keyboard and back.
+    fun amharicMode(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_AMHARIC_MODE, true)
+
+    fun setAmharicMode(context: Context, value: Boolean) =
+        prefs(context).edit().putBoolean(KEY_AMHARIC_MODE, value).apply()
 
     // The two emoji values are opaque encoded strings; their codecs live in
     // the pure-Kotlin stores (RecentEmojiStore / SkinToneStore), which take

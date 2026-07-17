@@ -5,10 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.ui.Modifier
 import com.addiyon.keyboard.ui.manual.ManualScreen
 import com.addiyon.keyboard.ui.i18n.ProvideAppLocalization
 import com.addiyon.keyboard.ui.theme.AddiyonBrandTheme
@@ -27,11 +23,7 @@ class ManualActivity : ComponentActivity() {
         setContent {
             ProvideAppLocalization {
                 AddiyonBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
-                    Scaffold { innerPadding ->
-                        Box(modifier = Modifier.padding(innerPadding)) {
-                            ManualScreen(onBack = { finish() })
-                        }
-                    }
+                    ManualScreen(onBack = { finish() })
                 }
             }
         }

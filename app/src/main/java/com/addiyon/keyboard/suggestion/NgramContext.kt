@@ -8,22 +8,31 @@ import java.text.Normalizer
  * the field instead of tracking commits keeps predictions correct across
  * cursor jumps, app switches, and edits to older text, with no service state.
  *
- * The rules mirror the build-time tokenizer in `tools/build_ngrams.py`:
- * a word is a run of Ethiopic syllables (gemination marks stripped, NFC),
- * and any other character is a boundary. Whitespace merely separates words;
- * a hard boundary (punctuation, digit, quote — including ። and ፣) kills the
- * context on its far side, so text ending "... ። " predicts nothing
- * (sentence start) and "ቡና ፣ ቤት " yields prev1 = ቤት with no prev2.
+ * Script-neutral: the walk-back algorithm is identical for both keyboards;
+ * only what counts as a word character and how a word's surface form is
+ * normalized differ. Two ready instances are provided -- [AMHARIC] and
+ * [ENGLISH]:
+ *
+ *  - [AMHARIC]: a word is a run of Ethiopic syllables (gemination marks
+ *    stripped, NFC); any other character is a boundary. This mirrors the
+ *    build-time tokenizer in `tools/build_ngrams.py`. A hard boundary
+ *    (punctuation, digit, quote -- including ። and ፣) kills the context on its
+ *    far side, so "... ። " predicts nothing (sentence start) and "ቡና ፣ ቤት "
+ *    yields prev1 = ቤት with no prev2.
+ *  - [ENGLISH]: a word is a run of letters plus apostrophes (so "don't" is one
+ *    word); the typographic apostrophe ’ is folded to a straight ' to match
+ *    the dictionary's spelling. Digits, spaces, and punctuation are boundaries.
+ *
+ * In both cases only SURFACE normalization happens here; the homoglyph
+ * fold / lowercasing that makes a context word match the model's vocab is the
+ * model's own job (see [NgramModel.parse]'s `normalize`).
  */
-object NgramContext {
-    /** Window passed to `getTextBeforeCursor`. A returned chunk of exactly
-     * this length may be truncated mid-word at its start; a word touching
-     * index 0 of such a chunk is discarded as unreliable. */
-    const val WINDOW = 48
+class NgramContext private constructor(
+    private val isWordChar: (Char) -> Boolean,
+    private val normalizeWord: (String) -> String
+) {
 
     data class Context(val prev2: String?, val prev1: String?)
-
-    val EMPTY = Context(null, null)
 
     fun extract(textBeforeCursor: CharSequence?): Context {
         val text = textBeforeCursor ?: return EMPTY
@@ -66,17 +75,49 @@ object NgramContext {
         while (start >= 0 && isWordChar(text[start])) start--
         if (start < 0 && mayBeTruncated) return null
         val raw = text.subSequence(start + 1, end + 1).toString()
-        val word = GEMINATION.replace(Normalizer.normalize(raw, Normalizer.Form.NFC), "")
+        val word = normalizeWord(raw)
         if (word.isEmpty()) return null
         return word to start
     }
 
-    // Ethiopic syllable ranges, matching WORD_RE in tools/build_ngrams.py,
-    // plus the combining gemination marks (word-internal, stripped after).
-    private fun isWordChar(c: Char): Boolean =
-        c in 'ሀ'..'ፚ' || c in '፝'..'፟' ||
-            c in 'ᎀ'..'ᎏ' || c in 'ⶀ'..'ⷞ' ||
-            c in 'ꬁ'..'ꬮ'
+    companion object {
+        /** Window passed to `getTextBeforeCursor`. A returned chunk of exactly
+         * this length may be truncated mid-word at its start; a word touching
+         * index 0 of such a chunk is discarded as unreliable. */
+        const val WINDOW = 48
 
-    private val GEMINATION = Regex("[፝-፟]")
+        val EMPTY = Context(null, null)
+
+        // Ethiopic syllable ranges, matching WORD_RE in tools/build_ngrams.py,
+        // plus the combining gemination marks (word-internal, stripped after).
+        private val GEMINATION = Regex("[፝-፟]")
+
+        private fun isAmharicWordChar(c: Char): Boolean =
+            c in 'ሀ'..'ፚ' || c in '፝'..'፟' ||
+                c in 'ᎀ'..'ᎏ' || c in 'ⶀ'..'ⷞ' ||
+                c in 'ꬁ'..'ꬮ'
+
+        /** The Amharic keyboard's context reader. */
+        val AMHARIC = NgramContext(
+            isWordChar = ::isAmharicWordChar,
+            normalizeWord = { raw ->
+                GEMINATION.replace(Normalizer.normalize(raw, Normalizer.Form.NFC), "")
+            }
+        )
+
+        // Letters (Unicode, so accented words stay intact) plus the straight
+        // and typographic apostrophes, which keep contractions ("don't",
+        // "don’t") a single word.
+        private fun isEnglishWordChar(c: Char): Boolean =
+            c.isLetter() || c == '\'' || c == '’'
+
+        /** The English keyboard's context reader. */
+        val ENGLISH = NgramContext(
+            isWordChar = ::isEnglishWordChar,
+            // Fold the typographic apostrophe to the straight one the
+            // dictionary (and the model's vocab) spell contractions with; the
+            // model lowercases on lookup, so no case work here.
+            normalizeWord = { raw -> raw.replace('’', '\'') }
+        )
+    }
 }

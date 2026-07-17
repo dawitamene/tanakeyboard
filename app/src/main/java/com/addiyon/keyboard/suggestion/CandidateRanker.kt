@@ -99,7 +99,8 @@ object CandidateRanker {
             scored.add(
                 ScoredSuggestion(
                     reading,
-                    exactScore(frequency, index) + ngramBoost(ngramNext, reading),
+                    exactScore(frequency, index) +
+                        ngramBoost(ngramNext, reading, EthiopicNormalizer::normalize),
                     sourceRank = 0,
                     structuralIndex = index
                 )
@@ -152,7 +153,7 @@ object CandidateRanker {
                             completion.frequency,
                             index,
                             completion.word.length - reading.length
-                        ) + ngramBoost(ngramNext, completion.word),
+                        ) + ngramBoost(ngramNext, completion.word, EthiopicNormalizer::normalize),
                         sourceRank = 2,
                         structuralIndex = index
                     )
@@ -208,13 +209,49 @@ object CandidateRanker {
     private fun fuzzyScore(frequency: Int, editDistance: Int): Int =
         FUZZY_BONUS + frequencyScore(frequency) - editDistance * FUZZY_EDIT_PENALTY
 
-    /** [ngramNext] is keyed by folded spelling (see the service's boost-map
-     *  construction), so a candidate in any variant spelling still collects
-     *  its boost. Plain-spelled keys are unaffected: folding is identity on
-     *  them. */
-    private fun ngramBoost(ngramNext: Map<String, Int>, word: String): Int {
+    /**
+     * English next-word-aware completion ordering: reorders [candidates]
+     * (already frequency-ranked prefix completions from the trie) by a
+     * within-tier n-gram context nudge and returns the top [limit] display
+     * forms. The standalone analogue of the completion boost inside
+     * [rankAmharic] -- English has no reading/quirk/literal tiers, just
+     * dictionary completions. A candidate the model predicts to follow the
+     * previous words rises, but only within the pool the trie already
+     * returned: [frequencyScore] saturates at 30k for every common word, so
+     * context breaks ties among the common completions while the capped boost
+     * can never lift a genuinely rare completion over a common one.
+     * [normalize] must match the keying of [ngramNext] (per-char lowercase,
+     * see the service's boost-map construction).
+     */
+    fun rankByContext(
+        candidates: List<DictionaryWord>,
+        ngramNext: Map<String, Int>,
+        normalize: (String) -> String,
+        limit: Int
+    ): List<String> {
+        if (candidates.isEmpty() || limit <= 0) return emptyList()
+        return candidates
+            .distinctBy { it.word }
+            .sortedWith(
+                compareByDescending<DictionaryWord> {
+                    frequencyScore(it.frequency) + ngramBoost(ngramNext, it.word, normalize)
+                }.thenByDescending { it.frequency }
+            )
+            .take(limit)
+            .map { it.word }
+    }
+
+    /** [ngramNext] is keyed by the [normalize] fold (see the service's
+     *  boost-map construction), so a candidate in any variant spelling / casing
+     *  still collects its boost. Plain keys are unaffected: the fold is
+     *  identity on them. */
+    private fun ngramBoost(
+        ngramNext: Map<String, Int>,
+        word: String,
+        normalize: (String) -> String
+    ): Int {
         if (ngramNext.isEmpty()) return 0
-        val weight = ngramNext[EthiopicNormalizer.normalize(word)] ?: return 0
+        val weight = ngramNext[normalize(word)] ?: return 0
         return (NGRAM_BASE_BONUS + weight * NGRAM_WEIGHT_SCALE)
             .coerceAtMost(NGRAM_MAX_BONUS)
     }

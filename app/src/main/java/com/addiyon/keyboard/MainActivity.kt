@@ -7,15 +7,11 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import com.addiyon.keyboard.ui.manual.ManualScreen
 import com.addiyon.keyboard.ui.onboarding.OnboardingScreen
 import com.addiyon.keyboard.ui.settings.AboutScreen
@@ -71,8 +67,7 @@ class MainActivity : ComponentActivity() {
             // independently), not this settings UI.
             ProvideAppLocalization {
             AddiyonBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
-                Scaffold { innerPadding ->
-                    val status by rememberKeyboardStatus()
+                val status by rememberKeyboardStatus()
                     var screen by rememberSaveable {
                         mutableStateOf(
                             when {
@@ -130,8 +125,7 @@ class MainActivity : ComponentActivity() {
                         goBack(screen)
                     }
 
-                    Box(modifier = Modifier.padding(innerPadding)) {
-                        when (screen) {
+                    when (screen) {
                             ScreenKey.Onboarding -> OnboardingScreen(
                                 status = status,
                                 onDone = { screen = ScreenKey.Settings }
@@ -164,9 +158,7 @@ class MainActivity : ComponentActivity() {
                                     if (fromKeyboard && keyboardEntryScreen == ScreenKey.Themes) finish()
                                 }
                             )
-                        }
                     }
-                }
             }
             }
         }

@@ -282,4 +282,75 @@ class CandidateRankerTest {
         )
         assertEquals("ቤቱ", ranked.first())
     }
+
+    // ---- rankByContext (English completion reordering) ----
+
+    private val lower: (String) -> String = { it.lowercase() }
+
+    @Test
+    fun rankByContextKeepsFrequencyOrderWithoutContext() {
+        // No context map -> a strict frequency ranking, capped to the limit.
+        val pool = listOf(
+            CandidateRanker.DictionaryWord("lot", 50_000),
+            CandidateRanker.DictionaryWord("love", 40_000),
+            CandidateRanker.DictionaryWord("look", 35_000)
+        )
+        assertEquals(
+            listOf("lot", "love", "look"),
+            CandidateRanker.rankByContext(pool, emptyMap(), lower, 3)
+        )
+    }
+
+    @Test
+    fun rankByContextPromotesAPredictedCommonCompletion() {
+        // All three saturate frequencyScore (>= 30k), so a context boost breaks
+        // the tie: "love" rises over the more frequent but unpredicted "lot".
+        val pool = listOf(
+            CandidateRanker.DictionaryWord("lot", 50_000),
+            CandidateRanker.DictionaryWord("love", 40_000),
+            CandidateRanker.DictionaryWord("look", 35_000)
+        )
+        assertEquals(
+            "love",
+            CandidateRanker.rankByContext(pool, mapOf("love" to 255), lower, 3).first()
+        )
+    }
+
+    @Test
+    fun rankByContextCannotPromoteARareCompletionOverACommonOne() {
+        // The capped boost (<= 10k) can't lift a genuinely rare word (freq 50)
+        // over a common one whose frequencyScore saturates at 30k.
+        val pool = listOf(
+            CandidateRanker.DictionaryWord("the", 1_000_000),
+            CandidateRanker.DictionaryWord("thistle", 50)
+        )
+        assertEquals(
+            "the",
+            CandidateRanker.rankByContext(pool, mapOf("thistle" to 255), lower, 2).first()
+        )
+    }
+
+    @Test
+    fun rankByContextMatchesContextCaseInsensitively() {
+        // The boost map is keyed lowercase; a capitalized candidate ("England")
+        // still collects its boost.
+        val pool = listOf(
+            CandidateRanker.DictionaryWord("English", 45_000),
+            CandidateRanker.DictionaryWord("England", 40_000)
+        )
+        assertEquals(
+            "England",
+            CandidateRanker.rankByContext(pool, mapOf("england" to 255), lower, 2).first()
+        )
+    }
+
+    @Test
+    fun rankByContextRespectsLimitAndEmptyInputs() {
+        assertTrue(CandidateRanker.rankByContext(emptyList(), emptyMap(), lower, 3).isEmpty())
+        val pool = listOf(
+            CandidateRanker.DictionaryWord("apple", 100),
+            CandidateRanker.DictionaryWord("apply", 90)
+        )
+        assertEquals(listOf("apple"), CandidateRanker.rankByContext(pool, emptyMap(), lower, 1))
+    }
 }

@@ -88,6 +88,45 @@ python3 tools/build_ngrams.py --test-fixture \
 - The corpus itself is gitignored (249MB); keep it wherever convenient and
   pass its path.
 
+### English (`--lang english`)
+
+Instead of counting a raw corpus, English reads **pre-compiled word n-gram
+frequency lists** and gates every token through `english_words.dat` (so every
+prediction is a real, canonically-spelled dictionary word). Emits the **v3**
+binary format (per-successor casing flags — see below); the fold is **per-char
+lowercase** (matching `WordDictionary`'s default `Char::lowercaseChar` keying),
+words are Latin letters + apostrophes, and trigrams are **not** gated on
+surviving bigram contexts (they come from a separate curated source, so a useful
+trigram whose bigram prefix isn't in the top bigram list is still served
+directly).
+
+```sh
+python3 tools/build_ngrams.py --lang english \
+    --bigram-file tools/.cache/count_2w.txt \
+    --trigram-file tools/.cache/3grams_english.csv
+```
+
+- **Bigrams** — Norvig `count_2w.txt` (Google Web Trillion Word Corpus, ~286k
+  pairs), `<w1> <w2><TAB><count>` per line:
+  <https://www.norvig.com/ngrams/count_2w.txt>. These do the heavy lifting.
+- **Trigrams** — orgtre/google-books-ngram-frequency `3grams_english.csv` (top
+  ~3k cleaned word trigrams, CC BY), `<w1> <w2> <w3>,<freq>` with a header row.
+  A small, top-value refinement; the model backs off to bigrams when a trigram
+  context is absent.
+- Downloads go in `tools/.cache/` (gitignored). **Regenerate `english_words.dat`
+  first** (same dictionary-gating reason as Amharic).
+- **Per-context proper-noun casing (v3)**: the dictionary stores common nouns
+  lowercase, so predictions would read "united states". Casing evidence is taken
+  from the *cased* trigram source (the Norvig bigram list only capitalizes
+  sentence-initial first words, so its successors carry no signal), including the
+  two adjacent pairs inside each trigram — so "in New York" / "New York Times"
+  teach that York is capitalized after New. Each successor stores a flag
+  (0 as-is / 1 capitalize-first / 2 all-caps); the fix is **per-context**, so
+  "United → States" and "New York → Times/City" capitalize while "of → the"
+  stays lowercase. Coverage is limited to pairs the ~3k trigrams attest.
+- Output: `app/src/main/assets/english_ngrams.dat` (~240 KB), loaded by
+  `NgramDictionary` with the per-char lowercase fold.
+
 ## `build_english_dict.py`
 
 Regenerates `app/src/main/assets/english_words.dat`, the English suggestion
@@ -111,7 +150,10 @@ python3 tools/build_english_dict.py
   OpenSubtitles list (MIT) — top 250k tokens.
 - **Casing overlay**:
   - `proper_nouns.txt` (vendored, curated) — always force-applied. Edit this to
-    add/fix proper nouns. Keep entries single-token and unambiguous.
+    add/fix proper nouns. Keep entries single-token and unambiguous. Plural and
+    possessive forms of curated entries inherit the casing automatically
+    ("norwegians" → "Norwegians"), guarded by a minimum stem length so "I"+s
+    / "God"+s never capitalize "is" / "gods".
   - downloaded first-name + world-city lists (best-effort) — applied only to
     words outside the common-word band, so homographs like "may"/"mark"/"will"
     stay lowercase.

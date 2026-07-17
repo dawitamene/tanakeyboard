@@ -9,10 +9,13 @@ import android.content.pm.ApplicationInfo
 import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.os.StrictMode
+import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedTextRequest
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.compose.runtime.getValue
@@ -31,10 +34,12 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.addiyon.keyboard.composing.ResumableWord
 import com.addiyon.keyboard.composing.WordComposer
 import com.addiyon.keyboard.model.EnterAction
 import com.addiyon.keyboard.model.NumbersMode
 import com.addiyon.keyboard.model.ShiftState
+import com.addiyon.keyboard.model.onShiftTap
 import com.addiyon.keyboard.emoji.EmojiBackspace
 import com.addiyon.keyboard.emoji.EmojiRepository
 import com.addiyon.keyboard.emoji.RecentEmojiStore
@@ -47,6 +52,7 @@ import com.addiyon.keyboard.suggestion.NgramModel
 import com.addiyon.keyboard.suggestion.WordDictionary
 import com.addiyon.keyboard.suggestion.WordTrie
 import com.addiyon.keyboard.transliteration.AmharicTable
+import com.addiyon.keyboard.transliteration.AmharicWordReverser
 import com.addiyon.keyboard.transliteration.EthiopicNormalizer
 import com.addiyon.keyboard.suggestion.matchCase
 import com.addiyon.keyboard.transliteration.Transliterator
@@ -81,6 +87,56 @@ private const val ENGLISH_FUZZY_LIMIT = 2
 private const val ENGLISH_SUGGESTION_LIMIT = ENGLISH_EXACT_LIMIT + ENGLISH_FUZZY_LIMIT
 
 /**
+ * Candidate pool pulled from the trie for the English completion strip: the
+ * top [ENGLISH_COMPLETION_POOL] prefix matches by frequency, from which the
+ * n-gram context reorder ([CandidateRanker.rankByContext]) picks the
+ * [ENGLISH_EXACT_LIMIT] shown. Larger than the visible count so a
+ * context-predicted continuation ranked below the top few by raw frequency can
+ * still surface; the trie's best-first search keeps this cheap.
+ */
+private const val ENGLISH_COMPLETION_POOL = 24
+
+/**
+ * Next-word successors pulled from the English model when building the
+ * per-word context boost map -- enough to cover the model's stored per-context
+ * fan-out (bigram cap 8), so any predicted continuation that is also a valid
+ * completion of what's typed can collect its boost.
+ */
+private const val ENGLISH_NGRAM_CONTEXT_LIMIT = 10
+
+/**
+ * Per-char lowercase fold for English n-gram keys. Mirrors [WordDictionary]'s
+ * default `Char::lowercaseChar` keying and `tools/build_english_dict.py`'s
+ * sort, so a context/candidate word folds to the exact key the model's vocab
+ * and the boost map are keyed by (whole-string `lowercase()` can diverge for a
+ * few special-cased code points).
+ */
+private fun englishFold(word: String): String =
+    buildString(word.length) { for (c in word) append(c.lowercaseChar()) }
+
+/**
+ * Text-field variations where English sentence auto-capitalization is
+ * suppressed (a stray capital would be wrong or annoying): passwords, email
+ * addresses, URIs, and filter/search-style fields. A second line of defense
+ * behind the CAP_SENTENCES opt-in (see [resolveAutoCap]), for fields that
+ * set the flag spuriously.
+ */
+private val NO_AUTOCAP_VARIATIONS = setOf(
+    InputType.TYPE_TEXT_VARIATION_PASSWORD,
+    InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+    InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+    InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+    InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
+    InputType.TYPE_TEXT_VARIATION_URI,
+    InputType.TYPE_TEXT_VARIATION_FILTER,
+)
+
+/** Characters of context read for sentence-start detection -- enough to see
+ *  past any realistic run of trailing spaces to the terminator. See
+ *  [SentenceCase]. */
+private const val SENTENCE_LOOKBEHIND = 16
+
+/**
  * English fuzzy corrections below this raw dictionary frequency are dropped so
  * a typo maps to a reasonably common word, not an obscure 1-edit neighbour.
  * The English asset carries real OpenSubtitles counts (up to ~28M); ~500 keeps
@@ -113,6 +169,10 @@ private const val MAX_FUZZY_READINGS = 6
 
 /** LRU capacity for per-word suggestion memoization -- see [amharicSuggestionCache]. */
 private const val SUGGESTION_CACHE_SIZE = 64
+
+/** LRU capacity for the fidel -> raw-Latin history of words committed this
+ *  session -- see [AddiyonKeyboardService.amharicCommitHistory]. */
+private const val COMMIT_HISTORY_SIZE = 64
 
 /**
  * Length-scaled edit budget for fuzzy matching: none for buffers too short to
@@ -198,6 +258,17 @@ class AddiyonKeyboardService : InputMethodService(),
         private set
 
     private var editorActionId: Int = EditorInfo.IME_ACTION_UNSPECIFIED
+
+    // Whether the current field accepts English auto-capitalization (a text
+    // field that isn't a password/email/URI). Recomputed per input session in
+    // onStartInputView; consulted by maybeAutoCapitalize.
+    private var fieldAllowsAutoCap = false
+
+    // Whether the current field takes an email address. Observable because
+    // the letter layouts' comma key re-labels itself "@" in email fields
+    // (see KeyRow). Recomputed per input session in onStartInputView.
+    var isEmailField by mutableStateOf(false)
+        private set
 
     // Tracked manually instead of relying on Compose's isSystemInDarkTheme(),
     // because an InputMethodService's window doesn't reliably deliver
@@ -328,8 +399,29 @@ class AddiyonKeyboardService : InputMethodService(),
         // Backspace uses the default one-char step so each typed letter can
         // be cleared individually.
         commitTransform = { raw -> topAmharicCandidate(raw) },
-        discardOnExit = true
+        discardOnExit = true,
+        // Every committed word is remembered fidel -> raw Latin, so the caret
+        // can walk back onto it and resume typing it -- see
+        // [amharicCommitHistory] / [maybeResumeWordAtCursor].
+        onCommit = { raw, display ->
+            if (display.isNotEmpty()) amharicCommitHistory[display] = raw
+        }
     )
+
+    /**
+     * Fidel display form -> the raw Latin buffer that committed it, for words
+     * committed this session. Reverse-transliterating fidel in general is
+     * ambiguous, but a word we composed ourselves we already have the Latin
+     * for -- this is what lets [maybeResumeWordAtCursor] adopt a committed
+     * word back into composition. [AmharicWordReverser] (round-trip verified)
+     * covers words outside the history: chip-committed words, earlier
+     * sessions, pasted text. LRU-capped.
+     */
+    private val amharicCommitHistory =
+        object : LinkedHashMap<String, String>(COMMIT_HISTORY_SIZE, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>) =
+                size > COMMIT_HISTORY_SIZE
+        }
 
     private val englishComposer = WordComposer(
         inputConnection = { currentInputConnection }
@@ -345,6 +437,7 @@ class AddiyonKeyboardService : InputMethodService(),
     private lateinit var amharicDictionary: WordDictionary
     private lateinit var englishDictionary: WordDictionary
     private lateinit var amharicNgrams: NgramDictionary
+    private lateinit var englishNgrams: NgramDictionary
     lateinit var emojiRepository: EmojiRepository
         private set
     private lateinit var recentEmojiStore: RecentEmojiStore
@@ -374,6 +467,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 // Word boundary: the field text before the (next) composing
                 // region can change here, so the per-word caches are stale.
                 composingNgramBoost = null
+                composingPredictionCasing = emptyMap()
                 amharicSuggestionCache.clear()
                 // Nothing composing: offer next-word PREDICTIONS from the
                 // committed words before the cursor (empty when there's no
@@ -386,7 +480,24 @@ class AddiyonKeyboardService : InputMethodService(),
                 publishSuggestions(amharicSuggestions(latinBuffer))
             }
         } else {
-            publishSuggestions(englishSuggestions())
+            val typed = if (englishComposer.isComposing) englishComposer.raw else ""
+            if (typed.isEmpty()) {
+                // Word boundary: the committed text before the cursor can
+                // change here, so the per-word context boost is stale.
+                composingNgramBoost = null
+                composingPredictionCasing = emptyMap()
+                // Nothing composing: next-word PREDICTIONS from the committed
+                // words before the cursor (empty when there's no usable
+                // context, restoring the toolbar icons).
+                publishSuggestions(
+                    nextWordPredictions(
+                        englishNgrams, NgramContext.ENGLISH, englishComposer, NEXT_WORD_LIMIT
+                    ).map { it.word },
+                    arePredictions = true
+                )
+            } else {
+                publishSuggestions(englishSuggestions())
+            }
         }
     }
 
@@ -395,14 +506,25 @@ class AddiyonKeyboardService : InputMethodService(),
      * the composing region cannot change (any outside edit moves the cursor,
      * which abandons the composition), so the n-gram context -- and with it
      * the whole latin-buffer -> suggestions mapping -- is stable for the
-     * word's lifetime. [composingNgramBoost] avoids re-fetching
-     * `getTextBeforeCursor` (a synchronous binder round-trip to the editor
-     * app) on every keystroke; [amharicSuggestionCache] makes retyping a
-     * state we've already ranked -- most importantly BACKSPACING back
-     * through the prefixes just typed -- a lookup instead of a fresh
-     * transliterate + trie-walk pass. Both reset at every word boundary.
+     * word's lifetime. [composingNgramBoost] (shared by both languages -- only
+     * the active one ever reads it) avoids re-fetching `getTextBeforeCursor` (a
+     * synchronous binder round-trip to the editor app) on every keystroke;
+     * [amharicSuggestionCache] makes retyping a state we've already ranked --
+     * most importantly BACKSPACING back through the prefixes just typed -- a
+     * lookup instead of a fresh transliterate + trie-walk pass. Both reset at
+     * every word boundary.
      */
     private var composingNgramBoost: Map<String, Int>? = null
+
+    /**
+     * Per-word map from a predicted next word's folded key to its context
+     * proper-noun casing (e.g. "york" -> "York"), so an English completion of a
+     * proper noun is shown capitalized to match the prediction after the same
+     * context. Empty when the context predicts nothing capitalized. Cached and
+     * cleared alongside [composingNgramBoost] (English-only; Amharic leaves it
+     * empty).
+     */
+    private var composingPredictionCasing: Map<String, String> = emptyMap()
     private val amharicSuggestionCache =
         object : LinkedHashMap<String, List<String>>(SUGGESTION_CACHE_SIZE, 0.75f, true) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<String>>) =
@@ -410,15 +532,20 @@ class AddiyonKeyboardService : InputMethodService(),
         }
 
     /**
-     * Bigram/trigram next-word predictions for the words preceding the
-     * cursor (see [NgramContext.extract]); empty until the model loads or
-     * when the field gives no context. While composing, the raw-Latin
-     * composing region sits immediately before the cursor and would read as
-     * a hard boundary, so it's stripped from the tail first.
+     * Bigram/trigram next-word predictions for the words preceding the cursor,
+     * read from the field via [contextReader] and looked up in [ngrams]; empty
+     * until the model loads or when the field gives no context. While
+     * composing, the raw composing region sits immediately before the cursor
+     * and would read as a hard boundary, so it's stripped from the tail first
+     * ([composer]'s raw buffer).
      */
-    private fun ngramPredictions(limit: Int): List<NgramModel.Prediction> {
-        if (!::amharicNgrams.isInitialized) return emptyList()
-        val raw = if (amharicComposer.isComposing) amharicComposer.raw else ""
+    private fun nextWordPredictions(
+        ngrams: NgramDictionary,
+        contextReader: NgramContext,
+        composer: WordComposer,
+        limit: Int
+    ): List<NgramModel.Prediction> {
+        val raw = if (composer.isComposing) composer.raw else ""
         val before = currentInputConnection
             ?.getTextBeforeCursor(NgramContext.WINDOW + raw.length, 0)
             ?: return emptyList()
@@ -427,10 +554,14 @@ class AddiyonKeyboardService : InputMethodService(),
         } else {
             before
         }
-        val context = NgramContext.extract(field)
+        val context = contextReader.extract(field)
         val prev1 = context.prev1 ?: return emptyList()
-        return amharicNgrams.predict(context.prev2, prev1, limit)
+        return ngrams.predict(context.prev2, prev1, limit)
     }
+
+    /** Amharic next-word predictions -- see [nextWordPredictions]. */
+    private fun ngramPredictions(limit: Int): List<NgramModel.Prediction> =
+        nextWordPredictions(amharicNgrams, NgramContext.AMHARIC, amharicComposer, limit)
 
     /**
      * The reading that lands in the field when the current Amharic word is
@@ -462,16 +593,43 @@ class AddiyonKeyboardService : InputMethodService(),
      * without an empty strip. Corrections are display-only -- space still
      * commits the literal buffer -- and the user's typed case is restored on
      * the way out via [matchCase].
+     *
+     * The exact completions are reordered by an n-gram context nudge
+     * ([CandidateRanker.rankByContext]): a completion the model predicts to
+     * follow the previous word(s) rises within the frequency-ranked pool, so
+     * after "I " typing "lo" biases "love"/"look" over an equally common but
+     * unpredicted "lot". Computed once per composing word via
+     * [composingNgramBoost].
      */
     private fun englishSuggestions(): List<String> {
         val typed = englishComposer.raw
         if (typed.isEmpty()) return emptyList()
 
         val key = typed.lowercase()
-        val exact = englishDictionary.suggestions(key, ENGLISH_EXACT_LIMIT)
+
+        // Context nudge (boost weights) + proper-noun casing overrides, both
+        // keyed by the per-char lowercase fold and computed together, once, for
+        // the composing word's lifetime (see composingNgramBoost).
+        if (composingNgramBoost == null) {
+            val preds = nextWordPredictions(
+                englishNgrams, NgramContext.ENGLISH, englishComposer, ENGLISH_NGRAM_CONTEXT_LIMIT
+            )
+            composingNgramBoost = preds.associate { englishFold(it.word) to it.weight }
+            composingPredictionCasing = preds
+                .filter { it.word != it.word.lowercase() }
+                .associate { englishFold(it.word) to it.word }
+        }
+        val ngramNext = composingNgramBoost ?: emptyMap()
+        val casing = composingPredictionCasing
+
+        val pool = englishDictionary.suggestionEntries(key, ENGLISH_COMPLETION_POOL)
+            .map { CandidateRanker.DictionaryWord(it.word, it.frequency) }
         val merged = ArrayList<String>(ENGLISH_SUGGESTION_LIMIT)
-        for (word in exact) {
-            if (word !in merged) merged.add(word)
+        for (word in CandidateRanker.rankByContext(pool, ngramNext, ::englishFold, ENGLISH_EXACT_LIMIT)) {
+            // Swap in the context proper-noun casing ("york" -> "York") when the
+            // model predicts this word capitalized after the same context.
+            val cased = casing[englishFold(word)] ?: word
+            if (cased !in merged) merged.add(cased)
         }
 
         if (merged.size < ENGLISH_EXACT_LIMIT) {
@@ -955,6 +1113,9 @@ class AddiyonKeyboardService : InputMethodService(),
         closeEmojiPanel()
         activeComposer.commit()
         isAmharic = !isAmharic
+        // Persisted so the chosen language survives the service being torn
+        // down (switching to another keyboard and back, reboots, ...).
+        KeyboardPrefs.setAmharicMode(this, isAmharic)
         if (!isAmharic && numbersMode == NumbersMode.GEEZ_NUMBERS) {
             numbersMode = NumbersMode.NUMBERS
         }
@@ -991,24 +1152,46 @@ class AddiyonKeyboardService : InputMethodService(),
             NumbersMode.GEEZ_NUMBERS -> NumbersMode.SYMBOLS
             NumbersMode.SYMBOLS -> NumbersMode.MORE_SYMBOLS
             NumbersMode.MORE_SYMBOLS -> NumbersMode.NUMBERS
+            // The keypad's "*#(" key: exit to the full numbers/symbols page
+            // (the keypad itself carries no symbols). The NUMBERS page's
+            // "1234" key ([openKeypad]) is the way back in.
+            NumbersMode.KEYPAD -> NumbersMode.NUMBERS
             NumbersMode.OFF -> NumbersMode.OFF
         }
     }
 
     /**
-     * Cycles the shift key: OFF -> SHIFT -> CAPS_LOCK -> OFF.
-     * Tapping shift once capitalizes the next letter only; tapping it again
-     * before typing anything locks caps on until shift is tapped a third
-     * time.
+     * The "1234" key on the NUMBERS page: shows the phone-style keypad
+     * ([NumbersMode.KEYPAD]). No composer flush needed -- reaching the
+     * NUMBERS page already committed any in-flight word -- but flushing is
+     * harmless and keeps this safe if the key ever moves to a letter layout.
+     */
+    fun openKeypad() {
+        leaveVoiceModeForKeyboardInput()
+        closeEmojiPanel()
+        activeComposer.commit()
+        numbersMode = NumbersMode.KEYPAD
+        updateSuggestions()
+    }
+
+    /**
+     * Shift key tapped. A single tap toggles the one-shot SHIFT on/off; a
+     * quick double tap engages CAPS_LOCK; a tap while caps-locked releases
+     * it -- see [ShiftState.onShiftTap] for the full transition table. The
+     * double-tap window is the platform's own double-tap timeout.
      */
     fun toggleShift() {
         leaveVoiceModeForKeyboardInput()
-        shiftState = when (shiftState) {
-            ShiftState.OFF -> ShiftState.SHIFT
-            ShiftState.SHIFT -> ShiftState.CAPS_LOCK
-            ShiftState.CAPS_LOCK -> ShiftState.OFF
-        }
+        val now = SystemClock.uptimeMillis()
+        val isDoubleTap = now - lastShiftTapUptimeMs <= ViewConfiguration.getDoubleTapTimeout()
+        lastShiftTapUptimeMs = now
+        shiftState = shiftState.onShiftTap(isDoubleTap)
     }
+
+    // Uptime of the most recent shift tap, for double-tap-to-caps-lock
+    // detection. Zeroed when a character consumes shift, so shift-letter-shift
+    // inside the window reads as two separate taps, not a double tap.
+    private var lastShiftTapUptimeMs = 0L
 
     /**
      * Called after a character key commits its output. One-shot SHIFT
@@ -1016,6 +1199,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * it should keep capitalizing until explicitly turned off.
      */
     fun consumeShiftAfterCharacter() {
+        lastShiftTapUptimeMs = 0L
         if (shiftState == ShiftState.SHIFT) {
             shiftState = ShiftState.OFF
         }
@@ -1023,6 +1207,69 @@ class AddiyonKeyboardService : InputMethodService(),
 
     fun resetShift() {
         shiftState = ShiftState.OFF
+    }
+
+    /**
+     * Numeric fields (number, phone, date/time input classes) get the
+     * phone-style keypad automatically, Gboard-style; leaving them drops any
+     * lingering keypad back to the letter layout, so a keypad engaged for
+     * (or in) one field never leaks into an ordinary text field. The other
+     * numeric pages are left alone -- they were the user's own choice.
+     * Called per input session.
+     */
+    private fun resolveKeypadMode(editorInfo: EditorInfo?) {
+        val inputClass = (editorInfo?.inputType ?: 0) and InputType.TYPE_MASK_CLASS
+        val numericField = inputClass == InputType.TYPE_CLASS_NUMBER ||
+            inputClass == InputType.TYPE_CLASS_PHONE ||
+            inputClass == InputType.TYPE_CLASS_DATETIME
+        if (numericField) {
+            numbersMode = NumbersMode.KEYPAD
+        } else if (numbersMode == NumbersMode.KEYPAD) {
+            numbersMode = NumbersMode.OFF
+        }
+    }
+
+    /**
+     * Determines whether the current field accepts English
+     * auto-capitalization. OPT-IN, the way Gboard/AOSP treat it: the editor
+     * must declare [InputType.TYPE_TEXT_FLAG_CAP_SENTENCES] in its inputType
+     * (messaging/notes/compose fields do; email, password, username, search,
+     * and code-ish fields don't) -- a deny-list alone can't cover every field
+     * that shouldn't be capitalized, which is how stray capitals ended up in
+     * email fields. [NO_AUTOCAP_VARIATIONS] stays as a second gate for fields
+     * that set the flag spuriously. Also flags email fields ([isEmailField])
+     * from the same variation bits. Called per input session.
+     */
+    private fun resolveAutoCap(editorInfo: EditorInfo?) {
+        val inputType = editorInfo?.inputType ?: 0
+        val isText = inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_TEXT
+        val variation = inputType and InputType.TYPE_MASK_VARIATION
+        val wantsCapSentences =
+            inputType and InputType.TYPE_TEXT_FLAG_CAP_SENTENCES != 0
+        fieldAllowsAutoCap =
+            isText && wantsCapSentences && variation !in NO_AUTOCAP_VARIATIONS
+        isEmailField = isText && (
+            variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS ||
+                variation == InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS
+            )
+    }
+
+    /**
+     * Capitalizes the first letter of a new sentence in English text fields by
+     * arming one-shot [ShiftState.SHIFT], so the next letter comes out
+     * capitalized and then reverts (and, via [matchCase], the suggestion strip
+     * capitalizes there too). No-op in Amharic (Ge'ez has no case; shift
+     * selects a consonant family), in numeric mode, mid-word, under caps-lock,
+     * or when shift is already on. Only ever ARMS shift (never forces it off),
+     * so it can't fight a manual shift the user set.
+     */
+    private fun maybeAutoCapitalize() {
+        if (isAmharic || isNumberMode || !fieldAllowsAutoCap) return
+        if (shiftState != ShiftState.OFF || activeComposer.isComposing) return
+        val before = currentInputConnection?.getTextBeforeCursor(SENTENCE_LOOKBEHIND, 0)
+        if (SentenceCase.startsNewSentence(before)) {
+            shiftState = ShiftState.SHIFT
+        }
     }
 
     // ----------------------------
@@ -1114,7 +1361,33 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     fun onDeleteGestureEnd() {
-        if (suggestionRefreshGate.endDeleteGesture()) updateSuggestions()
+        val pendingRefresh = suggestionRefreshGate.endDeleteGesture()
+        // A backspace TAP's selection update almost always arrives while the
+        // finger is still down -- inside the gesture, where the gate
+        // deliberately suppresses cursor-aware resume (so a HELD repeat
+        // doesn't adopt the shrinking word mid-delete). No further selection
+        // callback comes after release, so this is the moment to adopt the
+        // word the caret now sits at the end of ("cana ", backspace -> the
+        // strip must offer "Canada" again).
+        maybeResumeWordAfterDeleteGesture()
+        if (pendingRefresh || activeComposer.isComposing) updateSuggestions()
+    }
+
+    /**
+     * The gesture-end variant of [maybeResumeWordAtCursor]: the last
+     * onUpdateSelection was consumed mid-gesture, so its selection args can't
+     * be trusted to still be current -- read the caret position fresh from
+     * the editor instead (one extracted-text round-trip, once per gesture).
+     * Editors that don't support text extraction simply don't resume here;
+     * the next real cursor move still goes through the normal path.
+     */
+    private fun maybeResumeWordAfterDeleteGesture() {
+        if (activeComposer.isComposing) return
+        val extracted = currentInputConnection
+            ?.getExtractedText(ExtractedTextRequest(), 0)
+            ?: return
+        if (extracted.selectionStart != extracted.selectionEnd) return
+        maybeResumeWordAtCursor(extracted.startOffset + extracted.selectionStart)
     }
 
     /**
@@ -1205,6 +1478,8 @@ class AddiyonKeyboardService : InputMethodService(),
         activeComposer.commit()
         currentInputConnection?.commitText(" ", 1)
         updateSuggestions()
+        // A space may have just ended a sentence ("... . ") -> capitalize next.
+        maybeAutoCapitalize()
     }
 
     /**
@@ -1236,6 +1511,8 @@ class AddiyonKeyboardService : InputMethodService(),
             ic?.performEditorAction(editorActionId)
         }
         updateSuggestions()
+        // A newline starts a fresh line -> capitalize its first letter.
+        maybeAutoCapitalize()
     }
 
     /**
@@ -1334,11 +1611,15 @@ class AddiyonKeyboardService : InputMethodService(),
         refreshTheme(resources.configuration)
         refreshNumberRow()
         refreshFeedbackPrefs()
+        // Restore the last-used language BEFORE the dictionary loads below:
+        // the active language's dictionary is deliberately loaded first.
+        isAmharic = KeyboardPrefs.amharicMode(this)
         KeyboardPrefs.prefs(this).registerOnSharedPreferenceChangeListener(prefsListener)
 
         amharicDictionary = WordDictionary(this, "amharic_words.dat", EthiopicNormalizer::normalize)
         englishDictionary = WordDictionary(this, "english_words.dat")
-        amharicNgrams = NgramDictionary(this, "amharic_ngrams.dat")
+        amharicNgrams = NgramDictionary(this, "amharic_ngrams.dat", EthiopicNormalizer::normalize)
+        englishNgrams = NgramDictionary(this, "english_ngrams.dat", ::englishFold)
         emojiRepository = EmojiRepository(this)
         // Both stores decode lazily on first use, and the prefs file is
         // already loaded in memory by the theme/number-row reads above, so
@@ -1370,12 +1651,15 @@ class AddiyonKeyboardService : InputMethodService(),
             updateSuggestions()
             inactiveDictionary.loadAsync {
                 updateSuggestions()
-                // Then the n-gram model (small next to the tries), then
-                // emoji data last: neither gates typing, and keeping the
-                // loads sequential avoids overlapping allocation storms.
+                // Then the n-gram models (small next to the tries) one after
+                // another, then emoji data last: none gates typing, and keeping
+                // the loads sequential avoids overlapping allocation storms.
                 amharicNgrams.loadAsync {
                     updateSuggestions()
-                    emojiRepository.loadAsync()
+                    englishNgrams.loadAsync {
+                        updateSuggestions()
+                        emojiRepository.loadAsync()
+                    }
                 }
             }
         }
@@ -1403,7 +1687,14 @@ class AddiyonKeyboardService : InputMethodService(),
         closeEmojiPanel()
         // The Enter key adapts to this field's IME action (search/go/send/...).
         resolveEnterAction(editorInfo)
+        // Whether English auto-capitalization applies in this field.
+        resolveAutoCap(editorInfo)
+        // Numeric fields open on the phone-style keypad.
+        resolveKeypadMode(editorInfo)
         updateSuggestions()
+        // Arm a capital for the first letter if the caret opens at a sentence
+        // start (empty field, or resumed after a sentence terminator).
+        maybeAutoCapitalize()
 
         // Catch any theme change that happened while the keyboard was hidden,
         // and make sure the nav bar strip is colored correctly every time
@@ -1474,10 +1765,63 @@ class AddiyonKeyboardService : InputMethodService(),
             activeComposer.abandon()
             updateSuggestions()
         } else {
-            // Nothing composing, but next-word predictions depend on the
-            // words before the cursor -- refresh them (or clear stale ones)
-            // whenever the cursor lands somewhere new.
+            // Nothing composing: if the caret just landed at the end of a
+            // committed word, adopt it back into composition so the strip
+            // offers its completions again (cursor-aware suggestions);
+            // otherwise refresh (or clear) the next-word predictions, which
+            // depend on the words before the cursor.
+            if (newSelStart == newSelEnd) maybeResumeWordAtCursor(newSelStart)
             updateSuggestions()
+        }
+    }
+
+    /**
+     * Adopts the committed word the caret just landed at the END of back into
+     * composition (Gboard-style cursor-aware suggestions): type "cana",
+     * space, backspace over the space -- the caret sits after "cana" again
+     * and the strip should offer "Canada" as if the word were still being
+     * typed. The field word is lifted into the composing region
+     * (setComposingRegion) and the composer re-seeded via
+     * [WordComposer.resume]; a resumed word is exempt from Amharic's
+     * discard-on-exit (see [WordComposer]), so walking away restores it.
+     *
+     * English adopts the literal field word. Amharic needs the raw LATIN
+     * behind the committed fidel: [amharicCommitHistory] first, then
+     * [AmharicWordReverser]'s round-trip-verified reversal -- and when
+     * neither knows the word, no resume rather than a guess.
+     *
+     * Suppressed while a held-delete gesture is repeating (adopting the
+     * shrinking word mid-repeat would swap deletion granularity under the
+     * held key) and wherever the composer is out of play (numeric pages,
+     * emoji panel, voice). [cursorPosition] is the collapsed selection from
+     * onUpdateSelection; the word itself is read fresh from the connection,
+     * so a stale callback sees the field's CURRENT tail and simply finds a
+     * boundary character instead of a word.
+     */
+    private fun maybeResumeWordAtCursor(cursorPosition: Int) {
+        if (cursorPosition <= 0 || isNumberMode || showEmojiPanel) return
+        if (voiceUiState.isVoiceMode || suggestionRefreshGate.isDeleteGestureActive) return
+        if (activeComposer.isComposing) return
+        val ic = currentInputConnection ?: return
+        // Only the END of a word: any word character right after the caret
+        // means it landed inside one.
+        val after = ic.getTextAfterCursor(1, 0) ?: return
+        if (after.isNotEmpty() && (after[0].isLetter() || after[0] == '\'')) return
+        val before = ic.getTextBeforeCursor(ResumableWord.LOOKBEHIND, 0) ?: return
+        if (isAmharic) {
+            val fidel = ResumableWord.trailingEthiopicWord(before) ?: return
+            val latin = amharicCommitHistory[fidel]
+                ?: AmharicWordReverser.reverse(fidel)
+                ?: return
+            // Guard on the return value: an editor that doesn't support
+            // composing regions must not get resume()'s setComposingText,
+            // which would INSERT a duplicate instead of replacing the word.
+            if (!ic.setComposingRegion(cursorPosition - fidel.length, cursorPosition)) return
+            amharicComposer.resume(latin)
+        } else {
+            val word = ResumableWord.trailingLatinWord(before) ?: return
+            if (!ic.setComposingRegion(cursorPosition - word.length, cursorPosition)) return
+            englishComposer.resume(word)
         }
     }
 

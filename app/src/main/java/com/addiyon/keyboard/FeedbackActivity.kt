@@ -8,18 +8,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.ui.feedback.FeedbackOptions
@@ -28,6 +19,7 @@ import com.addiyon.keyboard.ui.feedback.sendFeedbackEmail
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.i18n.ProvideAppLocalization
 import com.addiyon.keyboard.ui.theme.AddiyonBrandTheme
+import com.addiyon.keyboard.ui.AppPageTopBar
 
 /**
  * Standalone host for "Send feedback", opened from the keyboard toolbar's
@@ -50,7 +42,6 @@ class FeedbackActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FeedbackScreen(onBack: () -> Unit, onPicked: () -> Unit) {
     val context = LocalContext.current
@@ -59,14 +50,10 @@ private fun FeedbackScreen(onBack: () -> Unit, onPicked: () -> Unit) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = { Text(strings.sendFeedback) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            AppPageTopBar(
+                title = strings.sendFeedback,
+                onBack = onBack,
+                backContentDescription = strings.back
             )
         }
     ) { innerPadding ->

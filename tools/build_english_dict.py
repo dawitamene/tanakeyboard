@@ -54,14 +54,16 @@ NAMES_URL = "https://raw.githubusercontent.com/dominictarr/random-name/master/fi
 CITIES_URL = "https://raw.githubusercontent.com/datasets/world-cities/master/data/world-cities.csv"
 
 # Reconstructed contractions with heuristic frequencies (the source tokenizer
-# splits "don't" into "don" + "t"). Values roughly track the old asset.
+# splits "don't" into "don" + "t"). Values roughly track the old asset. The "I"
+# contractions carry their correct capital I -- the canonical casing is stored
+# and suggested as-is (the pronoun "I" is always capitalized in English).
 CONTRACTIONS = {
-    "it's": 4_500_000, "i'm": 4_386_306, "don't": 4_100_000, "that's": 3_500_000,
+    "it's": 4_500_000, "I'm": 4_386_306, "don't": 4_100_000, "that's": 3_500_000,
     "you're": 2_600_000, "he's": 2_200_000, "can't": 1_400_000, "didn't": 1_300_000,
-    "i've": 1_200_000, "i'll": 1_150_000, "she's": 1_100_000, "there's": 1_000_000,
+    "I've": 1_200_000, "I'll": 1_150_000, "she's": 1_100_000, "there's": 1_000_000,
     "we're": 800_000, "isn't": 700_000, "won't": 690_000, "let's": 650_000,
     "wasn't": 600_000, "doesn't": 560_000, "you've": 520_000, "we've": 470_000,
-    "they're": 450_000, "aren't": 380_000, "i'd": 360_000, "you'll": 340_000,
+    "they're": 450_000, "aren't": 380_000, "I'd": 360_000, "you'll": 340_000,
     "haven't": 320_000, "wouldn't": 300_000, "couldn't": 280_000, "we'll": 260_000,
     "what's": 900_000, "who's": 300_000, "here's": 320_000, "they'll": 180_000,
     "he'll": 150_000, "she'll": 140_000, "you'd": 160_000, "they've": 150_000,
@@ -73,6 +75,13 @@ CONTRACTIONS = {
 # Frequency assigned to a curated/name-only proper noun that never appears in
 # the base corpus -- present and suggestable, but ranked below common words.
 EXTRA_NOUN_FREQ = 1_000
+
+# Plural/possessive casing is derived only from curated stems at least this
+# long. The guard exists for the short entries whose inflection collides with
+# an ordinary word: "I"+s would capitalize "is", "God"+s would capitalize the
+# generic "gods". Every >=4-char curated entry was checked to inflect safely
+# ("Norwegian"+s, "Canada"+'s, "America"+s, ...).
+MIN_INFLECTED_STEM = 4
 
 
 def fetch(url, name):
@@ -118,6 +127,31 @@ def load_curated():
     return force
 
 
+def derive_inflected_casing(force):
+    """lowercase inflection -> canonical casing, derived from curated stems.
+
+    The corpus tokenizer keeps plurals and possessives as their own tokens
+    ("norwegians", "canada's"), which the curated singular can't match -- so
+    typing "norwegian" suggested "Norwegian" but "norwegians" stayed
+    lowercase. Curated-only on purpose: the downloaded name/city lists are
+    full of stems whose plural IS an ordinary word ("rose"+s, "bill"+s).
+    Only an overlay -- applied to tokens the corpus actually contains, never
+    injected as new entries.
+    """
+    derived = {}
+    for lower, canonical in force.items():
+        if len(lower) < MIN_INFLECTED_STEM:
+            continue
+        suffixes = ["s", "'s"]
+        if lower.endswith(("s", "x", "z", "ch", "sh")):
+            suffixes.append("es")
+        for suffix in suffixes:
+            key = lower + suffix
+            if key not in force:
+                derived.setdefault(key, canonical + suffix)
+    return derived
+
+
 def load_fuzzy_casing():
     """Best-effort lowercase->canonical from downloaded name/city lists."""
     casing = {}
@@ -151,6 +185,7 @@ def load_fuzzy_casing():
 def main():
     base = load_base()
     force = load_curated()
+    inflected = derive_inflected_casing(force)
     fuzzy = load_fuzzy_casing()
 
     common = {w for w, _ in base[:COMMON_GUARD]}
@@ -167,6 +202,11 @@ def main():
     for lower, freq in base:
         if lower in force:
             canonical = force[lower]
+        elif lower in inflected:
+            # No COMMON_GUARD here: "americans" is a top-3k token and must
+            # still capitalize -- the safety comes from the curated-stem
+            # derivation, not from rarity.
+            canonical = inflected[lower]
         elif lower in fuzzy and lower not in common:
             canonical = fuzzy[lower]
         else:

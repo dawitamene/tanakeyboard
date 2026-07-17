@@ -1,6 +1,8 @@
 package com.addiyon.keyboard.suggestion
 
+import com.addiyon.keyboard.transliteration.EthiopicNormalizer
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -29,7 +31,7 @@ class NgramModelTest {
     private val model: NgramModel by lazy {
         val stream = javaClass.getResourceAsStream("/ngram_fixture.dat")
             ?: error("ngram_fixture.dat missing from test resources")
-        NgramModel.parse(GZIPInputStream(stream))
+        NgramModel.parse(GZIPInputStream(stream), EthiopicNormalizer::normalize)
     }
 
     @Test
@@ -96,15 +98,46 @@ class NgramModelTest {
 
     /** Same guard as [BundledAssetTest]: the real shipped asset must parse. */
     @Test
-    fun bundledNgramAssetParses() {
-        val file = listOf(
-            "src/main/assets/amharic_ngrams.dat",
-            "app/src/main/assets/amharic_ngrams.dat"
-        ).map { File(it) }.firstOrNull { it.exists() }
-            ?: error("amharic_ngrams.dat not found from ${File(".").absolutePath}")
-        val bundled = NgramModel.parse(GZIPInputStream(file.inputStream()))
+    fun bundledAmharicNgramAssetParses() {
+        val bundled = loadBundled("amharic_ngrams.dat", EthiopicNormalizer::normalize)
         assertTrue(bundled.vocabSize > 50_000)
         // A ubiquitous function word must predict something.
         assertTrue(bundled.predict(null, "አዲስ", 5).isNotEmpty())
+    }
+
+    @Test
+    fun bundledEnglishNgramAssetParses() {
+        val bundled = loadBundled("english_ngrams.dat") { it.lowercase() }
+        assertTrue(bundled.vocabSize > 5_000)
+        // A ubiquitous context must predict, using the dictionary's canonical
+        // spelling ("the" is the top continuation of "of").
+        assertTrue(bundled.predict(null, "of", 5).map { it.word }.contains("the"))
+        assertTrue(bundled.predict(null, "I", 5).isNotEmpty())
+        // Case-folded context lookup: "I" and "i" resolve to the same context.
+        assertEquals(
+            bundled.predict(null, "I", 5).map { it.word },
+            bundled.predict(null, "i", 5).map { it.word }
+        )
+    }
+
+    @Test
+    fun bundledEnglishAssetAppliesPerContextProperNounCasing() {
+        val bundled = loadBundled("english_ngrams.dat") { it.lowercase() }
+        // Proper nouns come out capitalized in the contexts that attest them...
+        assertTrue(bundled.predict(null, "United", 6).map { it.word }.contains("States"))
+        assertTrue(bundled.predict("the", "united", 6).map { it.word }.contains("States"))
+        assertTrue(bundled.predict("the", "new", 6).map { it.word }.contains("York"))
+        // ...but common continuations stay lowercase (per-context, not per-word,
+        // so "of the" never becomes "of The").
+        val ofNext = bundled.predict(null, "of", 6).map { it.word }
+        assertTrue(ofNext.contains("the"))
+        assertFalse(ofNext.contains("The"))
+    }
+
+    private fun loadBundled(name: String, normalize: (String) -> String): NgramModel {
+        val file = listOf("src/main/assets/$name", "app/src/main/assets/$name")
+            .map { File(it) }.firstOrNull { it.exists() }
+            ?: error("$name not found from ${File(".").absolutePath}")
+        return NgramModel.parse(GZIPInputStream(file.inputStream()), normalize)
     }
 }

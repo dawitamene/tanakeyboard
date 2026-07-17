@@ -5,10 +5,22 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,14 +38,15 @@ import com.addiyon.keyboard.ui.theme.PoppinsFamily
  * onboarding step screens so the three stay visually identical -- change the
  * title size/weight or switcher styling HERE and every screen follows.
  *
- * Callers own the surrounding padding via [modifier] (the Settings header sits
- * inside a horizontally-padded Column and adds only vertical padding; the
- * onboarding header pads all sides itself).
  */
 @Composable
 fun AppBrandHeader(modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .height(64.dp)
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
@@ -51,4 +64,29 @@ fun AppBrandHeader(modifier: Modifier = Modifier) {
         Spacer(Modifier.weight(1f))
         LanguageToggle(compact = true)
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppPageTopBar(
+    title: String,
+    onBack: () -> Unit,
+    backContentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    TopAppBar(
+        title = { Text(title) },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = backContentDescription
+                )
+            }
+        },
+        modifier = modifier,
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background
+        )
+    )
 }

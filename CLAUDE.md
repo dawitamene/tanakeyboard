@@ -129,8 +129,10 @@ Settings > System > Languages & input > On-screen keyboard, then switch to it in
 
 ### Service / UI layer
 
-- **`AddiyonKeyboardService`** is the actual `InputMethodService`. It owns `isAmharic`, `shiftState`
-  (`ShiftState`: OFF → SHIFT (one-shot) → CAPS_LOCK → OFF), and the two `WordComposer`s (only the
+- **`AddiyonKeyboardService`** is the actual `InputMethodService`. It owns `isAmharic` (persisted via
+  `KeyboardPrefs` so the chosen language survives IME switches), `shiftState`
+  (`ShiftState`: a tap toggles OFF ↔ one-shot SHIFT, a quick double tap engages CAPS_LOCK, any tap
+  releases it — see `ShiftState.onShiftTap`), and the two `WordComposer`s (only the
   one matching the current language is ever fed keys; every mode transition commits the active one
   first). All key handling goes through methods on the service (`onCharacter`, `onDelete`,
   `onSpace`, `onEnter`, `toggleShift`, `toggleLanguage`) rather than the UI touching

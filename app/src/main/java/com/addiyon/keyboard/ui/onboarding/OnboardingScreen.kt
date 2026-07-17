@@ -112,9 +112,7 @@ fun OnboardingScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        AppBrandHeader(
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp)
-        )
+        AppBrandHeader()
 
         AnimatedContent(
             targetState = phase,

@@ -41,7 +41,7 @@ class LeafScreensUiTest {
         compose.onNodeWithText("Typing Guide").assertIsDisplayed()
         compose.onNodeWithText("Search: he, sh, ላ ...").assertIsDisplayed()
         compose.onNode(hasSetTextAction()).performTextInput("sh")
-        compose.onNodeWithText("ሸ").assertIsDisplayed()
+        compose.onAllNodesWithText("ሸ").onFirst().assertIsDisplayed()
         compose.onAllNodesWithText("sh").onFirst().assertIsDisplayed()
     }
 

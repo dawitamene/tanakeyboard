@@ -13,28 +13,32 @@ import com.addiyon.keyboard.AddiyonKeyboardService
 import com.addiyon.keyboard.layout.AmharicLayout
 import com.addiyon.keyboard.layout.EnglishLayout
 import com.addiyon.keyboard.layout.GeezNumbersLayout
+import com.addiyon.keyboard.layout.KeypadLayout
+import com.addiyon.keyboard.layout.LatinNumberRow
 import com.addiyon.keyboard.layout.MoreSymbolsLayout
 import com.addiyon.keyboard.layout.NumberLayout
 import com.addiyon.keyboard.layout.SymbolsLayout
+import com.addiyon.keyboard.layout.numericRows
 import com.addiyon.keyboard.model.KeyData
+import com.addiyon.keyboard.model.KeyboardLayout
 import com.addiyon.keyboard.model.NumbersMode
 import com.addiyon.keyboard.ui.emoji.EmojiPanel
 import com.addiyon.keyboard.ui.emoji.EmojiSearchHeader
 
-// The optional number row (Latin 1-0), matching Row 1 of NumberLayout so its
-// 10 keys keep maxLetterCount aligned with the letter rows it sits above.
-private val NumberRowKeys = listOf(
-    KeyData.Character("1"),
-    KeyData.Character("2"),
-    KeyData.Character("3"),
-    KeyData.Character("4"),
-    KeyData.Character("5"),
-    KeyData.Character("6"),
-    KeyData.Character("7"),
-    KeyData.Character("8"),
-    KeyData.Character("9"),
-    KeyData.Character("0")
-)
+private fun keyboardRows(
+    layout: KeyboardLayout,
+    numbersMode: NumbersMode,
+    numberRowEnabled: Boolean,
+    emojiSearching: Boolean
+): List<List<KeyData>> {
+    val showLetterNumberRow = numberRowEnabled &&
+        (numbersMode == NumbersMode.OFF || emojiSearching)
+    return if (showLetterNumberRow) {
+        listOf(LatinNumberRow) + layout.rows
+    } else {
+        numericRows(layout, numbersMode, numberRowEnabled)
+    }
+}
 
 @Composable
 fun KeyboardScreen(
@@ -63,6 +67,7 @@ fun KeyboardScreen(
         NumbersMode.SYMBOLS -> SymbolsLayout
         NumbersMode.MORE_SYMBOLS -> MoreSymbolsLayout
         NumbersMode.GEEZ_NUMBERS -> GeezNumbersLayout
+        NumbersMode.KEYPAD -> KeypadLayout
         NumbersMode.OFF -> if (isAmharic) AmharicLayout else EnglishLayout
     }
 
@@ -103,14 +108,22 @@ fun KeyboardScreen(
                         // padding (hence -8.dp here), each row is keyHeight plus
                         // a 6.dp spacer, and the box adds 6.dp vertical padding
                         // top and bottom. Plus the 40.dp suggestion area.
-                        val showNumberRow =
-                            service.showNumberRow && service.numbersMode == NumbersMode.OFF
-                        val rows = if (showNumberRow) listOf(NumberRowKeys) + layout.rows
-                        else layout.rows
-                        val metrics =
-                            computeKeyboardMetrics(rows = rows, availableWidth = maxWidth - 8.dp)
-                        val panelHeight =
-                            40.dp + (metrics.keyHeight + 6.dp) * rows.size + 168.dp
+                        val rows = keyboardRows(
+                            layout = layout,
+                            numbersMode = service.numbersMode,
+                            numberRowEnabled = service.showNumberRow,
+                            emojiSearching = false
+                        )
+                        val metrics = computeKeyboardMetrics(
+                            rows = rows,
+                            availableWidth = maxWidth - 8.dp,
+                            columns = layout.columns
+                        )
+                        val targetRowCount = keyboardRowCount(service.showNumberRow)
+                        val panelHeight = 40.dp + keyboardRowsHeight(
+                            keyHeight = metrics.keyHeight,
+                            rowCount = targetRowCount
+                        ) + 168.dp
                         EmojiPanel(service = service, height = panelHeight)
                     }
                     return@keyboardContent
@@ -151,36 +164,77 @@ fun KeyboardScreen(
                     // query is Latin, and CLDR keywords are English), whatever
                     // language or number row the keyboard itself is in.
                     val effectiveLayout = if (emojiSearching) EnglishLayout else layout
-                    val showNumberRow = !emojiSearching &&
-                        service.showNumberRow && service.numbersMode == NumbersMode.OFF
-                    val rows = if (showNumberRow) listOf(NumberRowKeys) + effectiveLayout.rows
-                    else effectiveLayout.rows
-                    val metrics = computeKeyboardMetrics(rows = rows, availableWidth = maxWidth)
+                    val rows = keyboardRows(
+                        layout = effectiveLayout,
+                        numbersMode = service.numbersMode,
+                        numberRowEnabled = service.showNumberRow,
+                        emojiSearching = emojiSearching
+                    )
+                    val availableWidth = maxWidth
+                    val metrics = computeKeyboardMetrics(
+                        rows = rows,
+                        availableWidth = availableWidth,
+                        columns = effectiveLayout.columns
+                    )
+                    val isKeypadLayout = effectiveLayout === KeypadLayout
+                    val targetRowCount = keyboardRowCount(service.showNumberRow)
+                    val renderedMetrics = if (isKeypadLayout) {
+                        metrics.copy(
+                            keyHeight = expandedKeyHeight(
+                                baseKeyHeight = metrics.keyHeight,
+                                targetRowCount = targetRowCount,
+                                actualRowCount = rows.size
+                            )
+                        )
+                    } else {
+                        metrics
+                    }
+                    val rowSpacing = if (isKeypadLayout) 4.dp else 6.dp
+                    val prefixRowCount = rows.size - effectiveLayout.rows.size
 
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .wrapContentHeight()
+                            .height(
+                                keyboardRowsHeight(
+                                    keyHeight = metrics.keyHeight,
+                                    rowCount = targetRowCount
+                                )
+                            ),
+                        verticalArrangement = Arrangement.spacedBy(rowSpacing)
                     ) {
 
                         rows.forEachIndexed { index, row ->
-                            // The digit row (row 0 when showNumberRow) always
-                            // commits its literal character, so it never shows
+                            // An added top row always commits its literal
+                            // character, so it never shows
                             // the Amharic fidel corner preview, regardless of
                             // the active language.
+                            val layoutRowIndex = index - prefixRowCount
+                            val rowColumns = effectiveLayout.rowColumns
+                                ?.getOrNull(layoutRowIndex)
+                            val rowMetrics = when {
+                                layoutRowIndex < 0 -> computeKeyboardMetrics(
+                                    rows = listOf(row),
+                                    availableWidth = availableWidth
+                                )
+                                rowColumns != null -> metrics.copy(
+                                    keyWidth = availableWidth / rowColumns,
+                                    keyHeight = renderedMetrics.keyHeight
+                                )
+                                else -> renderedMetrics
+                            }
                             val rowIsAmharic = isAmharic && !emojiSearching &&
-                                !(showNumberRow && index == 0)
+                                layoutRowIndex >= 0
                             KeyRow(
                                 row = row,
                                 isShift = isShift,
                                 isAmharic = rowIsAmharic,
                                 isNumberMode = isNumberMode,
-                                metrics = metrics,
+                                metrics = rowMetrics,
                                 service = service,
                                 vibrateOnKeypress = vibrateOnKeypress,
                                 soundOnKeypress = soundOnKeypress
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
                         }
                     }
                 }

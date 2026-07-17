@@ -111,6 +111,7 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        topBar = { AppBrandHeader() },
         // floatingActionButton = {
         //     FloatingActionButton(
         //         onClick = { openKeyboard() },
@@ -127,8 +128,6 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            AppBrandHeader(modifier = Modifier.padding(vertical = 16.dp))
-
             GroupCard {
                 SettingsItem(Icons.Default.Palette, strings.themes, onClick = onOpenThemes)
                 SettingsItem(Icons.Default.MenuBook, strings.typingGuide, onClick = onOpenManual)

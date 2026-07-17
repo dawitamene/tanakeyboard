@@ -5,7 +5,8 @@ import org.junit.Test
 
 class NgramContextTest {
 
-    private fun ctx(text: String?) = NgramContext.extract(text)
+    private fun ctx(text: String?) = NgramContext.AMHARIC.extract(text)
+    private fun en(text: String?) = NgramContext.ENGLISH.extract(text)
 
     @Test
     fun twoWordsBeforeCursorYieldBothContexts() {
@@ -77,5 +78,52 @@ class NgramContextTest {
             NgramContext.Context("ሀ".repeat(NgramContext.WINDOW - 5), "ቤት"),
             ctx(complete)
         )
+    }
+
+    // ---- ENGLISH ----
+
+    @Test
+    fun englishTwoWordsYieldBothContexts() {
+        assertEquals(NgramContext.Context("how", "are"), en("how are "))
+    }
+
+    @Test
+    fun englishSingleWordYieldsPrev1Only() {
+        assertEquals(NgramContext.Context(null, "hello"), en("hello "))
+    }
+
+    @Test
+    fun englishCursorTouchingAWordYieldsNothing() {
+        assertEquals(NgramContext.EMPTY, en("hello"))
+        assertEquals(NgramContext.EMPTY, en("how ar"))
+    }
+
+    @Test
+    fun englishApostropheStaysWithinTheWord() {
+        // A contraction is one word, and prev2 is read past the space.
+        assertEquals(NgramContext.Context("I", "don't"), en("I don't "))
+    }
+
+    @Test
+    fun englishTypographicApostropheIsFoldedToStraight() {
+        // Field text with a ’ must match the dictionary's straight-quote spelling.
+        assertEquals(NgramContext.Context(null, "don't"), en("don’t "))
+    }
+
+    @Test
+    fun englishPunctuationAndDigitsAreBoundaries() {
+        // A period/comma/digit token kills the context on its far side.
+        assertEquals(NgramContext.Context(null, "there"), en("hi. there "))
+        assertEquals(NgramContext.Context(null, "there"), en("hi , there "))
+        assertEquals(NgramContext.Context(null, "there"), en("call 911 there "))
+        // Cursor sitting right after a period predicts nothing (sentence start).
+        assertEquals(NgramContext.EMPTY, en("done. "))
+    }
+
+    @Test
+    fun englishEmptyAndNullAreEmpty() {
+        assertEquals(NgramContext.EMPTY, en(null))
+        assertEquals(NgramContext.EMPTY, en(""))
+        assertEquals(NgramContext.EMPTY, en("   "))
     }
 }

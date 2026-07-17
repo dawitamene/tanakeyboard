@@ -115,5 +115,22 @@ class BundledAssetTest {
         // Proper-noun casing survives the flat-array rebuild: the stored
         // display form differs from the lowercased trie path.
         assertTrue(t.suggestions("engl", limit = 3).contains("England"))
+
+        // Inflected forms of curated proper nouns carry the derived casing
+        // ("Norwegian" is curated; the corpus token "norwegians" is not) ...
+        assertTrue(t.suggestions("norwegia", limit = 5).contains("Norwegians"))
+        assertTrue(t.suggestions("canadian", limit = 5).contains("Canadians"))
+        assertTrue(t.suggestions("american", limit = 5).contains("Americans"))
+        // ... while the short-stem guard keeps "I"+s and "God"+s from
+        // capitalizing the ordinary words "is" and "gods".
+        assertTrue(t.suggestions("is", limit = 5).contains("is"))
+        assertTrue(t.suggestions("gods", limit = 5).contains("gods"))
+
+        // The "I" contractions carry their capital I (the pronoun is always
+        // capitalized), while other contractions stay lowercase.
+        val iContractions = t.suggestions("i'", limit = 10)
+        assertTrue(iContractions.contains("I'm"))
+        assertTrue(iContractions.contains("I've"))
+        assertTrue(t.suggestions("it'", limit = 10).contains("it's"))
     }
 }
