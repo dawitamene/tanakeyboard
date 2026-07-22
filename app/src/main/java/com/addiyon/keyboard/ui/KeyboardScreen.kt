@@ -78,6 +78,9 @@ fun KeyboardScreen(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
+            .windowInsetsPadding(
+                WindowInsets.systemBars.only(WindowInsetsSides.Bottom)
+            )
     ) {
         Column(
             modifier = Modifier
