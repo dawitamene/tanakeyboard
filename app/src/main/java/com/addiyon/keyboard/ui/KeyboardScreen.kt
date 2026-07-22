@@ -61,6 +61,9 @@ fun KeyboardScreen(
     val isNumberMode = service.isNumberMode
     val vibrateOnKeypress = service.vibrateOnKeypress
     val soundOnKeypress = service.soundOnKeypress
+    // The user's "Keyboard height" preference, multiplied into every key's
+    // height below so the whole keyboard grows/shrinks with the slider.
+    val heightScale = service.keyboardHeightScale
 
     val layout = when (service.numbersMode) {
         NumbersMode.NUMBERS -> NumberLayout
@@ -122,7 +125,8 @@ fun KeyboardScreen(
                         val metrics = computeKeyboardMetrics(
                             rows = rows,
                             availableWidth = maxWidth - 8.dp,
-                            columns = layout.columns
+                            columns = layout.columns,
+                            heightScale = heightScale
                         )
                         val targetRowCount = keyboardRowCount(service.showNumberRow)
                         val panelHeight = 40.dp + keyboardRowsHeight(
@@ -179,7 +183,8 @@ fun KeyboardScreen(
                     val metrics = computeKeyboardMetrics(
                         rows = rows,
                         availableWidth = availableWidth,
-                        columns = effectiveLayout.columns
+                        columns = effectiveLayout.columns,
+                        heightScale = heightScale
                     )
                     val isKeypadLayout = effectiveLayout === KeypadLayout
                     val targetRowCount = keyboardRowCount(service.showNumberRow)
@@ -220,7 +225,8 @@ fun KeyboardScreen(
                             val rowMetrics = when {
                                 layoutRowIndex < 0 -> computeKeyboardMetrics(
                                     rows = listOf(row),
-                                    availableWidth = availableWidth
+                                    availableWidth = availableWidth,
+                                    heightScale = heightScale
                                 )
                                 rowColumns != null -> metrics.copy(
                                     keyWidth = availableWidth / rowColumns,

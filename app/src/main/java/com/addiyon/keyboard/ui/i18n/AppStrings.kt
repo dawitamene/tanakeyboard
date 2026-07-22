@@ -47,6 +47,10 @@ data class AppStrings(
     val vibrateOnKeypress: String,
     val soundOnKeypress: String,
     val numberRow: String,
+    val keyboardHeight: String,
+    val keyboardHeightHint: String,
+    val reset: String,
+    val done: String,
     // Test keyboard
     val testPlaceholder: String,
     // About
@@ -101,6 +105,10 @@ val EnglishStrings = AppStrings(
     vibrateOnKeypress = "Vibrate on keypress",
     soundOnKeypress = "Sound on keypress",
     numberRow = "Number row",
+    keyboardHeight = "Keyboard height",
+    keyboardHeightHint = "Drag the top edge of the keyboard up or down to resize it.",
+    reset = "Reset",
+    done = "Done",
     testPlaceholder = "Type \"selam\" → ሰላም",
     versionFormat = "Version %s",
     aboutDescription = "Type Amharic (Ge'ez) using simple Latin transliteration. " +
@@ -159,6 +167,10 @@ val AmharicStrings = AppStrings(
     vibrateOnKeypress = "ቁልፍ ሲነካ ንዝረት",
     soundOnKeypress = "ቁልፍ ሲነካ ድምፅ",
     numberRow = "የቁጥር ረድፍ",
+    keyboardHeight = "የኪቦርድ ቁመት",
+    keyboardHeightHint = "የኪቦርዱን ቁመት ለመቀየር የላይኛውን ጠርዝ ወደ ላይ ወይም ወደ ታች ይጎትቱ።",
+    reset = "ዳግም አስጀምር",
+    done = "ተከናውኗል",
     testPlaceholder = "\"selam\" ብለው ይፃፉ → ሰላም",
     versionFormat = "ስሪት %s",
     aboutDescription = "የእንግሊዝኛ ፊደላትን በመጠቀም በቀላሉ አማርኛ ይፃፉ። " +

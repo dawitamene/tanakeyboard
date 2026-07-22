@@ -37,6 +37,32 @@ class KeyboardMetricsTest {
     }
 
     @Test
+    fun heightScaleEnlargesKeyHeightProportionally() {
+        // Base height at 320.dp is 35.dp; the user scale multiplies it.
+        val metrics = computeKeyboardMetrics(EnglishLayout.rows, 320.dp, heightScale = 1.2f)
+        assertEquals(42.dp, metrics.keyHeight)
+        // Width is unaffected by the height scale -- the keyboard still fills its width.
+        assertEquals(32.dp, metrics.keyWidth)
+    }
+
+    @Test
+    fun heightScaleAppliesAfterTheClamp() {
+        // The 36-46dp clamp bounds the width-derived base (35.dp here); the user
+        // scale then multiplies that clamped value, so a sub-1.0 scale can drop
+        // the final height below the clamp floor.
+        val metrics = computeKeyboardMetrics(EnglishLayout.rows, 320.dp, heightScale = 0.8f)
+        assertEquals(28.dp, metrics.keyHeight)
+    }
+
+    @Test
+    fun defaultHeightScaleLeavesKeyHeightUnscaled() {
+        val scaled = computeKeyboardMetrics(EnglishLayout.rows, 320.dp, heightScale = 1f)
+        val unscaled = computeKeyboardMetrics(EnglishLayout.rows, 320.dp)
+        assertEquals(unscaled.keyHeight, scaled.keyHeight)
+        assertEquals(35.dp, scaled.keyHeight)
+    }
+
+    @Test
     fun nonCharacterControlsDoNotAffectReferenceWidth() {
         val rows = listOf(
             listOf(KeyData.Character("A"), KeyData.Character("B"), KeyData.Character("C")),

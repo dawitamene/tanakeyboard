@@ -3,6 +3,9 @@ package com.addiyon.keyboard.ui.settings
 import android.content.Context
 import android.content.SharedPreferences
 import com.addiyon.keyboard.review.ReviewPromptPolicy
+import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_DEFAULT
+import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MAX
+import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MIN
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 
 /**
@@ -16,6 +19,7 @@ object KeyboardPrefs {
     const val KEY_SOUND = "sound_on_keypress"
     const val KEY_PALETTE = "palette"
     const val KEY_NUMBER_ROW = "number_row"
+    const val KEY_KEYBOARD_HEIGHT_SCALE = "keyboard_height_scale"
     const val KEY_AMHARIC_MODE = "amharic_mode"
     const val KEY_RECENT_EMOJIS = "recent_emojis"
     const val KEY_EMOJI_SKIN_TONES = "emoji_skin_tones"
@@ -50,6 +54,21 @@ object KeyboardPrefs {
 
     fun setNumberRow(context: Context, value: Boolean) =
         prefs(context).edit().putBoolean(KEY_NUMBER_ROW, value).apply()
+
+    // The user's "Keyboard height" multiplier (1.0 = the auto-derived default).
+    // Coerced to the supported range on both read and write so a stray stored
+    // value can never blow up the key sizing. Observed by the service (see
+    // [com.addiyon.keyboard.AddiyonKeyboardService.keyboardHeightScale]) so the
+    // hosted keyboard resizes live when the slider changes it.
+    fun keyboardHeightScale(context: Context): Float =
+        prefs(context).getFloat(KEY_KEYBOARD_HEIGHT_SCALE, KEYBOARD_HEIGHT_SCALE_DEFAULT)
+            .coerceIn(KEYBOARD_HEIGHT_SCALE_MIN, KEYBOARD_HEIGHT_SCALE_MAX)
+
+    fun setKeyboardHeightScale(context: Context, value: Float) =
+        prefs(context).edit().putFloat(
+            KEY_KEYBOARD_HEIGHT_SCALE,
+            value.coerceIn(KEYBOARD_HEIGHT_SCALE_MIN, KEYBOARD_HEIGHT_SCALE_MAX)
+        ).apply()
 
     // The keyboard's active language (Amharic by default), persisted so the
     // user's choice survives the IME service being destroyed -- e.g. after

@@ -17,6 +17,7 @@ import com.google.android.play.core.review.ReviewManagerFactory
 import com.addiyon.keyboard.ui.manual.ManualScreen
 import com.addiyon.keyboard.ui.onboarding.OnboardingScreen
 import com.addiyon.keyboard.ui.settings.AboutScreen
+import com.addiyon.keyboard.ui.settings.KeyboardHeightScreen
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 import com.addiyon.keyboard.ui.settings.SettingsScreen
 import com.addiyon.keyboard.ui.settings.SoundVibrationScreen
@@ -26,7 +27,7 @@ import com.addiyon.keyboard.ui.i18n.ProvideAppLocalization
 import com.addiyon.keyboard.ui.theme.AddiyonBrandTheme
 
 private enum class ScreenKey {
-    Onboarding, Settings, Manual, SoundVibration, TestKeyboard, About, Themes
+    Onboarding, Settings, Manual, SoundVibration, KeyboardHeight, TestKeyboard, About, Themes
 }
 
 class MainActivity : ComponentActivity() {
@@ -112,6 +113,9 @@ class MainActivity : ComponentActivity() {
                     // the keyboard; otherwise navigate back to Settings.
                     fun goBack(from: ScreenKey) {
                         if (fromKeyboard && from == keyboardEntryScreen) finish()
+                        // Keyboard height is reached from Preferences, so it
+                        // returns there rather than all the way to Settings.
+                        else if (from == ScreenKey.KeyboardHeight) screen = ScreenKey.SoundVibration
                         else screen = ScreenKey.Settings
                     }
 
@@ -153,7 +157,11 @@ class MainActivity : ComponentActivity() {
                                 onBack = { goBack(ScreenKey.Manual) }
                             )
                             ScreenKey.SoundVibration -> SoundVibrationScreen(
-                                onBack = { goBack(ScreenKey.SoundVibration) }
+                                onBack = { goBack(ScreenKey.SoundVibration) },
+                                onOpenKeyboardHeight = { screen = ScreenKey.KeyboardHeight }
+                            )
+                            ScreenKey.KeyboardHeight -> KeyboardHeightScreen(
+                                onBack = { goBack(ScreenKey.KeyboardHeight) }
                             )
                             ScreenKey.TestKeyboard -> TestKeyboardScreen(
                                 onBack = { goBack(ScreenKey.TestKeyboard) }

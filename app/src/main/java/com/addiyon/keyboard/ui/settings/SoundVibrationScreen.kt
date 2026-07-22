@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -34,6 +37,7 @@ import com.addiyon.keyboard.ui.AppPageTopBar
 @Composable
 fun SoundVibrationScreen(
     onBack: () -> Unit,
+    onOpenKeyboardHeight: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -61,6 +65,10 @@ fun SoundVibrationScreen(
                 .padding(16.dp)
         ) {
             GroupCard {
+                NavRow(
+                    label = strings.keyboardHeight,
+                    onClick = onOpenKeyboardHeight
+                )
                 if (hasVibrator) {
                     ToggleRow(
                         label = strings.vibrateOnKeypress,
@@ -101,6 +109,28 @@ private fun deviceHasVibrator(context: Context): Boolean {
         context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
     }
     return vibrator?.hasVibrator() == true
+}
+
+@Composable
+private fun NavRow(
+    label: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyLarge)
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 @Composable

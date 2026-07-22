@@ -3,12 +3,18 @@ package com.addiyon.keyboard.ui.settings
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.addiyon.keyboard.KeyboardStatusSnapshot
 import com.addiyon.keyboard.TestAppHost
+import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_DEFAULT
+import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MAX
+import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MIN
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -77,6 +83,40 @@ class SettingsScreensUiTest {
             assertTrue(KeyboardPrefs.vibrateOnKeypress(context))
             assertTrue(KeyboardPrefs.soundOnKeypress(context))
             assertTrue(KeyboardPrefs.numberRow(context))
+        }
+    }
+
+    @Test
+    fun preferencesKeyboardHeightRowNavigates() {
+        var opened = false
+        compose.setContent {
+            TestAppHost {
+                SoundVibrationScreen(onBack = {}, onOpenKeyboardHeight = { opened = true })
+            }
+        }
+        compose.onNodeWithText("Keyboard height").performClick()
+        compose.runOnIdle { assertTrue(opened) }
+    }
+
+    @Test
+    fun keyboardHeightDragPersistsScaleToKeyboardPrefs() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        KeyboardPrefs.setKeyboardHeightScale(context, KEYBOARD_HEIGHT_SCALE_DEFAULT)
+
+        compose.setContent {
+            TestAppHost {
+                KeyboardHeightScreen(onBack = {})
+            }
+        }
+
+        // Drag the resize handle upward -> the keyboard (and the stored scale)
+        // grows above the default.
+        compose.onNodeWithTag(KEYBOARD_HEIGHT_HANDLE_TAG).performTouchInput { swipeUp() }
+
+        compose.runOnIdle {
+            val stored = KeyboardPrefs.keyboardHeightScale(context)
+            assertTrue(stored > KEYBOARD_HEIGHT_SCALE_DEFAULT)
+            assertTrue(stored in KEYBOARD_HEIGHT_SCALE_MIN..KEYBOARD_HEIGHT_SCALE_MAX)
         }
     }
 

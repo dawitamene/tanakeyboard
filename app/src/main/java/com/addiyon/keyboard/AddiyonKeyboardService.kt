@@ -56,6 +56,7 @@ import com.addiyon.keyboard.transliteration.AmharicWordReverser
 import com.addiyon.keyboard.transliteration.EthiopicNormalizer
 import com.addiyon.keyboard.suggestion.matchCase
 import com.addiyon.keyboard.transliteration.Transliterator
+import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_DEFAULT
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 import com.addiyon.keyboard.voice.VoiceComposer
@@ -291,6 +292,13 @@ class AddiyonKeyboardService : InputMethodService(),
     var showNumberRow by mutableStateOf(false)
         private set
 
+    // The user's "Keyboard height" multiplier, read from the same
+    // SharedPreferences the settings slider writes. Observable (like
+    // [showNumberRow]) so the hosted keyboard recomposes -- and resizes --
+    // live when the user drags the slider. See [refreshKeyboardHeightScale].
+    var keyboardHeightScale by mutableStateOf(KEYBOARD_HEIGHT_SCALE_DEFAULT)
+        private set
+
     var vibrateOnKeypress by mutableStateOf(false)
         private set
 
@@ -309,6 +317,9 @@ class AddiyonKeyboardService : InputMethodService(),
             }
             if (key == KeyboardPrefs.KEY_NUMBER_ROW) {
                 refreshNumberRow()
+            }
+            if (key == KeyboardPrefs.KEY_KEYBOARD_HEIGHT_SCALE) {
+                refreshKeyboardHeightScale()
             }
             if (key == KeyboardPrefs.KEY_VIBRATE || key == KeyboardPrefs.KEY_SOUND) {
                 refreshFeedbackPrefs()
@@ -808,6 +819,11 @@ class AddiyonKeyboardService : InputMethodService(),
     /** Re-derives [showNumberRow] from the saved preference. */
     private fun refreshNumberRow() {
         showNumberRow = KeyboardPrefs.numberRow(this)
+    }
+
+    /** Re-derives [keyboardHeightScale] from the saved preference. */
+    private fun refreshKeyboardHeightScale() {
+        keyboardHeightScale = KeyboardPrefs.keyboardHeightScale(this)
     }
 
     private fun refreshFeedbackPrefs() {
@@ -1639,6 +1655,7 @@ class AddiyonKeyboardService : InputMethodService(),
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         refreshTheme(resources.configuration)
         refreshNumberRow()
+        refreshKeyboardHeightScale()
         refreshFeedbackPrefs()
         // Restore the last-used language BEFORE the dictionary loads below:
         // the active language's dictionary is deliberately loaded first.
