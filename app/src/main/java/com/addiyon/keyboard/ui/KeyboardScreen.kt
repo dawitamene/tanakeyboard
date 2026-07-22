@@ -103,11 +103,13 @@ fun KeyboardScreen(
                 // no composing word is ever visible alongside it.
                 if (service.showEmojiPanel && !emojiSearching) {
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        // Mirror the key branch's sizing exactly: its
+                        // Mirror the key branch's sizing exactly so opening the
+                        // emoji panel never resizes the IME window: its
                         // BoxWithConstraints measures width AFTER 4.dp horizontal
                         // padding (hence -8.dp here), each row is keyHeight plus
-                        // a 6.dp spacer, and the box adds 6.dp vertical padding
-                        // top and bottom. Plus the 40.dp suggestion area.
+                        // a 6.dp spacer (keyboardRowsHeight), and the box adds
+                        // 6.dp vertical padding top and bottom (12.dp). Plus the
+                        // 40.dp suggestion area this panel renders in place of.
                         val rows = keyboardRows(
                             layout = layout,
                             numbersMode = service.numbersMode,
@@ -123,7 +125,7 @@ fun KeyboardScreen(
                         val panelHeight = 40.dp + keyboardRowsHeight(
                             keyHeight = metrics.keyHeight,
                             rowCount = targetRowCount
-                        ) + 168.dp
+                        ) + 12.dp
                         EmojiPanel(service = service, height = panelHeight)
                     }
                     return@keyboardContent

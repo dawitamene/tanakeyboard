@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -65,14 +66,6 @@ import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
-
-/**
- * Most index-rail glyphs shown at once. The rail always SCRUBS across every
- * visible card (tap or drag maps the touch's y-fraction onto the full list);
- * when there are more cards than this, the labels are evenly sampled so they
- * never overflow small screens.
- */
-private const val MAX_RAIL_LABELS = 18
 
 /**
  * The typing guide: a hero card demonstrating transliteration live, then one
@@ -249,11 +242,6 @@ private fun HeroCard(strings: AppStrings, accent: Color) {
                     )
                 }
             }
-            Text(
-                text = strings.guideHeroHint,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
@@ -352,10 +340,11 @@ private fun FamilyCard(
 }
 
 /**
- * Contacts-style fast-scroll rail. Tapping or dragging maps the touch's
- * y-fraction onto the FULL card list (not just the rendered labels, which are
- * evenly sampled down to [MAX_RAIL_LABELS] so they fit any screen height).
- * The label nearest the current scroll position is tinted with the accent.
+ * Contacts-style fast-scroll rail showing EVERY family's glyph. Tapping or
+ * dragging maps the touch's y-fraction onto the card list; the label nearest
+ * the current scroll position is tinted with the accent. The glyphs shrink
+ * below their 11sp ceiling when the rail is too short to fit them all at full
+ * size, so no family ever drops off the rail on small screens.
  *
  * While a finger is on the rail, the glyphs near it swell into a dock-style
  * magnification bubble ([RailMagnification]) and bulge LEFT out of the rail
@@ -371,18 +360,6 @@ private fun IndexRail(
     onJump: (Int) -> Unit
 ) {
     if (labels.isEmpty()) return
-    val display = remember(labels) {
-        if (labels.size <= MAX_RAIL_LABELS) {
-            labels.mapIndexed { index, label -> index to label }
-        } else {
-            val step = (labels.size - 1).toFloat() / (MAX_RAIL_LABELS - 1)
-            (0 until MAX_RAIL_LABELS).map { k ->
-                val index = (k * step + 0.5f).toInt().coerceAtMost(labels.lastIndex)
-                index to labels[index]
-            }
-        }
-    }
-    val nearest = display.minByOrNull { abs(it.first - currentIndex) }?.first
 
     // The finger's y while it's on the rail (pressed or dragging); null when
     // idle. Drives every glyph's magnification target.
@@ -395,11 +372,21 @@ private fun IndexRail(
     val bubbleRadius = with(density) { 72.dp.toPx() }
     val bulgeShift = with(density) { 18.dp.toPx() }
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxHeight()
             .width(28.dp)
-            .pointerInput(labels.size) {
+    ) {
+        val fontSize = with(density) {
+            val perGlyph = (maxHeight / labels.size) * 0.72f
+            val fit = perGlyph.toSp()
+            if (fit.value < 11f) fit else 11.sp
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(labels.size) {
                 detectTapGestures(
                     onPress = { offset ->
                         touchY = offset.y
@@ -423,8 +410,8 @@ private fun IndexRail(
         verticalArrangement = Arrangement.SpaceEvenly,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        display.forEachIndexed { slot, (index, label) ->
-            val active = index == nearest
+        labels.forEachIndexed { slot, label ->
+            val active = slot == currentIndex
             val scale by animateFloatAsState(
                 targetValue = RailMagnification.scaleFor(touchY, slotCenters[slot], bubbleRadius),
                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -449,6 +436,7 @@ private fun IndexRail(
                     }
             )
         }
+    }
     }
 }
 

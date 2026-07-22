@@ -12,9 +12,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.addiyon.keyboard.review.ReviewPromptPolicy
+import com.google.android.play.core.review.ReviewManagerFactory
 import com.addiyon.keyboard.ui.manual.ManualScreen
 import com.addiyon.keyboard.ui.onboarding.OnboardingScreen
 import com.addiyon.keyboard.ui.settings.AboutScreen
+import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 import com.addiyon.keyboard.ui.settings.SettingsScreen
 import com.addiyon.keyboard.ui.settings.SoundVibrationScreen
 import com.addiyon.keyboard.ui.settings.TestKeyboardScreen
@@ -125,6 +128,14 @@ class MainActivity : ComponentActivity() {
                         goBack(screen)
                     }
 
+                    // Smart in-app review prompt: opening the app's home
+                    // screen after sustained keyboard use is a natural,
+                    // non-interrupting moment to ask (never mid-onboarding,
+                    // never mid-typing -- an IME can't host the dialog anyway).
+                    LaunchedEffect(screen) {
+                        if (screen == ScreenKey.Settings) maybeRequestReview()
+                    }
+
                     when (screen) {
                             ScreenKey.Onboarding -> OnboardingScreen(
                                 status = status,
@@ -161,6 +172,27 @@ class MainActivity : ComponentActivity() {
                     }
             }
             }
+        }
+    }
+
+    /**
+     * Launches the Play in-app review flow once the user has enough keyboard
+     * sessions behind them (see [ReviewPromptPolicy]). One-shot: marked
+     * prompted before launching, because the Play API is quota-limited and
+     * deliberately gives no signal about whether its dialog actually showed —
+     * there is nothing to retry on. Failures (no Play Store, emulator) are
+     * ignored; the user still has the explicit Rate button in Settings.
+     */
+    private fun maybeRequestReview() {
+        val eligible = ReviewPromptPolicy.shouldPrompt(
+            sessions = KeyboardPrefs.usageSessions(this),
+            alreadyPrompted = KeyboardPrefs.reviewPrompted(this)
+        )
+        if (!eligible) return
+        KeyboardPrefs.setReviewPrompted(this)
+        val manager = ReviewManagerFactory.create(this)
+        manager.requestReviewFlow().addOnSuccessListener { info ->
+            if (!isFinishing && !isDestroyed) manager.launchReviewFlow(this, info)
         }
     }
 

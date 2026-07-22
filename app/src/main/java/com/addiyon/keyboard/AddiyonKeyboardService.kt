@@ -117,9 +117,9 @@ private fun englishFold(word: String): String =
 /**
  * Text-field variations where English sentence auto-capitalization is
  * suppressed (a stray capital would be wrong or annoying): passwords, email
- * addresses, URIs, and filter/search-style fields. A second line of defense
- * behind the CAP_SENTENCES opt-in (see [resolveAutoCap]), for fields that
- * set the flag spuriously.
+ * addresses, URIs, and filter/search-style fields. This deny-list is the
+ * primary gate now that auto-capitalization defaults ON for text fields
+ * (see [resolveAutoCap]).
  */
 private val NO_AUTOCAP_VARIATIONS = setOf(
     InputType.TYPE_TEXT_VARIATION_PASSWORD,
@@ -1231,23 +1231,28 @@ class AddiyonKeyboardService : InputMethodService(),
 
     /**
      * Determines whether the current field accepts English
-     * auto-capitalization. OPT-IN, the way Gboard/AOSP treat it: the editor
-     * must declare [InputType.TYPE_TEXT_FLAG_CAP_SENTENCES] in its inputType
-     * (messaging/notes/compose fields do; email, password, username, search,
-     * and code-ish fields don't) -- a deny-list alone can't cover every field
-     * that shouldn't be capitalized, which is how stray capitals ended up in
-     * email fields. [NO_AUTOCAP_VARIATIONS] stays as a second gate for fields
-     * that set the flag spuriously. Also flags email fields ([isEmailField])
-     * from the same variation bits. Called per input session.
+     * auto-capitalization. Default-ON for ordinary text fields (the way
+     * Gboard/SwiftKey behave), because most editors never set
+     * [InputType.TYPE_TEXT_FLAG_CAP_SENTENCES], so gating on that opt-in flag
+     * left sentence capitalization off almost everywhere. Instead the field
+     * only needs to be a text-class field ([InputType.TYPE_CLASS_TEXT]) whose
+     * variation isn't in [NO_AUTOCAP_VARIATIONS] (password/email/URI/filter --
+     * the fields where a stray capital is wrong or annoying). Also flags email
+     * fields ([isEmailField]) from the same variation bits. Called per input
+     * session.
      */
     private fun resolveAutoCap(editorInfo: EditorInfo?) {
         val inputType = editorInfo?.inputType ?: 0
         val isText = inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_TEXT
         val variation = inputType and InputType.TYPE_MASK_VARIATION
-        val wantsCapSentences =
-            inputType and InputType.TYPE_TEXT_FLAG_CAP_SENTENCES != 0
-        fieldAllowsAutoCap =
-            isText && wantsCapSentences && variation !in NO_AUTOCAP_VARIATIONS
+        // Default-ON for ordinary text fields (Gboard/SwiftKey behavior),
+        // rather than only when the editor opts in via
+        // TYPE_TEXT_FLAG_CAP_SENTENCES -- most apps never set that flag, so
+        // gating on it left sentence capitalization off almost everywhere. The
+        // NO_AUTOCAP_VARIATIONS deny-list (password/email/URI/filter) plus the
+        // text-class check are what keep a stray capital out of the fields that
+        // shouldn't get one.
+        fieldAllowsAutoCap = isText && variation !in NO_AUTOCAP_VARIATIONS
         isEmailField = isText && (
             variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS ||
                 variation == InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS
@@ -1262,11 +1267,21 @@ class AddiyonKeyboardService : InputMethodService(),
      * selects a consonant family), in numeric mode, mid-word, under caps-lock,
      * or when shift is already on. Only ever ARMS shift (never forces it off),
      * so it can't fight a manual shift the user set.
+     *
+     * [textBeforeCursor], when non-null, is used in place of re-reading the
+     * field. Callers that just typed the whitespace ending a sentence (the
+     * space in [onSpace], the newline in [onEnter]) pass the text as it will
+     * read AFTERWARDS -- the pre-commit text plus the whitespace they are
+     * adding -- because getTextBeforeCursor doesn't always reflect a
+     * just-committed space synchronously. Re-reading after the commit could
+     * therefore miss the trailing space that marks the sentence end ("End. "),
+     * leaving the next word lowercase -- the post-period bug this avoids.
      */
-    private fun maybeAutoCapitalize() {
+    private fun maybeAutoCapitalize(textBeforeCursor: CharSequence? = null) {
         if (isAmharic || isNumberMode || !fieldAllowsAutoCap) return
         if (shiftState != ShiftState.OFF || activeComposer.isComposing) return
-        val before = currentInputConnection?.getTextBeforeCursor(SENTENCE_LOOKBEHIND, 0)
+        val before = textBeforeCursor
+            ?: currentInputConnection?.getTextBeforeCursor(SENTENCE_LOOKBEHIND, 0)
         if (SentenceCase.startsNewSentence(before)) {
             shiftState = ShiftState.SHIFT
         }
@@ -1476,10 +1491,17 @@ class AddiyonKeyboardService : InputMethodService(),
         }
         leaveVoiceModeForKeyboardInput()
         activeComposer.commit()
+        // Read the text as it stands BEFORE the space (committed + any
+        // still-composing text is already in the field), then judge the
+        // sentence boundary from that plus the space we're about to add. A
+        // post-commit re-read is unreliable -- some editors don't surface the
+        // just-committed space in getTextBeforeCursor right away, so the
+        // trailing space that ends the sentence ("End. ") goes missing and the
+        // next word never capitalizes.
+        val beforeSpace = currentInputConnection?.getTextBeforeCursor(SENTENCE_LOOKBEHIND, 0)
         currentInputConnection?.commitText(" ", 1)
         updateSuggestions()
-        // A space may have just ended a sentence ("... . ") -> capitalize next.
-        maybeAutoCapitalize()
+        maybeAutoCapitalize(beforeSpace?.let { "$it " })
     }
 
     /**
@@ -1504,6 +1526,8 @@ class AddiyonKeyboardService : InputMethodService(),
         leaveVoiceModeForKeyboardInput()
         activeComposer.commit()
         val ic = currentInputConnection
+        // Pre-newline text, for the same reason onSpace reads before committing.
+        val beforeEnter = ic?.getTextBeforeCursor(SENTENCE_LOOKBEHIND, 0)
         if (enterAction == EnterAction.NEWLINE) {
             ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
             ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
@@ -1511,8 +1535,13 @@ class AddiyonKeyboardService : InputMethodService(),
             ic?.performEditorAction(editorActionId)
         }
         updateSuggestions()
-        // A newline starts a fresh line -> capitalize its first letter.
-        maybeAutoCapitalize()
+        // A newline starts a fresh line -> capitalize its first letter, judged
+        // from the pre-newline text plus the "\n" just added. An editor-action
+        // Enter (search/send/go/...) inserts no newline, so there fall back to
+        // a fresh read instead.
+        maybeAutoCapitalize(
+            if (enterAction == EnterAction.NEWLINE) beforeEnter?.let { "$it\n" } else null
+        )
     }
 
     /**
@@ -1676,6 +1705,9 @@ class AddiyonKeyboardService : InputMethodService(),
 
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(editorInfo, restarting)
+        // Fresh (non-restarting) sessions feed the engagement counter behind
+        // the one-time in-app review prompt (see ReviewPromptPolicy).
+        if (!restarting) KeyboardPrefs.recordUsageSession(this)
         // A new input session means a new InputConnection -- any half-typed
         // word we were composing belongs to a field that's no longer
         // ours. Drop it silently rather than trying to commit into the

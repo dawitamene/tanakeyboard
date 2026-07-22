@@ -41,7 +41,6 @@ data class AppStrings(
     // Typing guide
     val searchPlaceholder: String,
     val guideHowItWorks: String,
-    val guideHeroHint: String,
     val guideKeysToPress: String,
     val guideCopy: String,
     // Preferences
@@ -65,7 +64,18 @@ data class AppStrings(
     val switchKeyboard: String,
     val stepFormat: String,
     val allSet: String,
-    val allSetSubtitle: String
+    val allSetSubtitle: String,
+    // Feature tour (shown once, right after onboarding)
+    val tourSkip: String,
+    val tourNext: String,
+    val tourStart: String,
+    val tourTypingTitle: String,
+    val tourTypingDescription: String,
+    val tourTypingExample: String,
+    val tourSuggestionsTitle: String,
+    val tourSuggestionsDescription: String,
+    val tourPersonalizeTitle: String,
+    val tourPersonalizeDescription: String
 )
 
 val EnglishStrings = AppStrings(
@@ -86,7 +96,6 @@ val EnglishStrings = AppStrings(
     shareChooserTitle = "Share Addiyon Keyboard",
     searchPlaceholder = "Search: he, sh, ላ ...",
     guideHowItWorks = "How it works",
-    guideHeroHint = "Type the sound, get the letter. Each family has its own row below.",
     guideKeysToPress = "Keys to press",
     guideCopy = "Copy",
     vibrateOnKeypress = "Vibrate on keypress",
@@ -94,8 +103,8 @@ val EnglishStrings = AppStrings(
     numberRow = "Number row",
     testPlaceholder = "Type \"selam\" → ሰላም",
     versionFormat = "Version %s",
-    aboutDescription = "Type Amharic (Ge'ez) using simple Latin transliteration " +
-        "— for example, \"selam\" becomes ሰላም.",
+    aboutDescription = "Type Amharic (Ge'ez) using simple Latin transliteration. " +
+        "For example, \"selam\" becomes ሰላም.",
     aboutPrivacy = "Your privacy: Addiyon Keyboard never collects any data. " +
         "Everything you type stays on your device.",
     madeBy = "Made by Addiyon",
@@ -111,7 +120,20 @@ val EnglishStrings = AppStrings(
     switchKeyboard = "Switch Keyboard",
     stepFormat = "Step %d",
     allSet = "All set!",
-    allSetSubtitle = "Addiyon Keyboard is ready to use."
+    allSetSubtitle = "Addiyon Keyboard is ready to use.",
+    tourSkip = "Skip",
+    tourNext = "Next",
+    tourStart = "Start typing",
+    tourTypingTitle = "Type the English letters, get the Amharic Fidel",
+    tourTypingDescription = "Spell Amharic words with English letters and watch " +
+        "them turn into Fidel as you type.",
+    tourTypingExample = "selam → ሰላም",
+    tourSuggestionsTitle = "Smart suggestions",
+    tourSuggestionsDescription = "Word suggestions appear above the keys as you " +
+        "type. Tap one to complete the word instantly.",
+    tourPersonalizeTitle = "Make it yours",
+    tourPersonalizeDescription = "Pick a color theme, type with your voice, and " +
+        "add emoji, all right above the keyboard keys."
 )
 
 val AmharicStrings = AppStrings(
@@ -132,7 +154,6 @@ val AmharicStrings = AppStrings(
     shareChooserTitle = "አዲዮን ኪቦርድን አጋራ",
     searchPlaceholder = "ፈልግ፡ he, sh, ላ ...",
     guideHowItWorks = "አጠቃቀም",
-    guideHeroHint = "ድምፁን ይተይቡ፣ ፊደሉ ይመጣል። እያንዳንዱ የፊደል ቤት የራሱ ረድፍ አለው።",
     guideKeysToPress = "የሚነኩ ቁልፎች",
     guideCopy = "ቅዳ",
     vibrateOnKeypress = "ቁልፍ ሲነካ ንዝረት",
@@ -140,7 +161,7 @@ val AmharicStrings = AppStrings(
     numberRow = "የቁጥር ረድፍ",
     testPlaceholder = "\"selam\" ብለው ይፃፉ → ሰላም",
     versionFormat = "ስሪት %s",
-    aboutDescription = "የእንግሊዝኛ ፊደላትን በመጠቀም በቀላሉ አማርኛ ይፃፉ — " +
+    aboutDescription = "የእንግሊዝኛ ፊደላትን በመጠቀም በቀላሉ አማርኛ ይፃፉ። " +
         "ለምሳሌ \"selam\" ወደ ሰላም ይቀየራል።",
     aboutPrivacy = "የእርስዎ ግላዊነት፡ አዲዮን ኪቦርድ ምንም መረጃ አይሰበስብም። " +
         "የሚፅፉት ሁሉ በስልክዎ ላይ ይቆያል።",
@@ -156,7 +177,20 @@ val AmharicStrings = AppStrings(
     switchKeyboard = "ኪቦርድ ቀይር",
     stepFormat = "ደረጃ %d",
     allSet = "ሁሉም ተዘጋጅቷል!",
-    allSetSubtitle = "አዲዮን ኪቦርድ ለመጠቀም ዝግጁ ነው።"
+    allSetSubtitle = "አዲዮን ኪቦርድ ለመጠቀም ዝግጁ ነው።",
+    tourSkip = "ዝለል",
+    tourNext = "ቀጣይ",
+    tourStart = "መፃፍ ጀምር",
+    tourTypingTitle = "የእንግሊዝኛ ፊደላትን ይፃፉ፣ የአማርኛ ፊደል ያግኙ",
+    tourTypingDescription = "የአማርኛ ቃላትን በእንግሊዝኛ ፊደላት ይፃፉ፣ " +
+        "እየፃፉ ወደ ፊደል ይቀየራሉ።",
+    tourTypingExample = "selam → ሰላም",
+    tourSuggestionsTitle = "ብልህ ጥቆማዎች",
+    tourSuggestionsDescription = "ሲፅፉ የቃላት ጥቆማዎች ከቁልፎቹ በላይ ይታያሉ። " +
+        "ቃሉን ለማጠናቀቅ አንዱን ይንኩ።",
+    tourPersonalizeTitle = "እንደፍላጎትዎ ያድርጉት",
+    tourPersonalizeDescription = "ገጽታ ይምረጡ፣ በድምፅዎ ይፃፉ፣ ኢሞጂ ይጨምሩ፣ " +
+        "ሁሉም ከኪቦርዱ ቁልፎች በላይ አሉ።"
 )
 
 /**

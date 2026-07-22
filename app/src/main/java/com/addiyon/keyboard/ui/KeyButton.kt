@@ -271,9 +271,13 @@ fun KeyButton(
                     )
 
                     if (showLockIndicator) {
-                        Spacer(modifier = Modifier.height(2.dp))
+                        // The shift glyph's viewport leaves a few dp of empty
+                        // space below the arrow, so pull the underline up with a
+                        // negative offset (instead of a spacer) to sit it snug
+                        // beneath the icon, matching the primaryText indicator.
                         Box(
                             modifier = Modifier
+                                .offset(y = (-2).dp)
                                 .width(12.dp)
                                 .height(2.dp)
                                 .background(

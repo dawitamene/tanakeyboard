@@ -43,6 +43,20 @@ class GuideModelTest {
     }
 
     @Test
+    fun aliasFamiliesShowEverySpellingPerCell() {
+        // Duplicate families (ሸ = sh/x, ...) list every spelling in each cell,
+        // slash-joined, so the guide shows "she/xe", "shu/xu", and so on. The
+        // digraph comes first (it's the card label); single-key families keep a
+        // plain caption with no slash (covered by sevenFormsPerCardInOrder).
+        val sh = rows.first { it.label == "sh" }
+        assertEquals(
+            listOf("she/xe", "shu/xu", "shi/xi", "sha/xa", "shie/xie", "sh/x", "sho/xo"),
+            sh.cells.map { it.latin }
+        )
+        assertEquals("shua/xua", sh.ua?.latin)
+    }
+
+    @Test
     fun bareVowelCardsDropTheSeraPrefix() {
         val glottal = rows.first { it.label == "a" }
         assertEquals('ኣ', glottal.cells[3].fidel)

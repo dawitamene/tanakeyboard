@@ -83,11 +83,14 @@ object GuideModel {
                     ?.spelling
                     ?: vowel
             } else {
-                primary + vowel
+                // Every spelling that reaches this family, slash-joined, so a
+                // duplicate family shows both ways to type each form ("she/xe",
+                // "chu/cu"). Single-key families are unchanged (no slash).
+                keys.joinToString("/") { it + vowel }
             }
             GuideCell(family.forms[i], latin)
         }
-        val ua = family.ua?.let { GuideCell(it, primary + "ua") }
+        val ua = family.ua?.let { form -> GuideCell(form, keys.joinToString("/") { it + "ua" }) }
         return GuideFamily(
             label = displayLabel(primary),
             aliases = keys.drop(1).map(::displayLabel),

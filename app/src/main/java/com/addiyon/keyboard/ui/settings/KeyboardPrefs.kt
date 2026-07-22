@@ -2,6 +2,7 @@ package com.addiyon.keyboard.ui.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.addiyon.keyboard.review.ReviewPromptPolicy
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 
 /**
@@ -18,6 +19,9 @@ object KeyboardPrefs {
     const val KEY_AMHARIC_MODE = "amharic_mode"
     const val KEY_RECENT_EMOJIS = "recent_emojis"
     const val KEY_EMOJI_SKIN_TONES = "emoji_skin_tones"
+    const val KEY_FEATURE_TOUR_SEEN = "feature_tour_seen"
+    const val KEY_USAGE_SESSIONS = "usage_sessions"
+    const val KEY_REVIEW_PROMPTED = "review_prompted"
 
     /** Exposed so the service can register an OnSharedPreferenceChangeListener. */
     fun prefs(context: Context): SharedPreferences =
@@ -70,4 +74,31 @@ object KeyboardPrefs {
 
     fun setEmojiSkinTones(context: Context, value: String) =
         prefs(context).edit().putString(KEY_EMOJI_SKIN_TONES, value).apply()
+
+    // Whether the first-run feature tour (the pages after the setup steps in
+    // OnboardingScreen) has already been shown; it only ever appears once.
+    fun featureTourSeen(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_FEATURE_TOUR_SEEN, false)
+
+    fun setFeatureTourSeen(context: Context) =
+        prefs(context).edit().putBoolean(KEY_FEATURE_TOUR_SEEN, true).apply()
+
+    // Count of keyboard input sessions, used by ReviewPromptPolicy to decide
+    // when the user is engaged enough for the one-time in-app review prompt.
+    // Counting stops at the policy's cap so this pref isn't rewritten forever.
+    fun usageSessions(context: Context): Int =
+        prefs(context).getInt(KEY_USAGE_SESSIONS, 0)
+
+    fun recordUsageSession(context: Context) {
+        val sessions = usageSessions(context)
+        if (ReviewPromptPolicy.shouldCount(sessions)) {
+            prefs(context).edit().putInt(KEY_USAGE_SESSIONS, sessions + 1).apply()
+        }
+    }
+
+    fun reviewPrompted(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_REVIEW_PROMPTED, false)
+
+    fun setReviewPrompted(context: Context) =
+        prefs(context).edit().putBoolean(KEY_REVIEW_PROMPTED, true).apply()
 }

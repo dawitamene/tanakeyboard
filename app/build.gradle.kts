@@ -43,7 +43,7 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "com.addiyon.keyboard"
-    compileSdk = 35
+    compileSdk = 36
 
     buildFeatures {
         compose = true
@@ -53,7 +53,7 @@ android {
     defaultConfig {
         applicationId = "com.addiyon.keyboard"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = autoVersionCode
         versionName = releaseVersionName
 
@@ -139,6 +139,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.activity.compose.v191)
     implementation(libs.androidx.profileinstaller)
+    implementation(libs.play.review)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
