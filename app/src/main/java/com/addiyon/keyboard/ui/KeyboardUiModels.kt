@@ -13,6 +13,7 @@ internal data class KeyboardUiState(
     val isAmharic: Boolean,
     val isNumberMode: Boolean,
     val isEmailField: Boolean,
+    val isPrivateField: Boolean,
     val numbersMode: NumbersMode,
     val shiftState: ShiftState,
     val enterAction: EnterAction,

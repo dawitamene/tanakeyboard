@@ -1,7 +1,6 @@
 // ui/KeyButton.kt
 package com.addiyon.keyboard.ui
 
-import android.content.Context
 import android.media.AudioManager
 import android.view.HapticFeedbackConstants
 import android.view.View
@@ -55,14 +54,17 @@ import kotlin.math.abs
  * standard system keypress click. Preference values are cached by the service
  * and refreshed through its SharedPreferences listener.
  */
-private fun keypressFeedback(view: View, vibrateOnKeypress: Boolean, soundOnKeypress: Boolean) {
+private fun keypressFeedback(
+    view: View,
+    audioManager: AudioManager?,
+    vibrateOnKeypress: Boolean,
+    soundOnKeypress: Boolean,
+) {
     if (vibrateOnKeypress) {
         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
     }
     if (soundOnKeypress) {
-        val context = view.context
-        (context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)
-            ?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD)
+        audioManager?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD)
     }
 }
 
@@ -152,6 +154,13 @@ fun KeyButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val view = LocalView.current
+    val audioManager = remember(view, soundOnKeypress) {
+        if (soundOnKeypress) {
+            view.context.applicationContext.getSystemService(AudioManager::class.java)
+        } else {
+            null
+        }
+    }
 
     val background = when {
         isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
@@ -222,7 +231,12 @@ fun KeyButton(
         LaunchedEffect(interactionSource, vibrateOnKeypress, soundOnKeypress) {
             interactionSource.interactions.collect { interaction ->
                 if (interaction is PressInteraction.Press) {
-                    keypressFeedback(view, vibrateOnKeypress, soundOnKeypress)
+                    keypressFeedback(
+                        view,
+                        audioManager,
+                        vibrateOnKeypress,
+                        soundOnKeypress
+                    )
                 }
             }
         }

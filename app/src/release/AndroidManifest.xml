@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <application>
         <activity
             android:name="com.addiyon.keyboard.benchmarkhost.ImeTestHostActivity"
-            android:exported="true"
+            android:enabled="${imeTestComponentsEnabled}"
+            android:exported="${imeTestComponentsEnabled}"
             android:launchMode="singleTop"
             android:screenOrientation="unspecified"
+            tools:ignore="MissingClass"
             android:windowSoftInputMode="adjustResize" />
         <receiver
-            android:name="com.addiyon.keyboard.debug.LanguageToggleReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.addiyon.keyboard.TOGGLE_LANGUAGE" />
-            </intent-filter>
-        </receiver>
-        <receiver
             android:name="com.addiyon.keyboard.debug.ImeTestCommandReceiver"
-            android:exported="true">
+            android:enabled="${imeTestComponentsEnabled}"
+            android:exported="${imeTestComponentsEnabled}"
+            tools:ignore="MissingClass">
             <intent-filter>
                 <action android:name="com.addiyon.keyboard.TEST_COMMAND" />
             </intent-filter>

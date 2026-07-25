@@ -1,6 +1,8 @@
 // ui/SuggestionBar.kt
 package com.addiyon.keyboard.ui
 
+import android.animation.ValueAnimator
+import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -44,7 +46,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -62,6 +69,8 @@ import com.addiyon.keyboard.suggestion.EmailChip
 import com.addiyon.keyboard.voice.VoiceUiState
 import com.addiyon.keyboard.voice.isRecording
 import com.addiyon.keyboard.voice.isVoiceMode
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 /**
  * The word-completion strip above the key rows. Always reserves a fixed-height
@@ -172,8 +181,7 @@ fun SuggestionArea(
 
 @Composable
 private fun LanguageLoadingDot() {
-    val lowRam = LocalLowRamKeyboard.current
-    val alpha = if (lowRam) {
+    val alpha = if (!animationsAllowed()) {
         1f
     } else {
         val transition = rememberInfiniteTransition(label = "loading-dot")
@@ -271,7 +279,7 @@ private fun MicToolbarIcon(
     isListening: Boolean,
     onClick: () -> Unit
 ) {
-    val pulse = if (isListening && !LocalLowRamKeyboard.current) {
+    val pulse = if (isListening && animationsAllowed()) {
         val transition = rememberInfiniteTransition(label = "micPulse")
         val animated by transition.animateFloat(
             initialValue = 1f,
@@ -304,6 +312,25 @@ private fun MicToolbarIcon(
                 .scale(pulse)
         )
     }
+}
+
+@Composable
+private fun animationsAllowed(): Boolean {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var resumed by remember(lifecycle) {
+        mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, _ ->
+            resumed = lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    return resumed &&
+        !LocalLowRamKeyboard.current &&
+        (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+            ValueAnimator.areAnimatorsEnabled())
 }
 
 @Composable

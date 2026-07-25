@@ -84,6 +84,7 @@ fun CharacterKey(
     height: Dp,
     onCharacter: (String) -> Unit,
     onCommitText: (String) -> Unit,
+    showsPreviewOnPress: Boolean = true,
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean
 ) {
@@ -133,7 +134,7 @@ fun CharacterKey(
         modifier = Modifier.width(width * key.width),
         height = height,
         isSpecial = isSpecialSlot,
-        showsPreviewOnPress = true,
+        showsPreviewOnPress = showsPreviewOnPress,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
         onLongPress = longPressAction,

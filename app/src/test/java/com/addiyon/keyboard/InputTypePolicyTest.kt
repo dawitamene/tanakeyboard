@@ -134,4 +134,28 @@ class InputTypePolicyTest {
         assertFalse(InputTypePolicy.isEmailInputType(0))
         assertFalse(InputTypePolicy.allowsAutoCap(0))
     }
+
+    @Test
+    fun textAndNumericPasswordsArePrivate() {
+        listOf(
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+            InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD,
+        ).forEach { assertTrue(InputTypePolicy.isPrivateInputType(it)) }
+    }
+
+    @Test
+    fun ordinaryAndEmailFieldsAreNotPrivate() {
+        assertFalse(
+            InputTypePolicy.isPrivateInputType(
+                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
+            )
+        )
+        assertFalse(
+            InputTypePolicy.isPrivateInputType(
+                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            )
+        )
+    }
 }

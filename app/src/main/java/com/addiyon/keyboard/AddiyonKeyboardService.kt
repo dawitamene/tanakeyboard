@@ -48,6 +48,7 @@ import com.addiyon.keyboard.emoji.EmojiRepository
 import com.addiyon.keyboard.emoji.RecentEmojiStore
 import com.addiyon.keyboard.emoji.SkinToneStore
 import com.addiyon.keyboard.suggestion.AmharicPrefixCompletion
+import com.addiyon.keyboard.suggestion.AmharicCommitPolicy
 import com.addiyon.keyboard.suggestion.CandidateRanker
 import com.addiyon.keyboard.suggestion.EmailChip
 import com.addiyon.keyboard.suggestion.EmailSuggestions
@@ -302,6 +303,9 @@ class AddiyonKeyboardService : InputMethodService(),
     var isEmailField by mutableStateOf(false)
         private set
 
+    var isPrivateField by mutableStateOf(false)
+        private set
+
     // Tracked manually instead of relying on Compose's isSystemInDarkTheme(),
     // because an InputMethodService's window doesn't reliably deliver
     // configuration updates into the Compose tree the way an Activity does.
@@ -466,7 +470,7 @@ class AddiyonKeyboardService : InputMethodService(),
         // can walk back onto it and resume typing it -- see
         // [amharicCommitHistory] / [maybeResumeWordAtCursor].
         onCommit = { raw, display ->
-            if (display.isNotEmpty()) amharicCommitHistory[display] = raw
+            if (!isPrivateField && display.isNotEmpty()) amharicCommitHistory[display] = raw
         },
         editor = editorGateway
     )
@@ -524,6 +528,12 @@ class AddiyonKeyboardService : InputMethodService(),
     private fun updateSuggestions() {
         safeApply {
             if (!suggestionRefreshGate.requestRefresh()) return@safeApply
+            if (isPrivateField) {
+                invalidateSuggestionWork()
+                publishSuggestions(emptyList())
+                emailSuggestions = emptyList()
+                return@safeApply
+            }
             if (!::amharicDictionary.isInitialized) {
                 invalidateSuggestionWork()
                 publishSuggestions(emptyList())
@@ -547,74 +557,44 @@ class AddiyonKeyboardService : InputMethodService(),
             if (emailSuggestions.isNotEmpty()) emailSuggestions = emptyList()
             if (isAmharic) {
                 val latinBuffer = if (amharicComposer.isComposing) amharicComposer.raw else ""
+                val context = captureNgramContext(NgramContext.AMHARIC, amharicComposer)
                 if (latinBuffer.isEmpty()) {
                     invalidateSuggestionWork()
-                    // Word boundary: the field text before the (next) composing
-                    // region can change here, so the per-word caches are stale.
                     composingNgramBoost = null
                     composingPredictionCasing = emptyMap()
                     amharicSuggestionCache.clear()
                     amharicCommitCandidateCache.clear()
-                    // Nothing composing: offer next-word PREDICTIONS from the
-                    // committed words before the cursor (empty when there's no
-                    // usable context, restoring the toolbar icons).
-                    publishSuggestions(
-                        ngramPredictions(if (isLowRam) 3 else NEXT_WORD_LIMIT).map { it.word },
-                        arePredictions = true
+                    publishSuggestions(emptyList())
+                    schedulePredictionComputation(
+                        amharic = true,
+                        context = context,
+                        limit = if (isLowRam) 3 else NEXT_WORD_LIMIT
                     )
                 } else {
-                    if (composingNgramBoost == null) {
-                        composingNgramBoost = ngramPredictions(
-                            if (isLowRam) 4 else AMHARIC_SUGGESTION_LIMIT
-                        )
-                            .associate { EthiopicNormalizer.normalize(it.word) to it.weight }
-                    }
                     scheduleSuggestionComputation(
                         raw = latinBuffer,
                         amharic = true,
-                        ngramNext = composingNgramBoost ?: emptyMap(),
-                        predictionCasing = emptyMap(),
+                        context = context,
                     )
                 }
             } else {
                 val typed = if (englishComposer.isComposing) englishComposer.raw else ""
+                val context = captureNgramContext(NgramContext.ENGLISH, englishComposer)
                 if (typed.isEmpty()) {
                     invalidateSuggestionWork()
-                    // Word boundary: the committed text before the cursor can
-                    // change here, so the per-word context boost is stale.
                     composingNgramBoost = null
                     composingPredictionCasing = emptyMap()
-                    // Nothing composing: next-word PREDICTIONS from the committed
-                    // words before the cursor (empty when there's no usable
-                    // context, restoring the toolbar icons).
-                    publishSuggestions(
-                        nextWordPredictions(
-                            englishNgrams,
-                            NgramContext.ENGLISH,
-                            englishComposer,
-                            if (isLowRam) 3 else NEXT_WORD_LIMIT,
-                        ).map { it.word },
-                        arePredictions = true
+                    publishSuggestions(emptyList())
+                    schedulePredictionComputation(
+                        amharic = false,
+                        context = context,
+                        limit = if (isLowRam) 3 else NEXT_WORD_LIMIT
                     )
                 } else {
-                    if (composingNgramBoost == null) {
-                        val predictions = nextWordPredictions(
-                            englishNgrams,
-                            NgramContext.ENGLISH,
-                            englishComposer,
-                            if (isLowRam) 4 else ENGLISH_NGRAM_CONTEXT_LIMIT,
-                        )
-                        composingNgramBoost =
-                            predictions.associate { englishFold(it.word) to it.weight }
-                        composingPredictionCasing = predictions
-                            .filter { it.word != it.word.lowercase() }
-                            .associate { englishFold(it.word) to it.word }
-                    }
                     scheduleSuggestionComputation(
                         raw = typed,
                         amharic = false,
-                        ngramNext = composingNgramBoost ?: emptyMap(),
-                        predictionCasing = composingPredictionCasing,
+                        context = context,
                     )
                 }
             }
@@ -668,31 +648,93 @@ class AddiyonKeyboardService : InputMethodService(),
     private fun scheduleSuggestionComputation(
         raw: String,
         amharic: Boolean,
-        ngramNext: Map<String, Int>,
-        predictionCasing: Map<String, String>,
+        context: NgramContext.Context,
     ) {
         val generation = ++suggestionGeneration
         val lowRam = isLowRam
+        val ngramModel = ngramModelFor(amharic)
         suggestionExecutor.queue.clear()
         suggestionExecutor.execute {
             try {
                 android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
             } catch (_: Throwable) {
             }
-            val computed = if (amharic) {
-                amharicSuggestions(raw, ngramNext, lowRam)
+            val predictionLimit = if (amharic) {
+                if (lowRam) 4 else AMHARIC_SUGGESTION_LIMIT
             } else {
-                englishSuggestions(raw, ngramNext, predictionCasing, lowRam)
+                if (lowRam) 4 else ENGLISH_NGRAM_CONTEXT_LIMIT
+            }
+            val predictions = try {
+                ngramModel?.let { predictionsFor(it, context, predictionLimit) }.orEmpty()
+            } catch (_: RuntimeException) {
+                emptyList()
+            }
+            val ngramNext = predictions.associate {
+                (if (amharic) EthiopicNormalizer.normalize(it.word) else englishFold(it.word)) to
+                    it.weight
+            }
+            val predictionCasing = if (amharic) {
+                emptyMap()
+            } else {
+                predictions
+                    .filter { it.word != it.word.lowercase() }
+                    .associate { englishFold(it.word) to it.word }
+            }
+            val computed = try {
+                if (amharic) {
+                    amharicSuggestions(raw, ngramNext, lowRam)
+                } else {
+                    englishSuggestions(raw, ngramNext, predictionCasing, lowRam)
+                }
+            } catch (_: RuntimeException) {
+                emptyList()
             }
             suggestionMainHandler.post {
                 if (generation != suggestionGeneration) return@post
                 if (isAmharic != amharic || isEmailField) return@post
                 val currentRaw = if (amharic) amharicComposer.raw else englishComposer.raw
                 if (currentRaw != raw) return@post
+                composingNgramBoost = ngramNext
+                composingPredictionCasing = predictionCasing
                 publishSuggestions(computed)
             }
         }
     }
+
+    private fun schedulePredictionComputation(
+        amharic: Boolean,
+        context: NgramContext.Context,
+        limit: Int,
+    ) {
+        val generation = ++suggestionGeneration
+        val ngramModel = ngramModelFor(amharic)
+        suggestionExecutor.queue.clear()
+        suggestionExecutor.execute {
+            try {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            } catch (_: Throwable) {
+            }
+            val predictions = try {
+                ngramModel?.let { predictionsFor(it, context, limit) }
+                    .orEmpty()
+                    .map { it.word }
+            } catch (_: RuntimeException) {
+                emptyList()
+            }
+            suggestionMainHandler.post {
+                if (generation != suggestionGeneration) return@post
+                if (isAmharic != amharic || isEmailField || activeComposer.isComposing) return@post
+                publishSuggestions(predictions, arePredictions = true)
+            }
+        }
+    }
+
+    private fun ngramModelFor(amharic: Boolean): SQLiteNgramModel? =
+        if (amharic) {
+            if (::amharicNgrams.isInitialized) amharicNgrams else null
+        } else {
+            if (::englishNgrams.isInitialized) englishNgrams else null
+        }
 
     /**
      * Per-word caches. While a word is composing, the committed text before
@@ -739,34 +781,34 @@ class AddiyonKeyboardService : InputMethodService(),
      * and would read as a hard boundary, so it's stripped from the tail first
      * ([composer]'s raw buffer).
      */
-    private fun nextWordPredictions(
-        ngrams: SQLiteNgramModel,
+    private fun captureNgramContext(
         contextReader: NgramContext,
         composer: WordComposer,
-        limit: Int
-    ): List<SQLiteNgramModel.Prediction> {
-        return safeRun(emptyList()) {
+    ): NgramContext.Context {
+        return safeRun(NgramContext.EMPTY) {
             val raw = if (composer.isComposing) composer.raw else ""
             val before = editorGateway
                 .textBeforeCursor(NgramContext.WINDOW + raw.length)
                 ?.value
-                ?: return@safeRun emptyList()
+                ?: return@safeRun NgramContext.EMPTY
             val field = if (raw.isNotEmpty() && before.endsWith(raw)) {
                 before.subSequence(0, before.length - raw.length)
             } else {
                 before
             }
-            val context = contextReader.extract(field)
-            val prev1 = context.prev1 ?: return@safeRun emptyList()
-            ngrams.predict(context.prev2, prev1, limit)
+            contextReader.extract(field)
         }
     }
 
-    /** Amharic next-word predictions -- see [nextWordPredictions]. */
-    private fun ngramPredictions(limit: Int): List<SQLiteNgramModel.Prediction> =
+    private fun predictionsFor(
+        ngrams: SQLiteNgramModel,
+        context: NgramContext.Context,
+        limit: Int,
+    ): List<SQLiteNgramModel.Prediction> =
         safeRun(emptyList()) {
-            if (!::amharicNgrams.isInitialized || !amharicNgrams.isReady) return@safeRun emptyList()
-            nextWordPredictions(amharicNgrams, NgramContext.AMHARIC, amharicComposer, limit)
+            val prev1 = context.prev1 ?: return@safeRun emptyList()
+            if (!ngrams.isReady) return@safeRun emptyList()
+            ngrams.predict(context.prev2, prev1, limit)
         }
 
     /**
@@ -776,20 +818,7 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     private fun topAmharicCandidate(raw: String): String {
         return safeRun(Transliterator.transliterate(raw)) {
-            if (raw.isEmpty()) return@safeRun ""
-            amharicCommitCandidateCache[raw]?.let { return@safeRun it }
-            if (!::amharicDictionary.isInitialized) return@safeRun Transliterator.transliterate(raw)
-            val candidateReadings = Transliterator.candidateReadings(raw)
-            val readingTexts = candidateReadings.map { it.text }
-            val frequencies = amharicDictionary.frequenciesOf(readingTexts)
-            val candidate = CandidateRanker.bestCommitCandidate(
-                readingTexts,
-                frequencies::get,
-                quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet(),
-                preferGreedy = Transliterator.hasExplicitFamilySelection(raw)
-            ) ?: Transliterator.transliterate(raw)
-            amharicCommitCandidateCache[raw] = candidate
-            candidate
+            AmharicCommitPolicy.resolve(raw, amharicCommitCandidateCache[raw])
         }
     }
 
@@ -1153,6 +1182,7 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun onVoiceInput() {
         safeApply {
+            if (isPrivateField) return@safeApply
             if (voiceUiState is VoiceUiState.Listening) {
                 voiceInputController?.stop()
                 finalizeVoiceComposing()
@@ -1647,6 +1677,7 @@ class AddiyonKeyboardService : InputMethodService(),
             // shouldn't get one.
             fieldAllowsAutoCap = InputTypePolicy.allowsAutoCap(inputType)
             isEmailField = InputTypePolicy.isEmailInputType(inputType)
+            isPrivateField = InputTypePolicy.isPrivateInputType(inputType)
         }
     }
 
@@ -2309,7 +2340,9 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     private fun maybeResumeWordAtCursor(cursorPosition: Int) {
         safeApply {
-            if (cursorPosition <= 0 || isNumberMode || showEmojiPanel) return@safeApply
+            if (cursorPosition <= 0 || isNumberMode || showEmojiPanel || isPrivateField) {
+                return@safeApply
+            }
             if (voiceUiState.isVoiceMode || suggestionRefreshGate.isDeleteGestureActive) return@safeApply
             if (activeComposer.isComposing) return@safeApply
             val afterRead = editorGateway.textAfterCursor(1) ?: return@safeApply

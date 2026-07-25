@@ -93,6 +93,7 @@ fun KeyboardScreen(
         isAmharic = isAmharic,
         isNumberMode = isNumberMode,
         isEmailField = service.isEmailField,
+        isPrivateField = service.isPrivateField,
         numbersMode = service.numbersMode,
         shiftState = service.shiftState,
         enterAction = service.enterAction,

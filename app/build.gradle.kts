@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.baselineprofile)
 
 
 }
@@ -135,6 +136,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            manifestPlaceholders["imeTestComponentsEnabled"] = "false"
             ndk {
                 debugSymbolLevel = "SYMBOL_TABLE"
             }
@@ -146,6 +148,16 @@ android {
             // fresh checkout can still `assembleRelease` (just not upload it).
             signingConfig = signingConfigs.findByName("release")
         }
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
+    }
+    sourceSets {
+        getByName("benchmark").java.srcDir("src/debug/java")
+        maybeCreate("benchmarkRelease").java.srcDir("src/debug/java")
+        maybeCreate("nonMinifiedRelease").java.srcDir("src/debug/java")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -202,7 +214,46 @@ dependencies {
     implementation(libs.androidx.activity.compose.v191)
     implementation(libs.androidx.profileinstaller)
     implementation(libs.play.review)
+    baselineProfile(project(":benchmark"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+kotlin {
+    sourceSets {
+        getByName("benchmark").kotlin.srcDir("src/debug/java")
+        getByName("benchmarkRelease").kotlin.srcDir("src/debug/java")
+        getByName("nonMinifiedRelease").kotlin.srcDir("src/debug/java")
+    }
+}
+
+androidComponents {
+    onVariants(selector().withName("benchmarkRelease")) {
+        it.manifestPlaceholders.put("imeTestComponentsEnabled", "true")
+    }
+    onVariants(selector().withName("nonMinifiedRelease")) {
+        it.manifestPlaceholders.put("imeTestComponentsEnabled", "true")
+    }
+}
+
+composeCompiler {
+    reportsDestination = layout.buildDirectory.dir("compose-reports")
+    metricsDestination = layout.buildDirectory.dir("compose-metrics")
+}
+
+baselineProfile {
+    automaticGenerationDuringBuild = false
+    dexLayoutOptimization = true
+    filter {
+        exclude("com.addiyon.keyboard.benchmarkhost.**")
+        exclude("com.addiyon.keyboard.debug.**")
+    }
+}
+
+tasks.register<Exec>("verifyReleaseArtifact") {
+    group = "verification"
+    description = "Build and verify the signed production AAB and release metadata."
+    dependsOn("bundleRelease")
+    commandLine(rootProject.file("plans/verify-release-artifact.sh"))
 }

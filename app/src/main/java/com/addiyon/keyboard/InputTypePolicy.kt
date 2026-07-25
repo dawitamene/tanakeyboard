@@ -37,6 +37,17 @@ internal object InputTypePolicy {
         val variation = inputType and InputType.TYPE_MASK_VARIATION
         return variation !in NO_AUTOCAP_VARIATIONS_FOR_TESTS
     }
+
+    fun isPrivateInputType(inputType: Int): Boolean {
+        val inputClass = inputType and InputType.TYPE_MASK_CLASS
+        val variation = inputType and InputType.TYPE_MASK_VARIATION
+        return when (inputClass) {
+            InputType.TYPE_CLASS_TEXT -> variation in PRIVATE_TEXT_VARIATIONS
+            InputType.TYPE_CLASS_NUMBER ->
+                variation == InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            else -> false
+        }
+    }
 }
 
 // Mirror of AddiyonKeyboardService.NO_AUTOCAP_VARIATIONS, kept in sync so
@@ -50,4 +61,10 @@ private val NO_AUTOCAP_VARIATIONS_FOR_TESTS = setOf(
     InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
     InputType.TYPE_TEXT_VARIATION_URI,
     InputType.TYPE_TEXT_VARIATION_FILTER,
+)
+
+private val PRIVATE_TEXT_VARIATIONS = setOf(
+    InputType.TYPE_TEXT_VARIATION_PASSWORD,
+    InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+    InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
 )

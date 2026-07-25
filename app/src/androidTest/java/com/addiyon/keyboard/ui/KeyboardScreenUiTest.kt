@@ -5,6 +5,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.down
+import androidx.compose.runtime.mutableStateOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.addiyon.keyboard.AddiyonKeyboardService
 import com.addiyon.keyboard.TestKeyboardHost
@@ -75,5 +78,22 @@ class KeyboardScreenUiTest {
 
         compose.onNodeWithTag(KeyboardTestTags.KEY_NUMBER_TOGGLE).performClick()
         compose.onNodeWithText("q", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun disposingKeyboardWhileCharacterPreviewIsPressedDoesNotCrash() {
+        val showKeyboard = mutableStateOf(true)
+        compose.setContent {
+            TestKeyboardHost {
+                if (showKeyboard.value) {
+                    KeyboardScreen(AddiyonKeyboardService())
+                }
+            }
+        }
+
+        compose.onNodeWithText("q", useUnmergedTree = true)
+            .performTouchInput { down(center) }
+        compose.runOnIdle { showKeyboard.value = false }
+        compose.waitForIdle()
     }
 }

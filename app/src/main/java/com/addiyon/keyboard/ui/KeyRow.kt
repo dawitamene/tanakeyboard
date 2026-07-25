@@ -19,6 +19,7 @@ import com.addiyon.keyboard.ui.keys.NumberToggleKey
 import com.addiyon.keyboard.ui.keys.ShiftKey
 import com.addiyon.keyboard.ui.keys.SpaceKey
 import com.addiyon.keyboard.ui.keys.SymbolsToggleKey
+import com.addiyon.keyboard.ui.theme.LocalLowRamKeyboard
 
 /**
  * Renders one full row of the keyboard: dispatches each key in the row to
@@ -50,6 +51,7 @@ internal fun KeyRow(
     actions: KeyboardActions,
 ) {
     val isKeypad = state.numbersMode == com.addiyon.keyboard.model.NumbersMode.KEYPAD
+    val showsCharacterPreview = !state.isPrivateField && !LocalLowRamKeyboard.current
     KeyboardRow {
         row.forEach { key ->
             when (key) {
@@ -79,6 +81,7 @@ internal fun KeyRow(
                         height = metrics.keyHeight,
                         onCharacter = actions::character,
                         onCommitText = actions::commitText,
+                        showsPreviewOnPress = showsCharacterPreview,
                         vibrateOnKeypress = state.vibrateOnKeypress,
                         soundOnKeypress = state.soundOnKeypress
                     )

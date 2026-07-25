@@ -24,4 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Addiyon Keyboard"
 include(":app")
- 
+include(":benchmark")
