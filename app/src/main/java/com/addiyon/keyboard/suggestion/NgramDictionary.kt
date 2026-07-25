@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import com.addiyon.keyboard.SafeLog
+import com.addiyon.keyboard.safeApply
 import java.util.zip.GZIPInputStream
 
 /**
@@ -43,13 +45,31 @@ class NgramDictionary(
         if (loadStarted) return
         loadStarted = true
         Thread {
-            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
-            val loaded = appContext.assets.open(assetName).use { raw ->
-                GZIPInputStream(raw).use { NgramModel.parse(it, normalize) }
+            try {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+            } catch (oom: OutOfMemoryError) {
+                SafeLog.e(oom, "NgramDictionary setThreadPriority OOM")
+            } catch (t: Throwable) {
+                SafeLog.e(t, "NgramDictionary setThreadPriority")
+            }
+            val loaded = try {
+                appContext.assets.open(assetName).use { raw ->
+                    GZIPInputStream(raw).use { NgramModel.parse(it, normalize) }
+                }
+            } catch (oom: OutOfMemoryError) {
+                SafeLog.e(oom, "NgramDictionary load OOM")
+                null
+            } catch (t: Throwable) {
+                SafeLog.e(t, "NgramDictionary load")
+                null
             }
             mainHandler.post {
-                model = loaded
-                onReady()
+                safeApply {
+                    if (loaded != null) {
+                        model = loaded
+                    }
+                    onReady()
+                }
             }
         }.start()
     }

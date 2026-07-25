@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import com.addiyon.keyboard.SafeLog
+import com.addiyon.keyboard.safeApply
 import java.util.zip.GZIPInputStream
 
 /**
@@ -89,26 +91,36 @@ class WordDictionary(
         if (loadStarted) return
         loadStarted = true
         Thread {
-            // Default thread priority competes with the UI thread for CPU; on
-            // slow/low-RAM devices that (plus the GC pauses building a
-            // ~200k-node trie triggers) is enough to stall the main thread and
-            // read as an ANR. Background priority yields to the UI thread.
-            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
-            val loaded = load()
+            try {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+            } catch (oom: OutOfMemoryError) {
+                SafeLog.e(oom, "WordDictionary setThreadPriority OOM")
+            } catch (t: Throwable) {
+                SafeLog.e(t, "WordDictionary setThreadPriority")
+            }
+            val loaded = try {
+                load()
+            } catch (oom: OutOfMemoryError) {
+                SafeLog.e(oom, "WordDictionary load OOM")
+                emptyTrieFallback()
+            } catch (t: Throwable) {
+                SafeLog.e(t, "WordDictionary load")
+                emptyTrieFallback()
+            }
             mainHandler.post {
-                trie = loaded
-                onReady()
+                safeApply {
+                    trie = loaded
+                    onReady()
+                }
             }
         }.start()
     }
 
+    private fun emptyTrieFallback(): WordTrie = WordTrie.build(emptyList(), keyChar)
+
     private fun load(): WordTrie {
         appContext.assets.open(assetName).use { raw ->
             GZIPInputStream(raw).bufferedReader(Charsets.UTF_8).useLines { lines ->
-                // Streamed straight into the trie -- no intermediate
-                // mutableListOf of ~200k pairs -- so peak memory during load
-                // is roughly just the trie itself, not the trie plus a full
-                // copy of the source data.
                 return WordTrie.build(
                     lines.mapNotNull { line ->
                         val tab = line.indexOf('\t')

@@ -26,13 +26,21 @@ class VoicePermissionActivity : ComponentActivity() {
     ) { finish() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
-            PackageManager.PERMISSION_GRANTED
-        if (granted) {
+        try {
+            super.onCreate(savedInstanceState)
+            val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
+            if (granted) {
+                finish()
+            } else {
+                requestPermission.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        } catch (oom: OutOfMemoryError) {
+            com.addiyon.keyboard.SafeLog.e(oom, "VoicePermissionActivity onCreate OOM")
             finish()
-        } else {
-            requestPermission.launch(Manifest.permission.RECORD_AUDIO)
+        } catch (t: Throwable) {
+            com.addiyon.keyboard.SafeLog.e(t, "VoicePermissionActivity onCreate")
+            finish()
         }
     }
 }

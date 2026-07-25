@@ -54,17 +54,18 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // The launch window uses Theme.AddiyonKeyboard.Splash (branded logo
-        // background) so the first frame is the splash. Swap to the real app
-        // theme before Compose draws.
-        setTheme(R.style.Theme_AddiyonKeyboard)
-        super.onCreate(savedInstanceState)
+        try {
+            // The launch window uses Theme.AddiyonKeyboard.Splash (branded logo
+            // background) so the first frame is the splash. Swap to the real app
+            // theme before Compose draws.
+            setTheme(R.style.Theme_AddiyonKeyboard)
+            super.onCreate(savedInstanceState)
 
-        screenRequest = intent?.getStringExtra(EXTRA_OPEN_SCREEN)
+            screenRequest = intent?.getStringExtra(EXTRA_OPEN_SCREEN)
 
-        enableEdgeToEdge()
+            enableEdgeToEdge()
 
-        setContent {
+            setContent {
             // The app's own UI uses the fixed Addiyon brand palette and follows
             // the system light/dark setting. The selectable keyboard palette
             // only themes the keyboard itself (AddiyonKeyboardView reads the pref
@@ -181,6 +182,26 @@ class MainActivity : ComponentActivity() {
             }
             }
         }
+        } catch (oom: OutOfMemoryError) {
+            com.addiyon.keyboard.SafeLog.e(oom, "MainActivity onCreate OOM")
+            renderFallback()
+        } catch (t: Throwable) {
+            com.addiyon.keyboard.SafeLog.e(t, "MainActivity onCreate")
+            renderFallback()
+        }
+    }
+
+    private fun renderFallback() {
+        try {
+            setContent {
+                androidx.compose.material3.Text("Addiyon Keyboard encountered a problem. Please reopen the app.")
+            }
+        } catch (oom: OutOfMemoryError) {
+            com.addiyon.keyboard.SafeLog.e(oom, "MainActivity renderFallback OOM")
+            finish()
+        } catch (_: Throwable) {
+            finish()
+        }
     }
 
     /**
@@ -192,15 +213,27 @@ class MainActivity : ComponentActivity() {
      * ignored; the user still has the explicit Rate button in Settings.
      */
     private fun maybeRequestReview() {
-        val eligible = ReviewPromptPolicy.shouldPrompt(
-            sessions = KeyboardPrefs.usageSessions(this),
-            alreadyPrompted = KeyboardPrefs.reviewPrompted(this)
-        )
-        if (!eligible) return
-        KeyboardPrefs.setReviewPrompted(this)
-        val manager = ReviewManagerFactory.create(this)
-        manager.requestReviewFlow().addOnSuccessListener { info ->
-            if (!isFinishing && !isDestroyed) manager.launchReviewFlow(this, info)
+        com.addiyon.keyboard.safeApply {
+            val eligible = ReviewPromptPolicy.shouldPrompt(
+                sessions = KeyboardPrefs.usageSessions(this),
+                alreadyPrompted = KeyboardPrefs.reviewPrompted(this)
+            )
+            if (!eligible) return@safeApply
+            KeyboardPrefs.setReviewPrompted(this)
+            val manager = try {
+                ReviewManagerFactory.create(this)
+            } catch (oom: OutOfMemoryError) {
+                com.addiyon.keyboard.SafeLog.e(oom, "ReviewManagerFactory.create OOM")
+                return@safeApply
+            } catch (t: Throwable) {
+                com.addiyon.keyboard.SafeLog.e(t, "ReviewManagerFactory.create")
+                return@safeApply
+            }
+            manager.requestReviewFlow().addOnSuccessListener { info ->
+                com.addiyon.keyboard.safeApply {
+                    if (!isFinishing && !isDestroyed) manager.launchReviewFlow(this, info)
+                }
+            }
         }
     }
 

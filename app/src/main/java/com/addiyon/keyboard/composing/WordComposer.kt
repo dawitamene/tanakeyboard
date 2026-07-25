@@ -1,6 +1,7 @@
 package com.addiyon.keyboard.composing
 
 import android.view.inputmethod.InputConnection
+import com.addiyon.keyboard.SafeLog
 
 /**
  * Owns the "currently-being-typed" word: a raw key buffer. One instance per
@@ -182,9 +183,15 @@ internal class WordComposer(
             // must end up EMPTY in the field (setComposingText("")), not
             // finalized; finishComposingText then closes the empty region's
             // bookkeeping cleanly.
-            inputConnection()?.let {
-                it.setComposingText("", 1)
-                it.finishComposingText()
+            try {
+                inputConnection()?.let {
+                    it.setComposingText("", 1)
+                    it.finishComposingText()
+                }
+            } catch (oom: OutOfMemoryError) {
+                SafeLog.e(oom, "onBackspace OOM")
+            } catch (t: Throwable) {
+                SafeLog.e(t, "onBackspace")
             }
             resumed = false
         } else {
@@ -205,7 +212,13 @@ internal class WordComposer(
         if (buffer.isEmpty()) return
         val committedRaw = raw
         val committedDisplay = commitTransform(committedRaw)
-        inputConnection()?.commitText(committedDisplay, 1)
+        try {
+            inputConnection()?.commitText(committedDisplay, 1)
+        } catch (oom: OutOfMemoryError) {
+            SafeLog.e(oom, "commit OOM")
+        } catch (t: Throwable) {
+            SafeLog.e(t, "commit")
+        }
         onCommit(committedRaw, committedDisplay)
         clearBuffer()
     }
@@ -236,26 +249,32 @@ internal class WordComposer(
      */
     fun finish() {
         if (buffer.isEmpty()) return
-        if (discardOnExit && !resumed) {
-            inputConnection()?.let {
-                it.setComposingText("", 1)
-                it.finishComposingText()
+        try {
+            if (discardOnExit && !resumed) {
+                inputConnection()?.let {
+                    it.setComposingText("", 1)
+                    it.finishComposingText()
+                }
+            } else if (discardOnExit) {
+                // Resumed: was already committed text, so it must land back as
+                // committed text (through the transform), not raw Latin.
+                val committedRaw = raw
+                val committedDisplay = commitTransform(committedRaw)
+                inputConnection()?.commitText(committedDisplay, 1)
+                onCommit(committedRaw, committedDisplay)
+            } else {
+                // The framework finalizes the still-active composing region on
+                // its own as the session ends, so DON'T commitText here (that
+                // pasted a second copy -- the historical "text appears twice
+                // after exiting the keyboard" bug); just lock in what's shown.
+                inputConnection()?.finishComposingText()
+                val committedRaw = raw
+                onCommit(committedRaw, commitTransform(committedRaw))
             }
-        } else if (discardOnExit) {
-            // Resumed: was already committed text, so it must land back as
-            // committed text (through the transform), not raw Latin.
-            val committedRaw = raw
-            val committedDisplay = commitTransform(committedRaw)
-            inputConnection()?.commitText(committedDisplay, 1)
-            onCommit(committedRaw, committedDisplay)
-        } else {
-            // The framework finalizes the still-active composing region on
-            // its own as the session ends, so DON'T commitText here (that
-            // pasted a second copy -- the historical "text appears twice
-            // after exiting the keyboard" bug); just lock in what's shown.
-            inputConnection()?.finishComposingText()
-            val committedRaw = raw
-            onCommit(committedRaw, commitTransform(committedRaw))
+        } catch (oom: OutOfMemoryError) {
+            SafeLog.e(oom, "finish OOM")
+        } catch (t: Throwable) {
+            SafeLog.e(t, "finish")
         }
         clearBuffer()
     }
@@ -296,7 +315,13 @@ internal class WordComposer(
      * the next keystroke starts a fresh word.
      */
     fun commitSuggestion(word: String) {
-        inputConnection()?.commitText("$word ", 1)
+        try {
+            inputConnection()?.commitText("$word ", 1)
+        } catch (oom: OutOfMemoryError) {
+            SafeLog.e(oom, "commitSuggestion OOM")
+        } catch (t: Throwable) {
+            SafeLog.e(t, "commitSuggestion")
+        }
         clearBuffer()
     }
 
@@ -330,16 +355,22 @@ internal class WordComposer(
      */
     fun abandon() {
         if (buffer.isEmpty()) return
-        if (discardOnExit && !resumed) {
-            inputConnection()?.let {
-                it.setComposingText("", 1)
-                it.finishComposingText()
+        try {
+            if (discardOnExit && !resumed) {
+                inputConnection()?.let {
+                    it.setComposingText("", 1)
+                    it.finishComposingText()
+                }
+            } else {
+                val committedRaw = raw
+                val committedDisplay = commitTransform(committedRaw)
+                inputConnection()?.finishComposingText()
+                onCommit(committedRaw, committedDisplay)
             }
-        } else {
-            val committedRaw = raw
-            val committedDisplay = commitTransform(committedRaw)
-            inputConnection()?.finishComposingText()
-            onCommit(committedRaw, committedDisplay)
+        } catch (oom: OutOfMemoryError) {
+            SafeLog.e(oom, "abandon OOM")
+        } catch (t: Throwable) {
+            SafeLog.e(t, "abandon")
         }
         clearBuffer()
     }
@@ -351,6 +382,12 @@ internal class WordComposer(
     }
 
     private fun pushComposing() {
-        inputConnection()?.setComposingText(raw, 1)
+        try {
+            inputConnection()?.setComposingText(raw, 1)
+        } catch (oom: OutOfMemoryError) {
+            SafeLog.e(oom, "pushComposing OOM")
+        } catch (t: Throwable) {
+            SafeLog.e(t, "pushComposing")
+        }
     }
 }

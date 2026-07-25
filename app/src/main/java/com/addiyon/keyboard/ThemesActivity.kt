@@ -19,17 +19,35 @@ import com.addiyon.keyboard.ui.theme.AddiyonBrandTheme
 class ThemesActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            ProvideAppLocalization {
-                AddiyonBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
-                    ThemesScreen(
-                        onBack = { finish() },
-                        onPaletteChosen = { finish() }
-                    )
+        try {
+            super.onCreate(savedInstanceState)
+            enableEdgeToEdge()
+            setContent {
+                ProvideAppLocalization {
+                    AddiyonBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
+                        ThemesScreen(
+                            onBack = { finish() },
+                            onPaletteChosen = { finish() }
+                        )
+                    }
                 }
             }
+        } catch (oom: OutOfMemoryError) {
+            com.addiyon.keyboard.SafeLog.e(oom, "ThemesActivity onCreate OOM")
+            renderFallback()
+        } catch (t: Throwable) {
+            com.addiyon.keyboard.SafeLog.e(t, "ThemesActivity onCreate")
+            renderFallback()
+        }
+    }
+
+    private fun renderFallback() {
+        try {
+            setContent {
+                androidx.compose.material3.Text("Addiyon Keyboard encountered a problem. Please reopen the app.")
+            }
+        } catch (_: Throwable) {
+            finish()
         }
     }
 }

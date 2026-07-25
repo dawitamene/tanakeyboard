@@ -8,6 +8,8 @@ import android.os.Process
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.addiyon.keyboard.SafeLog
+import com.addiyon.keyboard.safeApply
 import java.util.zip.GZIPInputStream
 
 /**
@@ -52,11 +54,27 @@ class EmojiRepository(context: Context, private val assetName: String = "emoji.d
         if (loadStarted) return
         loadStarted = true
         Thread {
-            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
-            val loaded = load()
+            try {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+            } catch (oom: OutOfMemoryError) {
+                SafeLog.e(oom, "EmojiRepository setThreadPriority OOM")
+            } catch (t: Throwable) {
+                SafeLog.e(t, "EmojiRepository setThreadPriority")
+            }
+            val loaded = try {
+                load()
+            } catch (oom: OutOfMemoryError) {
+                SafeLog.e(oom, "EmojiRepository load OOM")
+                null
+            } catch (t: Throwable) {
+                SafeLog.e(t, "EmojiRepository load")
+                null
+            }
             mainHandler.post {
-                data = loaded
-                onReady()
+                safeApply {
+                    data = loaded
+                    onReady()
+                }
             }
         }.start()
     }
