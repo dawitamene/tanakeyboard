@@ -46,6 +46,8 @@ import com.addiyon.keyboard.emoji.RecentEmojiStore
 import com.addiyon.keyboard.emoji.SkinToneStore
 import com.addiyon.keyboard.suggestion.AmharicPrefixCompletion
 import com.addiyon.keyboard.suggestion.CandidateRanker
+import com.addiyon.keyboard.suggestion.EmailChip
+import com.addiyon.keyboard.suggestion.EmailSuggestions
 import com.addiyon.keyboard.suggestion.NgramContext
 import com.addiyon.keyboard.suggestion.NgramDictionary
 import com.addiyon.keyboard.suggestion.NgramModel
@@ -337,6 +339,18 @@ class AddiyonKeyboardService : InputMethodService(),
         private set
 
     /**
+     * Email-domain suggestion chips shown in place of [suggestions] while
+     * the user types in an email-typed field. Each chip has a [EmailChip.display]
+     * label (what the chip shows -- the domain suffix only) and an
+     * [EmailChip.commit] payload (what gets written to the field on tap --
+     * the typed local part plus the suffix). Empty outside email fields and
+     * while nothing is being composed (we only show chips once the user has
+     * typed at least one character of the email token).
+     */
+    var emailSuggestions by mutableStateOf<List<EmailChip>>(emptyList())
+        private set
+
+    /**
      * True when [suggestions] holds next-word PREDICTIONS (empty Amharic
      * buffer, context from the field) rather than completions of a word
      * being typed. The strip renders prediction chips without the chip-0
@@ -439,7 +453,7 @@ class AddiyonKeyboardService : InputMethodService(),
     )
 
     private val activeComposer: WordComposer
-        get() = if (isAmharic) amharicComposer else englishComposer
+        get() = if (isEmailField) englishComposer else if (isAmharic) amharicComposer else englishComposer
 
     // Built in onCreate(), not as property initializers here -- Context
     // isn't safely usable (applicationContext etc.) until attachBaseContext
@@ -472,6 +486,21 @@ class AddiyonKeyboardService : InputMethodService(),
             publishSuggestions(emptyList())
             return
         }
+        // Email fields have their own suggestion pipeline: domain-suffix chips
+        // (@gmail.com / .com / ...) instead of dictionary completions. Typing
+        // is routed through englishComposer in onCharacter regardless of the
+        // user's current language mode, so englishComposer.raw is the email
+        // token regardless of isAmharic. Empty composer -> empty chips ->
+        // the strip falls back to the toolbar icons (we only show chips once
+        // the user has typed >=1 char of the email token).
+        if (isEmailField) {
+            val token = if (englishComposer.isComposing) englishComposer.raw else ""
+            publishEmailSuggestions(EmailSuggestions.emailChipsFor(token))
+            return
+        }
+        // Non-email field: clear any email chips that may have lingered from
+        // a previous input session before publishing word suggestions.
+        if (emailSuggestions.isNotEmpty()) emailSuggestions = emptyList()
         if (isAmharic) {
             val latinBuffer = if (amharicComposer.isComposing) amharicComposer.raw else ""
             if (latinBuffer.isEmpty()) {
@@ -595,6 +624,17 @@ class AddiyonKeyboardService : InputMethodService(),
         if (suggestions != value) suggestions = value
         val predictions = arePredictions && value.isNotEmpty()
         if (suggestionsArePredictions != predictions) suggestionsArePredictions = predictions
+    }
+
+    /**
+     * Push the email-domain chip list into the [emailSuggestions] state and
+     * ensure the regular word-suggestion list is empty (the strip picks
+     * email chips when this list is non-empty -- see SuggestionBar). Idempotent.
+     */
+    private fun publishEmailSuggestions(value: List<EmailChip>) {
+        if (emailSuggestions != value) emailSuggestions = value
+        if (suggestions.isNotEmpty()) suggestions = emptyList()
+        if (suggestionsArePredictions) suggestionsArePredictions = false
     }
 
     /**
@@ -1259,8 +1299,6 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     private fun resolveAutoCap(editorInfo: EditorInfo?) {
         val inputType = editorInfo?.inputType ?: 0
-        val isText = inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_TEXT
-        val variation = inputType and InputType.TYPE_MASK_VARIATION
         // Default-ON for ordinary text fields (Gboard/SwiftKey behavior),
         // rather than only when the editor opts in via
         // TYPE_TEXT_FLAG_CAP_SENTENCES -- most apps never set that flag, so
@@ -1268,11 +1306,8 @@ class AddiyonKeyboardService : InputMethodService(),
         // NO_AUTOCAP_VARIATIONS deny-list (password/email/URI/filter) plus the
         // text-class check are what keep a stray capital out of the fields that
         // shouldn't get one.
-        fieldAllowsAutoCap = isText && variation !in NO_AUTOCAP_VARIATIONS
-        isEmailField = isText && (
-            variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS ||
-                variation == InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS
-            )
+        fieldAllowsAutoCap = InputTypePolicy.allowsAutoCap(inputType)
+        isEmailField = InputTypePolicy.isEmailInputType(inputType)
     }
 
     /**
@@ -1354,14 +1389,29 @@ class AddiyonKeyboardService : InputMethodService(),
         leaveVoiceModeForKeyboardInput()
         val output = if (isShiftEnabled) latin.uppercase() else latin.lowercase()
 
+        // Email fields use a wider word-character set so the entire email
+        // token (local-part + '@' + domain + '.' + digits) stays in the
+        // composing region. That lets a chip tap replace the whole token in
+        // one commitText call rather than just the trailing fragment, and
+        // also keeps the live in-progress token in englishComposer.raw for
+        // the email-suggestion pipeline to key off of.
+        val wordChar = if (isEmailField) isEmailWordCharacter(output) else isWordCharacter(output)
+
         when {
             isNumberMode -> {
                 currentInputConnection?.commitText(output, 1)
             }
-            !isWordCharacter(output) -> {
+            !wordChar -> {
                 activeComposer.commit()
                 val text = if (isAmharic) Transliterator.transliterate(output) else output
                 currentInputConnection?.commitText(text, 1)
+            }
+            // Email fields: always Latin passthrough, regardless of the
+            // user's current language mode -- addresses don't transliterate.
+            // The fidel-corner preview on the Amharic layout's keys is
+            // unaffected (it's purely visual, see KeyRow / AmharicTable).
+            isEmailField -> {
+                englishComposer.onCharacter(output)
             }
             isAmharic -> {
                 amharicComposer.onCharacter(output)
@@ -1384,6 +1434,28 @@ class AddiyonKeyboardService : InputMethodService(),
      * not chop the word.
      */
     private fun isWordCharacter(output: String) = isComposingWordCharacter(output)
+
+    /**
+     * The email-field word-character predicate. Same as
+     * [isComposingWordCharacter] plus '@', '.', and ASCII digits, so the
+     * entire local-part@domain.tld token stays inside the composing region.
+     * Used only by [onCharacter] when [isEmailField] is true; the wider
+     * word-character set is intentionally local to email fields so it can't
+     * interfere with Amharic transliteration elsewhere.
+     */
+    private fun isEmailWordCharacter(output: String): Boolean {
+        if (output.isEmpty()) return false
+        for (c in output) {
+            val ok = c.isLetter() ||
+                c == '\'' ||
+                c == '`' ||
+                c == '@' ||
+                c == '.' ||
+                (c in '0'..'9')
+            if (!ok) return false
+        }
+        return true
+    }
 
     private val suggestionRefreshGate = SuggestionRefreshGate()
 
@@ -1720,6 +1792,19 @@ class AddiyonKeyboardService : InputMethodService(),
         return false
     }
 
+    override fun onStartInput(editorInfo: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(editorInfo, restarting)
+        // The EditorInfo can change between sessions even when the input view
+        // stays mounted (e.g. user taps a different field while our keyboard
+        // is still up). onStartInputView doesn't always fire in that case, so
+        // resolve the input-type flags here as well -- otherwise the
+        // fieldAllowsAutoCap / isEmailField state from the PRIOR field would
+        // survive the rebind and a stray capital could leak into an email
+        // field, or an email chip suggestion could keep showing in a plain
+        // text field. resolveAutoCap is idempotent.
+        resolveAutoCap(editorInfo)
+    }
+
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(editorInfo, restarting)
         // Fresh (non-restarting) sessions feed the engagement counter behind
@@ -1738,6 +1823,19 @@ class AddiyonKeyboardService : InputMethodService(),
         resolveEnterAction(editorInfo)
         // Whether English auto-capitalization applies in this field.
         resolveAutoCap(editorInfo)
+        // Email fields must NEVER carry an armed capital across from a prior
+        // text field: shiftState may be ShiftState.SHIFT (one-shot, left over
+        // from a sentence-end auto-cap in the previous field) or even
+        // ShiftState.CAPS_LOCK (user pressed double-shift in the previous
+        // field). resetShift() drops both. The per-key shift path in
+        // onCharacter (line 1355) would otherwise uppercase the very first
+        // letter typed into the email field, defeating
+        // fieldAllowsAutoCap == false.
+        if (isEmailField) resetShift()
+        // Email chips are not relevant outside email fields; flush them.
+        if (!isEmailField && emailSuggestions.isNotEmpty()) {
+            emailSuggestions = emptyList()
+        }
         // Numeric fields open on the phone-style keypad.
         resolveKeypadMode(editorInfo)
         updateSuggestions()

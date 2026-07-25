@@ -149,6 +149,7 @@ fun KeyboardScreen(
                     suggestions = service.suggestions,
                     isAmharic = isAmharic,
                     isPredictions = service.suggestionsArePredictions,
+                    emailSuggestions = service.emailSuggestions,
                     onTap = { word -> service.onSuggestionTapped(word) },
                     onOpenSettings = { service.openAppScreen(MainActivity.SCREEN_SETTINGS) },
                     onOpenThemes = { service.openAppScreen(MainActivity.SCREEN_THEMES) },

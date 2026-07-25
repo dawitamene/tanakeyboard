@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.addiyon.keyboard.suggestion.EmailChip
 import com.addiyon.keyboard.voice.VoiceUiState
 import com.addiyon.keyboard.voice.isRecording
 import com.addiyon.keyboard.voice.isVoiceMode
@@ -77,6 +78,7 @@ fun SuggestionArea(
     suggestions: List<String>,
     isAmharic: Boolean,
     isPredictions: Boolean = false,
+    emailSuggestions: List<EmailChip> = emptyList(),
     onTap: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenThemes: () -> Unit,
@@ -118,7 +120,7 @@ fun SuggestionArea(
                     .padding(horizontal = 8.dp)
             )
             MicToolbarIcon(isListening = voiceUiState.isRecording, onClick = onVoice)
-        } else if (suggestions.isEmpty()) {
+        } else if (suggestions.isEmpty() && emailSuggestions.isEmpty()) {
             // AI + Clipboard kept for later, commented out for now:
             // ToolbarIcon(Icons.Outlined.AutoAwesome, "AI", onAi)
             // ToolbarIcon(Icons.Outlined.ContentPaste, "Clipboard", onClipboard)
@@ -130,10 +132,13 @@ fun SuggestionArea(
             MicToolbarIcon(isListening = false, onClick = onVoice)
         } else {
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                if (isAmharic) {
-                    AmharicSuggestionStrip(suggestions, isPredictions, onTap)
-                } else {
-                    EnglishSuggestionStrip(suggestions, onTap)
+                when {
+                    emailSuggestions.isNotEmpty() ->
+                        EmailSuggestionStrip(emailSuggestions, onTap)
+                    isAmharic ->
+                        AmharicSuggestionStrip(suggestions, isPredictions, onTap)
+                    else ->
+                        EnglishSuggestionStrip(suggestions, onTap)
                 }
             }
             MicToolbarIcon(isListening = false, onClick = onVoice)
@@ -332,6 +337,72 @@ private fun RowScope.EnglishSuggestionSlot(
                 overflow = TextOverflow.Ellipsis,
                 autoSize = TextAutoSize.StepBased(
                     minFontSize = 15.sp,
+                    maxFontSize = 16.sp,
+                    stepSize = 1.sp
+                ),
+                style = TextStyle(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                ),
+                modifier = Modifier.padding(horizontal = 6.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Email-domain chips: same three-slot equal-width layout as the English
+ * strip, but each chip's [EmailChip.display] label is what's shown (just
+ * the domain suffix, not the full address) while the chip tap invokes
+ * [onTap] with [EmailChip.commit] (the full text that lands in the field,
+ * e.g. "jo@gmail.com" rather than "@gmail.com").
+ */
+@Composable
+private fun EmailSuggestionStrip(
+    chips: List<EmailChip>,
+    onTap: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .background(MaterialTheme.colorScheme.background),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        for (i in 0 until 3) {
+            EmailSuggestionSlot(chip = chips.getOrNull(i), onTap = onTap)
+            if (i < 2) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight(0.5f)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.EmailSuggestionSlot(
+    chip: EmailChip?,
+    onTap: (String) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .clickable(enabled = chip != null) { chip?.let { onTap(it.commit) } },
+        contentAlignment = Alignment.Center
+    ) {
+        if (chip != null) {
+            BasicText(
+                text = chip.display,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = 14.sp,
                     maxFontSize = 16.sp,
                     stepSize = 1.sp
                 ),
