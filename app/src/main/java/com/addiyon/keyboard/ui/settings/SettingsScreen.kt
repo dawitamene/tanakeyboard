@@ -41,14 +41,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import com.addiyon.keyboard.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.addiyon.keyboard.ExternalActions
 import com.addiyon.keyboard.KeyboardStatusSnapshot
+import com.addiyon.keyboard.R
+import com.addiyon.keyboard.ui.AppBrandHeader
 import com.addiyon.keyboard.ui.feedback.FeedbackOptions
 import com.addiyon.keyboard.ui.feedback.openFeedbackTelegram
 import com.addiyon.keyboard.ui.feedback.sendFeedbackEmail
-import com.addiyon.keyboard.ui.AppBrandHeader
 import com.addiyon.keyboard.ui.i18n.LanguageToggle
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 
@@ -88,14 +89,17 @@ fun SettingsScreen(
 
     fun rateApp() {
         val pkg = context.packageName
-        // market:// opens the Play Store app directly; web URL is the fallback.
         val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg"))
-        if (context.packageManager.resolveActivity(market, 0) != null) {
-            context.startActivity(market)
+        if (ExternalActions.canResolve(context, market)) {
+            ExternalActions.start(context, market, "Unable to open the app store.")
         } else {
-            context.startActivity(
-                Intent(Intent.ACTION_VIEW,
-                    Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))
+            ExternalActions.start(
+                context,
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://play.google.com/store/apps/details?id=$pkg")
+                ),
+                "No app store or browser is available."
             )
         }
     }
@@ -106,7 +110,11 @@ fun SettingsScreen(
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, strings.shareTextFormat.format(link))
         }
-        context.startActivity(Intent.createChooser(intent, strings.shareChooserTitle))
+        ExternalActions.start(
+            context,
+            Intent.createChooser(intent, strings.shareChooserTitle),
+            "No app is available to share this link."
+        )
     }
 
     Scaffold(

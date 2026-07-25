@@ -14,11 +14,9 @@ import android.os.Looper
 import android.os.StrictMode
 import android.os.SystemClock
 import android.text.InputType
-import android.view.KeyEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.ExtractedTextRequest
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.compose.runtime.getValue
@@ -280,6 +278,9 @@ class AddiyonKeyboardService : InputMethodService(),
     // Reconciles the in-flight utterance with the field's composing region;
     // see VoiceComposer for the dictation model.
     private val voiceComposer = VoiceComposer()
+    internal val editorGateway = EditorGateway(
+        connectionProvider = { currentInputConnection }
+    )
 
     // What the Enter key should show and do in the current field, derived from
     // its IME action (see [resolveEnterAction], refreshed per input session in
@@ -466,7 +467,8 @@ class AddiyonKeyboardService : InputMethodService(),
         // [amharicCommitHistory] / [maybeResumeWordAtCursor].
         onCommit = { raw, display ->
             if (display.isNotEmpty()) amharicCommitHistory[display] = raw
-        }
+        },
+        editor = editorGateway
     )
 
     /**
@@ -485,7 +487,8 @@ class AddiyonKeyboardService : InputMethodService(),
         }
 
     private val englishComposer = WordComposer(
-        inputConnection = { currentInputConnection }
+        inputConnection = { currentInputConnection },
+        editor = editorGateway
     )
 
     private val activeComposer: WordComposer
@@ -744,8 +747,9 @@ class AddiyonKeyboardService : InputMethodService(),
     ): List<SQLiteNgramModel.Prediction> {
         return safeRun(emptyList()) {
             val raw = if (composer.isComposing) composer.raw else ""
-            val before = currentInputConnection
-                ?.getTextBeforeCursor(NgramContext.WINDOW + raw.length, 0)
+            val before = editorGateway
+                .textBeforeCursor(NgramContext.WINDOW + raw.length)
+                ?.value
                 ?: return@safeRun emptyList()
             val field = if (raw.isNotEmpty() && before.endsWith(raw)) {
                 before.subSequence(0, before.length - raw.length)
@@ -1120,7 +1124,7 @@ class AddiyonKeyboardService : InputMethodService(),
             if (target == MainActivity::class.java) {
                 intent.putExtra(MainActivity.EXTRA_OPEN_SCREEN, screen)
             }
-            startActivity(intent)
+            ExternalActions.start(this, intent, "Unable to open Tana Keyboard.")
         }
     }
 
@@ -1179,7 +1183,17 @@ class AddiyonKeyboardService : InputMethodService(),
                 pendingVoiceStartAfterPermission = true
                 val intent = Intent(this, VoicePermissionActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                runCatching { startActivity(intent) }
+                if (!ExternalActions.start(
+                        this,
+                        intent,
+                        "Unable to open microphone permission."
+                    )
+                ) {
+                    pendingVoiceStartAfterPermission = false
+                    voiceUiState = VoiceUiState.Unavailable(
+                        VoiceErrorKind.PERMISSION.userMessage
+                    )
+                }
                 return@safeApply
             }
 
@@ -1219,10 +1233,13 @@ class AddiyonKeyboardService : InputMethodService(),
     private fun onVoicePartialResult(text: String) {
         safeApply {
             if (voiceUiState !is VoiceUiState.Listening) return@safeApply
-            val ic = currentInputConnection ?: return@safeApply
             val charBefore = if (voiceComposer.isComposing) null
-            else ic.getTextBeforeCursor(1, 0)?.lastOrNull()
-            voiceComposer.updatePartial(text, charBefore)?.let { ic.setComposingText(it, 1) }
+            else editorGateway.textBeforeCursor(1, optional = false)?.value?.lastOrNull()
+            voiceComposer.updatePartial(text, charBefore)?.let { partial ->
+                if (!editorGateway.setComposingText(partial)) {
+                    stopVoiceAfterEditorFailure()
+                }
+            }
         }
     }
 
@@ -1234,13 +1251,21 @@ class AddiyonKeyboardService : InputMethodService(),
     private fun onVoiceFinalResult(text: String) {
         safeApply {
             if (voiceUiState !is VoiceUiState.Listening) return@safeApply
-            val ic = currentInputConnection ?: return@safeApply
             val charBefore = if (voiceComposer.isComposing) null
-            else ic.getTextBeforeCursor(1, 0)?.lastOrNull()
+            else editorGateway.textBeforeCursor(1, optional = false)?.value?.lastOrNull()
             val commit = voiceComposer.finalize(text, charBefore) ?: return@safeApply
 
-            ic.commitText(commit.text, 1)
+            if (!editorGateway.commitText(commit.text)) {
+                editorGateway.finishComposingText()
+                stopVoiceAfterEditorFailure()
+            }
         }
+    }
+
+    private fun stopVoiceAfterEditorFailure() {
+        voiceInputController?.stop()
+        voiceComposer.reset()
+        voiceUiState = VoiceUiState.Unavailable(VoiceErrorKind.UNKNOWN.userMessage)
     }
 
     private fun onVoiceFatalError(kind: VoiceErrorKind) {
@@ -1271,7 +1296,7 @@ class AddiyonKeyboardService : InputMethodService(),
     private fun finalizeVoiceComposing() {
         safeApply {
             if (!voiceComposer.isComposing) return@safeApply
-            currentInputConnection?.finishComposingText()
+            editorGateway.finishComposingText()
             voiceComposer.onFinalizedExternally()
         }
     }
@@ -1316,7 +1341,7 @@ class AddiyonKeyboardService : InputMethodService(),
         safeApply {
             val intent = Intent(this, FeedbackActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            runCatching { startActivity(intent) }
+            ExternalActions.start(this, intent, "Unable to open feedback.")
         }
     }
 
@@ -1391,7 +1416,7 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun commitEmoji(emoji: String) {
         safeApply {
-            currentInputConnection?.commitText(emoji, 1)
+            editorGateway.commitText(emoji)
             recentEmojiStore.recordUse(emoji)
         }
     }
@@ -1648,7 +1673,7 @@ class AddiyonKeyboardService : InputMethodService(),
             if (isAmharic || isNumberMode || !fieldAllowsAutoCap) return@safeApply
             if (shiftState != ShiftState.OFF || activeComposer.isComposing) return@safeApply
             val before = textBeforeCursor
-                ?: currentInputConnection?.getTextBeforeCursor(SENTENCE_LOOKBEHIND, 0)
+                ?: editorGateway.textBeforeCursor(SENTENCE_LOOKBEHIND)?.value
             if (SentenceCase.startsNewSentence(before)) {
                 shiftState = ShiftState.SHIFT
             }
@@ -1795,8 +1820,9 @@ class AddiyonKeyboardService : InputMethodService(),
     private fun maybeResumeWordAfterDeleteRepeat() {
         safeApply {
             if (activeComposer.isComposing) return@safeApply
-            val extracted = currentInputConnection
-                ?.getExtractedText(ExtractedTextRequest(), 0)
+            val extracted = editorGateway
+                .extractedText()
+                ?.value
                 ?: return@safeApply
             if (extracted.selectionStart != extracted.selectionEnd) return@safeApply
             maybeResumeWordAtCursor(extracted.startOffset + extracted.selectionStart)
@@ -1835,7 +1861,9 @@ class AddiyonKeyboardService : InputMethodService(),
             leaveVoiceModeForKeyboardInput()
             if (activeComposer.isComposing) {
                 val raw = activeComposer.raw
-                val before = currentInputConnection?.getTextBeforeCursor(raw.length, 0)
+                val before = editorGateway
+                    .textBeforeCursor(raw.length, optional = false)
+                    ?.value
                 if (!isComposerTextImmediatelyBeforeCursor(raw, before)) {
                     activeComposer.abandon()
                 }
@@ -1844,27 +1872,13 @@ class AddiyonKeyboardService : InputMethodService(),
                 updateSuggestions()
                 return@safeApply
             }
-            safeIc { ic ->
-                // If the user has a selection, backspace should delete the whole
-                // selection. deleteSurroundingText ignores the selection and would
-                // instead delete a character just before it, leaving the selected
-                // text untouched -- so replace the selection with empty text
-                // (commitText on a selection removes it). Only fall back to
-                // deleting one preceding character when nothing is selected.
-                val selected = ic.getSelectedText(0)
-                if (!selected.isNullOrEmpty()) {
-                    ic.commitText("", 1)
-                } else {
-                    // Delete a whole emoji cluster, not one UTF-16 unit -- a
-                    // naive (1, 0) would strand half a surrogate pair or behead
-                    // a ZWJ sequence joint by joint. For plain BMP text the
-                    // cluster length is 1, same as before. 32 units of context
-                    // covers the longest real sequences (a family is 11, the
-                    // two-tone handshake 15).
-                    val before = ic.getTextBeforeCursor(32, 0)
-                    val cluster = EmojiBackspace.lastClusterLength(before ?: "")
-                    ic.deleteSurroundingText(cluster.coerceAtLeast(1), 0)
-                }
+            val selected = editorGateway.selectedText()?.value
+            if (!selected.isNullOrEmpty()) {
+                editorGateway.commitText("")
+            } else {
+                val before = editorGateway.textBeforeCursor(32, optional = false)?.value
+                val cluster = EmojiBackspace.lastClusterLength(before ?: "")
+                editorGateway.deleteBeforeCursor(cluster.coerceAtLeast(1))
             }
             updateSuggestions()
         }
@@ -1907,7 +1921,7 @@ class AddiyonKeyboardService : InputMethodService(),
             // just-committed space in getTextBeforeCursor right away, so the
             // trailing space that ends the sentence ("End. ") goes missing and the
             // next word never capitalizes.
-            val beforeSpace = currentInputConnection?.getTextBeforeCursor(SENTENCE_LOOKBEHIND, 0)
+            val beforeSpace = editorGateway.textBeforeCursor(SENTENCE_LOOKBEHIND)?.value
             safeIc { it.commitText(" ", 1) }
             updateSuggestions()
             maybeAutoCapitalize(beforeSpace?.let { "$it " })
@@ -1936,20 +1950,11 @@ class AddiyonKeyboardService : InputMethodService(),
             }
             leaveVoiceModeForKeyboardInput()
             activeComposer.commit()
-            val ic = currentInputConnection
-            // Pre-newline text, for the same reason onSpace reads before committing.
-            val beforeEnter = ic?.getTextBeforeCursor(SENTENCE_LOOKBEHIND, 0)
+            val beforeEnter = editorGateway.textBeforeCursor(SENTENCE_LOOKBEHIND)?.value
             if (enterAction == EnterAction.NEWLINE) {
-                try {
-                    ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                    ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-                } catch (oom: OutOfMemoryError) {
-                    SafeLog.e(oom, "onEnter sendKeyEvent OOM")
-                } catch (t: Throwable) {
-                    SafeLog.e(t, "onEnter sendKeyEvent")
-                }
+                editorGateway.sendEnter()
             } else {
-                safeIc { it.performEditorAction(editorActionId) }
+                editorGateway.performEditorAction(editorActionId)
             }
             updateSuggestions()
             // A newline starts a fresh line -> capitalize its first letter, judged
@@ -2166,6 +2171,7 @@ class AddiyonKeyboardService : InputMethodService(),
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
         safeApply {
             super.onStartInputView(editorInfo, restarting)
+            editorGateway.beginSession()
             // Fresh (non-restarting) sessions feed the engagement counter behind
             // the one-time in-app review prompt (see ReviewPromptPolicy).
             if (!restarting) KeyboardPrefs.recordUsageSession(this)
@@ -2306,12 +2312,13 @@ class AddiyonKeyboardService : InputMethodService(),
             if (cursorPosition <= 0 || isNumberMode || showEmojiPanel) return@safeApply
             if (voiceUiState.isVoiceMode || suggestionRefreshGate.isDeleteGestureActive) return@safeApply
             if (activeComposer.isComposing) return@safeApply
-            val ic = currentInputConnection ?: return@safeApply
-            // Only the END of a word: any word character right after the caret
-            // means it landed inside one.
-            val after = ic.getTextAfterCursor(1, 0) ?: return@safeApply
+            val afterRead = editorGateway.textAfterCursor(1) ?: return@safeApply
+            val after = afterRead.value
             if (after.isNotEmpty() && (after[0].isLetter() || after[0] == '\'')) return@safeApply
-            val before = ic.getTextBeforeCursor(ResumableWord.LOOKBEHIND, 0) ?: return@safeApply
+            val beforeRead = editorGateway.textBeforeCursor(ResumableWord.LOOKBEHIND)
+                ?: return@safeApply
+            if (beforeRead.token != afterRead.token) return@safeApply
+            val before = beforeRead.value
             if (isAmharic) {
                 val fidel = ResumableWord.trailingEthiopicWord(before) ?: return@safeApply
                 val latin = amharicCommitHistory[fidel]
@@ -2320,11 +2327,21 @@ class AddiyonKeyboardService : InputMethodService(),
                 // Guard on the return value: an editor that doesn't support
                 // composing regions must not get resume()'s setComposingText,
                 // which would INSERT a duplicate instead of replacing the word.
-                if (!ic.setComposingRegion(cursorPosition - fidel.length, cursorPosition)) return@safeApply
+                if (!editorGateway.setComposingRegion(
+                        cursorPosition - fidel.length,
+                        cursorPosition,
+                        beforeRead.token
+                    )
+                ) return@safeApply
                 amharicComposer.resume(latin)
             } else {
                 val word = ResumableWord.trailingLatinWord(before) ?: return@safeApply
-                if (!ic.setComposingRegion(cursorPosition - word.length, cursorPosition)) return@safeApply
+                if (!editorGateway.setComposingRegion(
+                        cursorPosition - word.length,
+                        cursorPosition,
+                        beforeRead.token
+                    )
+                ) return@safeApply
                 englishComposer.resume(word)
             }
         }
@@ -2346,6 +2363,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 idleReleaseHandler.removeCallbacks(idleRelease)
                 idleReleaseHandler.postDelayed(idleRelease, LOW_RAM_IDLE_RELEASE_MS)
             }
+            editorGateway.endSession()
         }
     }
 
@@ -2380,7 +2398,7 @@ class AddiyonKeyboardService : InputMethodService(),
             super.onDestroy()
             currentInstance = null
             KeyboardPrefs.prefs(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
-            voiceInputController?.stop()
+            voiceInputController?.destroy()
             resetVoiceUi()
             invalidateSuggestionWork()
             suggestionExecutor.shutdownNow()

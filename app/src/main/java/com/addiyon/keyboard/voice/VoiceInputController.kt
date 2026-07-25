@@ -35,9 +35,9 @@ import com.addiyon.keyboard.safeRun
  * composing region itself (finishComposingText keeps whatever was showing),
  * so flushing here would double-commit.
  *
- * Every async edge is guarded by a [generation] token: each new session
- * bumps it, and stale listener callbacks / timers compare their captured id
- * before acting. Timers are individually-cancelled named tokens -- never
+ * Every async edge is guarded by [VoiceSessionOwnership]: each new session
+ * gets one ticket, and stale listener callbacks / timers are rejected before
+ * acting. Timers are individually-cancelled named tokens -- never
  * removeCallbacksAndMessages(null), which cancels unrelated pending work.
  */
 class VoiceInputController(
@@ -49,7 +49,7 @@ class VoiceInputController(
     private var recognizer: SpeechRecognizer? = null
     private var activeLanguageTag: String? = null
     private val handler = Handler(Looper.getMainLooper())
-    private var generation = 0
+    private val ownership = VoiceSessionOwnership()
     private var userStopped = false
     private var lastPartial = ""
     private var recoverableErrorCount = 0
@@ -80,7 +80,18 @@ class VoiceInputController(
             userStopped = true
             activeLanguageTag = null
             lastPartial = ""
-            generation++
+            ownership.invalidate()
+            cancelAllTimers()
+            releaseRecognizer(cancel = true)
+        }
+    }
+
+    fun destroy() {
+        safeApply {
+            userStopped = true
+            activeLanguageTag = null
+            lastPartial = ""
+            ownership.destroy()
             cancelAllTimers()
             releaseRecognizer(cancel = true)
         }
@@ -97,7 +108,7 @@ class VoiceInputController(
             val languageTag = activeLanguageTag ?: return@safeApply
             if (userStopped) return@safeApply
             lastPartial = ""
-            generation++
+            ownership.invalidate()
             cancelAllTimers()
             releaseRecognizer(cancel = true)
             startSession(languageTag)
@@ -110,47 +121,46 @@ class VoiceInputController(
             releaseRecognizer(cancel = false)
 
             if (!isAvailable) {
-                activeLanguageTag = null
-                onFatalError(VoiceErrorKind.UNAVAILABLE)
+                failSession(VoiceErrorKind.UNAVAILABLE)
                 return@safeApply
             }
 
-            val sessionId = ++generation
+            val session = ownership.begin() ?: return@safeApply
             val newRecognizer = try {
                 SpeechRecognizer.createSpeechRecognizer(context)
             } catch (oom: OutOfMemoryError) {
                 SafeLog.e(oom, "createSpeechRecognizer OOM")
-                onFatalError(VoiceErrorKind.UNKNOWN)
+                failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             } catch (t: Throwable) {
                 SafeLog.e(t, "createSpeechRecognizer")
-                onFatalError(VoiceErrorKind.UNKNOWN)
+                failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             }
             recognizer = newRecognizer
             try {
-                newRecognizer.setRecognitionListener(createListener(sessionId))
+                newRecognizer.setRecognitionListener(createListener(session))
             } catch (oom: OutOfMemoryError) {
                 SafeLog.e(oom, "setRecognitionListener OOM")
-                onFatalError(VoiceErrorKind.UNKNOWN)
+                failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             } catch (t: Throwable) {
                 SafeLog.e(t, "setRecognitionListener")
-                onFatalError(VoiceErrorKind.UNKNOWN)
+                failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             }
             try {
                 newRecognizer.startListening(recognizerIntent(languageTag))
             } catch (oom: OutOfMemoryError) {
                 SafeLog.e(oom, "startListening OOM")
-                onFatalError(VoiceErrorKind.UNKNOWN)
+                failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             } catch (t: Throwable) {
                 SafeLog.e(t, "startListening")
-                onFatalError(VoiceErrorKind.UNKNOWN)
+                failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             }
-            scheduleStartWatchdog(sessionId)
+            scheduleStartWatchdog(session)
         }
     }
 
@@ -204,8 +214,9 @@ class VoiceInputController(
         }
     }
 
-    private fun createListener(sessionId: Int): RecognitionListener = object : RecognitionListener {
-        private fun isCurrent() = safeRun(false) { sessionId == generation }
+    private fun createListener(session: VoiceSessionTicket): RecognitionListener =
+        object : RecognitionListener {
+        private fun isCurrent() = safeRun(false) { ownership.isCurrent(session) }
 
         override fun onReadyForSpeech(params: Bundle?) {
             safeApply {
@@ -228,7 +239,7 @@ class VoiceInputController(
         override fun onEndOfSpeech() {
             safeApply {
                 if (!isCurrent()) return@safeApply
-                scheduleSpeechEndFallback(sessionId)
+                scheduleSpeechEndFallback(session)
             }
         }
 
@@ -237,15 +248,10 @@ class VoiceInputController(
                 if (!isCurrent()) return@safeApply
                 cancelSpeechEndFallback()
                 val kind = errorKind(error)
-                if (isRecoverable(kind)) {
-                    recover(kind)
+                if (VoiceRecoveryPolicy.isRecoverable(kind)) {
+                    recover()
                 } else {
-                    // The in-flight partial stays visible in the field; the
-                    // service's fatal handler finalizes the composing region.
-                    lastPartial = ""
-                    activeLanguageTag = null
-                    releaseRecognizer(cancel = false)
-                    onFatalError(kind)
+                    failSession(kind)
                 }
             }
         }
@@ -262,7 +268,9 @@ class VoiceInputController(
                     recoverableErrorCount = 0
                     onFinal(final)
                 }
-                restartIfNeeded()
+                val restartGuard = ownership.invalidate()
+                releaseRecognizer(cancel = false)
+                restartIfNeeded(restartGuard)
             }
         }
 
@@ -279,27 +287,33 @@ class VoiceInputController(
         override fun onEvent(eventType: Int, params: Bundle?) = Unit
     }
 
-    private fun recover(kind: VoiceErrorKind) {
+    private fun recover() {
         safeApply {
             val languageTag = activeLanguageTag
             if (userStopped || languageTag == null) return@safeApply
 
             flushLastPartial()
             recoverableErrorCount++
-            if (recoverableErrorCount > MAX_RECOVERABLE_ERRORS) {
-                activeLanguageTag = null
-                releaseRecognizer(cancel = false)
-                onFatalError(VoiceErrorKind.TOO_MANY_REQUESTS)
+            if (!VoiceRecoveryPolicy.allowsRetry(recoverableErrorCount)) {
+                failSession(VoiceErrorKind.TOO_MANY_REQUESTS)
                 return@safeApply
             }
 
-            // No error surfaced to the user: silent recovery is normal churn
-            // (NO_SPEECH fires on every pause in speech). onReadyForSpeech
-            // resets the error count once a session comes up healthy.
+            val restartGuard = ownership.invalidate()
             releaseRecognizer(cancel = false)
-            val delay = RECOVERY_DELAYS[(recoverableErrorCount - 1).coerceAtMost(RECOVERY_DELAYS.lastIndex)]
-            scheduleRestart(delay, languageTag)
+            val delay = VoiceRecoveryPolicy.delayMillis(recoverableErrorCount)
+            scheduleRestart(delay, languageTag, restartGuard)
         }
+    }
+
+    private fun failSession(kind: VoiceErrorKind) {
+        userStopped = true
+        activeLanguageTag = null
+        lastPartial = ""
+        ownership.invalidate()
+        cancelAllTimers()
+        releaseRecognizer(cancel = true)
+        onFatalError(kind)
     }
 
     private fun flushLastPartial() {
@@ -311,14 +325,17 @@ class VoiceInputController(
         }
     }
 
-    private fun scheduleStartWatchdog(sessionId: Int) {
+    private fun scheduleStartWatchdog(session: VoiceSessionTicket) {
         safeApply {
             cancelStartWatchdog()
             val token = Runnable {
                 watchdogToken = null
                 safeApply {
-                    if (sessionId == generation && !userStopped && activeLanguageTag != null) {
-                        recover(VoiceErrorKind.CLIENT)
+                    if (ownership.isCurrent(session) &&
+                        !userStopped &&
+                        activeLanguageTag != null
+                    ) {
+                        recover()
                     }
                 }
             }
@@ -344,18 +361,17 @@ class VoiceInputController(
         }
     }
 
-    private fun scheduleSpeechEndFallback(sessionId: Int) {
+    private fun scheduleSpeechEndFallback(session: VoiceSessionTicket) {
         safeApply {
             cancelSpeechEndFallback()
             val token = Runnable {
                 speechEndToken = null
                 safeApply {
-                    if (sessionId == generation && !userStopped) {
-                        // Bump the generation BEFORE flushing so a late onResults
-                        // from this session is stale and can't emit a second final.
-                        generation++
+                    if (ownership.isCurrent(session) && !userStopped) {
+                        val restartGuard = ownership.invalidate()
                         flushLastPartial()
-                        restartIfNeeded()
+                        releaseRecognizer(cancel = false)
+                        restartIfNeeded(restartGuard)
                     }
                 }
             }
@@ -381,21 +397,28 @@ class VoiceInputController(
         }
     }
 
-    private fun restartIfNeeded() {
+    private fun restartIfNeeded(restartGuard: VoiceSessionTicket) {
         safeApply {
             val languageTag = activeLanguageTag
             if (userStopped || languageTag == null) return@safeApply
-            scheduleRestart(RESTART_DELAY_MILLIS, languageTag)
+            scheduleRestart(RESTART_DELAY_MILLIS, languageTag, restartGuard)
         }
     }
 
-    private fun scheduleRestart(delay: Long, languageTag: String) {
+    private fun scheduleRestart(
+        delay: Long,
+        languageTag: String,
+        restartGuard: VoiceSessionTicket
+    ) {
         safeApply {
             cancelRestart()
             val token = Runnable {
                 restartToken = null
                 safeApply {
-                    if (!userStopped && activeLanguageTag == languageTag) {
+                    if (!userStopped &&
+                        activeLanguageTag == languageTag &&
+                        ownership.isGeneration(restartGuard)
+                    ) {
                         startSession(languageTag)
                     }
                 }
@@ -450,14 +473,6 @@ class VoiceInputController(
         else -> VoiceErrorKind.UNKNOWN
     }
 
-    private fun isRecoverable(kind: VoiceErrorKind): Boolean = when (kind) {
-        VoiceErrorKind.CLIENT,
-        VoiceErrorKind.NO_SPEECH,
-        VoiceErrorKind.RECOGNIZER_BUSY,
-        VoiceErrorKind.SERVER_DISCONNECTED -> true
-        else -> false
-    }
-
     private companion object {
         const val START_WATCHDOG_MILLIS = 4500L
         const val SPEECH_END_COMMIT_GRACE_MILLIS = 600L
@@ -468,7 +483,5 @@ class VoiceInputController(
         // off via RECOVERY_DELAYS.
         const val RESTART_DELAY_MILLIS = 150L
 
-        const val MAX_RECOVERABLE_ERRORS = 4
-        val RECOVERY_DELAYS = longArrayOf(300L, 700L, 1500L, 2500L)
     }
 }

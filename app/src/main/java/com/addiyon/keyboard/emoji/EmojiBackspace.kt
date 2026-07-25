@@ -26,6 +26,12 @@ object EmojiBackspace {
     private fun isToneModifier(cp: Int) = cp in 0x1F3FB..0x1F3FF
     private fun isRegionalIndicator(cp: Int) = cp in 0x1F1E6..0x1F1FF
     private fun isVariationSelector(cp: Int) = cp == VS15 || cp == VS16
+    private fun isCombiningMark(cp: Int): Boolean = when (Character.getType(cp)) {
+        Character.NON_SPACING_MARK.toInt(),
+        Character.COMBINING_SPACING_MARK.toInt(),
+        Character.ENCLOSING_MARK.toInt() -> true
+        else -> false
+    }
 
     /**
      * Length in chars of the emoji cluster (or single code point) ending at
@@ -73,7 +79,7 @@ object EmojiBackspace {
         // General emoji sequence, scanned backward:
         //   element = base [tone] [VS], chain = element (ZWJ element)*.
         while (true) {
-            if (isToneModifier(cp) || isVariationSelector(cp)) {
+            if (isToneModifier(cp) || isVariationSelector(cp) || isCombiningMark(cp)) {
                 if (start == 0) break
                 cp = stepBack()
                 continue

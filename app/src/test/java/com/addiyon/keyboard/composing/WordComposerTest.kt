@@ -14,7 +14,7 @@ class WordComposerTest {
         val composingUpdates = mutableListOf<String>()
         var finishCount = 0
 
-        fun asInputConnection(): InputConnection =
+        private val connection: InputConnection by lazy {
             Proxy.newProxyInstance(
                 InputConnection::class.java.classLoader,
                 arrayOf(InputConnection::class.java)
@@ -40,6 +40,9 @@ class WordComposerTest {
                     }
                 }
             } as InputConnection
+        }
+
+        fun asInputConnection(): InputConnection = connection
     }
 
     // No InputConnection is needed to exercise the composer's own state
@@ -50,12 +53,15 @@ class WordComposerTest {
     private fun composer(
         commitTransform: (String) -> String = { it },
         onCommit: (raw: String, display: String) -> Unit = { _, _ -> },
-        inputConnection: () -> InputConnection? = { null }
-    ) = WordComposer(
-        inputConnection = inputConnection,
-        commitTransform = commitTransform,
-        onCommit = onCommit
-    )
+        inputConnection: (() -> InputConnection?)? = null
+    ): WordComposer {
+        val recording = RecordingInputConnection()
+        return WordComposer(
+            inputConnection = inputConnection ?: { recording.asInputConnection() },
+            commitTransform = commitTransform,
+            onCommit = onCommit
+        )
+    }
 
     @Test
     fun onCharacterAppendsToBufferAndIsComposing() {
@@ -221,7 +227,7 @@ class WordComposerTest {
     }
 
     @Test
-    fun inputConnectionLambdaIsReadForEachOperation() {
+    fun replacedInputConnectionAbandonsCompositionUntilNextSession() {
         val first = RecordingInputConnection()
         val second = RecordingInputConnection()
         var active = first.asInputConnection()
@@ -233,9 +239,10 @@ class WordComposerTest {
         c.commit()
 
         assertEquals(listOf("a"), first.composingUpdates)
-        assertEquals(listOf("ab"), second.composingUpdates)
-        assertEquals(listOf("ab"), second.commits)
+        assertEquals(emptyList<String>(), second.composingUpdates)
+        assertEquals(emptyList<String>(), second.commits)
         assertEquals(emptyList<String>(), first.commits)
+        assertFalse(c.isComposing)
     }
 
     @Test

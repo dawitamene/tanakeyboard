@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.addiyon.keyboard.ExternalActions
 import com.addiyon.keyboard.R
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 
@@ -44,7 +45,7 @@ fun sendFeedbackEmail(context: Context, subject: String, extraFlags: Int = 0) {
         putExtra(Intent.EXTRA_EMAIL, arrayOf(FEEDBACK_EMAIL))
         putExtra(Intent.EXTRA_SUBJECT, subject)
     }
-    runCatching { context.startActivity(intent) }
+    ExternalActions.start(context, intent, "No email app is available.")
 }
 
 /**
@@ -56,8 +57,8 @@ fun openFeedbackTelegram(context: Context, extraFlags: Int = 0) {
         .addFlags(extraFlags)
     val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$TELEGRAM_USERNAME"))
         .addFlags(extraFlags)
-    val target = if (context.packageManager.resolveActivity(deep, 0) != null) deep else web
-    runCatching { context.startActivity(target) }
+    val target = if (ExternalActions.canResolve(context, deep)) deep else web
+    ExternalActions.start(context, target, "Telegram or a web browser is unavailable.")
 }
 
 /**

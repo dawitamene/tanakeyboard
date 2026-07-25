@@ -1,7 +1,6 @@
 package com.addiyon.keyboard
 
 import android.os.Handler
-import android.view.inputmethod.InputConnection
 
 internal inline fun <T> safeRun(default: T, block: () -> T): T = try {
     block()
@@ -35,13 +34,6 @@ internal fun safeOnMain(handler: Handler, block: () -> Unit) {
     }
 }
 
-internal inline fun AddiyonKeyboardService.safeIc(block: (InputConnection) -> Unit) {
-    try {
-        val ic = currentInputConnection ?: return
-        block(ic)
-    } catch (oom: OutOfMemoryError) {
-        SafeLog.e(oom, "InputConnection OOM")
-    } catch (t: Throwable) {
-        SafeLog.e(t, "InputConnection")
-    }
-}
+internal inline fun AddiyonKeyboardService.safeIc(
+    crossinline block: (android.view.inputmethod.InputConnection) -> Boolean
+): Boolean = editorGateway.write { block(it) }

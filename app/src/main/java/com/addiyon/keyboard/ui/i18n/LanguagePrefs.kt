@@ -1,6 +1,7 @@
 package com.addiyon.keyboard.ui.i18n
 
 import android.content.Context
+import com.addiyon.keyboard.ui.settings.PreferenceValueSanitizer
 
 /**
  * Persists the app UI language across launches, in its own SharedPreferences
@@ -13,17 +14,30 @@ object LanguagePrefs {
     private const val KEY_LANGUAGE = "app_language"
 
     fun language(context: Context): AppLanguage {
-        val code = context
-            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_LANGUAGE, null)
-        return AppLanguage.entries.firstOrNull { it.code == code } ?: AppLanguage.ENGLISH
+        val preferences = preferences(context)
+        val raw = try {
+            preferences.all[KEY_LANGUAGE]
+        } catch (_: Throwable) {
+            null
+        }
+        val code = PreferenceValueSanitizer.string(raw, null, 16)
+        val language = AppLanguage.entries.firstOrNull { it.code == code } ?: AppLanguage.ENGLISH
+        if (raw != null && (raw !is String || raw != language.code)) {
+            try {
+                preferences.edit().putString(KEY_LANGUAGE, language.code).apply()
+            } catch (_: Throwable) {
+            }
+        }
+        return language
     }
 
     fun setLanguage(context: Context, language: AppLanguage) {
-        context
-            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_LANGUAGE, language.code)
-            .apply()
+        try {
+            preferences(context).edit().putString(KEY_LANGUAGE, language.code).apply()
+        } catch (_: Throwable) {
+        }
     }
+
+    private fun preferences(context: Context) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 }

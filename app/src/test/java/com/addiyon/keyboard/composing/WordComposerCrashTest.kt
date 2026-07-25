@@ -3,7 +3,6 @@ package com.addiyon.keyboard.composing
 import android.view.inputmethod.InputConnection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
@@ -64,11 +63,12 @@ class WordComposerCrashTest {
     }
 
     @Test
-    fun onCharacterSwallowsThrowingInputConnection() {
+    fun onCharacterAbandonsThrowingInputConnection() {
         val composer = WordComposer(inputConnection = { throwingProxy() })
         composer.onCharacter("a")
         composer.onCharacter("b")
-        assertEquals("ab", composer.raw)
+        assertEquals("", composer.raw)
+        assertFalse(composer.isComposing)
     }
 
     @Test
@@ -76,7 +76,7 @@ class WordComposerCrashTest {
         val composer = WordComposer(inputConnection = { throwingProxy() })
         composer.onCharacter("a")
         val absorbed = composer.onBackspace()
-        assertTrue(absorbed)
+        assertFalse(absorbed)
         assertEquals("", composer.raw)
         assertFalse(composer.isComposing)
     }
@@ -117,7 +117,8 @@ class WordComposerCrashTest {
     fun resumeSwallowsThrowingInputConnection() {
         val composer = WordComposer(inputConnection = { throwingProxy() })
         composer.resume("hello")
-        assertEquals("hello", composer.raw)
+        assertEquals("", composer.raw)
+        assertFalse(composer.isComposing)
     }
 
     @Test
@@ -135,5 +136,6 @@ class WordComposerCrashTest {
         composer.onCharacter("a")
         composer.onBackspace()
         composer.commit()
+        assertFalse(composer.isComposing)
     }
 }

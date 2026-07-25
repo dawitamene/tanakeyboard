@@ -1,9 +1,5 @@
 package com.addiyon.keyboard.ui.home
 
-import android.content.Context.INPUT_METHOD_SERVICE
-import android.content.Intent
-import android.provider.Settings
-import android.view.inputmethod.InputMethodManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.KeyboardStatusSnapshot
+import com.addiyon.keyboard.ExternalActions
 
 @Composable
 fun HomeScreen(
@@ -56,7 +53,7 @@ fun HomeScreen(
                     OutlinedButton(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         onClick = {
-                            context.startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                            ExternalActions.openInputMethodSettings(context)
                         }
                     ) {
                         Text("Enable in Settings")
@@ -65,8 +62,7 @@ fun HomeScreen(
                     OutlinedButton(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         onClick = {
-                            (context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
-                                .showInputMethodPicker()
+                            ExternalActions.showInputMethodPicker(context)
                         }
                     ) {
                         Text("Switch Keyboard")
@@ -77,7 +73,7 @@ fun HomeScreen(
 
         Button(
             modifier = Modifier.fillMaxWidth(),
-            onClick = { context.startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
+            onClick = { ExternalActions.openInputMethodSettings(context) }
         ) {
             Text("Keyboard Settings")
         }

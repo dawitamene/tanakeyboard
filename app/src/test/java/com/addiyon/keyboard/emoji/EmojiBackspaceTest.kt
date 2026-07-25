@@ -19,8 +19,8 @@ class EmojiBackspaceTest {
     }
 
     @Test
-    fun `combining accent deletes just the mark`() {
-        assertEquals(1, lastCluster("é")) // e + combining acute
+    fun `combining accent deletes the base and mark`() {
+        assertEquals(2, lastCluster("é")) // e + combining acute
     }
 
     @Test
@@ -88,5 +88,11 @@ class EmojiBackspaceTest {
     @Test
     fun `lone ZWJ deletes just itself`() {
         assertEquals(1, lastCluster("a‍"))
+    }
+
+    @Test
+    fun `malformed surrogate tails remain bounded`() {
+        assertEquals(1, lastCluster("a\uD83D"))
+        assertEquals(1, lastCluster("a\uDE00"))
     }
 }

@@ -1,7 +1,7 @@
 package com.addiyon.keyboard.composing
 
 import android.view.inputmethod.InputConnection
-import com.addiyon.keyboard.SafeLog
+import com.addiyon.keyboard.EditorGateway
 
 /**
  * Owns the "currently-being-typed" word: a raw key buffer. One instance per
@@ -64,7 +64,7 @@ import com.addiyon.keyboard.SafeLog
  * The service owns those triggers; this class just exposes the operations.
  */
 internal class WordComposer(
-    private val inputConnection: () -> InputConnection?,
+    inputConnection: () -> InputConnection?,
     /**
      * Buffer -> the form committed into the field: identity for English,
      * the ranked top transliteration reading for Amharic. Invoked fresh at
@@ -83,7 +83,8 @@ internal class WordComposer(
      * ourselves, we already have the raw Latin for for free). English has no
      * use for it (the field already holds the raw text).
      */
-    private val onCommit: (raw: String, display: String) -> Unit = { _, _ -> }
+    private val onCommit: (raw: String, display: String) -> Unit = { _, _ -> },
+    private val editor: EditorGateway = EditorGateway(connectionProvider = inputConnection)
 ) {
 
     private val buffer = StringBuilder()
@@ -119,7 +120,7 @@ internal class WordComposer(
     fun onCharacter(char: String) {
         buffer.append(char)
         rawDirty = true
-        pushComposing()
+        if (!pushComposing()) clearBuffer()
     }
 
     /**
@@ -140,18 +141,10 @@ internal class WordComposer(
             // must end up EMPTY in the field (setComposingText("")), not
             // finalized; finishComposingText then closes the empty region's
             // bookkeeping cleanly.
-            try {
-                inputConnection()?.let {
-                    it.setComposingText("", 1)
-                    it.finishComposingText()
-                }
-            } catch (oom: OutOfMemoryError) {
-                SafeLog.e(oom, "onBackspace OOM")
-            } catch (t: Throwable) {
-                SafeLog.e(t, "onBackspace")
-            }
+            editor.setComposingText("")
+            editor.finishComposingText()
         } else {
-            pushComposing()
+            if (!pushComposing()) clearBuffer()
         }
         return true
     }
@@ -168,14 +161,9 @@ internal class WordComposer(
         if (buffer.isEmpty()) return
         val committedRaw = raw
         val committedDisplay = commitTransform(committedRaw)
-        try {
-            inputConnection()?.commitText(committedDisplay, 1)
-        } catch (oom: OutOfMemoryError) {
-            SafeLog.e(oom, "commit OOM")
-        } catch (t: Throwable) {
-            SafeLog.e(t, "commit")
+        if (editor.commitText(committedDisplay)) {
+            onCommit(committedRaw, committedDisplay)
         }
-        onCommit(committedRaw, committedDisplay)
         clearBuffer()
     }
 
@@ -190,13 +178,7 @@ internal class WordComposer(
      */
     fun finish() {
         if (buffer.isEmpty()) return
-        try {
-            inputConnection()?.finishComposingText()
-        } catch (oom: OutOfMemoryError) {
-            SafeLog.e(oom, "finish OOM")
-        } catch (t: Throwable) {
-            SafeLog.e(t, "finish")
-        }
+        editor.finishComposingText()
         clearBuffer()
     }
 
@@ -220,7 +202,7 @@ internal class WordComposer(
         buffer.setLength(0)
         buffer.append(prefix)
         rawDirty = true
-        pushComposing()
+        if (!pushComposing()) clearBuffer()
     }
 
     /**
@@ -235,13 +217,7 @@ internal class WordComposer(
      * the next keystroke starts a fresh word.
      */
     fun commitSuggestion(word: String) {
-        try {
-            inputConnection()?.commitText("$word ", 1)
-        } catch (oom: OutOfMemoryError) {
-            SafeLog.e(oom, "commitSuggestion OOM")
-        } catch (t: Throwable) {
-            SafeLog.e(t, "commitSuggestion")
-        }
+        editor.commitText("$word ")
         clearBuffer()
     }
 
@@ -269,13 +245,7 @@ internal class WordComposer(
      */
     fun abandon() {
         if (buffer.isEmpty()) return
-        try {
-            inputConnection()?.finishComposingText()
-        } catch (oom: OutOfMemoryError) {
-            SafeLog.e(oom, "abandon OOM")
-        } catch (t: Throwable) {
-            SafeLog.e(t, "abandon")
-        }
+        editor.finishComposingText()
         clearBuffer()
     }
 
@@ -284,13 +254,5 @@ internal class WordComposer(
         rawDirty = true
     }
 
-    private fun pushComposing() {
-        try {
-            inputConnection()?.setComposingText(raw, 1)
-        } catch (oom: OutOfMemoryError) {
-            SafeLog.e(oom, "pushComposing OOM")
-        } catch (t: Throwable) {
-            SafeLog.e(t, "pushComposing")
-        }
-    }
+    private fun pushComposing(): Boolean = editor.setComposingText(raw)
 }

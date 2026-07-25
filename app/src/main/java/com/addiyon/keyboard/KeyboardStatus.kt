@@ -40,25 +40,32 @@ object KeyboardStatus {
     private fun imm(context: Context) =
         context.getSystemService(InputMethodManager::class.java)
 
-    fun isEnabled(context: Context): Boolean {
-        val self = self(context)
-        return imm(context)?.enabledInputMethodList
-            ?.any { it.component == self } == true
-    }
+    fun isEnabled(context: Context): Boolean = snapshot(context).enabled
 
-    fun isDefault(context: Context): Boolean {
-        val self = self(context)
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            imm(context)?.currentInputMethodInfo?.component == self
-        } else {
-            val default = try {
-                Settings.Secure.getString(
-                    context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD
+    fun isDefault(context: Context): Boolean = snapshot(context).isDefault
+
+    fun snapshot(context: Context): KeyboardStatusSnapshot {
+        return try {
+            val self = self(context)
+            val manager = imm(context) ?: return KeyboardStatusSnapshot(false, false)
+            val enabled = manager.enabledInputMethodList.any { it.component == self }
+            if (!enabled) return KeyboardStatusSnapshot(false, false)
+            val default = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                manager.currentInputMethodInfo?.component == self
+            } else {
+                val id = Settings.Secure.getString(
+                    context.contentResolver,
+                    Settings.Secure.DEFAULT_INPUT_METHOD
                 )
-            } catch (e: SecurityException) {
-                null
-            } ?: return false
-            ComponentName.unflattenFromString(default) == self
+                ComponentName.unflattenFromString(id) == self
+            }
+            KeyboardStatusSnapshot(true, default)
+        } catch (oom: OutOfMemoryError) {
+            SafeLog.e(oom, "KeyboardStatus OOM")
+            KeyboardStatusSnapshot(false, false)
+        } catch (t: Throwable) {
+            SafeLog.e(t, "KeyboardStatus")
+            KeyboardStatusSnapshot(false, false)
         }
     }
 }
@@ -76,9 +83,7 @@ data class KeyboardStatusSnapshot(val enabled: Boolean, val isDefault: Boolean)
 fun rememberKeyboardStatus(): State<KeyboardStatusSnapshot> {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    fun read() = KeyboardStatusSnapshot(
-        KeyboardStatus.isEnabled(context), KeyboardStatus.isDefault(context)
-    )
+    fun read() = KeyboardStatus.snapshot(context)
     val state = remember { mutableStateOf(read()) }
 
     DisposableEffect(lifecycleOwner) {

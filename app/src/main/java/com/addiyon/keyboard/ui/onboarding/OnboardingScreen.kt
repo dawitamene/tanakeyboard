@@ -1,9 +1,5 @@
 package com.addiyon.keyboard.ui.onboarding
 
-import android.content.Context.INPUT_METHOD_SERVICE
-import android.content.Intent
-import android.provider.Settings
-import android.view.inputmethod.InputMethodManager
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -59,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.KeyboardStatusSnapshot
 import com.addiyon.keyboard.R
+import com.addiyon.keyboard.ExternalActions
 import com.addiyon.keyboard.ui.AppBrandHeader
 import com.addiyon.keyboard.ui.i18n.LanguageToggle
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
@@ -149,7 +146,7 @@ fun OnboardingScreen(
                     footnote = strings.activateFootnote,
                     stepIndex = 0,
                     onClick = {
-                        context.startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                        ExternalActions.openInputMethodSettings(context)
                     }
                 )
 
@@ -161,8 +158,7 @@ fun OnboardingScreen(
                     footnote = null,
                     stepIndex = 1,
                     onClick = {
-                        (context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
-                            .showInputMethodPicker()
+                        ExternalActions.showInputMethodPicker(context)
                     }
                 )
 

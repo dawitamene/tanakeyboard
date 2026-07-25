@@ -3,11 +3,12 @@ package com.addiyon.keyboard.suggestion
 import android.content.Context
 import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
-import android.database.sqlite.SQLiteDatabaseCorruptException
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import android.os.SystemClock
+import android.system.Os
+import android.system.OsConstants
 import com.addiyon.keyboard.SafeLog
 import java.io.File
 import java.io.FileOutputStream
@@ -54,22 +55,29 @@ internal class SQLiteLanguageStore(
 
     fun loadAsync(onComplete: () -> Unit) {
         var startGeneration: Long? = null
+        var notifyImmediately = false
         synchronized(lock) {
             if (status == Status.READY && database?.isOpen == true) {
-                mainHandler.post(onComplete)
-                return
-            }
-            if (status == Status.FAILED && SystemClock.elapsedRealtime() < retryAfterElapsed) {
-                mainHandler.post(onComplete)
-                return
-            }
-            callbacks.add(onComplete)
-            if (status != Status.INSTALLING) {
-                status = Status.INSTALLING
-                generation += 1
-                startGeneration = generation
+                notifyImmediately = true
+            } else if (
+                status == Status.FAILED &&
+                (failureCount >= MAX_FAILURES || SystemClock.elapsedRealtime() < retryAfterElapsed)
+            ) {
+                notifyImmediately = true
+            } else {
+                if (callbacks.size < MAX_CALLBACKS) {
+                    callbacks.add(onComplete)
+                } else {
+                    notifyImmediately = true
+                }
+                if (status != Status.INSTALLING) {
+                    status = Status.INSTALLING
+                    generation += 1
+                    startGeneration = generation
+                }
             }
         }
+        if (notifyImmediately) postCallback(onComplete)
         val requestedGeneration = startGeneration ?: return
         ioExecutor.execute {
             try {
@@ -86,7 +94,7 @@ internal class SQLiteLanguageStore(
                 SafeLog.e(t, "SQLiteLanguageStore load")
                 null
             }
-            mainHandler.post {
+            postToMain main@{
                 val notify: List<() -> Unit>
                 synchronized(lock) {
                     if (requestedGeneration != generation) {
@@ -94,7 +102,7 @@ internal class SQLiteLanguageStore(
                             opened?.close()
                         } catch (_: Throwable) {
                         }
-                        return@post
+                        return@main
                     }
                     database = opened
                     status = if (opened != null) Status.READY else Status.FAILED
@@ -137,10 +145,22 @@ internal class SQLiteLanguageStore(
     }
 
     fun handleQueryFailure(t: Throwable) {
-        if (t !is SQLiteDatabaseCorruptException) return
-        release()
-        databaseFileOrNull()?.delete()
-        checksumFileOrNull()?.delete()
+        if (!DatabaseFailurePolicy.shouldRecover(t)) return
+        val toClose: SQLiteDatabase?
+        synchronized(lock) {
+            generation += 1
+            callbacks.clear()
+            toClose = database
+            database = null
+            status = Status.FAILED
+            failureCount = (failureCount + 1).coerceAtMost(MAX_FAILURES)
+            retryAfterElapsed = SystemClock.elapsedRealtime() + RETRY_BASE_MS
+        }
+        try {
+            toClose?.close()
+        } catch (closeFailure: Throwable) {
+            SafeLog.e(closeFailure, "SQLiteLanguageStore failure close")
+        }
     }
 
     private fun installAndOpen(): SQLiteDatabase {
@@ -154,19 +174,30 @@ internal class SQLiteLanguageStore(
             "${assetName.removeSuffix(".db")}-v${metadata.schemaVersion}-$contentId.db",
         )
         val checksumFile = File(finalFile.parentFile, "${finalFile.name}.sha256")
+        restoreInterruptedSwap(finalFile, checksumFile, metadata, asset)
 
+        var swap: InstalledSwap? = null
         if (!isReusable(finalFile, checksumFile, metadata, asset)) {
             require(storeDir.usableSpace >= asset.length + MIN_FREE_SPACE_AFTER_COPY)
-            finalFile.delete()
-            checksumFile.delete()
-            installAtomically(finalFile, checksumFile, metadata, asset)
+            swap = installAtomically(finalFile, checksumFile, metadata, asset)
         }
 
-        val opened = openReadOnly(finalFile)
-        validateDatabase(opened, metadata)
-        configure(opened)
-        cleanupOldFiles(finalFile)
-        return opened
+        var opened: SQLiteDatabase? = null
+        return try {
+            opened = openReadOnly(finalFile)
+            validateDatabase(opened, metadata)
+            configure(opened)
+            swap?.discard()
+            cleanupOldFiles(finalFile)
+            opened
+        } catch (t: Throwable) {
+            try {
+                opened?.close()
+            } catch (_: Throwable) {
+            }
+            swap?.restore()
+            throw t
+        }
     }
 
     private fun isReusable(
@@ -200,11 +231,17 @@ internal class SQLiteLanguageStore(
         checksumFile: File,
         metadata: DictionaryAssetMetadata,
         asset: DictionaryAssetMetadata.Asset,
-    ) {
+    ): InstalledSwap {
         val temporary = File(
             finalFile.parentFile,
             "${finalFile.name}.tmp-${Process.myPid()}-${System.nanoTime()}",
         )
+        val temporaryChecksum = File(
+            checksumFile.parentFile,
+            "${checksumFile.name}.tmp-${Process.myPid()}-${System.nanoTime()}",
+        )
+        val backup = File(finalFile.parentFile, "${finalFile.name}.previous")
+        val backupChecksum = File(checksumFile.parentFile, "${checksumFile.name}.previous")
         try {
             val digest = MessageDigest.getInstance("SHA-256")
             var copied = 0L
@@ -233,10 +270,98 @@ internal class SQLiteLanguageStore(
             } finally {
                 opened.close()
             }
-            require(temporary.renameTo(finalFile))
-            checksumFile.writeText(asset.sha256)
+            writeSynced(temporaryChecksum, asset.sha256)
+            backup.delete()
+            backupChecksum.delete()
+            val swap = InstalledSwap(finalFile, checksumFile, backup, backupChecksum)
+            try {
+                swap.backUpCurrent()
+                require(temporary.renameTo(finalFile))
+                swap.databaseInstalled = true
+                require(temporaryChecksum.renameTo(checksumFile))
+                swap.checksumInstalled = true
+                fsyncDirectory(storeDir)
+                return swap
+            } catch (t: Throwable) {
+                swap.restore()
+                throw t
+            }
         } finally {
             temporary.delete()
+            temporaryChecksum.delete()
+        }
+    }
+
+    private fun restoreInterruptedSwap(
+        finalFile: File,
+        checksumFile: File,
+        metadata: DictionaryAssetMetadata,
+        asset: DictionaryAssetMetadata.Asset,
+    ) {
+        val backup = File(finalFile.parentFile, "${finalFile.name}.previous")
+        val backupChecksum = File(checksumFile.parentFile, "${checksumFile.name}.previous")
+        if (!backup.exists() && !backupChecksum.exists()) return
+        if (isReusable(finalFile, checksumFile, metadata, asset)) {
+            backup.delete()
+            backupChecksum.delete()
+            return
+        }
+        if (isReusable(finalFile, backupChecksum, metadata, asset)) {
+            checksumFile.delete()
+            require(backupChecksum.renameTo(checksumFile))
+            backup.delete()
+            fsyncDirectory(storeDir)
+            return
+        }
+        if (isReusable(backup, checksumFile, metadata, asset)) {
+            finalFile.delete()
+            require(backup.renameTo(finalFile))
+            backupChecksum.delete()
+            fsyncDirectory(storeDir)
+            return
+        }
+        if (isReusable(backup, backupChecksum, metadata, asset)) {
+            finalFile.delete()
+            checksumFile.delete()
+            require(backup.renameTo(finalFile))
+            require(backupChecksum.renameTo(checksumFile))
+            fsyncDirectory(storeDir)
+        }
+    }
+
+    private fun writeSynced(file: File, value: String) {
+        FileOutputStream(file).use { output ->
+            output.write(value.toByteArray(Charsets.UTF_8))
+            output.fd.sync()
+        }
+    }
+
+    private fun fsyncDirectory(directory: File) {
+        val descriptor = Os.open(directory.absolutePath, OsConstants.O_RDONLY, 0)
+        try {
+            Os.fsync(descriptor)
+        } finally {
+            Os.close(descriptor)
+        }
+    }
+
+    private fun postCallback(callback: () -> Unit) {
+        postToMain {
+            try {
+                callback()
+            } catch (t: Throwable) {
+                SafeLog.e(t, "SQLiteLanguageStore callback")
+            }
+        }
+    }
+
+    private fun postToMain(block: () -> Unit) {
+        val runnable = Runnable(block)
+        try {
+            if (!mainHandler.post(runnable)) runnable.run()
+        } catch (t: Throwable) {
+            SafeLog.e(t, "SQLiteLanguageStore post")
+            runnable.run()
         }
     }
 
@@ -293,18 +418,55 @@ internal class SQLiteLanguageStore(
         File(appContext.cacheDir, "ngram-${assetName.replace('/', '_')}.db").delete()
     }
 
-    private fun databaseFileOrNull(): File? =
-        storeDir.listFiles()?.firstOrNull {
-            it.name.startsWith(assetName.removeSuffix(".db")) && it.extension == "db"
+    private inner class InstalledSwap(
+        private val finalFile: File,
+        private val checksumFile: File,
+        private val backup: File,
+        private val backupChecksum: File
+    ) {
+        private var databaseBackedUp = false
+        private var checksumBackedUp = false
+        var databaseInstalled = false
+        var checksumInstalled = false
+
+        fun backUpCurrent() {
+            if (finalFile.exists()) {
+                require(finalFile.renameTo(backup))
+                databaseBackedUp = true
+            }
+            if (checksumFile.exists()) {
+                require(checksumFile.renameTo(backupChecksum))
+                checksumBackedUp = true
+            }
         }
 
-    private fun checksumFileOrNull(): File? =
-        databaseFileOrNull()?.let { File(it.parentFile, "${it.name}.sha256") }
+        fun restore() {
+            if (databaseInstalled) finalFile.delete()
+            if (checksumInstalled) checksumFile.delete()
+            if (databaseBackedUp) {
+                finalFile.delete()
+                require(backup.renameTo(finalFile))
+            }
+            if (checksumBackedUp) {
+                checksumFile.delete()
+                require(backupChecksum.renameTo(checksumFile))
+            }
+            fsyncDirectory(storeDir)
+        }
+
+        fun discard() {
+            backup.delete()
+            backupChecksum.delete()
+            fsyncDirectory(storeDir)
+        }
+    }
 
     companion object {
         private const val METADATA_ASSET = "dictionary_manifest.properties"
         private const val CONTENT_ID_LENGTH = 16
         private const val RETRY_BASE_MS = 5_000L
+        private const val MAX_FAILURES = 5
+        private const val MAX_CALLBACKS = 32
         private const val MIN_FREE_SPACE_AFTER_COPY = 16L * 1024L * 1024L
         private val ioExecutor = Executors.newSingleThreadExecutor { runnable ->
             Thread(runnable, "AddiyonDictionaryIo")
