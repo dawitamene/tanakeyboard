@@ -255,6 +255,8 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     var isLowRam: Boolean = false
         private set
+    var isEmergencyMode by mutableStateOf(false)
+        private set
     val isShiftEnabled: Boolean
         get() = shiftState != ShiftState.OFF
 
@@ -551,16 +553,19 @@ class AddiyonKeyboardService : InputMethodService(),
                     composingNgramBoost = null
                     composingPredictionCasing = emptyMap()
                     amharicSuggestionCache.clear()
+                    amharicCommitCandidateCache.clear()
                     // Nothing composing: offer next-word PREDICTIONS from the
                     // committed words before the cursor (empty when there's no
                     // usable context, restoring the toolbar icons).
                     publishSuggestions(
-                        ngramPredictions(NEXT_WORD_LIMIT).map { it.word },
+                        ngramPredictions(if (isLowRam) 3 else NEXT_WORD_LIMIT).map { it.word },
                         arePredictions = true
                     )
                 } else {
                     if (composingNgramBoost == null) {
-                        composingNgramBoost = ngramPredictions(AMHARIC_SUGGESTION_LIMIT)
+                        composingNgramBoost = ngramPredictions(
+                            if (isLowRam) 4 else AMHARIC_SUGGESTION_LIMIT
+                        )
                             .associate { EthiopicNormalizer.normalize(it.word) to it.weight }
                     }
                     scheduleSuggestionComputation(
@@ -583,7 +588,10 @@ class AddiyonKeyboardService : InputMethodService(),
                     // context, restoring the toolbar icons).
                     publishSuggestions(
                         nextWordPredictions(
-                            englishNgrams, NgramContext.ENGLISH, englishComposer, NEXT_WORD_LIMIT
+                            englishNgrams,
+                            NgramContext.ENGLISH,
+                            englishComposer,
+                            if (isLowRam) 3 else NEXT_WORD_LIMIT,
                         ).map { it.word },
                         arePredictions = true
                     )
@@ -593,7 +601,7 @@ class AddiyonKeyboardService : InputMethodService(),
                             englishNgrams,
                             NgramContext.ENGLISH,
                             englishComposer,
-                            ENGLISH_NGRAM_CONTEXT_LIMIT,
+                            if (isLowRam) 4 else ENGLISH_NGRAM_CONTEXT_LIMIT,
                         )
                         composingNgramBoost =
                             predictions.associate { englishFold(it.word) to it.weight }
@@ -637,6 +645,23 @@ class AddiyonKeyboardService : InputMethodService(),
     private fun invalidateSuggestionWork() {
         suggestionGeneration += 1
         suggestionExecutor.queue.clear()
+    }
+
+    private fun enterEmergencyMode() {
+        suggestionMainHandler.post {
+            if (isEmergencyMode) return@post
+            isEmergencyMode = true
+            invalidateSuggestionWork()
+            publishSuggestions(emptyList())
+            emailSuggestions = emptyList()
+            showEmojiPanel = false
+            emojiSearchField = null
+            amharicSuggestionCache.clear()
+            amharicCommitCandidateCache.clear()
+            if (::emojiRepository.isInitialized) emojiRepository.release()
+            if (::amharicStore.isInitialized) amharicStore.release()
+            if (::englishStore.isInitialized) englishStore.release()
+        }
     }
 
     private fun scheduleSuggestionComputation(
@@ -698,6 +723,12 @@ class AddiyonKeyboardService : InputMethodService(),
                 size > SUGGESTION_CACHE_SIZE
         }
     )
+    private val amharicCommitCandidateCache = Collections.synchronizedMap(
+        object : LinkedHashMap<String, String>(SUGGESTION_CACHE_SIZE, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>) =
+                size > SUGGESTION_CACHE_SIZE
+        }
+    )
 
     /**
      * Bigram/trigram next-word predictions for the words preceding the cursor,
@@ -744,16 +775,19 @@ class AddiyonKeyboardService : InputMethodService(),
     private fun topAmharicCandidate(raw: String): String {
         return safeRun(Transliterator.transliterate(raw)) {
             if (raw.isEmpty()) return@safeRun ""
+            amharicCommitCandidateCache[raw]?.let { return@safeRun it }
             if (!::amharicDictionary.isInitialized) return@safeRun Transliterator.transliterate(raw)
             val candidateReadings = Transliterator.candidateReadings(raw)
             val readingTexts = candidateReadings.map { it.text }
             val frequencies = amharicDictionary.frequenciesOf(readingTexts)
-            CandidateRanker.bestCommitCandidate(
+            val candidate = CandidateRanker.bestCommitCandidate(
                 readingTexts,
                 frequencies::get,
                 quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet(),
                 preferGreedy = Transliterator.hasExplicitFamilySelection(raw)
             ) ?: Transliterator.transliterate(raw)
+            amharicCommitCandidateCache[raw] = candidate
+            candidate
         }
     }
 
@@ -854,6 +888,17 @@ class AddiyonKeyboardService : InputMethodService(),
             // Structural split readings: kept for completions/quirk chips, but not
             // allowed to win the default over the natural greedy reading.
             val quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet()
+            val commitCandidate = CandidateRanker.bestCommitCandidate(
+                readings,
+                readingFrequencies::get,
+                quirkReadings = quirkReadings,
+                preferGreedy = Transliterator.hasExplicitFamilySelection(latin),
+            ) ?: Transliterator.transliterate(latin)
+            amharicCommitCandidateCache[latin] = commitCandidate
+            val directCompletions = amharicDictionary.suggestionEntriesForPrefixes(
+                readings.distinct(),
+                AMHARIC_SUGGESTION_LIMIT,
+            )
             // The preferred vowel alternate is offered as a secondary chip -- but
             // only when it is a MULTI-character dictionary word (ቤት for "bet").
             // Pinning it on every second keystroke is pure noise otherwise: ሌ for
@@ -872,6 +917,11 @@ class AddiyonKeyboardService : InputMethodService(),
                     it.length > 1 && (!amharicDictionary.isReady || readingFrequencies.containsKey(it))
                 }
             val completionCache = HashMap<String, List<CandidateRanker.DictionaryWord>>()
+            for ((prefix, entries) in directCompletions) {
+                completionCache[prefix] = entries.map {
+                    CandidateRanker.DictionaryWord(it.word, it.frequency)
+                }
+            }
             val dictionaryLookup = { prefix: String, limit: Int ->
                 amharicDictionary.suggestionEntries(prefix, limit).map {
                     CandidateRanker.DictionaryWord(it.word, it.frequency)
@@ -1289,6 +1339,7 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun openEmojiPanel() {
         safeApply {
+            if (isEmergencyMode) return@safeApply
             leaveVoiceModeForKeyboardInput()
             activeComposer.commit()
             updateSuggestions()
@@ -1301,6 +1352,9 @@ class AddiyonKeyboardService : InputMethodService(),
         safeApply {
             showEmojiPanel = false
             emojiSearchField = null
+            if (isLowRam && ::emojiRepository.isInitialized) {
+                emojiRepository.release()
+            }
         }
     }
 
@@ -1384,6 +1438,7 @@ class AddiyonKeyboardService : InputMethodService(),
             // per-language, and the ranked results would otherwise leak across
             // a toggle (English prefix "th" ranked with Amharic boosts, etc.).
             amharicSuggestionCache.clear()
+            amharicCommitCandidateCache.clear()
             composingNgramBoost = null
             composingPredictionCasing = emptyMap()
             // Release the previously-active dictionary+ngram and load the
@@ -1409,6 +1464,7 @@ class AddiyonKeyboardService : InputMethodService(),
 
     private fun ensureActiveLanguageStoreLoaded(snapshotPrefix: String) {
         if (!::amharicDictionary.isInitialized) return
+        if (isEmergencyMode) return
         val dictionary = if (isAmharic) amharicDictionary else englishDictionary
         val ngrams = if (isAmharic) amharicNgrams else englishNgrams
         if (dictionary.isReady && ngrams.isReady) {
@@ -2049,8 +2105,18 @@ class AddiyonKeyboardService : InputMethodService(),
             isAmharic = KeyboardPrefs.amharicMode(this)
             KeyboardPrefs.prefs(this).registerOnSharedPreferenceChangeListener(prefsListener)
 
-            amharicStore = SQLiteLanguageStore(this, "amharic.db", isLowRam)
-            englishStore = SQLiteLanguageStore(this, "english.db", isLowRam)
+            amharicStore = SQLiteLanguageStore(
+                this,
+                "amharic.db",
+                isLowRam,
+                this::enterEmergencyMode,
+            )
+            englishStore = SQLiteLanguageStore(
+                this,
+                "english.db",
+                isLowRam,
+                this::enterEmergencyMode,
+            )
             amharicDictionary = SQLiteDictionary(
                 amharicStore,
                 precomputedPrefixLength = 1,
@@ -2063,7 +2129,7 @@ class AddiyonKeyboardService : InputMethodService(),
             )
             amharicNgrams = SQLiteNgramModel(amharicStore, EthiopicNormalizer::normalize)
             englishNgrams = SQLiteNgramModel(englishStore, ::englishFold)
-            emojiRepository = EmojiRepository(this)
+            emojiRepository = EmojiRepository(this, onOutOfMemory = this::enterEmergencyMode)
             // Both stores decode lazily on first use, and the prefs file is
             // already loaded in memory by the theme/number-row reads above, so
             // neither adds startup work here. The tone mirror seeds eagerly:
@@ -2320,6 +2386,7 @@ class AddiyonKeyboardService : InputMethodService(),
             super.onTrimMemory(level)
             if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
                 amharicSuggestionCache.clear()
+                amharicCommitCandidateCache.clear()
                 composingNgramBoost = null
                 composingPredictionCasing = emptyMap()
                 if (::amharicDictionary.isInitialized) amharicDictionary.clearCache()

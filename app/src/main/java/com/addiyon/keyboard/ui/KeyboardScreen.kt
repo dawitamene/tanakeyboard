@@ -87,6 +87,18 @@ fun KeyboardScreen(
     val isNumberMode = service.isNumberMode
     val vibrateOnKeypress = service.vibrateOnKeypress
     val soundOnKeypress = service.soundOnKeypress
+    val actions = remember(service) { KeyboardActions(service) }
+    val keyboardState = KeyboardUiState(
+        isShift = isShift,
+        isAmharic = isAmharic,
+        isNumberMode = isNumberMode,
+        isEmailField = service.isEmailField,
+        numbersMode = service.numbersMode,
+        shiftState = service.shiftState,
+        enterAction = service.enterAction,
+        vibrateOnKeypress = vibrateOnKeypress,
+        soundOnKeypress = soundOnKeypress,
+    )
     // The user's "Keyboard height" preference, multiplied into every key's
     // height below so the whole keyboard grows/shrinks with the slider.
     val heightScale = service.keyboardHeightScale
@@ -273,13 +285,9 @@ fun KeyboardScreen(
                                 layoutRowIndex >= 0
                             KeyRow(
                                 row = row,
-                                isShift = isShift,
-                                isAmharic = rowIsAmharic,
-                                isNumberMode = isNumberMode,
+                                state = keyboardState.copy(isAmharic = rowIsAmharic),
                                 metrics = rowMetrics,
-                                service = service,
-                                vibrateOnKeypress = vibrateOnKeypress,
-                                soundOnKeypress = soundOnKeypress
+                                actions = actions,
                             )
                         }
                     }

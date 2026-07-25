@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.addiyon.keyboard.ui.theme.LocalLowRamKeyboard
 import com.addiyon.keyboard.suggestion.EmailChip
 import com.addiyon.keyboard.voice.VoiceUiState
 import com.addiyon.keyboard.voice.isRecording
@@ -171,16 +172,22 @@ fun SuggestionArea(
 
 @Composable
 private fun LanguageLoadingDot() {
-    val transition = rememberInfiniteTransition(label = "loading-dot")
-    val alpha by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "loading-alpha",
-    )
+    val lowRam = LocalLowRamKeyboard.current
+    val alpha = if (lowRam) {
+        1f
+    } else {
+        val transition = rememberInfiniteTransition(label = "loading-dot")
+        val animated by transition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(600, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "loading-alpha",
+        )
+        animated
+    }
     Row(
         modifier = Modifier.fillMaxSize(),
         verticalAlignment = Alignment.CenterVertically,
@@ -264,7 +271,7 @@ private fun MicToolbarIcon(
     isListening: Boolean,
     onClick: () -> Unit
 ) {
-    val pulse = if (isListening) {
+    val pulse = if (isListening && !LocalLowRamKeyboard.current) {
         val transition = rememberInfiniteTransition(label = "micPulse")
         val animated by transition.animateFloat(
             initialValue = 1f,

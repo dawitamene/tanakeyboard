@@ -26,7 +26,11 @@ import java.util.zip.GZIPInputStream
  * tone popup. ~6.4k hasGlyph calls cost tens of milliseconds -- noise next
  * to the gzip parse, and it's all off the main thread.
  */
-class EmojiRepository(context: Context, private val assetName: String = "emoji.dat") {
+class EmojiRepository(
+    context: Context,
+    private val assetName: String = "emoji.dat",
+    private val onOutOfMemory: () -> Unit = {},
+) {
 
     private val appContext = context.applicationContext
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -41,6 +45,8 @@ class EmojiRepository(context: Context, private val assetName: String = "emoji.d
 
     private var loadStarted = false
     private var generation = 0L
+    private var loadingThread: Thread? = null
+    private val callbacks = ArrayList<() -> Unit>()
 
     val isReady: Boolean
         get() = data != null
@@ -52,10 +58,16 @@ class EmojiRepository(context: Context, private val assetName: String = "emoji.d
      * a thread.
      */
     fun loadAsync(onReady: () -> Unit = {}) {
+        data?.let {
+            mainHandler.post(onReady)
+            return
+        }
+        callbacks.add(onReady)
         if (loadStarted) return
         loadStarted = true
         val loadGeneration = ++generation
-        Thread {
+        lateinit var worker: Thread
+        worker = Thread {
             try {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
             } catch (oom: OutOfMemoryError) {
@@ -64,9 +76,10 @@ class EmojiRepository(context: Context, private val assetName: String = "emoji.d
                 SafeLog.e(t, "EmojiRepository setThreadPriority")
             }
             val loaded = try {
-                load()
+                load(loadGeneration)
             } catch (oom: OutOfMemoryError) {
                 SafeLog.e(oom, "EmojiRepository load OOM")
+                onOutOfMemory()
                 null
             } catch (t: Throwable) {
                 SafeLog.e(t, "EmojiRepository load")
@@ -74,25 +87,42 @@ class EmojiRepository(context: Context, private val assetName: String = "emoji.d
             }
             mainHandler.post {
                 safeApply {
+                    if (loadingThread === worker) {
+                        loadingThread = null
+                        loadStarted = false
+                    }
                     if (loadGeneration != generation) return@safeApply
                     data = loaded
-                    onReady()
+                    val readyCallbacks = callbacks.toList()
+                    callbacks.clear()
+                    readyCallbacks.forEach { it() }
                 }
             }
-        }.start()
+        }
+        loadingThread = worker
+        worker.start()
     }
 
     fun release() {
         generation += 1
+        callbacks.clear()
+        loadingThread?.interrupt()
+        loadingThread = null
         loadStarted = false
         data = null
     }
 
-    private fun load(): EmojiData {
+    private fun load(loadGeneration: Long): EmojiData {
         val paint = Paint()
         appContext.assets.open(assetName).use { raw ->
             GZIPInputStream(raw).bufferedReader(Charsets.UTF_8).useLines { lines ->
-                return EmojiData.parse(lines, isRenderable = paint::hasGlyph)
+                return EmojiData.parse(
+                    lines,
+                    isRenderable = paint::hasGlyph,
+                    shouldContinue = {
+                        loadGeneration == generation && !Thread.currentThread().isInterrupted
+                    },
+                )
             }
         }
     }

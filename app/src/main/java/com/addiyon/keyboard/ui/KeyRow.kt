@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
-import com.addiyon.keyboard.AddiyonKeyboardService
 import com.addiyon.keyboard.model.KeyData
 import com.addiyon.keyboard.ui.keys.CharacterKey
 import com.addiyon.keyboard.ui.keys.DeleteKey
@@ -46,15 +45,11 @@ import com.addiyon.keyboard.ui.keys.SymbolsToggleKey
 @Composable
 internal fun KeyRow(
     row: List<KeyData>,
-    isShift: Boolean,
-    isAmharic: Boolean,
-    isNumberMode: Boolean,
+    state: KeyboardUiState,
     metrics: KeyboardMetrics,
-    service: AddiyonKeyboardService,
-    vibrateOnKeypress: Boolean,
-    soundOnKeypress: Boolean
+    actions: KeyboardActions,
 ) {
-    val isKeypad = service.numbersMode == com.addiyon.keyboard.model.NumbersMode.KEYPAD
+    val isKeypad = state.numbersMode == com.addiyon.keyboard.model.NumbersMode.KEYPAD
     KeyboardRow {
         row.forEach { key ->
             when (key) {
@@ -66,36 +61,37 @@ internal fun KeyRow(
                     // so both languages' layouts get it; the numeric pages
                     // keep their literal comma.
                     val effectiveKey =
-                        if (key.latin == "," && !isNumberMode && service.isEmailField) {
+                        if (key.latin == "," && !state.isNumberMode && state.isEmailField) {
                             key.copy(latin = "@", isSpecial = true)
                         } else {
                             key
                         }
                     CharacterKey(
                         key = effectiveKey,
-                        isShift = isShift,
+                        isShift = state.isShift,
                         // Not raw isAmharic: on the numeric pages every key
                         // commits its literal character (no transliteration),
                         // so the fidel corner preview must be suppressed there
                         // even while Amharic mode is on -- otherwise the ","
                         // key would advertise ፣ but type ",".
-                        isAmharic = isAmharic && !isNumberMode,
+                        isAmharic = state.isAmharic && !state.isNumberMode,
                         width = metrics.keyWidth,
                         height = metrics.keyHeight,
-                        service = service,
-                        vibrateOnKeypress = vibrateOnKeypress,
-                        soundOnKeypress = soundOnKeypress
+                        onCharacter = actions::character,
+                        onCommitText = actions::commitText,
+                        vibrateOnKeypress = state.vibrateOnKeypress,
+                        soundOnKeypress = state.soundOnKeypress
                     )
                 }
 
                 KeyData.Shift -> {
                     ShiftKey(
-                        shiftState = service.shiftState,
+                        shiftState = state.shiftState,
                         width = metrics.keyWidth,
                         height = metrics.keyHeight,
-                        vibrateOnKeypress = vibrateOnKeypress,
-                        soundOnKeypress = soundOnKeypress,
-                        onClick = { service.toggleShift() }
+                        vibrateOnKeypress = state.vibrateOnKeypress,
+                        soundOnKeypress = state.soundOnKeypress,
+                        onClick = actions::shift
                     )
                 }
 
@@ -104,77 +100,77 @@ internal fun KeyRow(
                         width = metrics.keyWidth,
                         widthMultiplier = if (isKeypad) 0.7f else com.addiyon.keyboard.ui.keys.KeyWeights.DELETE,
                         height = metrics.keyHeight,
-                        vibrateOnKeypress = vibrateOnKeypress,
-                        soundOnKeypress = soundOnKeypress,
-                        onPressStart = { service.onDeleteGestureStart() },
-                        onPressEnd = { service.onDeleteGestureEnd() },
-                        onClick = { service.onDelete() }
+                        vibrateOnKeypress = state.vibrateOnKeypress,
+                        soundOnKeypress = state.soundOnKeypress,
+                        onPressStart = actions::deleteStart,
+                        onPressEnd = actions::deleteEnd,
+                        onClick = actions::delete
                     )
                 }
 
                 KeyData.Space -> {
                     SpaceKey(
-                        isAmharic = isAmharic,
+                        isAmharic = state.isAmharic,
                         fixedWidth = if (isKeypad) metrics.keyWidth * 0.7f else null,
                         height = metrics.keyHeight,
-                        vibrateOnKeypress = vibrateOnKeypress,
-                        soundOnKeypress = soundOnKeypress,
-                        onClick = { service.onSpace() },
-                        onSwipe = { service.toggleLanguage() }
+                        vibrateOnKeypress = state.vibrateOnKeypress,
+                        soundOnKeypress = state.soundOnKeypress,
+                        onClick = actions::space,
+                        onSwipe = actions::language
                     )
                 }
 
                 KeyData.Enter -> {
                     EnterKey(
-                        action = service.enterAction,
+                        action = state.enterAction,
                         fixedWidth = if (isKeypad) metrics.keyWidth * 0.7f else null,
                         height = metrics.keyHeight,
-                        vibrateOnKeypress = vibrateOnKeypress,
-                        soundOnKeypress = soundOnKeypress,
-                        onClick = { service.onEnter() }
+                        vibrateOnKeypress = state.vibrateOnKeypress,
+                        soundOnKeypress = state.soundOnKeypress,
+                        onClick = actions::enter
                     )
                 }
 
                 KeyData.NumberToggle -> {
                     NumberToggleKey(
-                        isNumberMode = isNumberMode,
-                        isAmharic = isAmharic,
+                        isNumberMode = state.isNumberMode,
+                        isAmharic = state.isAmharic,
                         fixedWidth = if (isKeypad) metrics.keyWidth * 0.7f else null,
                         height = metrics.keyHeight,
-                        vibrateOnKeypress = vibrateOnKeypress,
-                        soundOnKeypress = soundOnKeypress,
-                        onClick = { service.toggleNumberMode() }
+                        vibrateOnKeypress = state.vibrateOnKeypress,
+                        soundOnKeypress = state.soundOnKeypress,
+                        onClick = actions::numbers
                     )
                 }
 
                 KeyData.SymbolsToggle -> {
                     SymbolsToggleKey(
-                        numbersMode = service.numbersMode,
-                        isAmharic = service.isAmharic,
+                        numbersMode = state.numbersMode,
+                        isAmharic = state.isAmharic,
                         width = metrics.keyWidth,
                         widthMultiplier = if (isKeypad) 0.75f else com.addiyon.keyboard.ui.keys.KeyWeights.SYMBOLS_TOGGLE,
                         height = metrics.keyHeight,
-                        vibrateOnKeypress = vibrateOnKeypress,
-                        soundOnKeypress = soundOnKeypress,
-                        onClick = { service.toggleSymbolsPage() }
+                        vibrateOnKeypress = state.vibrateOnKeypress,
+                        soundOnKeypress = state.soundOnKeypress,
+                        onClick = actions::symbols
                     )
                 }
 
                 KeyData.KeypadToggle -> {
                     KeypadToggleKey(
                         height = metrics.keyHeight,
-                        vibrateOnKeypress = vibrateOnKeypress,
-                        soundOnKeypress = soundOnKeypress,
-                        onClick = { service.openKeypad() }
+                        vibrateOnKeypress = state.vibrateOnKeypress,
+                        soundOnKeypress = state.soundOnKeypress,
+                        onClick = actions::keypad
                     )
                 }
 
                 KeyData.LanguageToggle -> {
                     LanguageToggleKey(
                         height = metrics.keyHeight,
-                        vibrateOnKeypress = vibrateOnKeypress,
-                        soundOnKeypress = soundOnKeypress,
-                        onClick = { service.toggleLanguage() }
+                        vibrateOnKeypress = state.vibrateOnKeypress,
+                        soundOnKeypress = state.soundOnKeypress,
+                        onClick = actions::language
                     )
                 }
             }

@@ -11,7 +11,11 @@ class AddiyonKeyboardView(
 
     @Composable
     override fun Content() {
-        CustomKeyboardTheme(isDarkTheme = service.isDarkTheme, palette = service.palette) {
+        CustomKeyboardTheme(
+            isDarkTheme = service.isDarkTheme,
+            palette = service.palette,
+            isLowRam = service.isLowRam,
+        ) {
             KeyboardScreen(service)
         }
     }

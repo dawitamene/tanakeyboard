@@ -58,6 +58,55 @@ internal class SQLiteDictionary(
     fun suggestions(prefix: String, limit: Int = 3): List<String> =
         suggestionEntries(prefix, limit).map { it.word }
 
+    fun suggestionEntriesForPrefixes(
+        prefixes: Collection<String>,
+        limit: Int,
+    ): Map<String, List<Suggestion>> {
+        if (!isReady || limit <= 0 || prefixes.isEmpty()) return emptyMap()
+        val normalized = LinkedHashMap<String, String>()
+        for (prefix in prefixes) {
+            val key = normalize(prefix)
+            if (key.isNotEmpty()) normalized.putIfAbsent(prefix, key)
+        }
+        if (normalized.isEmpty()) return emptyMap()
+        val database = store.databaseOrNull() ?: return emptyMap()
+        val statements = ArrayList<String>(normalized.size)
+        val args = ArrayList<String>(normalized.size * 4)
+        for ((prefix, key) in normalized) {
+            if (key.length <= precomputedPrefixLength) {
+                statements +=
+                    "SELECT ? requested, word, freq FROM " +
+                    "(SELECT word, freq FROM prefix_top WHERE prefix = ? ORDER BY rank LIMIT ?)"
+                args += prefix
+                args += key
+                args += limit.toString()
+            } else {
+                statements +=
+                    "SELECT ? requested, word, freq FROM " +
+                    "(SELECT word, freq FROM words WHERE key >= ? AND key < ? " +
+                    "ORDER BY freq DESC LIMIT ?)"
+                args += prefix
+                args += key
+                args += prefixEndBound(key)
+                args += limit.toString()
+            }
+        }
+        val result = LinkedHashMap<String, MutableList<Suggestion>>(normalized.size)
+        return try {
+            database.rawQuery(statements.joinToString(" UNION ALL "), args.toTypedArray()).use { cursor ->
+                while (cursor.moveToNext()) {
+                    result.getOrPut(cursor.getString(0)) { ArrayList(limit) }
+                        .add(Suggestion(cursor.getString(1), cursor.getInt(2)))
+                }
+            }
+            result
+        } catch (t: Throwable) {
+            store.handleQueryFailure(t)
+            com.addiyon.keyboard.SafeLog.e(t, "SQLiteDictionary.suggestionEntriesForPrefixes")
+            emptyMap()
+        }
+    }
+
     fun suggestionEntries(prefix: String, limit: Int = 3): List<Suggestion> {
         if (!isReady || limit <= 0) return emptyList()
         val cacheKey = "$limit\u0001$prefix"

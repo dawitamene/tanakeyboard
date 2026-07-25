@@ -18,6 +18,7 @@ internal class SQLiteLanguageStore(
     context: Context,
     val assetName: String,
     val isLowRam: Boolean,
+    private val onOutOfMemory: () -> Unit = {},
 ) {
     private enum class Status {
         CLOSED,
@@ -79,6 +80,7 @@ internal class SQLiteLanguageStore(
                 installAndOpen()
             } catch (oom: OutOfMemoryError) {
                 SafeLog.e(oom, "SQLiteLanguageStore load OOM")
+                onOutOfMemory()
                 null
             } catch (t: Throwable) {
                 SafeLog.e(t, "SQLiteLanguageStore load")

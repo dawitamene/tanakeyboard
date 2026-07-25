@@ -6,7 +6,9 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.Font
@@ -34,6 +36,8 @@ val PoppinsFamily = FontFamily(
     Font(R.font.poppins_semibold, FontWeight.SemiBold),
     Font(R.font.poppins_bold, FontWeight.Bold)
 )
+
+val LocalLowRamKeyboard = staticCompositionLocalOf { false }
 
 private val KeyboardTypography = Typography().let { base ->
     Typography(
@@ -500,23 +504,28 @@ fun AddiyonBrandTheme(
 fun CustomKeyboardTheme(
     isDarkTheme: Boolean,
     palette: KeyboardPalette = KeyboardPalette.CLASSIC,
+    isLowRam: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    MaterialTheme(
-        colorScheme = palette.scheme(isDarkTheme),
-        typography = KeyboardTypography,
-        content = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                if (palette.backgroundEffect is KeyboardBackground.LakeRipple) {
-                    LakeRippleBackground(Modifier.matchParentSize(), isDarkTheme)
+    CompositionLocalProvider(LocalLowRamKeyboard provides isLowRam) {
+        MaterialTheme(
+            colorScheme = palette.scheme(isDarkTheme),
+            typography = KeyboardTypography,
+            content = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    if (!isLowRam &&
+                        palette.backgroundEffect is KeyboardBackground.LakeRipple
+                    ) {
+                        LakeRippleBackground(Modifier.matchParentSize(), isDarkTheme)
+                    }
+                    content()
                 }
-                content()
             }
-        }
-    )
+        )
+    }
 }

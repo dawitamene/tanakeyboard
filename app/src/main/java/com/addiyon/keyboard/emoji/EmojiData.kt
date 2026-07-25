@@ -136,7 +136,8 @@ class EmojiData(val groups: List<EmojiGroup>) {
          */
         fun parse(
             lines: Sequence<String>,
-            isRenderable: (String) -> Boolean = { true }
+            isRenderable: (String) -> Boolean = { true },
+            shouldContinue: () -> Boolean = { true },
         ): EmojiData {
             val groups = ArrayList<EmojiGroup>()
             var groupName: String? = null
@@ -150,6 +151,7 @@ class EmojiData(val groups: List<EmojiGroup>) {
             }
 
             for (line in lines) {
+                if (!shouldContinue()) break
                 when {
                     line.startsWith("G\t") -> {
                         closeGroup()

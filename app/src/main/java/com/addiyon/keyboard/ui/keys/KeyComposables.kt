@@ -82,7 +82,8 @@ fun CharacterKey(
     isAmharic: Boolean,
     width: Dp,
     height: Dp,
-    service: AddiyonKeyboardService,
+    onCharacter: (String) -> Unit,
+    onCommitText: (String) -> Unit,
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean
 ) {
@@ -103,12 +104,12 @@ fun CharacterKey(
     if (isPunctuation && isAmharic) {
         primaryText = amharicChar
         secondaryText = effectiveLatin
-        longPressAction = { service.commitText(key.latin) }
+        longPressAction = { onCommitText(key.latin) }
         secondarySize = 14.sp
     } else if (isPunctuation) {
         primaryText = effectiveLatin
         secondaryText = null
-        longPressAction = { service.commitText(amharicChar) }
+        longPressAction = { onCommitText(amharicChar) }
         secondarySize = 10.sp
     } else {
         primaryText = effectiveLatin
@@ -138,7 +139,7 @@ fun CharacterKey(
         onLongPress = longPressAction,
         testTag = KeyboardTestTags.character(key.latin)
     ) {
-        service.onCharacter(key.latin)
+        onCharacter(key.latin)
     }
 }
 

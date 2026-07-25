@@ -14,8 +14,6 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -238,19 +237,15 @@ fun KeyButton(
         }
     }
 
-    Card(
+    Box(
         modifier = modifier
             .height(height)
             .padding(horizontal = 3.dp)
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
+            .clip(RoundedCornerShape(6.dp))
+            .background(background)
             .then(pressModifier)
             .then(swipeModifier),
-        shape = RoundedCornerShape(6.dp),
-        colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp,
-            pressedElevation = 0.dp
-        )
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),

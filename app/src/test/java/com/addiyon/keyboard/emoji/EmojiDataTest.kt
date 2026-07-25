@@ -95,4 +95,14 @@ class EmojiDataTest {
     fun `allEmoji flattens groups in display order`() {
         assertEquals(listOf("😀", "😺", "👋", "🏁"), parse().allEmoji.map { it.base })
     }
+
+    @Test
+    fun `parse stops when cancellation is requested`() {
+        var records = 0
+        val data = EmojiData.parse(
+            fixture.lineSequence(),
+            shouldContinue = { records++ < 3 },
+        )
+        assertEquals(listOf("😀"), data.allEmoji.map { it.base })
+    }
 }
