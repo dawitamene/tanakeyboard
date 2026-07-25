@@ -40,6 +40,7 @@ class EmojiRepository(context: Context, private val assetName: String = "emoji.d
         private set
 
     private var loadStarted = false
+    private var generation = 0L
 
     val isReady: Boolean
         get() = data != null
@@ -53,6 +54,7 @@ class EmojiRepository(context: Context, private val assetName: String = "emoji.d
     fun loadAsync(onReady: () -> Unit = {}) {
         if (loadStarted) return
         loadStarted = true
+        val loadGeneration = ++generation
         Thread {
             try {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
@@ -72,11 +74,18 @@ class EmojiRepository(context: Context, private val assetName: String = "emoji.d
             }
             mainHandler.post {
                 safeApply {
+                    if (loadGeneration != generation) return@safeApply
                     data = loaded
                     onReady()
                 }
             }
         }.start()
+    }
+
+    fun release() {
+        generation += 1
+        loadStarted = false
+        data = null
     }
 
     private fun load(): EmojiData {

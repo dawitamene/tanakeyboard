@@ -1,12 +1,17 @@
 // ui/SuggestionBar.kt
 package com.addiyon.keyboard.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -14,7 +19,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -40,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -89,7 +97,8 @@ fun SuggestionArea(
     onEmoji: () -> Unit,
     voiceUiState: VoiceUiState = VoiceUiState.Idle,
     onVoice: () -> Unit = {},
-    onExitVoice: () -> Unit = {}
+    onExitVoice: () -> Unit = {},
+    isLanguageSwitching: Boolean = false,
 ) {
     val voiceMode = voiceUiState.isVoiceMode
     Row(
@@ -132,17 +141,80 @@ fun SuggestionArea(
             MicToolbarIcon(isListening = false, onClick = onVoice)
         } else {
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                when {
-                    emailSuggestions.isNotEmpty() ->
-                        EmailSuggestionStrip(emailSuggestions, onTap)
-                    isAmharic ->
-                        AmharicSuggestionStrip(suggestions, isPredictions, onTap)
-                    else ->
-                        EnglishSuggestionStrip(suggestions, onTap)
+                AnimatedContent(
+                    targetState = isLanguageSwitching to (emailSuggestions.isNotEmpty() to isAmharic),
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(180)) + scaleIn(initialScale = 0.96f))
+                            .togetherWith(fadeOut(animationSpec = tween(140)))
+                    },
+                    label = "suggestion-strip",
+                ) { (loading, emailOrAmharic) ->
+                    if (loading) {
+                        LanguageLoadingDot()
+                    } else {
+                        val (hasEmail, isAm) = emailOrAmharic
+                        when {
+                            hasEmail ->
+                                EmailSuggestionStrip(emailSuggestions, onTap)
+                            isAm ->
+                                AmharicSuggestionStrip(suggestions, isPredictions, onTap)
+                            else ->
+                                EnglishSuggestionStrip(suggestions, onTap)
+                        }
+                    }
                 }
             }
             MicToolbarIcon(isListening = false, onClick = onVoice)
         }
+    }
+}
+
+@Composable
+private fun LanguageLoadingDot() {
+    val transition = rememberInfiniteTransition(label = "loading-dot")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "loading-alpha",
+    )
+    Row(
+        modifier = Modifier.fillMaxSize(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .alpha(alpha)
+                .background(
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                )
+        )
+        Spacer(Modifier.width(6.dp))
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .alpha((1f - alpha).coerceIn(0.35f, 1f))
+                .background(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                )
+        )
+        Spacer(Modifier.width(6.dp))
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .alpha(alpha)
+                .background(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                )
+        )
     }
 }
 

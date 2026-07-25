@@ -63,8 +63,17 @@ object EthiopicNormalizer {
     fun normalize(c: Char): Char = fold[c] ?: c
 
     fun normalize(s: String): String {
+        var firstChange = -1
+        for (index in s.indices) {
+            if (normalize(s[index]) != s[index]) {
+                firstChange = index
+                break
+            }
+        }
+        if (firstChange < 0) return s
         val sb = StringBuilder(s.length)
-        for (c in s) sb.append(normalize(c))
+        sb.append(s, 0, firstChange)
+        for (index in firstChange until s.length) sb.append(normalize(s[index]))
         return sb.toString()
     }
 }

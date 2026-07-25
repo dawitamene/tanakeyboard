@@ -1,9 +1,16 @@
 package com.addiyon.keyboard.transliteration
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 class EthiopicNormalizerTest {
+
+    @Test
+    fun unchangedStringReusesInputInstance() {
+        val input = "ፍቅር keyboard"
+        assertSame(input, EthiopicNormalizer.normalize(input))
+    }
 
     private fun n(s: String) = EthiopicNormalizer.normalize(s)
 

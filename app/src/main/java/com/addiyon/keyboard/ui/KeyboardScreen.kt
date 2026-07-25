@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -38,6 +39,31 @@ private fun keyboardRows(
     } else {
         numericRows(layout, numbersMode, numberRowEnabled)
     }
+}
+
+@Composable
+private fun KeyboardSuggestionArea(
+    service: AddiyonKeyboardService,
+    isAmharic: Boolean,
+) {
+    SuggestionArea(
+        suggestions = service.suggestions,
+        isAmharic = isAmharic,
+        isPredictions = service.suggestionsArePredictions,
+        emailSuggestions = service.emailSuggestions,
+        onTap = service::onSuggestionTapped,
+        onOpenSettings = { service.openAppScreen(MainActivity.SCREEN_SETTINGS) },
+        onOpenThemes = { service.openAppScreen(MainActivity.SCREEN_THEMES) },
+        onOpenGuide = { service.openAppScreen(MainActivity.SCREEN_GUIDE) },
+        onFeedback = service::openFeedbackScreen,
+        onAi = service::onAiAction,
+        onClipboard = service::onClipboardAction,
+        onEmoji = service::openEmojiPanel,
+        voiceUiState = service.voiceUiState,
+        onVoice = service::onVoiceInput,
+        onExitVoice = service::exitVoiceMode,
+        isLanguageSwitching = service.isLanguageSwitching,
+    )
 }
 
 @Composable
@@ -116,19 +142,29 @@ fun KeyboardScreen(
                         // a 6.dp spacer (keyboardRowsHeight), and the box adds
                         // 6.dp vertical padding top and bottom (12.dp). Plus the
                         // 40.dp suggestion area this panel renders in place of.
-                        val rows = keyboardRows(
-                            layout = layout,
-                            numbersMode = service.numbersMode,
-                            numberRowEnabled = service.showNumberRow,
-                            emojiSearching = false
-                        )
-                        val metrics = computeKeyboardMetrics(
-                            rows = rows,
-                            availableWidth = maxWidth - 8.dp,
-                            columns = layout.columns,
-                            heightScale = heightScale
-                        )
-                        val targetRowCount = keyboardRowCount(service.showNumberRow)
+                        val rows = remember(
+                            layout,
+                            service.numbersMode,
+                            service.showNumberRow
+                        ) {
+                            keyboardRows(
+                                layout = layout,
+                                numbersMode = service.numbersMode,
+                                numberRowEnabled = service.showNumberRow,
+                                emojiSearching = false
+                            )
+                        }
+                        val metrics = remember(rows, maxWidth, heightScale) {
+                            computeKeyboardMetrics(
+                                rows = rows,
+                                availableWidth = maxWidth - 8.dp,
+                                columns = layout.columns,
+                                heightScale = heightScale
+                            )
+                        }
+                        val targetRowCount = remember(service.showNumberRow) {
+                            keyboardRowCount(service.showNumberRow)
+                        }
                         val panelHeight = 40.dp + keyboardRowsHeight(
                             keyHeight = metrics.keyHeight,
                             rowCount = targetRowCount
@@ -145,23 +181,7 @@ fun KeyboardScreen(
                 // there's nothing to suggest (always the case on the numeric pages,
                 // where no word composes) it's the quick-action toolbar with the
                 // logo; otherwise the suggestion strip.
-                SuggestionArea(
-                    suggestions = service.suggestions,
-                    isAmharic = isAmharic,
-                    isPredictions = service.suggestionsArePredictions,
-                    emailSuggestions = service.emailSuggestions,
-                    onTap = { word -> service.onSuggestionTapped(word) },
-                    onOpenSettings = { service.openAppScreen(MainActivity.SCREEN_SETTINGS) },
-                    onOpenThemes = { service.openAppScreen(MainActivity.SCREEN_THEMES) },
-                    onOpenGuide = { service.openAppScreen(MainActivity.SCREEN_GUIDE) },
-                    onFeedback = { service.openFeedbackScreen() },
-                    onAi = { service.onAiAction() },
-                    onClipboard = { service.onClipboardAction() },
-                    onEmoji = { service.openEmojiPanel() },
-                    voiceUiState = service.voiceUiState,
-                    onVoice = { service.onVoiceInput() },
-                    onExitVoice = { service.exitVoiceMode() }
-                )
+                KeyboardSuggestionArea(service, isAmharic)
 
                 BoxWithConstraints(
                     modifier = Modifier
@@ -174,19 +194,33 @@ fun KeyboardScreen(
                     // query is Latin, and CLDR keywords are English), whatever
                     // language or number row the keyboard itself is in.
                     val effectiveLayout = if (emojiSearching) EnglishLayout else layout
-                    val rows = keyboardRows(
-                        layout = effectiveLayout,
-                        numbersMode = service.numbersMode,
-                        numberRowEnabled = service.showNumberRow,
-                        emojiSearching = emojiSearching
-                    )
+                    val rows = remember(
+                        effectiveLayout,
+                        service.numbersMode,
+                        service.showNumberRow,
+                        emojiSearching
+                    ) {
+                        keyboardRows(
+                            layout = effectiveLayout,
+                            numbersMode = service.numbersMode,
+                            numberRowEnabled = service.showNumberRow,
+                            emojiSearching = emojiSearching
+                        )
+                    }
                     val availableWidth = maxWidth
-                    val metrics = computeKeyboardMetrics(
-                        rows = rows,
-                        availableWidth = availableWidth,
-                        columns = effectiveLayout.columns,
-                        heightScale = heightScale
-                    )
+                    val metrics = remember(
+                        effectiveLayout,
+                        rows,
+                        availableWidth,
+                        heightScale
+                    ) {
+                        computeKeyboardMetrics(
+                            rows = rows,
+                            availableWidth = availableWidth,
+                            columns = effectiveLayout.columns,
+                            heightScale = heightScale
+                        )
+                    }
                     val isKeypadLayout = effectiveLayout === KeypadLayout
                     val targetRowCount = keyboardRowCount(service.showNumberRow)
                     val renderedMetrics = if (isKeypadLayout) {

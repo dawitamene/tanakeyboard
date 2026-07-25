@@ -8,11 +8,20 @@ import org.junit.Test
 
 class AmharicPrefixCompletionTest {
 
-    /** A trie-backed lookup over a small stem lexicon, folded like the real one. */
+    /** A small map-backed lookup, folded like the real one. */
     private fun lookupOf(vararg words: Pair<String, Int>): (String, Int) -> List<DictionaryWord> {
-        val trie = WordTrie.build(words.toList(), EthiopicNormalizer::normalize)
-        return { prefix, limit ->
-            trie.suggestionEntries(prefix, limit).map { DictionaryWord(it.word, it.frequency) }
+        val byKey: Map<String, Pair<String, Int>> = words.associate { (w, f) ->
+            EthiopicNormalizer.normalize(w) to (w to f)
+        }
+        return fun(prefix: String, limit: Int): List<DictionaryWord> {
+            val keyPrefix = EthiopicNormalizer.normalize(prefix)
+            if (keyPrefix.isEmpty() || limit <= 0) return emptyList()
+            return byKey.entries.asSequence()
+                .filter { it.key.startsWith(keyPrefix) }
+                .sortedByDescending { it.value.second }
+                .take(limit)
+                .map { DictionaryWord(it.value.first, it.value.second) }
+                .toList()
         }
     }
 

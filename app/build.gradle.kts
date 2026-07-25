@@ -7,7 +7,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.compose.compiler)
 
 
 }
@@ -45,8 +45,39 @@ android {
     namespace = "com.addiyon.keyboard"
     compileSdk = 36
 
+    androidResources {
+        ignoreAssetsPatterns.addAll(
+            listOf(
+                "!amharic_words.dat",
+                "!amharic_ngrams.dat",
+                "!english_words.dat",
+                "!english_ngrams.dat",
+            )
+        )
+    }
+
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    val generateDictionaryDbs = tasks.register<DictionaryDbGenerator>("generateDictionaryDbs") {
+        group = "build"
+        description = "Generate SQLite dictionaries from gzipped .dat assets."
+        amharicWordsDat.set(file("src/main/assets/amharic_words.dat"))
+        amharicNgramsDat.set(file("src/main/assets/amharic_ngrams.dat"))
+        englishWordsDat.set(file("src/main/assets/english_words.dat"))
+        englishNgramsDat.set(file("src/main/assets/english_ngrams.dat"))
+        amharicDb.set(file("src/main/assets/amharic.db"))
+        englishDb.set(file("src/main/assets/english.db"))
+        manifestFile.set(file("src/main/assets/dictionary_manifest.properties"))
+    }
+
+    afterEvaluate {
+        tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
+            .configureEach { dependsOn(generateDictionaryDbs) }
+        tasks.matching { it.name.contains("Lint", ignoreCase = true) }
+            .configureEach { dependsOn(generateDictionaryDbs) }
     }
 
 
@@ -130,6 +161,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     testImplementation(libs.junit)
+    testImplementation("org.xerial:sqlite-jdbc:3.45.3.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(platform(libs.androidx.compose.bom))

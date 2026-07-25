@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.drawWithCache
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -378,28 +379,34 @@ private fun PaperBackground(isDark: Boolean) {
 
     val seeds = remember { List(2) { Random(it.hashCode()).nextFloat() } }
 
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-
-        drawRect(Brush.verticalGradient(listOf(topColor, deepColor)))
-
-        val path = Path().apply {
-            moveTo(0f, h * 0.85f)
-            var x = 0f
-            while (x <= w) {
-                val dx = x / w
-                val y = h * 0.85f + sin(dx * 6.28f * 1.5f + seeds[0] * 6.28f) * h * 0.02f
-                    + sin(dx * 6.28f * 3.5f + seeds[1] * 6.28f) * h * 0.012f
-                lineTo(x, y)
-                x += w / 100f
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .drawWithCache {
+                val w = size.width
+                val h = size.height
+                val gradient = Brush.verticalGradient(listOf(topColor, deepColor))
+                val path = Path().apply {
+                    moveTo(0f, h * 0.85f)
+                    var x = 0f
+                    while (x <= w) {
+                        val dx = x / w
+                        val y = h * 0.85f +
+                            sin(dx * 6.28f * 1.5f + seeds[0] * 6.28f) * h * 0.02f +
+                            sin(dx * 6.28f * 3.5f + seeds[1] * 6.28f) * h * 0.012f
+                        lineTo(x, y)
+                        x += w / 100f
+                    }
+                    lineTo(w, h)
+                    lineTo(0f, h)
+                    close()
+                }
+                onDrawBehind {
+                    drawRect(gradient)
+                    drawPath(path, wave)
+                }
             }
-            lineTo(w, h)
-            lineTo(0f, h)
-            close()
-        }
-        drawPath(path, wave)
-    }
+    ) {}
 }
 
 @Composable
@@ -411,44 +418,48 @@ private fun LakeRippleBackground(modifier: Modifier, isDark: Boolean) {
 
     val seeds = remember { List(3) { Random(it.hashCode()).nextFloat() } }
 
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-
-        drawRect(Brush.verticalGradient(listOf(topColor, deepColor)))
-
-        val path1 = Path().apply {
-            moveTo(0f, h * 0.70f)
-            var x = 0f
-            while (x <= w) {
-                val dx = x / w
-                val y = h * 0.70f + sin(dx * 6.28f * 1.2f + seeds[0] * 6.28f) * h * 0.055f
-                    + sin(dx * 6.28f * 3.0f + seeds[1] * 6.28f) * h * 0.03f
-                lineTo(x, y)
-                x += w / 100f
+    Canvas(
+        modifier = modifier.drawWithCache {
+            val w = size.width
+            val h = size.height
+            val gradient = Brush.verticalGradient(listOf(topColor, deepColor))
+            val path1 = Path().apply {
+                moveTo(0f, h * 0.70f)
+                var x = 0f
+                while (x <= w) {
+                    val dx = x / w
+                    val y = h * 0.70f +
+                        sin(dx * 6.28f * 1.2f + seeds[0] * 6.28f) * h * 0.055f +
+                        sin(dx * 6.28f * 3.0f + seeds[1] * 6.28f) * h * 0.03f
+                    lineTo(x, y)
+                    x += w / 100f
+                }
+                lineTo(w, h)
+                lineTo(0f, h)
+                close()
             }
-            lineTo(w, h)
-            lineTo(0f, h)
-            close()
-        }
-        drawPath(path1, wave)
-
-        val path2 = Path().apply {
-            moveTo(0f, h * 0.76f)
-            var x = 0f
-            while (x <= w) {
-                val dx = x / w
-                val y = h * 0.76f + sin(dx * 6.28f * 2.2f + seeds[2] * 6.28f) * h * 0.035f
-                    + sin(dx * 6.28f * 4.5f + seeds[0] * 6.28f) * h * 0.016f
-                lineTo(x, y)
-                x += w / 100f
+            val path2 = Path().apply {
+                moveTo(0f, h * 0.76f)
+                var x = 0f
+                while (x <= w) {
+                    val dx = x / w
+                    val y = h * 0.76f +
+                        sin(dx * 6.28f * 2.2f + seeds[2] * 6.28f) * h * 0.035f +
+                        sin(dx * 6.28f * 4.5f + seeds[0] * 6.28f) * h * 0.016f
+                    lineTo(x, y)
+                    x += w / 100f
+                }
+                lineTo(w, h)
+                lineTo(0f, h)
+                close()
             }
-            lineTo(w, h)
-            lineTo(0f, h)
-            close()
+            onDrawBehind {
+                drawRect(gradient)
+                drawPath(path1, wave)
+                drawPath(path2, wave2)
+            }
         }
-        drawPath(path2, wave2)
-    }
+    ) {}
 }
 
 /**

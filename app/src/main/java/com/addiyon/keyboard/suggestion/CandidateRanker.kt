@@ -172,16 +172,21 @@ object CandidateRanker {
             )
         }
 
-        val ranked = scored
-            .groupBy { it.word }
-            .values
-            .map { options ->
-                options.maxWithOrNull(
-                    compareBy<ScoredSuggestion> { it.score }
-                        .thenByDescending { -it.sourceRank }
-                        .thenByDescending { -it.structuralIndex }
-                )!!
+        val bestByWord = LinkedHashMap<String, ScoredSuggestion>(scored.size)
+        for (candidate in scored) {
+            val current = bestByWord[candidate.word]
+            if (
+                current == null ||
+                candidate.score > current.score ||
+                candidate.score == current.score && candidate.sourceRank < current.sourceRank ||
+                candidate.score == current.score &&
+                    candidate.sourceRank == current.sourceRank &&
+                    candidate.structuralIndex < current.structuralIndex
+            ) {
+                bestByWord[candidate.word] = candidate
             }
+        }
+        val ranked = bestByWord.values
             .sortedWith(
                 compareByDescending<ScoredSuggestion> { it.score }
                     .thenBy { it.sourceRank }

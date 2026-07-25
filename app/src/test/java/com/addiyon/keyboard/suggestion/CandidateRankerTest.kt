@@ -8,11 +8,30 @@ import org.junit.Test
 
 class CandidateRankerTest {
 
-    private fun trie(vararg words: Pair<String, Int>) = WordTrie.build(words.toList())
+    private class FakeDict(vararg words: Pair<String, Int>) {
+        private val byWord: Map<String, Int> = words.toMap()
+        private val byKey: Map<String, List<Pair<String, Int>>> = words
+            .groupBy { (w, _) -> w }
+            .mapValues { (_, v) -> v }
+
+        fun frequencyOf(word: String): Int? = byWord[word]
+        fun entriesFor(prefix: String, limit: Int): List<CandidateRanker.DictionaryWord> {
+            if (limit <= 0) return emptyList()
+            val p = prefix
+            return byWord.entries.asSequence()
+                .filter { it.key.startsWith(p) }
+                .sortedByDescending { it.value }
+                .take(limit)
+                .map { CandidateRanker.DictionaryWord(it.key, it.value) }
+                .toList()
+        }
+    }
+
+    private fun dict(vararg words: Pair<String, Int>) = FakeDict(*words)
 
     private fun rankAmharic(
         readings: List<String>,
-        trie: WordTrie,
+        dict: FakeDict,
         visibleReadings: List<String> = emptyList(),
         fuzzyWords: List<CandidateRanker.FuzzyWord> = emptyList(),
         quirkReadings: Set<String> = emptySet(),
@@ -21,12 +40,8 @@ class CandidateRankerTest {
         CandidateRanker.rankAmharic(
             readings = readings,
             limit = 10,
-            frequencyOf = trie::frequencyOf,
-            completionsForPrefix = { prefix, limit ->
-                trie.suggestionEntries(prefix, limit).map {
-                    CandidateRanker.DictionaryWord(it.word, it.frequency)
-                }
-            },
+            frequencyOf = dict::frequencyOf,
+            completionsForPrefix = dict::entriesFor,
             visibleReadings = visibleReadings,
             fuzzyWords = fuzzyWords,
             quirkReadings = quirkReadings,
@@ -71,21 +86,21 @@ class CandidateRankerTest {
 
     @Test
     fun bestCommitCandidatePromotesTheHighestScoringExactWord() {
-        val words = trie("መስጠት" to 900)
+        val words = dict("መስጠት" to 900)
         val readings = listOf("መስተት", "መስጠጥ", "መስጠት", "መስተጥ")
         assertEquals("መስጠት", CandidateRanker.bestCommitCandidate(readings, words::frequencyOf))
     }
 
     @Test
     fun bestCommitCandidateFallsBackToTheGreedyReadingWithoutExactWords() {
-        val words = trie("ስህተት" to 800)
+        val words = dict("ስህተት" to 800)
         assertEquals("ሽ", CandidateRanker.bestCommitCandidate(listOf("ሽ", "ስህ"), words::frequencyOf))
     }
 
     @Test
     fun explicitUppercaseFamilyKeepsGreedyReadingAheadOfDictionaryAlternates() {
         val readings = Transliterator.candidates("aCe")
-        val words = trie("አቸ" to 900, "አቼ" to 800)
+        val words = dict("አቸ" to 900, "አቼ" to 800)
         val ranked = CandidateRanker.rankAmharic(
             readings = readings,
             limit = 10,
@@ -110,7 +125,7 @@ class CandidateRankerTest {
         // are hidden -- but the greedy literal (መስተት, index 0, what's shown
         // inline while typing) is always kept as the second chip so the user
         // can still commit exactly what they typed.
-        val words = trie("መስጠት" to 900)
+        val words = dict("መስጠት" to 900)
         val ranked = rankAmharic(
             listOf("መስተት", "መስጠጥ", "መስጠት", "መስተጥ"),
             words
@@ -120,7 +135,7 @@ class CandidateRankerTest {
 
     @Test
     fun prefixOnlyReadingsStayAliveForCompletionsWithoutBeingShownAsWords() {
-        val words = trie("ስህተት" to 800)
+        val words = dict("ስህተት" to 800)
         val ranked = rankAmharic(listOf("ሽ", "ስህ"), words)
         assertEquals(listOf("ሽ", "ስህተት"), ranked)
         assertFalse("ስህ" in ranked)
@@ -130,7 +145,7 @@ class CandidateRankerTest {
     fun exactDictionaryWordLeadsWithTheGreedyLiteralKeptSecond() {
         // "fkr": the real word ፍቅር leads, but the greedy literal ፍክር (shown
         // inline) is kept as the second chip, ahead of any completion.
-        val words = trie("ፍቅር" to 700, "ፍቅረኛ" to 200)
+        val words = dict("ፍቅር" to 700, "ፍቅረኛ" to 200)
         val ranked = rankAmharic(listOf("ፍክር", "ፍቅር"), words)
         assertEquals("ፍቅር", ranked[0])
         assertEquals("ፍክር", ranked[1])
@@ -138,7 +153,7 @@ class CandidateRankerTest {
 
     @Test
     fun exactDictionaryWordBeatsTwoStructuralAlternates() {
-        val words = trie("ጴንጤ" to 850)
+        val words = dict("ጴንጤ" to 850)
         val ranked = rankAmharic(Transliterator.candidates("pientie"), words)
         assertEquals("ጴንጤ", ranked.first())
     }
@@ -147,7 +162,7 @@ class CandidateRankerTest {
     fun visibleQuirkReadingsAppearWhenThereIsNoExactWord() {
         val ranked = rankAmharic(
             readings = listOf("ባ", "ብአ"),
-            trie = trie(),
+            dict = dict(),
             visibleReadings = listOf("ብአ")
         )
         assertEquals(listOf("ባ", "ብአ"), ranked)
@@ -158,7 +173,7 @@ class CandidateRankerTest {
         val readings = listOf("አለካሽን", "አለቃሽን")
         val ranked = rankAmharic(
             readings = readings,
-            trie = trie(),
+            dict = dict(),
             visibleReadings = readings
         )
         assertEquals(readings, ranked)
@@ -168,7 +183,7 @@ class CandidateRankerTest {
     fun exactWordsSuppressVisibleQuirkReadings() {
         val ranked = rankAmharic(
             readings = listOf("ሰላም", "ሰልአም"),
-            trie = trie("ሰላም" to 900),
+            dict = dict("ሰላም" to 900),
             visibleReadings = listOf("ሰልአም")
         )
         assertEquals(listOf("ሰላም"), ranked)
@@ -181,7 +196,7 @@ class CandidateRankerTest {
         // literal default, and ምእ only rides along as a quirk/completion chip.
         val ranked = rankAmharic(
             readings = listOf("መ", "ምእ", "ምዕ"),
-            trie = trie("ምእ" to 900, "ምዕ" to 900, "ምእመናን" to 500),
+            dict = dict("ምእ" to 900, "ምዕ" to 900, "ምእመናን" to 500),
             visibleReadings = listOf("ምእ", "ምዕ"),
             quirkReadings = setOf("ምእ", "ምዕ")
         )
@@ -232,7 +247,7 @@ class CandidateRankerTest {
         // context boost (max 10_000 > the 1_000 gap) flips the order.
         // (ሰላም/ሰላሳ, not a homoglyph pair like ሰላም/ሠላም -- boost keys are
         // folded, so homoglyph variants would collect the SAME boost.)
-        val words = trie("ሰላም" to 9_000, "ሰላሳ" to 10_000)
+        val words = dict("ሰላም" to 9_000, "ሰላሳ" to 10_000)
         val ranked = rankAmharic(
             listOf("ሰላም", "ሰላሳ"), words,
             ngramNext = mapOf("ሰላም" to 255)
@@ -251,7 +266,7 @@ class CandidateRankerTest {
     fun ngramBoostMatchesVariantSpellingsOfTheSameWord() {
         // The boost map is keyed by folded spelling; a candidate typed in a
         // variant spelling (ሠላም) must still collect the boost for ሰላም.
-        val words = trie("ሠላም" to 9_000, "ሰላሳ" to 10_000)
+        val words = dict("ሠላም" to 9_000, "ሰላሳ" to 10_000)
         val ranked = rankAmharic(
             listOf("ሠላም", "ሰላሳ"), words,
             ngramNext = mapOf("ሰላም" to 255)
@@ -261,7 +276,7 @@ class CandidateRankerTest {
 
     @Test
     fun ngramBoostAppliesToCompletions() {
-        val words = trie("ቤተሰብ" to 9_000, "ቤተመንግስት" to 10_000)
+        val words = dict("ቤተሰብ" to 9_000, "ቤተመንግስት" to 10_000)
         val ranked = rankAmharic(
             listOf("ቤተ"), words,
             ngramNext = mapOf("ቤተሰብ" to 200)
@@ -275,7 +290,7 @@ class CandidateRankerTest {
         // a completion (of the alternate reading ቤተ). Even a maximal context
         // boost on a maximal-frequency completion must not displace the
         // exact word from the top.
-        val words = trie("ቤቱ" to 1, "ቤተሰብ" to 30_000)
+        val words = dict("ቤቱ" to 1, "ቤተሰብ" to 30_000)
         val ranked = rankAmharic(
             listOf("ቤተ", "ቤቱ"), words,
             ngramNext = mapOf("ቤተሰብ" to 255)
