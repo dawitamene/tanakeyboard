@@ -67,9 +67,7 @@ class VoiceComposer {
         val normalized = normalize(raw.orEmpty()).ifEmpty { lastPartial }
         reset()
         if (normalized.isEmpty()) return null
-        val deleteSpaceBefore = startsWithStandalonePunctuation(normalized) &&
-            charBefore?.isWhitespace() == true
-        return FinalCommit(withLeadingSpaceIfNeeded(normalized, charBefore), deleteSpaceBefore)
+        return FinalCommit(withLeadingSpaceIfNeeded(normalized, charBefore))
     }
 
     /**
@@ -88,11 +86,8 @@ class VoiceComposer {
 
     /**
      * [text] is ready to commit as-is (leading space included when needed).
-     * [deleteSpaceBefore] flags a spoken standalone punctuation mark landing
-     * after whitespace -- the caller should delete that space first so
-     * "hello " + "," becomes "hello," not "hello ,".
      */
-    data class FinalCommit(val text: String, val deleteSpaceBefore: Boolean)
+    data class FinalCommit(val text: String)
 
     private fun withLeadingSpaceIfNeeded(text: String, charBefore: Char?): String {
         val needsSpace = charBefore != null && !charBefore.isWhitespace() &&

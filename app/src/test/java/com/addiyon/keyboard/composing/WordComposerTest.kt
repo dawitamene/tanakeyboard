@@ -49,13 +49,11 @@ class WordComposerTest {
     // leaving buffer/raw/onCommit behavior fully exercisable.
     private fun composer(
         commitTransform: (String) -> String = { it },
-        discardOnExit: Boolean = false,
         onCommit: (raw: String, display: String) -> Unit = { _, _ -> },
         inputConnection: () -> InputConnection? = { null }
     ) = WordComposer(
         inputConnection = inputConnection,
         commitTransform = commitTransform,
-        discardOnExit = discardOnExit,
         onCommit = onCommit
     )
 
@@ -169,34 +167,34 @@ class WordComposerTest {
         assertFalse(c.onBackspace())
     }
     @Test
-    fun finishReportsTheWordViaOnCommitWhenNotDiscarding() {
-        var committed: Pair<String, String>? = null
+    fun finishFinalizesVisibleTextWithoutClearingReplacingOrReportingIt() {
+        val recording = RecordingInputConnection()
+        var commits = 0
         val c = composer(
             commitTransform = { it.uppercase() },
-            onCommit = { raw, display -> committed = raw to display }
+            onCommit = { _, _ -> commits++ },
+            inputConnection = { recording.asInputConnection() }
         )
         c.onCharacter("h")
         c.onCharacter("i")
         c.finish()
-        assertEquals("hi" to "HI", committed)
+
+        assertEquals(listOf("h", "hi"), recording.composingUpdates)
+        assertEquals(emptyList<String>(), recording.commits)
+        assertEquals(1, recording.finishCount)
+        assertEquals(0, commits)
         assertFalse(c.isComposing)
     }
 
     @Test
-    fun abandonReportsTheWordViaOnCommitWhenNotDiscarding() {
-        var committed: Pair<String, String>? = null
-        val c = composer(onCommit = { raw, display -> committed = raw to display })
-        c.onCharacter("h")
-        c.onCharacter("i")
-        c.abandon()
-        assertEquals("hi" to "hi", committed)
-        assertFalse(c.isComposing)
-    }
-
-    @Test
-    fun abandonFinalizesNonDiscardingCompositionWithoutCommitText() {
+    fun abandonFinalizesVisibleTextWithoutClearingReplacingOrReportingIt() {
         val recording = RecordingInputConnection()
-        val c = composer(inputConnection = { recording.asInputConnection() })
+        var commits = 0
+        val c = composer(
+            commitTransform = { it.uppercase() },
+            onCommit = { _, _ -> commits++ },
+            inputConnection = { recording.asInputConnection() }
+        )
         c.onCharacter("h")
         c.onCharacter("i")
         c.abandon()
@@ -204,71 +202,21 @@ class WordComposerTest {
         assertEquals(listOf("h", "hi"), recording.composingUpdates)
         assertEquals(emptyList<String>(), recording.commits)
         assertEquals(1, recording.finishCount)
-        assertFalse(c.isComposing)
-    }
-
-    @Test
-    fun discardOnExitFinishAndAbandonDoNotReportAFreshWord() {
-        var commits = 0
-        val c = composer(discardOnExit = true, onCommit = { _, _ -> commits++ })
-        c.onCharacter("h")
-        c.finish()
-        assertFalse(c.isComposing)
-        c.onCharacter("h")
-        c.abandon()
-        assertFalse(c.isComposing)
-        // The tentative word is deleted from the field, never committed --
-        // so nothing must enter the resume history either.
         assertEquals(0, commits)
+        assertFalse(c.isComposing)
     }
 
     @Test
-    fun discardOnExitRestoresAResumedWordThroughTheTransformInsteadOfDeletingIt() {
-        var committed: Pair<String, String>? = null
-        val c = composer(
-            discardOnExit = true,
-            commitTransform = { it.uppercase() },
-            onCommit = { raw, display -> committed = raw to display }
-        )
-        // The word already existed as committed field text before adoption,
-        // so exiting must re-report it (restored, with the extension, through
-        // commitTransform -- never as raw Latin).
-        c.resume("sel")
+    fun onlyExplicitCommitReportsCommittedText() {
+        var commits = 0
+        val c = composer(onCommit = { _, _ -> commits++ })
         c.onCharacter("a")
-        c.abandon()
-        assertEquals("sela" to "SELA", committed)
-
-        committed = null
-        c.resume("sel")
-        c.finish()
-        assertEquals("sel" to "SEL", committed)
-    }
-
-    @Test
-    fun backspacingAResumedWordToEmptyClearsItsResumedStatus() {
-        var commits = 0
-        val c = composer(discardOnExit = true, onCommit = { _, _ -> commits++ })
-        c.resume("ab")
-        assertTrue(c.onBackspace())
-        assertTrue(c.onBackspace())
-        assertFalse(c.isComposing)
-        // A NEW word typed afterwards is fresh, not "resumed": exiting
-        // discards it without reporting.
-        c.onCharacter("x")
-        c.abandon()
-        assertEquals(0, commits)
-    }
-
-    @Test
-    fun commitClearsResumedStatusForTheNextWord() {
-        var commits = 0
-        val c = composer(discardOnExit = true, onCommit = { _, _ -> commits++ })
-        c.resume("ab")
         c.commit()
         assertEquals(1, commits)
-        c.onCharacter("x")
+        c.onCharacter("b")
         c.finish()
-        // Only the explicit commit reported; the fresh "x" was discarded.
+        c.onCharacter("c")
+        c.abandon()
         assertEquals(1, commits)
     }
 

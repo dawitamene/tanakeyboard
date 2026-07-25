@@ -4,8 +4,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.addiyon.keyboard.KeyboardStatusSnapshot
 import com.addiyon.keyboard.TestAppHost
+import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -50,7 +52,9 @@ class OnboardingScreenUiTest {
     }
 
     @Test
-    fun defaultKeyboardShowsAllSetThenCallsDone() {
+    fun defaultKeyboardWithCompletedTourShowsAllSetThenCallsDone() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        KeyboardPrefs.setFeatureTourSeen(context)
         compose.mainClock.autoAdvance = false
         var done = false
 

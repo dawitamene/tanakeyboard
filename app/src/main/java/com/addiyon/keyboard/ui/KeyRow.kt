@@ -102,8 +102,8 @@ internal fun KeyRow(
                         height = metrics.keyHeight,
                         vibrateOnKeypress = state.vibrateOnKeypress,
                         soundOnKeypress = state.soundOnKeypress,
-                        onPressStart = actions::deleteStart,
-                        onPressEnd = actions::deleteEnd,
+                        onRepeatStart = actions::deleteRepeatStart,
+                        onRepeatEnd = actions::deleteRepeatEnd,
                         onClick = actions::delete
                     )
                 }

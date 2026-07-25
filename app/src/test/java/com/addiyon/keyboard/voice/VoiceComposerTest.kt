@@ -48,7 +48,7 @@ class VoiceComposerTest {
         composer.updatePartial("hello", 'x')
         composer.updatePartial("hello world", null)
         val commit = composer.finalize("hello world", null)
-        assertEquals(VoiceComposer.FinalCommit(" hello world", false), commit)
+        assertEquals(VoiceComposer.FinalCommit(" hello world"), commit)
         assertFalse(composer.isComposing)
     }
 
@@ -57,7 +57,7 @@ class VoiceComposerTest {
         val composer = VoiceComposer()
         composer.updatePartial("hello", null)
         assertEquals(
-            VoiceComposer.FinalCommit("hello", false),
+            VoiceComposer.FinalCommit("hello"),
             composer.finalize(null, null)
         )
     }
@@ -73,16 +73,16 @@ class VoiceComposerTest {
         val composer = VoiceComposer()
         composer.updatePartial("hello were", 'x')
         assertEquals(
-            VoiceComposer.FinalCommit(" hello world", false),
+            VoiceComposer.FinalCommit(" hello world"),
             composer.finalize("hello world", null)
         )
     }
 
     @Test
-    fun punctuationFinalAfterWhitespaceRequestsSpaceDeletion() {
+    fun punctuationFinalAfterWhitespaceNeverRequestsDeletion() {
         val composer = VoiceComposer()
         assertEquals(
-            VoiceComposer.FinalCommit(",", true),
+            VoiceComposer.FinalCommit(","),
             composer.finalize(",", ' ')
         )
     }
@@ -91,7 +91,7 @@ class VoiceComposerTest {
     fun punctuationFinalAfterLetterGetsNoSpaceAndNoDeletion() {
         val composer = VoiceComposer()
         assertEquals(
-            VoiceComposer.FinalCommit(",", false),
+            VoiceComposer.FinalCommit(","),
             composer.finalize(",", 'x')
         )
     }
@@ -99,7 +99,7 @@ class VoiceComposerTest {
     @Test
     fun amharicPunctuationBehavesLikeLatin() {
         assertEquals(
-            VoiceComposer.FinalCommit("።", true),
+            VoiceComposer.FinalCommit("።"),
             VoiceComposer().finalize("።", ' ')
         )
     }
@@ -136,7 +136,7 @@ class VoiceComposerTest {
     fun finalWithoutPartialsUsesCharBeforePassedToFinalize() {
         val composer = VoiceComposer()
         assertEquals(
-            VoiceComposer.FinalCommit(" hello", false),
+            VoiceComposer.FinalCommit(" hello"),
             composer.finalize("hello", 'x')
         )
     }

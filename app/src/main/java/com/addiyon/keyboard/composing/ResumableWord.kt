@@ -8,8 +8,8 @@ package com.addiyon.keyboard.composing
  * caret isn't at a resumable word end.
  *
  * Script-specific on purpose: the English composer must never adopt fidel
- * (its dictionary and case handling are Latin), and the Amharic composer only
- * ever adopts fidel (the field never holds committed Latin in Amharic mode).
+ * (its dictionary and case handling are Latin), and automatic Amharic resume
+ * only adopts fidel.
  * A word that fills the ENTIRE lookbehind window is rejected too -- its start
  * lies beyond what was read, and adopting a fragment would compose (and, in
  * Amharic, visibly rewrite) only the tail of a longer word.

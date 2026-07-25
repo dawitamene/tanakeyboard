@@ -8,43 +8,21 @@ import com.addiyon.keyboard.SafeLog
  * language, both composing the SAME thing inline -- the raw buffer itself,
  * underlined in the field's composing region as the user types (Gboard-style
  * pinyin IME: the romanized text is what's visible; a converted reading only
- * lands in the field on commit). They differ in [commitTransform] and
- * [discardOnExit]:
+ * lands in the field on commit). They differ in [commitTransform]:
  *
- *   - English: [commitTransform] is the identity (nothing to convert) and
- *     [discardOnExit] = false -- leaving the word finalizes whatever is
- *     showing.
+ *   - English: [commitTransform] is the identity (nothing to convert).
  *   - Amharic: [commitTransform] turns the raw SERA Latin into the fidel
  *     word to commit (the service wires this to the ranked top
  *     transliteration candidate -- see
- *     [com.addiyon.keyboard.AddiyonKeyboardService]), and [discardOnExit] =
- *     true -- the underlined Latin in the field is TENTATIVE: only [commit]
- *     / [commitSuggestion] turn it into real (fidel) text. Leaving the word
- *     any other way (keyboard hidden, cursor tapped away) REMOVES the Latin
- *     from the field instead of finalizing it, so nothing is ever committed
- *     without space / enter / punctuation / a tapped suggestion.
+ *     [com.addiyon.keyboard.AddiyonKeyboardService]).
  *     Fidel suggestion readings live only in the suggestion strip while
  *     typing. Backspace removes one Latin character at a time (default
  *     [lastUnitStart]) and the region re-renders.
  *
- * WHY AMHARIC DISCARDS ON EXIT ([discardOnExit])
- *
- * Two failed designs preceded this one. Composing the raw LATIN inline with
- * English's finalize-on-exit semantics meant [finish] stranded "selam" in
- * the field as literal Latin when the input view went away mid-word.
- * Composing the FIDEL inline with finalize-on-exit semantics avoided that but
- * introduced auto-commit: hiding the keyboard or tapping elsewhere silently
- * committed a word the user never accepted (and forced showing the
- * often-wrong greedy reading live, rather than romanized text plus a ranked
- * suggestion strip). Discard-on-exit keeps the good half of each: the raw
- * word is visible in the field while being typed (composing region,
- * underlined), yet the field only ever KEEPS text the user explicitly
- * committed -- and what gets committed is chosen by [commitTransform] at
- * commit time, not baked into what's shown while typing. The one exception is
- * a word adopted from the field by [resume] -- that text was already
- * committed before we lifted it into the region, so exiting restores it
- * (through [commitTransform], i.e. as fidel again) rather than deleting it;
- * see [resumed].
+ * An involuntary end to composition, such as a cursor move or the keyboard
+ * closing, only finalizes the text already visible in the editor. It never
+ * clears or replaces that text. Removing text is reserved for [onBackspace],
+ * which is called only from the keyboard's explicit delete action.
  *
  * WHY A COMPOSER AT ALL
  *
@@ -94,22 +72,11 @@ internal class WordComposer(
      * buffer -- see the class doc's "stateless whole-buffer" note.
      */
     private val commitTransform: (String) -> String = { it },
-    /**
-     * What happens to the composing text when the word ends WITHOUT an
-     * explicit commit ([finish] / [abandon]). False (English): finalize it
-     * in place -- what the user sees stays. True (Amharic): delete it from
-     * the field -- the word was tentative, and only space / enter /
-     * punctuation / a tapped suggestion may turn it into real text. A word
-     * seeded by [resume] is exempt (it was already committed field text
-     * before adoption) and is restored instead, through [commitTransform].
-     */
-    private val discardOnExit: Boolean = false,
     private val lastUnitStart: (String) -> Int = { it.length - 1 },
     /**
      * Invoked with the raw buffer and its committed ([commitTransform])
      * form, right before the buffer clears, whenever committed text lands in
-     * the field: always from [commit], and from [finish]/[abandon] for a
-     * [resumed] word. Amharic uses this to remember fidel -> raw Latin for
+     * the field from [commit]. Amharic uses this to remember fidel -> raw Latin for
      * words committed this session, so the caret can walk back to one and
      * resume typing it (reverse-transliterating fidel in general isn't
      * reliable -- see WordTrie's class doc -- but a word we just composed
@@ -122,16 +89,6 @@ internal class WordComposer(
     private val buffer = StringBuilder()
     private var _rawCache: String = ""
     private var rawDirty = true
-
-    /**
-     * True while the current word was seeded by [resume] -- i.e. it already
-     * existed as committed text in the field before we lifted it into the
-     * composing region. Such a word must never be DELETED by a
-     * [discardOnExit] exit path: the user committed it once already, so
-     * [finish]/[abandon] restore it (with any extension typed since)
-     * instead. Cleared whenever the buffer clears.
-     */
-    private var resumed = false
 
     /** True while there's an active composing region we're responsible for. */
     val isComposing: Boolean
@@ -193,7 +150,6 @@ internal class WordComposer(
             } catch (t: Throwable) {
                 SafeLog.e(t, "onBackspace")
             }
-            resumed = false
         } else {
             pushComposing()
         }
@@ -224,53 +180,18 @@ internal class WordComposer(
     }
 
     /**
-     * Finalize (English) or discard (Amharic) the in-progress word, without
-     * resolving it through [commitTransform] unless it was [resume]d.
+     * Finalize the in-progress word exactly as it is currently visible,
+     * without resolving it through [commitTransform].
      *
-     * Used when the input view is going away (the field is losing us) and the
-     * user never explicitly accepted a word (space, enter, or a tapped
-     * suggestion).
-     *
-     * [discardOnExit] = false (English): locks in whatever is CURRENTLY shown
-     * in the composing region -- via `finishComposingText`, which finalizes
-     * the existing span without replacing it. `commitText` here would
-     * duplicate the word: as an input session ends, the framework finalizes
-     * the still-active composing region on its own, so an additional
-     * `commitText` pasted a second copy (the "text appears twice after
-     * exiting the keyboard" bug).
-     *
-     * [discardOnExit] = true (Amharic): the tentative raw Latin is DELETED
-     * from the field (best-effort -- the connection is usually still live in
-     * onFinishInputView) so nothing the user never accepted gets committed.
-     * Exception: a [resume]d word was already committed text before
-     * adoption, so it's re-committed through [commitTransform] like
-     * [commit] -- and re-reported through [onCommit] so the caret-resume
-     * history stays complete.
+     * `finishComposingText` finalizes the existing span without replacing it.
+     * `commitText` here would duplicate the word as an input session ends,
+     * while an empty composing update would erase text without a delete
+     * action.
      */
     fun finish() {
         if (buffer.isEmpty()) return
         try {
-            if (discardOnExit && !resumed) {
-                inputConnection()?.let {
-                    it.setComposingText("", 1)
-                    it.finishComposingText()
-                }
-            } else if (discardOnExit) {
-                // Resumed: was already committed text, so it must land back as
-                // committed text (through the transform), not raw Latin.
-                val committedRaw = raw
-                val committedDisplay = commitTransform(committedRaw)
-                inputConnection()?.commitText(committedDisplay, 1)
-                onCommit(committedRaw, committedDisplay)
-            } else {
-                // The framework finalizes the still-active composing region on
-                // its own as the session ends, so DON'T commitText here (that
-                // pasted a second copy -- the historical "text appears twice
-                // after exiting the keyboard" bug); just lock in what's shown.
-                inputConnection()?.finishComposingText()
-                val committedRaw = raw
-                onCommit(committedRaw, commitTransform(committedRaw))
-            }
+            inputConnection()?.finishComposingText()
         } catch (oom: OutOfMemoryError) {
             SafeLog.e(oom, "finish OOM")
         } catch (t: Throwable) {
@@ -299,7 +220,6 @@ internal class WordComposer(
         buffer.setLength(0)
         buffer.append(prefix)
         rawDirty = true
-        resumed = true
         pushComposing()
     }
 
@@ -338,15 +258,9 @@ internal class WordComposer(
 
     /**
      * The user moved the cursor out from under the composing region (they
-     * tapped elsewhere in the text). For English, freeze whatever is
-     * currently underlined into the field as-is -- we can't keep rewriting a
-     * word the user has visibly walked away from. For Amharic
-     * ([discardOnExit]) the tentative raw Latin is removed from the field
-     * instead: walking away is not an accept gesture, matching the "nothing
-     * commits except space or a tapped suggestion" contract -- unless the
-     * word was [resume]d from already-committed field text, in which case
-     * deleting it would destroy text the user once accepted, so it's
-     * re-committed like English (through [commitTransform]).
+     * tapped elsewhere in the text). Freeze whatever is currently underlined
+     * into the field as-is so cursor movement can never remove or replace
+     * editor content.
      *
      * Distinct from [reset], which drops the buffer without touching the
      * field, and from [commit], which is called at natural word boundaries
@@ -356,17 +270,7 @@ internal class WordComposer(
     fun abandon() {
         if (buffer.isEmpty()) return
         try {
-            if (discardOnExit && !resumed) {
-                inputConnection()?.let {
-                    it.setComposingText("", 1)
-                    it.finishComposingText()
-                }
-            } else {
-                val committedRaw = raw
-                val committedDisplay = commitTransform(committedRaw)
-                inputConnection()?.finishComposingText()
-                onCommit(committedRaw, committedDisplay)
-            }
+            inputConnection()?.finishComposingText()
         } catch (oom: OutOfMemoryError) {
             SafeLog.e(oom, "abandon OOM")
         } catch (t: Throwable) {
@@ -378,7 +282,6 @@ internal class WordComposer(
     private fun clearBuffer() {
         buffer.clear()
         rawDirty = true
-        resumed = false
     }
 
     private fun pushComposing() {

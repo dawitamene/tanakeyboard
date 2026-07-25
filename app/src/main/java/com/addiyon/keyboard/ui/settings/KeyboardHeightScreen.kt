@@ -348,8 +348,6 @@ private fun PreviewKeyRow(
                         height = metrics.keyHeight,
                         vibrateOnKeypress = false,
                         soundOnKeypress = false,
-                        onPressStart = {},
-                        onPressEnd = {},
                         onClick = {}
                     )
 

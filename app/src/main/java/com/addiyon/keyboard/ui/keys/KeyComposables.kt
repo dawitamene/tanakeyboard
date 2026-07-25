@@ -208,10 +208,8 @@ fun RowScope.ShiftKey(
  * Delete/backspace key. Its width matches the outer control key on every
  * layout so the control row fills the available width exactly.
  *
- * [repeatable] is set so holding the key down deletes continuously (one
- * character immediately, then repeating every ~50ms after a short initial
- * delay) instead of requiring a fresh tap per character -- see
- * [com.addiyon.keyboard.ui.keys.repeatingClickable].
+ * A completed tap deletes once. Holding past the threshold repeats only
+ * while that gesture remains active, and cancellation dispatches nothing.
  */
 @Composable
 fun RowScope.DeleteKey(
@@ -220,8 +218,8 @@ fun RowScope.DeleteKey(
     height: Dp,
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean,
-    onPressStart: () -> Unit,
-    onPressEnd: () -> Unit,
+    onRepeatStart: () -> Unit = {},
+    onRepeatEnd: () -> Unit = {},
     onClick: () -> Unit
 ) {
     KeyButton(
@@ -230,8 +228,8 @@ fun RowScope.DeleteKey(
         height = height,
         isSpecial = true,
         repeatable = true,
-        onRepeatPressStart = onPressStart,
-        onRepeatPressEnd = onPressEnd,
+        onRepeatStart = onRepeatStart,
+        onRepeatEnd = onRepeatEnd,
         vibrateOnKeypress = vibrateOnKeypress,
         soundOnKeypress = soundOnKeypress,
         testTag = KeyboardTestTags.KEY_DELETE,

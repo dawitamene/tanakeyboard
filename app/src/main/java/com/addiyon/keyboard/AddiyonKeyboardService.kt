@@ -39,6 +39,8 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.addiyon.keyboard.composing.ResumableWord
 import com.addiyon.keyboard.composing.WordComposer
+import com.addiyon.keyboard.composing.isComposerTextImmediatelyBeforeCursor
+import com.addiyon.keyboard.composing.isSelectionAtComposingEnd
 import com.addiyon.keyboard.model.EnterAction
 import com.addiyon.keyboard.model.NumbersMode
 import com.addiyon.keyboard.model.ShiftState
@@ -455,14 +457,10 @@ class AddiyonKeyboardService : InputMethodService(),
         // greedy reading when the dictionary isn't loaded yet or ranking
         // finds nothing. Recomputed from the CURRENT buffer at every commit
         // site (WordComposer never caches it), so it can't go stale relative
-        // to what's in the buffer. discardOnExit: the inline (raw Latin)
-        // word is TENTATIVE -- leaving it without space/enter/punctuation/a
-        // tapped suggestion removes it from the field instead of committing
-        // it; see WordComposer's "WHY AMHARIC DISCARDS ON EXIT" doc.
+        // to what's in the buffer.
         // Backspace uses the default one-char step so each typed letter can
         // be cleared individually.
         commitTransform = { raw -> topAmharicCandidate(raw) },
-        discardOnExit = true,
         // Every committed word is remembered fidel -> raw Latin, so the caret
         // can walk back onto it and resume typing it -- see
         // [amharicCommitHistory] / [maybeResumeWordAtCursor].
@@ -1241,15 +1239,7 @@ class AddiyonKeyboardService : InputMethodService(),
             else ic.getTextBeforeCursor(1, 0)?.lastOrNull()
             val commit = voiceComposer.finalize(text, charBefore) ?: return@safeApply
 
-            ic.beginBatchEdit()
-            if (commit.deleteSpaceBefore) {
-                // Spoken punctuation after "word ": clear the composing region
-                // (if one is live) so the delete hits the space, then commit.
-                ic.setComposingText("", 1)
-                ic.deleteSurroundingText(1, 0)
-            }
             ic.commitText(commit.text, 1)
-            ic.endBatchEdit()
         }
     }
 
@@ -1788,36 +1778,21 @@ class AddiyonKeyboardService : InputMethodService(),
 
     private val suggestionRefreshGate = SuggestionRefreshGate()
 
-    fun onDeleteGestureStart() {
+    fun onDeleteRepeatStart() {
         safeApply {
             suggestionRefreshGate.beginDeleteGesture()
         }
     }
 
-    fun onDeleteGestureEnd() {
+    fun onDeleteRepeatEnd() {
         safeApply {
             val pendingRefresh = suggestionRefreshGate.endDeleteGesture()
-            // A backspace TAP's selection update almost always arrives while the
-            // finger is still down -- inside the gesture, where the gate
-            // deliberately suppresses cursor-aware resume (so a HELD repeat
-            // doesn't adopt the shrinking word mid-delete). No further selection
-            // callback comes after release, so this is the moment to adopt the
-            // word the caret now sits at the end of ("cana ", backspace -> the
-            // strip must offer "Canada" again).
-            maybeResumeWordAfterDeleteGesture()
+            maybeResumeWordAfterDeleteRepeat()
             if (pendingRefresh || activeComposer.isComposing) updateSuggestions()
         }
     }
 
-    /**
-     * The gesture-end variant of [maybeResumeWordAtCursor]: the last
-     * onUpdateSelection was consumed mid-gesture, so its selection args can't
-     * be trusted to still be current -- read the caret position fresh from
-     * the editor instead (one extracted-text round-trip, once per gesture).
-     * Editors that don't support text extraction simply don't resume here;
-     * the next real cursor move still goes through the normal path.
-     */
-    private fun maybeResumeWordAfterDeleteGesture() {
+    private fun maybeResumeWordAfterDeleteRepeat() {
         safeApply {
             if (activeComposer.isComposing) return@safeApply
             val extracted = currentInputConnection
@@ -1858,6 +1833,13 @@ class AddiyonKeyboardService : InputMethodService(),
                 }
             }
             leaveVoiceModeForKeyboardInput()
+            if (activeComposer.isComposing) {
+                val raw = activeComposer.raw
+                val before = currentInputConnection?.getTextBeforeCursor(raw.length, 0)
+                if (!isComposerTextImmediatelyBeforeCursor(raw, before)) {
+                    activeComposer.abandon()
+                }
+            }
             if (activeComposer.onBackspace()) {
                 updateSuggestions()
                 return@safeApply
@@ -2240,16 +2222,10 @@ class AddiyonKeyboardService : InputMethodService(),
     /**
      * The framework calls this whenever the cursor or selection changes in
      * the target field -- both when WE change it (by pushing composing text)
-     * and when the USER changes it (by tapping somewhere else). If the new
-     * cursor is inside the composing region the framework is tracking, the
-     * movement is consistent with our own edits and we ignore it. If the
-     * cursor has landed outside that region, the user has visibly walked
-     * away from the word we were composing, so we abandon it -- for English
-     * that freezes the underlined text in place; for Amharic the tentative
-     * word is removed from the field (walking away is not an accept
-     * gesture -- see [WordComposer.abandon]) -- otherwise the next
-     * keystroke would keep rewriting a region that's no longer near the
-     * caret.
+     * and when the USER changes it (by tapping somewhere else). Only a
+     * collapsed caret at the composing region's end matches our own
+     * setComposingText updates. Every other selection finalizes the visible
+     * text in place before another key can rewrite the composing region.
      *
      * candidatesStart / candidatesEnd are the framework's view of the
      * current composing region; both are -1 when nothing is being composed.
@@ -2269,18 +2245,18 @@ class AddiyonKeyboardService : InputMethodService(),
                 candidatesStart, candidatesEnd
             )
 
-            // A selection (start != end) inside our region also counts as "the
-            // user took over" -- we don't support composing across a selection.
-            val cursorInsideComposing = newSelStart == newSelEnd &&
-                    candidatesStart >= 0 &&
-                    newSelStart in candidatesStart..candidatesEnd
+            val cursorAtComposingEnd = isSelectionAtComposingEnd(
+                selectionStart = newSelStart,
+                selectionEnd = newSelEnd,
+                composingStart = candidatesStart,
+                composingEnd = candidatesEnd
+            )
 
             // Voice dictation in flight: a deliberate cursor move finalizes the
             // utterance where it was showing and restarts recognition cleanly at
-            // the new position (our own setComposingText pushes land INSIDE the
-            // region, so they don't trip this).
+            // the new position.
             if (voiceComposer.isComposing) {
-                if (!cursorInsideComposing) {
+                if (!cursorAtComposingEnd) {
                     finalizeVoiceComposing()
                     voiceInputController?.restartSession()
                 }
@@ -2289,7 +2265,7 @@ class AddiyonKeyboardService : InputMethodService(),
 
             if (activeComposer.isComposing) {
                 // Movement consistent with our own composing pushes: nothing to do.
-                if (cursorInsideComposing) return@safeApply
+                if (cursorAtComposingEnd) return@safeApply
                 // The user walked away from the word we were composing.
                 activeComposer.abandon()
                 updateSuggestions()
@@ -2312,17 +2288,14 @@ class AddiyonKeyboardService : InputMethodService(),
      * and the strip should offer "Canada" as if the word were still being
      * typed. The field word is lifted into the composing region
      * (setComposingRegion) and the composer re-seeded via
-     * [WordComposer.resume]; a resumed word is exempt from Amharic's
-     * discard-on-exit (see [WordComposer]), so walking away restores it.
+     * [WordComposer.resume].
      *
      * English adopts the literal field word. Amharic needs the raw LATIN
      * behind the committed fidel: [amharicCommitHistory] first, then
      * [AmharicWordReverser]'s round-trip-verified reversal -- and when
      * neither knows the word, no resume rather than a guess.
      *
-     * Suppressed while a held-delete gesture is repeating (adopting the
-     * shrinking word mid-repeat would swap deletion granularity under the
-     * held key) and wherever the composer is out of play (numeric pages,
+     * Suppressed wherever the composer is out of play (numeric pages,
      * emoji panel, voice). [cursorPosition] is the collapsed selection from
      * onUpdateSelection; the word itself is read fresh from the connection,
      * so a stale callback sees the field's CURRENT tail and simply finds a
@@ -2360,14 +2333,9 @@ class AddiyonKeyboardService : InputMethodService(),
     override fun onFinishInputView(finishingInput: Boolean) {
         safeApply {
             super.onFinishInputView(finishingInput)
-            // Field is going away without an explicit commit. For English,
-            // finalize the composing region IN PLACE (no new text inserted) --
-            // using commit()/commitText here duplicated the word, because the
-            // framework also finalizes the still-active composing region as the
-            // session ends. For Amharic the tentative in-field word is removed
-            // (a hidden keyboard is not an accept gesture) unless it was resumed
-            // from already-committed text, which is restored. See
-            // WordComposer.finish().
+            // Field is going away without an explicit commit. Finalize the
+            // composing region in place so hiding the keyboard can never erase
+            // or replace text.
             activeComposer.finish()
             updateSuggestions()
             voiceInputController?.stop()

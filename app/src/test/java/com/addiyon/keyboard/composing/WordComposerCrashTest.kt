@@ -91,10 +91,7 @@ class WordComposerCrashTest {
 
     @Test
     fun finishSwallowsThrowingInputConnection() {
-        val composer = WordComposer(
-            inputConnection = { throwingProxy() },
-            discardOnExit = true
-        )
+        val composer = WordComposer(inputConnection = { throwingProxy() })
         composer.onCharacter("a")
         composer.finish()
         assertFalse(composer.isComposing)
@@ -102,10 +99,7 @@ class WordComposerCrashTest {
 
     @Test
     fun abandonSwallowsThrowingInputConnection() {
-        val composer = WordComposer(
-            inputConnection = { throwingProxy() },
-            discardOnExit = true
-        )
+        val composer = WordComposer(inputConnection = { throwingProxy() })
         composer.onCharacter("a")
         composer.abandon()
         assertFalse(composer.isComposing)

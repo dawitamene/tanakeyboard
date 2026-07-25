@@ -89,8 +89,7 @@ private fun keypressFeedback(view: View, vibrateOnKeypress: Boolean, soundOnKeyp
  *     click sound, each gated on the user's own preference (both OFF by
  *     default, see [KeyboardPrefs]) and the haptic additionally on the
  *     system "touch feedback" setting. It fires on DOWN, not on release,
- *     matching iOS -- and for repeatable keys each auto-repeat tick gets
- *     its own feedback.
+ *     matching iOS.
  *
  * [isHighlighted] draws a soft primary-tinted background instead of the
  * normal special-key surface -- available for states that need to stand
@@ -107,12 +106,6 @@ private fun keypressFeedback(view: View, vibrateOnKeypress: Boolean, soundOnKeyp
  * mark Gboard shows when caps-lock is engaged. There's no dedicated
  * "badged" Material icon for this, so it's drawn here rather than swapped
  * in as a different icon asset.
- *
- * [repeatable] switches the key's press handling from a normal single-shot
- * `clickable` (fires once on tap/release) to [repeatingClickable] (fires
- * once immediately on press-down, then keeps firing [onClick] every ~50ms
- * for as long as the key is held). Used by Delete/Backspace so holding it
- * down deletes continuously, the way every other keyboard does.
  *
  * Text layout: when both [primaryText] and [secondaryText] are supplied
  * (character keys in Amharic mode), [secondaryText] is rendered as a small
@@ -138,8 +131,8 @@ fun KeyButton(
     iconTint: Color = MaterialTheme.colorScheme.onSurface,
     showLockIndicator: Boolean = false,
     repeatable: Boolean = false,
-    onRepeatPressStart: () -> Unit = {},
-    onRepeatPressEnd: () -> Unit = {},
+    onRepeatStart: () -> Unit = {},
+    onRepeatEnd: () -> Unit = {},
     showsPreviewOnPress: Boolean = false,
     vibrateOnKeypress: Boolean = false,
     soundOnKeypress: Boolean = false,
@@ -182,12 +175,10 @@ fun KeyButton(
     val pressModifier = if (repeatable) {
         Modifier.repeatingClickable(
             interactionSource = interactionSource,
-            onPressStart = onRepeatPressStart,
-            onPressEnd = onRepeatPressEnd
-        ) {
-            keypressFeedback(view, vibrateOnKeypress, soundOnKeypress)
-            onClick()
-        }
+            onRepeatStart = onRepeatStart,
+            onRepeatEnd = onRepeatEnd,
+            onClick = onClick
+        )
     } else if (onLongPress != null) {
         Modifier.combinedClickable(
             interactionSource = interactionSource,
@@ -224,7 +215,7 @@ fun KeyButton(
         Modifier
     }
 
-    if (!repeatable && (vibrateOnKeypress || soundOnKeypress)) {
+    if (vibrateOnKeypress || soundOnKeypress) {
         // Haptic on press-DOWN (clickable's onClick only fires on release,
         // which feels laggy for a keyboard -- iOS buzzes the moment your
         // finger lands).
