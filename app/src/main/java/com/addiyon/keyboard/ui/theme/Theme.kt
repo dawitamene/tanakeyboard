@@ -396,8 +396,7 @@ private fun PaperBackground(isDark: Boolean) {
                     while (x <= w) {
                         val dx = x / w
                         val y = h * 0.85f +
-                            sin(dx * 6.28f * 1.5f + seeds[0] * 6.28f) * h * 0.02f +
-                            sin(dx * 6.28f * 3.5f + seeds[1] * 6.28f) * h * 0.012f
+                            sin(dx * 6.28f * 1.5f + seeds[0] * 6.28f) * h * 0.02f
                         lineTo(x, y)
                         x += w / 100f
                     }

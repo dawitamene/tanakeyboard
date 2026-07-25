@@ -2,6 +2,11 @@
 package com.addiyon.keyboard.ui
 
 import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.background
@@ -47,24 +52,65 @@ import androidx.compose.ui.window.PopupProperties
 import com.addiyon.keyboard.ui.keys.repeatingClickable
 import kotlin.math.abs
 
+private object KeypressSound {
+    private val toneGenerator by lazy {
+        runCatching { ToneGenerator(AudioManager.STREAM_SYSTEM, 30) }.getOrNull()
+    }
+
+    fun play() {
+        runCatching {
+            toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 18)
+        }
+    }
+}
+
 /**
- * Per-keypress feedback, gated on the user's own preferences (both OFF by
- * default -- see KeyboardPrefs). Vibration additionally respects the system
- * touch-feedback setting via [View.performHapticFeedback]; sound plays the
- * standard system keypress click. Preference values are cached by the service
- * and refreshed through its SharedPreferences listener.
+ * Per-keypress feedback, gated on the user's preferences. Vibration is enabled
+ * by default and uses platform haptics with a vibrator fallback. Sound plays
+ * the standard system keypress click. Preference values are cached by the
+ * service and refreshed through its SharedPreferences listener.
  */
 private fun keypressFeedback(
     view: View,
-    audioManager: AudioManager?,
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean,
 ) {
     if (vibrateOnKeypress) {
-        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        runCatching {
+            val feedbackConstant = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                HapticFeedbackConstants.KEYBOARD_PRESS
+            } else {
+                HapticFeedbackConstants.KEYBOARD_TAP
+            }
+            val handled = view.performHapticFeedback(feedbackConstant)
+            if (!handled) {
+                val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    (view.context.getSystemService(android.content.Context.VIBRATOR_MANAGER_SERVICE)
+                        as? VibratorManager)?.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    view.context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? Vibrator
+                }
+                if (vibrator?.hasVibrator() == true) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(
+                            VibrationEffect.createOneShot(
+                                10L,
+                                VibrationEffect.DEFAULT_AMPLITUDE
+                            )
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(10L)
+                    }
+                }
+            }
+        }
     }
     if (soundOnKeypress) {
-        audioManager?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD)
+        KeypressSound.play()
     }
 }
 
@@ -88,9 +134,8 @@ private fun keypressFeedback(
  *     letter-key surface and vice versa.
  *   - Every press-down fires [keypressFeedback]: a
  *     [HapticFeedbackConstants.KEYBOARD_TAP] haptic and/or a keypress
- *     click sound, each gated on the user's own preference (both OFF by
- *     default, see [KeyboardPrefs]) and the haptic additionally on the
- *     system "touch feedback" setting. It fires on DOWN, not on release,
+ *     click sound, each gated on the user's own preference. It fires on DOWN,
+ *     not on release,
  *     matching iOS.
  *
  * [isHighlighted] draws a soft primary-tinted background instead of the
@@ -154,14 +199,6 @@ fun KeyButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val view = LocalView.current
-    val audioManager = remember(view, soundOnKeypress) {
-        if (soundOnKeypress) {
-            view.context.applicationContext.getSystemService(AudioManager::class.java)
-        } else {
-            null
-        }
-    }
-
     val background = when {
         isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
         // iOS-style pressed shade swap: while a preview balloon is up the
@@ -233,7 +270,6 @@ fun KeyButton(
                 if (interaction is PressInteraction.Press) {
                     keypressFeedback(
                         view,
-                        audioManager,
                         vibrateOnKeypress,
                         soundOnKeypress
                     )

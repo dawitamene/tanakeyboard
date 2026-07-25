@@ -30,6 +30,16 @@ class KeyboardMetricsTest {
     }
 
     @Test
+    fun landscapeUsesCompactHeightOnWideScreens() {
+        val metrics = computeKeyboardMetrics(
+            AmharicLayout.rows,
+            1000.dp,
+            isLandscape = true
+        )
+        assertEquals(33.dp, metrics.keyHeight)
+    }
+
+    @Test
     fun heightIsCappedAtTheLowerBoundOnNarrowScreens() {
         val metrics = computeKeyboardMetrics(NumberLayout.rows, 240.dp)
         assertEquals(24.dp, metrics.keyWidth)

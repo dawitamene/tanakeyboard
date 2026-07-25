@@ -1,5 +1,6 @@
 package com.addiyon.keyboard.ui.settings
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +40,8 @@ fun TestKeyboardScreen(
     var text by remember { mutableStateOf(TextFieldValue("")) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val isLandscape =
+        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -72,7 +76,7 @@ fun TestKeyboardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
-                minLines = 4,
+                minLines = if (isLandscape) 2 else 4,
                 maxLines = 10
             )
         }

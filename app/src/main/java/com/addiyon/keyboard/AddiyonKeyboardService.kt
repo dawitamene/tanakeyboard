@@ -296,6 +296,8 @@ class AddiyonKeyboardService : InputMethodService(),
     // field that isn't a password/email/URI). Recomputed per input session in
     // onStartInputView; consulted by maybeAutoCapitalize.
     private var fieldAllowsAutoCap = false
+    private var cursorKnownAtFieldStart = false
+    private var autoShiftArmed = false
 
     // Whether the current field takes an email address. Observable because
     // the letter layouts' comma key re-labels itself "@" in email fields
@@ -1503,6 +1505,11 @@ class AddiyonKeyboardService : InputMethodService(),
             suggestions = emptyList()
             suggestionsArePredictions = false
             updateSuggestions()
+            if (isAmharic && autoShiftArmed) {
+                resetShift()
+            } else if (!isAmharic) {
+                maybeAutoCapitalize()
+            }
             MemoryProbe.snapshot("after_toggle_language_sync")
         }
     }
@@ -1599,6 +1606,7 @@ class AddiyonKeyboardService : InputMethodService(),
     fun toggleShift() {
         safeApply {
             leaveVoiceModeForKeyboardInput()
+            autoShiftArmed = false
             val now = SystemClock.uptimeMillis()
             val isDoubleTap = now - lastShiftTapUptimeMs <= ViewConfiguration.getDoubleTapTimeout()
             lastShiftTapUptimeMs = now
@@ -1622,12 +1630,14 @@ class AddiyonKeyboardService : InputMethodService(),
             if (shiftState == ShiftState.SHIFT) {
                 shiftState = ShiftState.OFF
             }
+            autoShiftArmed = false
         }
     }
 
     fun resetShift() {
         safeApply {
             shiftState = ShiftState.OFF
+            autoShiftArmed = false
         }
     }
 
@@ -1699,14 +1709,27 @@ class AddiyonKeyboardService : InputMethodService(),
      * therefore miss the trailing space that marks the sentence end ("End. "),
      * leaving the next word lowercase -- the post-period bug this avoids.
      */
-    private fun maybeAutoCapitalize(textBeforeCursor: CharSequence? = null) {
+    private fun maybeAutoCapitalize(
+        textBeforeCursor: CharSequence? = null,
+        useKnownInitialCursor: Boolean = false
+    ) {
         safeApply {
-            if (isAmharic || isNumberMode || !fieldAllowsAutoCap) return@safeApply
-            if (shiftState != ShiftState.OFF || activeComposer.isComposing) return@safeApply
+            if (isAmharic || isNumberMode || !fieldAllowsAutoCap) {
+                if (autoShiftArmed) resetShift()
+                return@safeApply
+            }
+            if (activeComposer.isComposing || shiftState == ShiftState.CAPS_LOCK) return@safeApply
             val before = textBeforeCursor
                 ?: editorGateway.textBeforeCursor(SENTENCE_LOOKBEHIND)?.value
-            if (SentenceCase.startsNewSentence(before)) {
+            val startsSentence = SentenceCase.startsNewSentence(
+                before,
+                cursorKnownAtFieldStart = useKnownInitialCursor && cursorKnownAtFieldStart
+            )
+            if (startsSentence && shiftState == ShiftState.OFF) {
                 shiftState = ShiftState.SHIFT
+                autoShiftArmed = true
+            } else if (!startsSentence && autoShiftArmed) {
+                resetShift()
             }
         }
     }
@@ -1761,6 +1784,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 }
             }
             leaveVoiceModeForKeyboardInput()
+            cursorKnownAtFieldStart = false
             val output = if (isShiftEnabled) latin.uppercase() else latin.lowercase()
 
             // Email fields use a wider word-character set so the entire email
@@ -2196,6 +2220,8 @@ class AddiyonKeyboardService : InputMethodService(),
             // field, or an email chip suggestion could keep showing in a plain
             // text field. resolveAutoCap is idempotent.
             resolveAutoCap(editorInfo)
+            cursorKnownAtFieldStart =
+                editorInfo?.initialSelStart == 0 && editorInfo.initialSelEnd == 0
         }
     }
 
@@ -2219,6 +2245,9 @@ class AddiyonKeyboardService : InputMethodService(),
             resolveEnterAction(editorInfo)
             // Whether English auto-capitalization applies in this field.
             resolveAutoCap(editorInfo)
+            cursorKnownAtFieldStart =
+                editorInfo?.initialSelStart == 0 && editorInfo.initialSelEnd == 0
+            if (shiftState == ShiftState.SHIFT) resetShift()
             // Email fields must NEVER carry an armed capital across from a prior
             // text field: shiftState may be ShiftState.SHIFT (one-shot, left over
             // from a sentence-end auto-cap in the previous field) or even
@@ -2238,7 +2267,7 @@ class AddiyonKeyboardService : InputMethodService(),
             updateSuggestions()
             // Arm a capital for the first letter if the caret opens at a sentence
             // start (empty field, or resumed after a sentence terminator).
-            maybeAutoCapitalize()
+            maybeAutoCapitalize(useKnownInitialCursor = true)
 
             // Catch any theme change that happened while the keyboard was hidden,
             // and make sure the nav bar strip is colored correctly every time
@@ -2314,6 +2343,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 // depend on the words before the cursor.
                 if (newSelStart == newSelEnd) maybeResumeWordAtCursor(newSelStart)
                 updateSuggestions()
+                maybeAutoCapitalize()
             }
         }
     }

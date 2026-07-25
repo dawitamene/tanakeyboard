@@ -25,8 +25,11 @@ package com.addiyon.keyboard
  */
 object SentenceCase {
 
-    fun startsNewSentence(textBeforeCursor: CharSequence?): Boolean {
-        val text = textBeforeCursor ?: return false
+    fun startsNewSentence(
+        textBeforeCursor: CharSequence?,
+        cursorKnownAtFieldStart: Boolean = false
+    ): Boolean {
+        val text = textBeforeCursor ?: return cursorKnownAtFieldStart
         if (text.isEmpty()) return true
         val last = text[text.length - 1]
         // A brand-new line is always a sentence start.

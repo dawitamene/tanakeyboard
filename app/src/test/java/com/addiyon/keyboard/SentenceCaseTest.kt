@@ -23,6 +23,11 @@ class SentenceCaseTest {
     }
 
     @Test
+    fun unreadableEmptyFieldUsesKnownInitialCursorPosition() {
+        assertTrue(SentenceCase.startsNewSentence(null, cursorKnownAtFieldStart = true))
+    }
+
+    @Test
     fun afterSentenceTerminatorPlusSpaceIsStart() {
         assertTrue(starts("Hello. "))
         assertTrue(starts("Really?  "))

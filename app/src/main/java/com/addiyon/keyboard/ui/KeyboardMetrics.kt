@@ -67,14 +67,19 @@ internal fun computeKeyboardMetrics(
     rows: List<List<KeyData>>,
     availableWidth: Dp,
     columns: Float? = null,
-    heightScale: Float = KEYBOARD_HEIGHT_SCALE_DEFAULT
+    heightScale: Float = KEYBOARD_HEIGHT_SCALE_DEFAULT,
+    isLandscape: Boolean = false
 ): KeyboardMetrics {
     val cellCount = columns ?: rows.maxOf { row ->
         row.filterIsInstance<KeyData.Character>().sumOf { it.width.toDouble() }.toFloat()
     }.toFloat()
     val keyWidth = availableWidth / cellCount
     val heightReferenceWidth = availableWidth / KEY_HEIGHT_REFERENCE_COLUMNS
-    val baseKeyHeight = (heightReferenceWidth * 1.1f).coerceIn(36.dp, 46.dp) - 1.dp
+    val baseKeyHeight = if (isLandscape) {
+        (heightReferenceWidth * 0.72f).coerceIn(28.dp, 34.dp) - 1.dp
+    } else {
+        (heightReferenceWidth * 1.1f).coerceIn(36.dp, 46.dp) - 1.dp
+    }
 
     return KeyboardMetrics(
         keyWidth = keyWidth,

@@ -1,5 +1,6 @@
 package com.addiyon.keyboard.ui.settings
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -38,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -113,6 +115,10 @@ fun KeyboardHeightScreen(
     val context = LocalContext.current
     val strings = LocalAppStrings.current
     val isDark = isSystemInDarkTheme()
+    val isLandscape =
+        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val rowSpacing = if (isLandscape) 3.dp else 6.dp
+    val previewVerticalPadding = if (isLandscape) 3.dp else 6.dp
     // Snapshot the keyboard's own settings so the replica matches what the user
     // actually types on (their palette, script, and number-row choice).
     val palette = remember { KeyboardPrefs.palette(context) }
@@ -201,7 +207,8 @@ fun KeyboardHeightScreen(
                             rows = rows,
                             availableWidth = availableWidth,
                             columns = layout.columns,
-                            heightScale = scale
+                            heightScale = scale,
+                            isLandscape = isLandscape
                         )
                         // The keyboard's height change per unit scale, in px:
                         // d(height)/d(scale) = baseKeyHeight * rowCount, so this
@@ -212,7 +219,8 @@ fun KeyboardHeightScreen(
                                 rows = rows,
                                 availableWidth = availableWidth,
                                 columns = layout.columns,
-                                heightScale = 1f
+                                heightScale = 1f,
+                                isLandscape = isLandscape
                             ).keyHeight.toPx()
                         } * rowCount
 
@@ -231,16 +239,22 @@ fun KeyboardHeightScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 4.dp, vertical = 6.dp)
+                                    .padding(horizontal = 4.dp, vertical = previewVerticalPadding)
                             ) {
                                 // The keys themselves -- translucent, so the
                                 // surface reads as a preview, not a live keyboard.
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(keyboardRowsHeight(metrics.keyHeight, rowCount))
+                                        .height(
+                                            keyboardRowsHeight(
+                                                metrics.keyHeight,
+                                                rowCount,
+                                                rowSpacing
+                                            )
+                                        )
                                         .alpha(PREVIEW_ALPHA),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    verticalArrangement = Arrangement.spacedBy(rowSpacing)
                                 ) {
                                     rows.forEach { row ->
                                         PreviewKeyRow(row = row, metrics = metrics, isAmharic = isAmharic)

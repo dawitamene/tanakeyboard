@@ -1,12 +1,14 @@
 // ui/KeyboardScreen.kt
 package com.addiyon.keyboard.ui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 
 import com.addiyon.keyboard.MainActivity
@@ -70,6 +72,10 @@ private fun KeyboardSuggestionArea(
 fun KeyboardScreen(
     service: AddiyonKeyboardService
 ) {
+    val isLandscape =
+        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val standardRowSpacing = if (isLandscape) 3.dp else 6.dp
+    val rowsVerticalPadding = if (isLandscape) 3.dp else 6.dp
 
     // NOTE: we deliberately do NOT read service.currentInputConnection here.
     // Reading it once at composition time would bake a possibly-stale
@@ -167,12 +173,13 @@ fun KeyboardScreen(
                                 emojiSearching = false
                             )
                         }
-                        val metrics = remember(rows, maxWidth, heightScale) {
+                        val metrics = remember(rows, maxWidth, heightScale, isLandscape) {
                             computeKeyboardMetrics(
                                 rows = rows,
                                 availableWidth = maxWidth - 8.dp,
                                 columns = layout.columns,
-                                heightScale = heightScale
+                                heightScale = heightScale,
+                                isLandscape = isLandscape
                             )
                         }
                         val targetRowCount = remember(service.showNumberRow) {
@@ -180,8 +187,9 @@ fun KeyboardScreen(
                         }
                         val panelHeight = 40.dp + keyboardRowsHeight(
                             keyHeight = metrics.keyHeight,
-                            rowCount = targetRowCount
-                        ) + 12.dp
+                            rowCount = targetRowCount,
+                            rowSpacing = standardRowSpacing
+                        ) + rowsVerticalPadding * 2
                         EmojiPanel(service = service, height = panelHeight)
                     }
                     return@keyboardContent
@@ -201,7 +209,7 @@ fun KeyboardScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()
-                        .padding(horizontal = 4.dp, vertical = 6.dp)
+                        .padding(horizontal = 4.dp, vertical = rowsVerticalPadding)
                 ) {
 
                     // Emoji search always types on the plain English rows (the
@@ -226,13 +234,15 @@ fun KeyboardScreen(
                         effectiveLayout,
                         rows,
                         availableWidth,
-                        heightScale
+                        heightScale,
+                        isLandscape
                     ) {
                         computeKeyboardMetrics(
                             rows = rows,
                             availableWidth = availableWidth,
                             columns = effectiveLayout.columns,
-                            heightScale = heightScale
+                            heightScale = heightScale,
+                            isLandscape = isLandscape
                         )
                     }
                     val isKeypadLayout = effectiveLayout === KeypadLayout
@@ -242,13 +252,16 @@ fun KeyboardScreen(
                             keyHeight = expandedKeyHeight(
                                 baseKeyHeight = metrics.keyHeight,
                                 targetRowCount = targetRowCount,
-                                actualRowCount = rows.size
+                                actualRowCount = rows.size,
+                                targetRowSpacing = standardRowSpacing,
+                                actualRowSpacing = if (isLandscape) 3.dp else 4.dp
                             )
                         )
                     } else {
                         metrics
                     }
-                    val rowSpacing = if (isKeypadLayout) 4.dp else 6.dp
+                    val rowSpacing =
+                        if (isLandscape) 3.dp else if (isKeypadLayout) 4.dp else 6.dp
                     val prefixRowCount = rows.size - effectiveLayout.rows.size
 
                     Column(
@@ -257,7 +270,8 @@ fun KeyboardScreen(
                             .height(
                                 keyboardRowsHeight(
                                     keyHeight = metrics.keyHeight,
-                                    rowCount = targetRowCount
+                                    rowCount = targetRowCount,
+                                    rowSpacing = standardRowSpacing
                                 )
                             ),
                         verticalArrangement = Arrangement.spacedBy(rowSpacing)
@@ -275,7 +289,8 @@ fun KeyboardScreen(
                                 layoutRowIndex < 0 -> computeKeyboardMetrics(
                                     rows = listOf(row),
                                     availableWidth = availableWidth,
-                                    heightScale = heightScale
+                                    heightScale = heightScale,
+                                    isLandscape = isLandscape
                                 )
                                 rowColumns != null -> metrics.copy(
                                     keyWidth = availableWidth / rowColumns,

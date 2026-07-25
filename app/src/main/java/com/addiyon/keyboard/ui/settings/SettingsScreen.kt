@@ -4,8 +4,11 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -128,27 +131,53 @@ fun SettingsScreen(
         //         Icon(Icons.Default.Keyboard, contentDescription = "Open keyboard")
         //     }
         // }
-        ) { innerPadding ->
-        Column(
+    ) { innerPadding ->
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            GroupCard {
-                SettingsItem(Icons.Default.Palette, strings.themes, onClick = onOpenThemes)
-                SettingsItem(Icons.Default.MenuBook, strings.typingGuide, onClick = onOpenManual)
-                SettingsItem(Icons.Default.Tune, strings.preferences, onClick = onOpenSoundVibration)
-                SettingsItem(Icons.Default.Keyboard, strings.testKeyboard, onClick = onOpenTestKeyboard)
+            val landscape = maxWidth > maxHeight
+            val firstGroup: @Composable () -> Unit = {
+                GroupCard {
+                    SettingsItem(Icons.Default.Palette, strings.themes, onClick = onOpenThemes)
+                    SettingsItem(Icons.Default.MenuBook, strings.typingGuide, onClick = onOpenManual)
+                    SettingsItem(Icons.Default.Tune, strings.preferences, onClick = onOpenSoundVibration)
+                    SettingsItem(Icons.Default.Keyboard, strings.testKeyboard, onClick = onOpenTestKeyboard)
+                }
             }
-            GroupCard {
-                SettingsItem(Icons.Default.Share, strings.shareApp) { shareApp() }
-                SettingsItem(Icons.Default.StarRate, strings.rateApp) { rateApp() }
+            val secondaryGroups: @Composable () -> Unit = {
+                GroupCard {
+                    SettingsItem(Icons.Default.Share, strings.shareApp) { shareApp() }
+                    SettingsItem(Icons.Default.StarRate, strings.rateApp) { rateApp() }
+                }
+                Spacer(Modifier.height(if (landscape) 16.dp else 24.dp))
+                GroupCard {
+                    SettingsItem(Icons.Default.Feedback, strings.feedback) { showFeedback = true }
+                    SettingsItem(Icons.Default.Info, strings.about, onClick = onOpenAbout)
+                }
             }
-            GroupCard {
-                SettingsItem(Icons.Default.Feedback, strings.feedback) { showFeedback = true }
-                SettingsItem(Icons.Default.Info, strings.about, onClick = onOpenAbout)
+            if (landscape) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(Modifier.weight(1f)) { firstGroup() }
+                    Column(Modifier.weight(1f)) { secondaryGroups() }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    firstGroup()
+                    Spacer(Modifier.height(24.dp))
+                    secondaryGroups()
+                }
             }
         }
     }

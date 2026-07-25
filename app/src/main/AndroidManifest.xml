@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- Package-visibility (API 30+): lets SpeechRecognizer.isRecognitionAvailable()
          and intent resolution see Google's (or another) speech recognition
