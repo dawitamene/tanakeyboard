@@ -1,8 +1,8 @@
 #!/bin/zsh
 set -euo pipefail
 
-package_name="com.addiyon.keyboard"
-service_name="$package_name/.AddiyonKeyboardService"
+package_name="com.addiyon.keyboard.debug"
+service_name="$package_name/com.addiyon.keyboard.AddiyonKeyboardService"
 iterations="${1:-50}"
 
 adb shell settings put secure show_ime_with_hard_keyboard 1

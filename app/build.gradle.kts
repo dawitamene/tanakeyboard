@@ -1,4 +1,6 @@
 import java.io.FileInputStream
+import java.security.KeyStore
+import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -17,17 +19,22 @@ val versionProps = Properties().apply {
     if (versionPropsFile.exists()) load(FileInputStream(versionPropsFile))
 }
 val releaseVersionName = versionProps.getProperty("versionName", "1.0.0")
+val versionCodeFloor = versionProps.getProperty("versionCodeFloor", "1").toInt()
+val expectedReleaseCertificate = versionProps
+    .getProperty("releaseCertificateSha256", "")
+    .lowercase(Locale.US)
 
 val autoVersionCode: Int by lazy {
-    try {
+    val gitCount = try {
         val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
             .directory(rootProject.projectDir)
             .redirectErrorStream(true)
             .start()
         process.inputStream.bufferedReader().use { it.readText().trim().toInt() }
     } catch (_: Exception) {
-        (System.currentTimeMillis() / 1000).toInt()
+        versionCodeFloor
     }
+    maxOf(versionCodeFloor, gitCount)
 }
 
 // Release signing is driven by a gitignored keystore.properties in the module
@@ -38,6 +45,23 @@ val keystorePropertiesFile = rootProject.file("app/keystore.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.exists()) {
         load(FileInputStream(keystorePropertiesFile))
+    }
+}
+
+if (keystoreProperties.isNotEmpty() && expectedReleaseCertificate.isNotEmpty()) {
+    val releaseKeyStore = KeyStore.getInstance(KeyStore.getDefaultType()).apply {
+        FileInputStream(rootProject.file("app/${keystoreProperties.getProperty("storeFile")}")).use {
+            load(it, keystoreProperties.getProperty("storePassword").toCharArray())
+        }
+    }
+    val certificate = requireNotNull(
+        releaseKeyStore.getCertificate(keystoreProperties.getProperty("keyAlias"))
+    )
+    val actualCertificate = MessageDigest.getInstance("SHA-256")
+        .digest(certificate.encoded)
+        .joinToString("") { "%02x".format(it) }
+    require(actualCertificate == expectedReleaseCertificate) {
+        "Release signing certificate does not match version.properties"
     }
 }
 
@@ -104,6 +128,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -140,8 +168,10 @@ android {
                 // so it never breaks the build there.
                 val targetDir = file("/Users/dev/Shared")
                 if (targetDir.isDirectory) {
-                    val timeFormat = SimpleDateFormat("hh-mm-a", Locale.getDefault())
-                    val fileName = "${timeFormat.format(Date())}.apk"
+                    val timeFormat = SimpleDateFormat("yyyy-MM-dd-hh-mm-a", Locale.US)
+                    val fileName = "addiyon-${variant.name}-v" +
+                        "${variant.versionName}-${variant.versionCode}-" +
+                        "${timeFormat.format(Date())}.apk"
 
                     copy {
                         from(file("$buildDir/outputs/apk/${variant.name}"))

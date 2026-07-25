@@ -6,7 +6,7 @@
 set -euo pipefail
 
 ADB="${ADB:-adb}"
-PKG="${PKG:-com.addiyon.keyboard}"
+PKG="${PKG:-com.addiyon.keyboard.debug}"
 OUT_DIR="${OUT_DIR:-plans/capture}"
 mkdir -p "$OUT_DIR"
 
@@ -33,7 +33,7 @@ type_str() {
 press_space() { "$ADB" shell input keyevent 62; }
 press_back()  { "$ADB" shell input keyevent 67; }
 press_enter() { "$ADB" shell input keyevent 66; }
-toggle_lang() { "$ADB" shell am broadcast -n com.addiyon.keyboard/.debug.LanguageToggleReceiver -a com.addiyon.keyboard.TOGGLE_LANGUAGE >/dev/null; }
+toggle_lang() { "$ADB" shell am broadcast -n com.addiyon.keyboard.debug/com.addiyon.keyboard.debug.LanguageToggleReceiver -a com.addiyon.keyboard.TOGGLE_LANGUAGE >/dev/null; }
 sleep_ms()    { sleep "$(awk -v ms="$1" 'BEGIN{printf "%.3f", ms/1000}')"; }
 
 dump_meminfo() {
