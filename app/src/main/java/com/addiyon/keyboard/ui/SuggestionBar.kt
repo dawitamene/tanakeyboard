@@ -365,20 +365,23 @@ private fun AmharicFixedSuggestionStrip(
             .testTag(AMHARIC_SUGGESTION_STRIP_TAG),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        suggestions.forEachIndexed { index, word ->
+        for (index in 0 until 3) {
+            val word = suggestions.getOrNull(index)
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .clickable { onTap(word) },
+                    .clickable(enabled = word != null) { word?.let(onTap) },
                 contentAlignment = Alignment.Center
             ) {
-                AmharicSuggestionText(
-                    word = word,
-                    isTop = index == 0 && !isPredictions
-                )
+                if (word != null) {
+                    AmharicSuggestionText(
+                        word = word,
+                        isTop = index == 0 && !isPredictions
+                    )
+                }
             }
-            if (index < suggestions.lastIndex) {
+            if (index < 2) {
                 SuggestionDivider()
             }
         }

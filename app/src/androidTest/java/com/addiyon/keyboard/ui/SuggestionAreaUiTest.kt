@@ -86,7 +86,7 @@ class SuggestionAreaUiTest {
     }
 
     @Test
-    fun twoAndThreeAmharicSuggestionsUseEqualCenteredSlots() {
+    fun twoAndThreeAmharicSuggestionsUseThreeEqualCenteredSlots() {
         val allWords = listOf("ሀ", "ሁ", "ሂ")
         var visibleWords by mutableStateOf(allWords.take(2))
 
@@ -125,10 +125,10 @@ class SuggestionAreaUiTest {
                     .center
                     .x
                 val expectedCenter =
-                    stripBounds.left + stripBounds.width * (index + 0.5f) / count
+                    stripBounds.left + stripBounds.width * (index + 0.5f) / 3f
 
                 assertTrue(
-                    "$count Amharic suggestions should use equal slots",
+                    "$count Amharic suggestions should use equal thirds",
                     kotlin.math.abs(wordCenter - expectedCenter) <= 2f
                 )
             }
