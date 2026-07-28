@@ -1,6 +1,7 @@
 package com.addiyon.keyboard.ui.settings
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +20,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import com.addiyon.keyboard.ExternalActions
 import com.addiyon.keyboard.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,10 +31,9 @@ import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.AppPageTopBar
 import com.addiyon.keyboard.ui.theme.PoppinsFamily
 
-/**
- * About screen: app identity, version (read from the installed package so it
- * tracks the build), a one-line description, and the privacy stance.
- */
+/** testTag so instrumented tests can find the privacy-policy link. */
+const val PRIVACY_POLICY_TAG = "about.privacyPolicy"
+
 @Composable
 fun AboutScreen(
     onBack: () -> Unit,
@@ -99,8 +101,15 @@ fun AboutScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = strings.aboutPrivacy,
-                        style = MaterialTheme.typography.bodyMedium
+                        text = strings.privacyPolicy,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .testTag(PRIVACY_POLICY_TAG)
+                            .fillMaxWidth()
+                            .clickable { ExternalActions.openPrivacyPolicy(context) }
+                            .padding(vertical = 4.dp)
                     )
                 }
             }

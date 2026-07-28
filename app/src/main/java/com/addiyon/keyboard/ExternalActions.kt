@@ -3,6 +3,7 @@ package com.addiyon.keyboard
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
@@ -33,6 +34,15 @@ internal object ExternalActionRunner {
 }
 
 object ExternalActions {
+
+    /**
+     * The hosted privacy policy. Play requires the policy to be reachable from
+     * inside the app, not only from the Console listing, so [openPrivacyPolicy]
+     * is linked from the About screen. Keep this in sync with the URL entered
+     * in the Play Console.
+     */
+    const val PRIVACY_POLICY_URL = "https://keyboard.addiyon.com/privacy.html"
+
     fun canResolve(context: Context, intent: Intent): Boolean = try {
         intent.component != null ||
             context.packageManager.resolveActivity(
@@ -53,11 +63,37 @@ object ExternalActions {
         onFailure = { showFailure(context, failureMessage) }
     )
 
+    fun startDirect(
+        context: Context,
+        intent: Intent,
+        failureMessage: String
+    ): Boolean = ExternalActionRunner.run(
+        canLaunch = { true },
+        launch = { context.startActivity(intent) },
+        onFailure = { showFailure(context, failureMessage) }
+    )
+
+    fun tryStartDirect(context: Context, intent: Intent): Boolean =
+        ExternalActionRunner.run(
+            canLaunch = { true },
+            launch = { context.startActivity(intent) },
+            onFailure = {}
+        )
+
     fun openInputMethodSettings(context: Context): Boolean =
         start(
             context,
             Intent(Settings.ACTION_INPUT_METHOD_SETTINGS),
             "Keyboard settings are unavailable on this device."
+        )
+
+    fun openPrivacyPolicy(context: Context, extraFlags: Int = 0): Boolean =
+        startDirect(
+            context,
+            Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL))
+                .addCategory(Intent.CATEGORY_BROWSABLE)
+                .addFlags(extraFlags),
+            "No web browser is available."
         )
 
     fun showInputMethodPicker(context: Context): Boolean = ExternalActionRunner.run(

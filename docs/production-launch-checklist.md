@@ -1,0 +1,282 @@
+# Production launch checklist — Addiyon Keyboard
+
+Written 2026-07-28, when Play **production access** was granted. From here the next
+upload goes to everyone, so this is the list to work through before pressing publish.
+
+**Scope of this document:** what stands between the current tree and a public release —
+store assets, ASO, legal artifacts, and the release build gate.
+
+**Companion document:** [`google-play-production-access.md`](google-play-production-access.md)
+covers the Play *process* (closed-test evidence, the production-access questionnaire, the
+manual keyboard test matrix). It is not duplicated here; where it already covers something
+properly, this file points at it. Note that its §1 "current app-specific blockers" predates
+this pass — several are now resolved (see below).
+
+**Stale, do not work from:** `closed-testing.md` at the repo root. It names package
+`com.addiyon.tanakeyboard` (now `com.addiyon.keyboard`), SDK 35 (now 36), version 1.1.0
+(now 1.10.2), and "no `<uses-permission>` at all" (now two). Its A1 privacy-policy blocker
+is the one item still worth reading.
+
+---
+
+## 0. Already done — do not redo
+
+Fixed in the 2026-07-28 pass, listed so nothing here gets re-litigated:
+
+- [x] **Launcher icons rebranded.** `mipmap-{m,h,xh,xxh,xxxh}dpi/ic_launcher*.webp` were
+  still the stock Android Studio green robot, untouched since the initial commit — only
+  `mipmap-anydpi-v26/` had ever been rebranded, so every Android 7.0/7.1 device
+  (`minSdk = 24`) showed the default mascot. Regenerated all ten from
+  `logo_play_store_fullbleed.svg`, the same source as the 512px Play icon.
+- [x] **IME subtypes declared.** `res/xml/method.xml` was a bare `<input-method/>` with no
+  subtypes — the app never told Android it typed Amharic, and declared nothing
+  ASCII-capable. Now declares `am-ET` and `en-US`, with `isAsciiCapable` on English.
+- [x] **Subtype changes wired.** `AddiyonKeyboardService.onCurrentInputMethodSubtypeChanged`
+  maps the system switcher's selection onto `isAmharic` via `SubtypeLanguagePolicy`, so the
+  system switcher and the in-keyboard globe key cannot disagree. Covered by
+  `SubtypeLanguagePolicyTest`.
+- [x] **IME service labelled** — `android:label="@string/ime_name"`, plus `values-am/` so
+  the language names localize in system settings.
+- [x] **Privacy copy corrected.** The app claimed it "never collects any data" while
+  holding `RECORD_AUDIO` and handing audio to `SpeechRecognizer`. Reworded in both
+  languages to separate local typing from voice.
+- [x] **Privacy policy written** — [`site/privacy.html`](../site/privacy.html), plus an
+  in-app link from the About screen (Play requires in-app reachability, not just a Console
+  URL).
+- [x] **Store listing consolidated** — [`play-store-listing.md`](play-store-listing.md) is
+  now the single source; the conflicting root copy is deleted.
+- [x] **`testers.csv` untracked** (four real third-party emails in a repo with a GitHub
+  remote). Still on disk, now gitignored. See §8 for the history caveat.
+
+---
+
+## 1. Hard blockers — cannot submit without these
+
+- [ ] **Deploy the privacy policy.** Upload `site/privacy.html` to
+  **`https://keyboard.addiyon.com/privacy.html`**. Must be public, HTTPS, and not
+  geofenced. Google will fetch it. This exact URL is hardcoded in
+  `ExternalActions.PRIVACY_POLICY_URL` — if you deploy elsewhere, change it there too and
+  rebuild, or the in-app link 404s.
+- [ ] **Enter that URL** in Play Console → App content → Privacy policy.
+- [ ] **Capture screenshots.** Minimum 2, target 4–6. Shot list and captions are in
+  [`play-store-listing.md`](play-store-listing.md#screenshots). `plans/capture/` is empty.
+- [ ] **Produce the feature graphic**, 1024×500. Currently missing; only prompt drafts
+  exist (`plans/feature-image-prompt.md`, `plans/feature-image2.md`).
+- [ ] **Complete the Data Safety form** — see §4. This is where most keyboard apps get
+  rejected.
+- [ ] **Complete the content rating questionnaire.**
+- [ ] **Verify the release artifact** — see §6.
+
+---
+
+## 2. ASO
+
+Copy is drafted and character-counted in
+[`play-store-listing.md`](play-store-listing.md). What to actually do:
+
+- [ ] **Set the title to the 30-char budget.** Play weights title > short description >
+  full description, so the title is the highest-value real estate you own.
+  `Addiyon Amharic Keyboard ፊደል` is 28/30.
+- [ ] **Publish the am-ET localized listing.** *This is the single highest-leverage ASO
+  action available and it is not currently set up.* Play indexes and ranks each locale's
+  listing separately — the English listing cannot rank for "የአማርኛ ኪቦርድ" no matter how
+  good it is. Copy is written and ready to paste. Diaspora users search in Latin,
+  in-country users increasingly search in Ethiopic; you need both listings to reach both.
+- [ ] **Burn captions into the screenshots.** Play has no caption field for phone
+  screenshots, and captions are what a browsing user actually reads.
+- [ ] **Set category to Tools** and add keyword-relevant tags.
+- [ ] **Confirm the in-app review prompt fires.** Ratings volume moves ranking more than
+  any copy change. The prompt already exists (`review/`, gated by a usage counter in
+  `KeyboardPrefs.KEY_USAGE_SESSIONS`) — it is the most valuable ASO asset already built,
+  and worthless if it never triggers. Verify on a real device.
+- [ ] **Do not** keyword-stuff, name competitors, or use superlatives ("best", "#1"). Each
+  is grounds for listing rejection; competitor names can also draw a policy strike.
+- [ ] **Plan to iterate after launch**, not before. Play Console → Store performance shows
+  which search terms actually convert. Change one field at a time.
+
+---
+
+## 3. Store assets
+
+- [ ] App icon 512×512 — `play_store_icon_512.png` exists and shares a source with the
+  in-app icon. Confirm it is the one uploaded.
+- [ ] Phone screenshots ×4–6, portrait, ≥1080×1920, clean status bar.
+- [ ] Feature graphic 1024×500.
+- [ ] *(Optional)* 7-inch and 10-inch tablet screenshots. Without them Play flags the app
+  as not designed for tablets, which suppresses it in tablet search. Cheap to add from an
+  emulator, worth doing if the keyboard lays out sanely at that size.
+- [ ] *(Optional)* Promo video. Skip for v1.
+
+---
+
+## 4. Data Safety form and privacy consistency
+
+Three surfaces must tell the same story: the in-app copy (`ui/i18n/AppStrings.kt`), the
+hosted policy (`site/privacy.html`), and the Data Safety form. A mismatch is a classic IME
+rejection, and keyboards get scrutinized harder than most categories.
+
+The verified facts to answer from:
+
+| Fact | Evidence |
+|---|---|
+| No `INTERNET` permission — the app cannot transmit anything itself | merged release manifest; asserted by `plans/verify-release-artifact.sh` |
+| Only two permissions: `RECORD_AUDIO`, `VIBRATE` | `AndroidManifest.xml` |
+| No analytics, ads, crash-reporting, or tracking SDK | dependency list in `app/build.gradle.kts` — only third-party is `play-review` |
+| Typing and suggestions are fully on-device | bundled `.db` assets; `suggestion/`, `transliteration/` |
+| Voice audio goes to the device's speech service | `voice/VoiceInputController.kt` delegates to `SpeechRecognizer` |
+| Backup covers exactly two prefs files | `res/xml/backup_rules.xml`, `res/xml/data_extraction_rules.xml` |
+
+- [ ] **Declare the microphone/voice path honestly.** Do not tick "No data collected" and
+  move on. Addiyon itself neither stores nor transmits audio, but it does hand audio to
+  another app that may transmit it. Answer for what the app does, and let the policy
+  explain the handoff — which it now does in detail.
+- [ ] **Note that `EXTRA_PREFER_OFFLINE` is never set** (`VoiceInputController.kt:170`),
+  so on most devices Google's recognizer processes speech online. Either keep the policy
+  wording as-is (accurate today), or set that extra if you want to make offline the
+  default — a product decision, not a blocker.
+- [ ] **Declare the Android Backup behaviour** if the form asks about data transfer:
+  settings and recent emoji sync to the user's own Google account when they have backup
+  enabled.
+- [ ] **Re-read `AppStrings.aboutPrivacy` and `activateFootnote`** against whatever you
+  submit, and against the listing's "PRIVATE BY DESIGN" paragraph. All three were brought
+  into agreement in this pass — keep them that way.
+
+---
+
+## 5. Licensing and attribution
+
+The shipped dictionaries are derived from seven external sources. Only two have a license
+recorded in [`tools/README.md`](../tools/README.md), and one of those imposes an obligation
+that is currently unmet.
+
+**Content actually copied into the shipped `.db` assets:**
+
+| Source | License | Action |
+|---|---|---|
+| hermitdave *FrequencyWords* (English, OpenSubtitles) | **MIT** | ✅ permissive — needs the copyright notice reproduced |
+| orgtre *google-books-ngram-frequency* (trigrams) | **CC BY** | ⚠️ **attribution to end users is required** — a developer README does not satisfy it |
+| Norvig `count_2w.txt` (Google Web Trillion Word Corpus) | not recorded | ❓ confirm |
+| CACO / Contemporary Amharic Corpus | not recorded | ❓ confirm |
+| yididiyan *amharic_spell_corrector* frequencies | not recorded | ❓ confirm |
+| abdulmunimjemal *AmharicSpellCheckerEngine* wordlist | not recorded | ❓ confirm — words are merged into the asset at frequency 1 |
+
+**Used only as a filter, not copied** (materially lower risk, but confirm):
+
+| Source | License | Note |
+|---|---|---|
+| Hunspell am_ET expansion | not recorded | Attestation-only — it decides which corpus words survive, and none of its content ships. Hunspell am_ET is commonly GPL/LGPL/MPL tri-licensed; worth confirming since copyleft on a *shipped* list would be a real problem. |
+
+- [ ] **Confirm each unknown license** and record it in `tools/README.md` next to the
+  source, so this never has to be re-derived.
+- [ ] **Add a `THIRD_PARTY_NOTICES.md`** to the repo listing every source, its license, and
+  its upstream URL.
+- [ ] **Surface attribution in the app.** CC BY requires the credit reach end users. The
+  About screen is the natural home — it already has the structure, and a "Credits &
+  licenses" link next to the new privacy-policy link is a small change.
+- [ ] **Add a repo `LICENSE`** for your own code. There is none, which leaves the project's
+  own terms undefined.
+
+> This is a genuine legal obligation rather than housekeeping, but it is not a Play
+> submission blocker — Google does not check it at review. If you want to ship first and
+> resolve it in the next update, that is a defensible call; just make it deliberately.
+
+---
+
+## 6. Release build verification
+
+The repo already has a strong gate — use it rather than eyeballing the upload.
+
+- [ ] **Commit everything first.** `plans/verify-release-artifact.sh` records
+  `sourceStatus`, and the last recorded candidate came from a dirty tree.
+- [ ] **Bump `versionName`** in `version.properties` if this differs from 1.10.2.
+  `versionCode` derives from the git commit count, so it advances on its own.
+- [ ] Build the bundle:
+
+```bash
+./gradlew bundleRelease
+```
+
+- [ ] Run the gate against that exact artifact:
+
+```bash
+REQUIRE_CLEAN_RELEASE=1 ./plans/verify-release-artifact.sh
+```
+
+  It asserts the AAB entries, that raw `*_words.dat`/`*_ngrams.dat` are not packaged,
+  exactly two `<uses-permission>` entries, targetSdk 36, `jarsigner -verify`, the signing
+  certificate against `releaseCertificateSha256`, and that baseline profiles carry no
+  benchmark-only classes.
+- [ ] **Note the stale metadata:** `app/build/outputs/release-candidate.properties` still
+  records 1.10.0 / 71 / `sourceStatus=dirty`, while the built AAB is 1.10.2 / 74. Whatever
+  you upload must be re-verified; do not trust that file.
+- [ ] **Install and test the Play-delivered build**, not just a local release APK. Only the
+  Play-delivered artifact exercises split-APK delivery and Play App Signing.
+- [ ] **Confirm suggestions work after a fresh install of the minified build.**
+  `proguard-rules.pro` is still 100% the untouched default template while R8 and
+  `shrinkResources` are both on. The dictionary path is what would break silently. The
+  verify script confirms the assets are *present*; only running it confirms they *load*.
+- [ ] Check Play's App bundle explorer for unexpected permissions, delivery warnings, or
+  download size.
+- [ ] Confirm the R8 mapping file reached Play, so release crash traces stay readable.
+
+---
+
+## 7. Device test pass
+
+The full matrix is in
+[`google-play-production-access.md` §4](google-play-production-access.md). Additionally,
+specifically because of the changes made in this pass:
+
+- [ ] **Launcher icon on an API 24 or 25 emulator** — this is the exact configuration that
+  was showing the Android robot, and the only one the `anydpi-v26` icon never covered.
+- [ ] **Settings → Languages & input → On-screen keyboards** — confirm the IME is named
+  "Addiyon Keyboard" and now lists **two** languages (Amharic, English).
+- [ ] **Switch subtype from the system language switcher mid-word** with an uncommitted
+  Amharic buffer. The composer is committed on the way through; confirm no text is lost or
+  duplicated. This is the riskiest behaviour change in this pass.
+- [ ] **Globe key still switches language** and stays in agreement with the system
+  switcher.
+- [ ] **Password / ASCII-only fields** — the new `isAsciiCapable` English subtype should
+  make the keyboard eligible where it may previously have been skipped.
+- [ ] **About → Privacy policy link** opens the deployed page.
+- [ ] **A device with no browser and no mic** — both new paths degrade to a toast rather
+  than crashing.
+
+---
+
+## 8. Repo hygiene
+
+- [x] `testers.csv` untracked and gitignored.
+- [ ] **Decide about git history.** `testers.csv` and its four real email addresses remain
+  in past commits. If `dawitamene/tanakeyboard` is or may become public, that is
+  third-party PII exposure. Rewriting history (`git filter-repo`) is destructive and
+  breaks every existing clone — your call, and not something to do casually.
+- [ ] `.opencode/` (with `node_modules/`) is untracked and unignored — add it to
+  `.gitignore` or delete it.
+- [ ] The repo root holds 20+ loose planning `.md` files, four logo SVGs, and three 512px
+  PNGs. None of it ships, but it buries the documents that matter. Worth a tidy into
+  `docs/` and `plans/` at some point.
+
+---
+
+## 9. After launch
+
+No crash reporting is installed — `analytics.md` was planned and never implemented, and
+the codebase's pervasive `safeRun`/`SafeLog` swallow-and-continue pattern means many
+failures will surface nowhere at all. Android Vitals is therefore your only production
+signal for v1.
+
+- [ ] **Roll out staged**, not to 100%. 20% → hold a few days → 50% → 100%. Staged rollout
+  is the only mechanism that lets you halt a bad release.
+- [ ] **Watch Android Vitals daily for the first week.** Play's bad-behaviour thresholds
+  are 1.09% user-perceived crash rate and 0.47% user-perceived ANR rate; exceeding them
+  suppresses store visibility.
+- [ ] **Read every 1- and 2-star review in the first two weeks.** For a keyboard, early
+  reviews are also your best bug tracker.
+- [ ] **Consider adding crash reporting** before the release after this one. Shipping v1
+  blind is survivable; staying blind is not.
+- [ ] **Set up CI.** There are 46 JVM test classes, 9 instrumented classes, and a
+  macrobenchmark module — and no `.github/workflows/`, so none of it runs automatically.
+  Everything you built is only as good as the last time someone remembered to run it.
+- [ ] **Baseline lint.** No `lint.xml`, no `lint-baseline.xml`, no `lint {}` block —
+  `./gradlew lintDebug` has never been triaged, so its current state is unknown.

@@ -28,7 +28,15 @@ import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 
 /** Feedback destinations, shared by every place that offers "Send feedback". */
 const val FEEDBACK_EMAIL = "keyboard@addiyon.com"
-const val TELEGRAM_USERNAME = "addiyonkeyboard"
+const val TELEGRAM_USERNAME = "addiyonsupport"
+
+internal fun feedbackEmailUri(): String = "mailto:$FEEDBACK_EMAIL"
+
+internal fun feedbackTelegramDeepLink(): String =
+    "tg://resolve?domain=$TELEGRAM_USERNAME"
+
+internal fun feedbackTelegramWebLink(): String =
+    "https://t.me/$TELEGRAM_USERNAME"
 
 object FeedbackTestTags {
     const val TELEGRAM = "feedback.telegram"
@@ -40,12 +48,12 @@ object FeedbackTestTags {
  * Service caller add FLAG_ACTIVITY_NEW_TASK; from an Activity it's 0.
  */
 fun sendFeedbackEmail(context: Context, subject: String, extraFlags: Int = 0) {
-    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).apply {
+    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse(feedbackEmailUri())).apply {
         addFlags(extraFlags)
         putExtra(Intent.EXTRA_EMAIL, arrayOf(FEEDBACK_EMAIL))
         putExtra(Intent.EXTRA_SUBJECT, subject)
     }
-    ExternalActions.start(context, intent, "No email app is available.")
+    ExternalActions.startDirect(context, intent, "No email app is available.")
 }
 
 /**
@@ -53,12 +61,17 @@ fun sendFeedbackEmail(context: Context, subject: String, extraFlags: Int = 0) {
  * falling back to the `t.me` web link when Telegram isn't installed.
  */
 fun openFeedbackTelegram(context: Context, extraFlags: Int = 0) {
-    val deep = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=$TELEGRAM_USERNAME"))
+    val deep = Intent(Intent.ACTION_VIEW, Uri.parse(feedbackTelegramDeepLink()))
         .addFlags(extraFlags)
-    val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$TELEGRAM_USERNAME"))
+    val web = Intent(Intent.ACTION_VIEW, Uri.parse(feedbackTelegramWebLink()))
         .addFlags(extraFlags)
-    val target = if (ExternalActions.canResolve(context, deep)) deep else web
-    ExternalActions.start(context, target, "Telegram or a web browser is unavailable.")
+    if (!ExternalActions.tryStartDirect(context, deep)) {
+        ExternalActions.startDirect(
+            context,
+            web,
+            "Telegram or a web browser is unavailable."
+        )
+    }
 }
 
 /**

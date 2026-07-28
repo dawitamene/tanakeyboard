@@ -26,8 +26,13 @@
         android:theme="@style/Theme.AddiyonKeyboard"
         tools:targetApi="31" >
 
+        <!-- android:label is what Settings > Languages & input and the IME
+             picker show. Without it the name falls back to the application
+             label implicitly; naming it here makes that deliberate and gives
+             the framework a string it can localize (values-am). -->
         <service
             android:name=".AddiyonKeyboardService"
+            android:label="@string/ime_name"
             android:permission="android.permission.BIND_INPUT_METHOD"
             android:exported="true">
             <intent-filter>

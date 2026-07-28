@@ -56,7 +56,7 @@ data class AppStrings(
     // About
     val versionFormat: String,
     val aboutDescription: String,
-    val aboutPrivacy: String,
+    val privacyPolicy: String,
     val madeBy: String,
     // Onboarding
     val activateTitle: String,
@@ -113,15 +113,14 @@ val EnglishStrings = AppStrings(
     versionFormat = "Version %s",
     aboutDescription = "Type Amharic (Ge'ez) using simple Latin transliteration. " +
         "For example, \"selam\" becomes ሰላም.",
-    aboutPrivacy = "Your privacy: Addiyon Keyboard never collects any data. " +
-        "Everything you type stays on your device.",
+    privacyPolicy = "Privacy policy",
     madeBy = "Made by Addiyon",
     activateTitle = "Activate Addiyon Keyboard",
     activateDescription = "Turn Addiyon Keyboard on in your device's input-method " +
         "settings. It only takes a moment.",
     openSettings = "Open Settings",
-    activateFootnote = "Addiyon Keyboard never collects any data from you. " +
-        "Everything you type stays on your device.",
+    activateFootnote = "Addiyon Keyboard collects nothing and has no internet " +
+        "access. Everything you type stays on your device.",
     enableTitle = "Enable Addiyon Keyboard",
     enableDescription = "Pick Addiyon Keyboard from the keyboard switcher to make " +
         "it your active keyboard.",
@@ -175,14 +174,13 @@ val AmharicStrings = AppStrings(
     versionFormat = "ስሪት %s",
     aboutDescription = "የእንግሊዝኛ ፊደላትን በመጠቀም በቀላሉ አማርኛ ይፃፉ። " +
         "ለምሳሌ \"selam\" ወደ ሰላም ይቀየራል።",
-    aboutPrivacy = "የእርስዎ ግላዊነት፡ አዲዮን ኪቦርድ ምንም መረጃ አይሰበስብም። " +
-        "የሚፅፉት ሁሉ በስልክዎ ላይ ይቆያል።",
+    privacyPolicy = "የግላዊነት መመሪያ",
     madeBy = "በአዲዮን የተሰራ",
     activateTitle = "አዲዮን ኪቦርድን አስጀምር",
     activateDescription = "አዲዮን ኪቦርድን በስልክዎ የፅህፈት ዘዴ ቅንብሮች ውስጥ ያብሩት። " +
         "ጥቂት ጊዜ ብቻ ነው የሚወስደው።",
     openSettings = "ቅንብሮችን ክፈት",
-    activateFootnote = "አዲዮን ኪቦርድ ከእርስዎ ምንም መረጃ አይሰበስብም። " +
+    activateFootnote = "አዲዮን ኪቦርድ ምንም መረጃ አይሰበስብም፤ የኢንተርኔት ፈቃድም የለውም። " +
         "የሚፅፉት ሁሉ በስልክዎ ላይ ይቆያል።",
     enableTitle = "አዲዮን ኪቦርድን ምረጥ",
     enableDescription = "አዲዮን ኪቦርድን ከኪቦርድ መቀየሪያው ይምረጡት።",

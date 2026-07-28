@@ -1,15 +1,12 @@
 package com.addiyon.keyboard.composing
 
 /**
- * Extracts the word the caret just landed at the end of, for cursor-aware
- * resume (see AddiyonKeyboardService.maybeResumeWordAtCursor): given the text
- * BEFORE the caret, returns the trailing run of word characters -- the word
- * the composer should adopt via [WordComposer.resume] -- or null when the
- * caret isn't at a resumable word end.
+ * Extracts a word at the caret for cursor-aware resume (see
+ * AddiyonKeyboardService.maybeResumeWordAtCursor). English and email text can
+ * be adopted from both sides of the caret.
  *
  * Script-specific on purpose: the English composer must never adopt fidel
- * (its dictionary and case handling are Latin), and automatic Amharic resume
- * only adopts fidel.
+ * because its dictionary and case handling are Latin.
  * A word that fills the ENTIRE lookbehind window is rejected too -- its start
  * lies beyond what was read, and adopting a fragment would compose (and, in
  * Amharic, visibly rewrite) only the tail of a longer word.
@@ -25,6 +22,12 @@ internal object ResumableWord {
      * getTextBeforeCursor round-trip to stay cheap.
      */
     const val LOOKBEHIND = 48
+    const val LOOKAHEAD = LOOKBEHIND
+
+    data class AtCursor(
+        val word: String,
+        val cursorOffset: Int
+    )
 
     /**
      * Word characters for the English composer: any letter OUTSIDE the
@@ -35,21 +38,53 @@ internal object ResumableWord {
     private fun isLatinWordChar(char: Char): Boolean =
         (char.isLetter() && !isEthiopic(char)) || char == '\''
 
-    /**
-     * Word characters for the Amharic composer: the Ethiopic syllable range.
-     * Deliberately ends at ፚ (U+135A) so the Ethiopic punctuation (፣ ። ...)
-     * and numerals that follow it in the block are word BOUNDARIES, exactly
-     * as they are while typing.
-     */
-    private fun isEthiopicSyllable(char: Char): Boolean = char in 'ሀ'..'ፚ'
-
     private fun isEthiopic(char: Char): Boolean = char in 'ሀ'..'፿'
+
+    private fun isEmailWordChar(char: Char): Boolean =
+        char.isLetter() ||
+            char == '\'' ||
+            char == '`' ||
+            char == '@' ||
+            char == '.' ||
+            char in '0'..'9'
 
     fun trailingLatinWord(before: CharSequence): String? =
         trailingRun(before, ::isLatinWordChar)
 
-    fun trailingEthiopicWord(before: CharSequence): String? =
-        trailingRun(before, ::isEthiopicSyllable)
+    fun latinWordAtCursor(
+        before: CharSequence,
+        after: CharSequence
+    ): AtCursor? =
+        runAtCursor(before, after, ::isLatinWordChar)
+
+    fun emailWordAtCursor(
+        before: CharSequence,
+        after: CharSequence
+    ): AtCursor? =
+        runAtCursor(before, after, ::isEmailWordChar)
+
+    private fun runAtCursor(
+        before: CharSequence,
+        after: CharSequence,
+        isWordChar: (Char) -> Boolean
+    ): AtCursor? {
+        var start = before.length
+        while (start > 0 && isWordChar(before[start - 1])) start--
+
+        var end = 0
+        while (end < after.length && isWordChar(after[end])) end++
+
+        if (start == before.length && end == 0) return null
+        if (start == 0 && before.length >= LOOKBEHIND) return null
+        if (end == after.length && after.length >= LOOKAHEAD) return null
+
+        val left = before.subSequence(start, before.length).toString()
+        val right = after.subSequence(0, end).toString()
+        return AtCursor(
+            word = left + right,
+            cursorOffset = left.length
+        )
+    }
 
     private fun trailingRun(
         before: CharSequence,

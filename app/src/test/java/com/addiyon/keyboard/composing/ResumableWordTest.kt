@@ -20,6 +20,38 @@ class ResumableWordTest {
     }
 
     @Test
+    fun latinWordSurroundingCursorIncludesBothSides() {
+        assertEquals(
+            ResumableWord.AtCursor(word = "inform", cursorOffset = 2),
+            ResumableWord.latinWordAtCursor(before = "in", after = "form")
+        )
+        assertEquals(
+            ResumableWord.AtCursor(word = "don't", cursorOffset = 3),
+            ResumableWord.latinWordAtCursor(before = "don", after = "'t")
+        )
+    }
+
+    @Test
+    fun latinWordAtCursorStopsAtVisibleBoundaries() {
+        assertEquals(
+            ResumableWord.AtCursor(word = "inform", cursorOffset = 2),
+            ResumableWord.latinWordAtCursor(before = "say in", after = "form now")
+        )
+        assertNull(ResumableWord.latinWordAtCursor(before = "say ", after = " now"))
+    }
+
+    @Test
+    fun emailWordAtCursorIncludesTheWholeAddressToken() {
+        assertEquals(
+            ResumableWord.AtCursor(word = "test@example.com", cursorOffset = 5),
+            ResumableWord.emailWordAtCursor(
+                before = "to test@",
+                after = "example.com next"
+            )
+        )
+    }
+
+    @Test
     fun trailingBoundaryCharacterMeansNoLatinWord() {
         assertNull(ResumableWord.trailingLatinWord("hello cana "))
         assertNull(ResumableWord.trailingLatinWord("hello."))
@@ -32,28 +64,6 @@ class ResumableWordTest {
         assertNull(ResumableWord.trailingLatinWord("ሰላም"))
         // ...but a Latin word AFTER fidel stops at the script boundary.
         assertEquals("abc", ResumableWord.trailingLatinWord("ሰላምabc"))
-    }
-
-    // ---- Ethiopic (Amharic composer) ----
-
-    @Test
-    fun fidelWordAtEndIsExtracted() {
-        assertEquals("ሰላም", ResumableWord.trailingEthiopicWord("hello ሰላም"))
-        assertEquals("ሰላም", ResumableWord.trailingEthiopicWord("ሰላም"))
-    }
-
-    @Test
-    fun ethiopicPunctuationAndDigitsAreBoundaries() {
-        assertNull(ResumableWord.trailingEthiopicWord("ሰላም።"))
-        assertNull(ResumableWord.trailingEthiopicWord("ሰላም፣"))
-        assertNull(ResumableWord.trailingEthiopicWord("ሰላም፩"))
-        assertNull(ResumableWord.trailingEthiopicWord("ሰላም "))
-    }
-
-    @Test
-    fun latinNeverCountsAsEthiopic() {
-        assertNull(ResumableWord.trailingEthiopicWord("abc"))
-        assertEquals("ሰላም", ResumableWord.trailingEthiopicWord("abcሰላም"))
     }
 
     // ---- Shared window guard ----
@@ -69,5 +79,21 @@ class ResumableWordTest {
         // Shorter than the window and all word chars: the field simply starts
         // with the word, adopt it whole.
         assertEquals("abc", ResumableWord.trailingLatinWord("abc"))
+    }
+
+    @Test
+    fun wordFillingEitherCursorWindowIsRejected() {
+        assertNull(
+            ResumableWord.latinWordAtCursor(
+                before = "a".repeat(ResumableWord.LOOKBEHIND),
+                after = "bc"
+            )
+        )
+        assertNull(
+            ResumableWord.latinWordAtCursor(
+                before = "ab",
+                after = "c".repeat(ResumableWord.LOOKAHEAD)
+            )
+        )
     }
 }

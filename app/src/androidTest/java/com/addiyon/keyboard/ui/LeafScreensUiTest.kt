@@ -62,7 +62,7 @@ class LeafScreensUiTest {
     }
 
     @Test
-    fun aboutScreenShowsIdentityPrivacyAndBackAction() {
+    fun aboutScreenShowsIdentityPrivacyPolicyAndBackAction() {
         var back = false
 
         compose.setContent {
@@ -73,7 +73,7 @@ class LeafScreensUiTest {
 
         compose.onNodeWithText("Addiyon Keyboard").assertIsDisplayed()
         compose.onNodeWithText("Made by Addiyon").assertIsDisplayed()
-        compose.onNodeWithText("Your privacy", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Privacy policy").assertIsDisplayed()
         compose.onNodeWithContentDescription("Back").performClick()
         compose.runOnIdle { assertTrue(back) }
     }

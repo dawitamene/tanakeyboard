@@ -29,7 +29,7 @@ Current state confirmed from the repo:
 Google **requires** a working privacy-policy link for all IME/keyboard apps. The full site spec is
 in `plan.md`; at minimum `privacy.html` must be live over HTTPS.
 - Deploy the site (or just a standalone privacy page) to a stable domain, e.g.
-  `https://tanakeyboard.addiyon.com/privacy.html`.
+  `https://keyboard.addiyon.com/privacy.html`.
 - Update the privacy page's **effective date** and reconcile its wording with what analytics actually
   collects (see A2). Remove the "Developer note" placeholder callout before publishing.
 - Paste that URL into **Play Console → App content → Privacy policy**.

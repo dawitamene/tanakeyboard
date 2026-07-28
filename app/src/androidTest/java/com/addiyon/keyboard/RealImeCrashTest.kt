@@ -183,6 +183,87 @@ class RealImeCrashTest {
     }
 
     @Test
+    fun insertingInsideComposingWordKeepsWholeWordAsSuggestionQuery() {
+        ActivityScenario.launch(ImeTestHostActivity::class.java).use { scenario ->
+            clearAndFocus(scenario, ImeTestField.NORMAL)
+            if (requireService().isAmharic) {
+                invokeService(AddiyonKeyboardService::toggleLanguage)
+            }
+            waitUntil { !requireService().isLanguageSwitching }
+            invokeService(AddiyonKeyboardService::resetShift)
+            "inorm".forEach { char ->
+                invokeService { it.onCharacter(char.toString()) }
+            }
+            waitUntil {
+                fieldText(scenario, ImeTestField.NORMAL) == "inorm"
+            }
+
+            moveSelection(scenario, ImeTestField.NORMAL, 2)
+            invokeService { it.onCharacter("f") }
+
+            waitUntil {
+                fieldText(scenario, ImeTestField.NORMAL) == "inform"
+            }
+            waitUntil {
+                requireService().suggestions.contains("information")
+            }
+
+            invokeService { it.onSuggestionTapped("information") }
+            waitUntil {
+                fieldText(scenario, ImeTestField.NORMAL) == "information "
+            }
+        }
+    }
+
+    @Test
+    fun deletingAfterAmharicSuggestionKeepsFidelAndDeletesOneLetter() {
+        ActivityScenario.launch(ImeTestHostActivity::class.java).use { scenario ->
+            clearAndFocus(scenario, ImeTestField.NORMAL)
+            if (!requireService().isAmharic) {
+                invokeService(AddiyonKeyboardService::toggleLanguage)
+            }
+            waitUntil { !requireService().isLanguageSwitching }
+            "selam".forEach { char ->
+                invokeService { it.onCharacter(char.toString()) }
+            }
+            invokeService { it.onSuggestionTapped("ሰላም") }
+            waitUntil {
+                fieldText(scenario, ImeTestField.NORMAL) == "ሰላም "
+            }
+
+            invokeService(AddiyonKeyboardService::onDelete)
+            assertEquals("ሰላም", fieldText(scenario, ImeTestField.NORMAL))
+            invokeService(AddiyonKeyboardService::onDelete)
+
+            assertEquals("ሰላ", fieldText(scenario, ImeTestField.NORMAL))
+        }
+    }
+
+    @Test
+    fun tappingCommittedAmharicNeverRestoresItsLatinBuffer() {
+        ActivityScenario.launch(ImeTestHostActivity::class.java).use { scenario ->
+            clearAndFocus(scenario, ImeTestField.NORMAL)
+            if (!requireService().isAmharic) {
+                invokeService(AddiyonKeyboardService::toggleLanguage)
+            }
+            waitUntil { !requireService().isLanguageSwitching }
+            "selam".forEach { char ->
+                invokeService { it.onCharacter(char.toString()) }
+            }
+            invokeService { it.onSuggestionTapped("ሰላም") }
+            waitUntil {
+                fieldText(scenario, ImeTestField.NORMAL) == "ሰላም "
+            }
+
+            moveSelection(scenario, ImeTestField.NORMAL, 3)
+            assertEquals("ሰላም ", fieldText(scenario, ImeTestField.NORMAL))
+
+            moveSelection(scenario, ImeTestField.NORMAL, 1)
+            assertEquals("ሰላም ", fieldText(scenario, ImeTestField.NORMAL))
+        }
+    }
+
+    @Test
     fun hostileInputConnectionsFailClosedWithoutCrashingOrLooping() {
         ActivityScenario.launch(ImeTestHostActivity::class.java).use { scenario ->
             focusFault(scenario, ImeFaultMode.NONE)
@@ -349,6 +430,18 @@ class RealImeCrashTest {
             field.setSelection(start, end)
             activity.getSystemService(InputMethodManager::class.java)
                 ?.restartInput(field)
+        }
+        SystemClock.sleep(INPUT_SETTLE_MILLIS)
+        instrumentation.waitForIdleSync()
+    }
+
+    private fun moveSelection(
+        scenario: ActivityScenario<ImeTestHostActivity>,
+        kind: ImeTestField,
+        position: Int
+    ) {
+        scenario.onActivity { activity ->
+            activity.field(kind).setSelection(position)
         }
         SystemClock.sleep(INPUT_SETTLE_MILLIS)
         instrumentation.waitForIdleSync()

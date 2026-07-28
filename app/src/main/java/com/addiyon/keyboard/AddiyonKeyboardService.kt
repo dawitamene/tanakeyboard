@@ -17,6 +17,7 @@ import android.text.InputType
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodSubtype
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.compose.runtime.getValue
@@ -35,8 +36,11 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.addiyon.keyboard.composing.DeleteResumeGuard
 import com.addiyon.keyboard.composing.ResumableWord
 import com.addiyon.keyboard.composing.WordComposer
+import com.addiyon.keyboard.composing.allowsCommittedWordResume
+import com.addiyon.keyboard.composing.composingCursorOffset
 import com.addiyon.keyboard.composing.isComposerTextImmediatelyBeforeCursor
 import com.addiyon.keyboard.composing.isSelectionAtComposingEnd
 import com.addiyon.keyboard.model.EnterAction
@@ -59,7 +63,6 @@ import com.addiyon.keyboard.suggestion.SQLiteNgramModel
 import com.addiyon.keyboard.suggestion.SubstitutionCost
 import com.addiyon.keyboard.suggestion.Suggestion
 import com.addiyon.keyboard.transliteration.AmharicTable
-import com.addiyon.keyboard.transliteration.AmharicWordReverser
 import com.addiyon.keyboard.transliteration.EthiopicNormalizer
 import com.addiyon.keyboard.suggestion.matchCase
 import com.addiyon.keyboard.transliteration.Transliterator
@@ -183,10 +186,6 @@ private const val MAX_FUZZY_READINGS = 6
 
 /** LRU capacity for per-word suggestion memoization -- see [amharicSuggestionCache]. */
 private const val SUGGESTION_CACHE_SIZE = 64
-
-/** LRU capacity for the fidel -> raw-Latin history of words committed this
- *  session -- see [AddiyonKeyboardService.amharicCommitHistory]. */
-private const val COMMIT_HISTORY_SIZE = 64
 
 /**
  * Length-scaled edit budget for fuzzy matching: none for buffers too short to
@@ -468,29 +467,8 @@ class AddiyonKeyboardService : InputMethodService(),
         // Backspace uses the default one-char step so each typed letter can
         // be cleared individually.
         commitTransform = { raw -> topAmharicCandidate(raw) },
-        // Every committed word is remembered fidel -> raw Latin, so the caret
-        // can walk back onto it and resume typing it -- see
-        // [amharicCommitHistory] / [maybeResumeWordAtCursor].
-        onCommit = { raw, display ->
-            if (!isPrivateField && display.isNotEmpty()) amharicCommitHistory[display] = raw
-        },
         editor = editorGateway
     )
-
-    /**
-     * Fidel display form -> the raw Latin buffer that committed it, for words
-     * committed this session. Reverse-transliterating fidel in general is
-     * ambiguous, but a word we composed ourselves we already have the Latin
-     * for -- this is what lets [maybeResumeWordAtCursor] adopt a committed
-     * word back into composition. [AmharicWordReverser] (round-trip verified)
-     * covers words outside the history: chip-committed words, earlier
-     * sessions, pasted text. LRU-capped.
-     */
-    private val amharicCommitHistory =
-        object : LinkedHashMap<String, String>(COMMIT_HISTORY_SIZE, 0.75f, true) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>) =
-                size > COMMIT_HISTORY_SIZE
-        }
 
     private val englishComposer = WordComposer(
         inputConnection = { currentInputConnection },
@@ -779,22 +757,26 @@ class AddiyonKeyboardService : InputMethodService(),
      * Bigram/trigram next-word predictions for the words preceding the cursor,
      * read from the field via [contextReader] and looked up in [ngrams]; empty
      * until the model loads or when the field gives no context. While
-     * composing, the raw composing region sits immediately before the cursor
-     * and would read as a hard boundary, so it's stripped from the tail first
-     * ([composer]'s raw buffer).
+     * composing, the part of the raw composing region before the cursor would
+     * read as a hard boundary, so that prefix is stripped from the tail first.
      */
     private fun captureNgramContext(
         contextReader: NgramContext,
         composer: WordComposer,
     ): NgramContext.Context {
         return safeRun(NgramContext.EMPTY) {
-            val raw = if (composer.isComposing) composer.raw else ""
+            val composingPrefix = if (composer.isComposing) {
+                composer.textBeforeCursor()
+            } else {
+                ""
+            }
             val before = editorGateway
-                .textBeforeCursor(NgramContext.WINDOW + raw.length)
+                .textBeforeCursor(NgramContext.WINDOW + composingPrefix.length)
                 ?.value
                 ?: return@safeRun NgramContext.EMPTY
-            val field = if (raw.isNotEmpty() && before.endsWith(raw)) {
-                before.subSequence(0, before.length - raw.length)
+            val field = if (composingPrefix.isNotEmpty()) {
+                if (!before.endsWith(composingPrefix)) return@safeRun NgramContext.EMPTY
+                before.subSequence(0, before.length - composingPrefix.length)
             } else {
                 before
             }
@@ -1477,7 +1459,20 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     fun toggleLanguage() {
+        setLanguage(!isAmharic)
+    }
+
+    /**
+     * Switches the active language to [amharic], or does nothing if that
+     * language is already active. Everything that flips the language funnels
+     * through here -- the globe key via [toggleLanguage] and the system
+     * language switcher via [onCurrentInputMethodSubtypeChanged] -- so both
+     * paths get the same composer commit and dictionary swap.
+     */
+    fun setLanguage(amharic: Boolean) {
+        if (amharic == isAmharic) return
         safeApply {
+            deleteResumeGuard.clear()
             leaveVoiceModeForKeyboardInput()
             closeEmojiPanel()
             activeComposer.commit()
@@ -1494,7 +1489,7 @@ class AddiyonKeyboardService : InputMethodService(),
             // page-cached SQLite approach makes the swap cheap.
             val priorActive = if (isAmharic) amharicDictionary else englishDictionary
             val priorActiveNgrams = if (isAmharic) amharicNgrams else englishNgrams
-            isAmharic = !isAmharic
+            isAmharic = amharic
             KeyboardPrefs.setAmharicMode(this, isAmharic)
             if (!isAmharic && numbersMode == NumbersMode.GEEZ_NUMBERS) {
                 numbersMode = NumbersMode.NUMBERS
@@ -1771,6 +1766,7 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun onCharacter(latin: String) {
         safeApply {
+            deleteResumeGuard.clear()
             // Emoji search intercepts the real English key rows: keystrokes build
             // the query instead of touching the field. Same shift resolution as
             // the normal path so the query looks like what was typed (search
@@ -1800,8 +1796,8 @@ class AddiyonKeyboardService : InputMethodService(),
                     safeIc { it.commitText(output, 1) }
                 }
                 !wordChar -> {
-                    activeComposer.commit()
                     val text = if (isAmharic) Transliterator.transliterate(output) else output
+                    commitActiveWordPreservingCursor()
                     safeIc { it.commitText(text, 1) }
                 }
                 // Email fields: always Latin passthrough, regardless of the
@@ -1834,6 +1830,10 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     private fun isWordCharacter(output: String) = isComposingWordCharacter(output)
 
+    private fun commitActiveWordPreservingCursor() {
+        if (!activeComposer.commitAtCursor()) activeComposer.commit()
+    }
+
     /**
      * The email-field word-character predicate. Same as
      * [isComposingWordCharacter] plus '@', '.', and ASCII digits, so the
@@ -1857,6 +1857,7 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     private val suggestionRefreshGate = SuggestionRefreshGate()
+    private val deleteResumeGuard = DeleteResumeGuard()
 
     fun onDeleteRepeatStart() {
         safeApply {
@@ -1880,7 +1881,9 @@ class AddiyonKeyboardService : InputMethodService(),
                 ?.value
                 ?: return@safeApply
             if (extracted.selectionStart != extracted.selectionEnd) return@safeApply
-            maybeResumeWordAtCursor(extracted.startOffset + extracted.selectionStart)
+            val cursorPosition = extracted.startOffset + extracted.selectionStart
+            if (deleteResumeGuard.guards(cursorPosition)) return@safeApply
+            maybeResumeWordAtCursor(cursorPosition)
         }
     }
 
@@ -1915,11 +1918,30 @@ class AddiyonKeyboardService : InputMethodService(),
             }
             leaveVoiceModeForKeyboardInput()
             if (activeComposer.isComposing) {
-                val raw = activeComposer.raw
-                val before = editorGateway
-                    .textBeforeCursor(raw.length, optional = false)
-                    ?.value
-                if (!isComposerTextImmediatelyBeforeCursor(raw, before)) {
+                val textBeforeComposerCursor = activeComposer.textBeforeCursor()
+                val textAfterComposerCursor = activeComposer.textAfterCursor()
+                val beforeRead = textBeforeComposerCursor
+                    .takeIf(String::isNotEmpty)
+                    ?.let {
+                        editorGateway.textBeforeCursor(it.length, optional = false)
+                    }
+                val afterRead = textAfterComposerCursor
+                    .takeIf(String::isNotEmpty)
+                    ?.let {
+                        editorGateway.textAfterCursor(it.length, optional = false)
+                    }
+                val prefixMatches = textBeforeComposerCursor.isEmpty() ||
+                    isComposerTextImmediatelyBeforeCursor(
+                        textBeforeComposerCursor,
+                        beforeRead?.value
+                    )
+                val suffixMatches = textAfterComposerCursor.isEmpty() ||
+                    afterRead?.value == textAfterComposerCursor
+                val sameSession =
+                    beforeRead == null ||
+                        afterRead == null ||
+                        beforeRead.token == afterRead.token
+                if (!prefixMatches || !suffixMatches || !sameSession) {
                     activeComposer.abandon()
                 }
             }
@@ -1927,13 +1949,52 @@ class AddiyonKeyboardService : InputMethodService(),
                 updateSuggestions()
                 return@safeApply
             }
-            val selected = editorGateway.selectedText()?.value
-            if (!selected.isNullOrEmpty()) {
-                editorGateway.commitText("")
+            val selectionRead = if (isAmharic && !isEmailField) {
+                editorGateway.extractedText(optional = false)
             } else {
-                val before = editorGateway.textBeforeCursor(32, optional = false)?.value
-                val cluster = EmojiBackspace.lastClusterLength(before ?: "")
-                editorGateway.deleteBeforeCursor(cluster.coerceAtLeast(1))
+                null
+            }
+            val selectedRead = editorGateway.selectedText()
+            val selected = selectedRead?.value
+            if (!selected.isNullOrEmpty()) {
+                val extracted = selectionRead?.value
+                if (
+                    extracted != null &&
+                    selectedRead.token == selectionRead.token
+                ) {
+                    val selectionStart =
+                        extracted.startOffset + extracted.selectionStart
+                    val selectionEnd =
+                        extracted.startOffset + extracted.selectionEnd
+                    deleteResumeGuard.expect(
+                        sourceSelectionStart = selectionStart,
+                        sourceSelectionEnd = selectionEnd,
+                        expectedCursor = minOf(selectionStart, selectionEnd)
+                    )
+                }
+                if (!editorGateway.commitText("")) deleteResumeGuard.clear()
+            } else {
+                val beforeRead = editorGateway.textBeforeCursor(32, optional = false)
+                val cluster =
+                    EmojiBackspace.lastClusterLength(beforeRead?.value ?: "").coerceAtLeast(1)
+                val extracted = selectionRead?.value
+                if (
+                    extracted != null &&
+                    beforeRead != null &&
+                    beforeRead.token == selectionRead.token &&
+                    extracted.selectionStart == extracted.selectionEnd
+                ) {
+                    val cursorPosition =
+                        extracted.startOffset + extracted.selectionStart
+                    if (cursorPosition >= cluster) {
+                        deleteResumeGuard.expect(
+                            sourceSelectionStart = cursorPosition,
+                            sourceSelectionEnd = cursorPosition,
+                            expectedCursor = cursorPosition - cluster
+                        )
+                    }
+                }
+                if (!editorGateway.deleteBeforeCursor(cluster)) deleteResumeGuard.clear()
             }
             updateSuggestions()
         }
@@ -1941,6 +2002,7 @@ class AddiyonKeyboardService : InputMethodService(),
 
     fun commitText(text: String) {
         safeApply {
+            deleteResumeGuard.clear()
             leaveVoiceModeForKeyboardInput()
             activeComposer.commit()
             safeIc { it.commitText(text, 1) }
@@ -1959,6 +2021,7 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun onSpace() {
         safeApply {
+            deleteResumeGuard.clear()
             // CLDR annotations are multi-word ("red heart"), so space belongs to
             // the emoji search query, not the field.
             emojiSearchField?.let { field ->
@@ -1968,7 +2031,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 }
             }
             leaveVoiceModeForKeyboardInput()
-            activeComposer.commit()
+            commitActiveWordPreservingCursor()
             // Read the text as it stands BEFORE the space (committed + any
             // still-composing text is already in the field), then judge the
             // sentence boundary from that plus the space we're about to add. A
@@ -1993,6 +2056,7 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun onEnter() {
         safeApply {
+            deleteResumeGuard.clear()
             // In emoji search, enter commits the top result (with its remembered
             // skin tone) -- it never submits the field's IME action.
             emojiSearchQuery?.let { query ->
@@ -2004,7 +2068,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 }
             }
             leaveVoiceModeForKeyboardInput()
-            activeComposer.commit()
+            commitActiveWordPreservingCursor()
             val beforeEnter = editorGateway.textBeforeCursor(SENTENCE_LOOKBEHIND)?.value
             if (enterAction == EnterAction.NEWLINE) {
                 editorGateway.sendEnter()
@@ -2073,6 +2137,7 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun onSuggestionTapped(word: String) {
         safeApply {
+            deleteResumeGuard.clear()
             leaveVoiceModeForKeyboardInput()
             activeComposer.commitSuggestion(word)
             updateSuggestions()
@@ -2104,6 +2169,30 @@ class AddiyonKeyboardService : InputMethodService(),
             updateSystemNavigationBar()
 
             inputView
+        }
+    }
+
+    /**
+     * The system language switcher (and Settings > Languages & input) selects
+     * one of the two subtypes declared in `res/xml/method.xml`. Without this,
+     * those surfaces would offer a language the keyboard then ignored, since
+     * the active language lives in [isAmharic] rather than in the subtype.
+     *
+     * Routed through [setLanguage] rather than [toggleLanguage] so it is
+     * idempotent: the platform also delivers this callback on the initial
+     * binding and after IME switches, where the subtype usually already
+     * matches. Toggling there would flip the user out of their own language
+     * and -- because Amharic composition is discard-on-exit -- take an
+     * uncommitted word with it.
+     */
+    override fun onCurrentInputMethodSubtypeChanged(newSubtype: InputMethodSubtype?) {
+        safeApply {
+            super.onCurrentInputMethodSubtypeChanged(newSubtype)
+            val amharic = SubtypeLanguagePolicy.selectsAmharic(
+                languageTag = safeRun(null) { newSubtype?.languageTag },
+                locale = safeRun(null) { @Suppress("DEPRECATION") newSubtype?.locale },
+            ) ?: return@safeApply
+            setLanguage(amharic)
         }
     }
 
@@ -2209,6 +2298,7 @@ class AddiyonKeyboardService : InputMethodService(),
 
     override fun onStartInput(editorInfo: EditorInfo?, restarting: Boolean) {
         safeApply {
+            deleteResumeGuard.clear()
             idleReleaseHandler.removeCallbacks(idleRelease)
             super.onStartInput(editorInfo, restarting)
             // The EditorInfo can change between sessions even when the input view
@@ -2227,6 +2317,7 @@ class AddiyonKeyboardService : InputMethodService(),
 
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
         safeApply {
+            deleteResumeGuard.clear()
             super.onStartInputView(editorInfo, restarting)
             editorGateway.beginSession()
             // Fresh (non-restarting) sessions feed the engagement counter behind
@@ -2289,9 +2380,9 @@ class AddiyonKeyboardService : InputMethodService(),
      * The framework calls this whenever the cursor or selection changes in
      * the target field -- both when WE change it (by pushing composing text)
      * and when the USER changes it (by tapping somewhere else). Only a
-     * collapsed caret at the composing region's end matches our own
-     * setComposingText updates. Every other selection finalizes the visible
-     * text in place before another key can rewrite the composing region.
+     * collapsed caret inside the composing region updates the composer's edit
+     * position. A range or a caret outside it finalizes the visible text in
+     * place before another key can rewrite the composing region.
      *
      * candidatesStart / candidatesEnd are the framework's view of the
      * current composing region; both are -1 when nothing is being composed.
@@ -2317,6 +2408,12 @@ class AddiyonKeyboardService : InputMethodService(),
                 composingStart = candidatesStart,
                 composingEnd = candidatesEnd
             )
+            val suppressResumeAfterDelete = deleteResumeGuard.onSelectionUpdate(
+                oldSelectionStart = oldSelStart,
+                oldSelectionEnd = oldSelEnd,
+                newSelectionStart = newSelStart,
+                newSelectionEnd = newSelEnd
+            )
 
             // Voice dictation in flight: a deliberate cursor move finalizes the
             // utterance where it was showing and restarts recognition cleanly at
@@ -2330,10 +2427,33 @@ class AddiyonKeyboardService : InputMethodService(),
             }
 
             if (activeComposer.isComposing) {
-                // Movement consistent with our own composing pushes: nothing to do.
-                if (cursorAtComposingEnd) return@safeApply
+                val cursorOffset = composingCursorOffset(
+                    selectionStart = newSelStart,
+                    selectionEnd = newSelEnd,
+                    composingStart = candidatesStart,
+                    composingEnd = candidatesEnd
+                )
+                val composingLength = candidatesEnd - candidatesStart
+                if (
+                    cursorOffset != null &&
+                    composingLength == activeComposer.raw.length &&
+                    activeComposer.moveCursor(cursorOffset, candidatesStart)
+                ) {
+                    return@safeApply
+                }
+                if (
+                    activeComposer.isStaleComposingUpdate(
+                        composingStart = candidatesStart,
+                        composingLength = composingLength
+                    )
+                ) {
+                    return@safeApply
+                }
                 // The user walked away from the word we were composing.
                 activeComposer.abandon()
+                if (!suppressResumeAfterDelete && newSelStart == newSelEnd) {
+                    maybeResumeWordAtCursor(newSelStart)
+                }
                 updateSuggestions()
             } else {
                 // Nothing composing: if the caret just landed at the end of a
@@ -2341,72 +2461,48 @@ class AddiyonKeyboardService : InputMethodService(),
                 // offers its completions again (cursor-aware suggestions);
                 // otherwise refresh (or clear) the next-word predictions, which
                 // depend on the words before the cursor.
-                if (newSelStart == newSelEnd) maybeResumeWordAtCursor(newSelStart)
+                if (!suppressResumeAfterDelete && newSelStart == newSelEnd) {
+                    maybeResumeWordAtCursor(newSelStart)
+                }
                 updateSuggestions()
                 maybeAutoCapitalize()
             }
         }
     }
 
-    /**
-     * Adopts the committed word the caret just landed at the END of back into
-     * composition (Gboard-style cursor-aware suggestions): type "cana",
-     * space, backspace over the space -- the caret sits after "cana" again
-     * and the strip should offer "Canada" as if the word were still being
-     * typed. The field word is lifted into the composing region
-     * (setComposingRegion) and the composer re-seeded via
-     * [WordComposer.resume].
-     *
-     * English adopts the literal field word. Amharic needs the raw LATIN
-     * behind the committed fidel: [amharicCommitHistory] first, then
-     * [AmharicWordReverser]'s round-trip-verified reversal -- and when
-     * neither knows the word, no resume rather than a guess.
-     *
-     * Suppressed wherever the composer is out of play (numeric pages,
-     * emoji panel, voice). [cursorPosition] is the collapsed selection from
-     * onUpdateSelection; the word itself is read fresh from the connection,
-     * so a stale callback sees the field's CURRENT tail and simply finds a
-     * boundary character instead of a word.
-     */
     private fun maybeResumeWordAtCursor(cursorPosition: Int) {
         safeApply {
-            if (cursorPosition <= 0 || isNumberMode || showEmojiPanel || isPrivateField) {
+            if (cursorPosition < 0 || isNumberMode || showEmojiPanel || isPrivateField) {
                 return@safeApply
             }
             if (voiceUiState.isVoiceMode || suggestionRefreshGate.isDeleteGestureActive) return@safeApply
             if (activeComposer.isComposing) return@safeApply
-            val afterRead = editorGateway.textAfterCursor(1) ?: return@safeApply
+            if (!allowsCommittedWordResume(isAmharic, isEmailField)) return@safeApply
+            val afterRead = editorGateway.textAfterCursor(ResumableWord.LOOKAHEAD)
+                ?: return@safeApply
             val after = afterRead.value
-            if (after.isNotEmpty() && (after[0].isLetter() || after[0] == '\'')) return@safeApply
             val beforeRead = editorGateway.textBeforeCursor(ResumableWord.LOOKBEHIND)
                 ?: return@safeApply
             if (beforeRead.token != afterRead.token) return@safeApply
             val before = beforeRead.value
-            if (isAmharic) {
-                val fidel = ResumableWord.trailingEthiopicWord(before) ?: return@safeApply
-                val latin = amharicCommitHistory[fidel]
-                    ?: AmharicWordReverser.reverse(fidel)
-                    ?: return@safeApply
-                // Guard on the return value: an editor that doesn't support
-                // composing regions must not get resume()'s setComposingText,
-                // which would INSERT a duplicate instead of replacing the word.
-                if (!editorGateway.setComposingRegion(
-                        cursorPosition - fidel.length,
-                        cursorPosition,
-                        beforeRead.token
-                    )
-                ) return@safeApply
-                amharicComposer.resume(latin)
+            val match = if (isEmailField) {
+                ResumableWord.emailWordAtCursor(before, after)
             } else {
-                val word = ResumableWord.trailingLatinWord(before) ?: return@safeApply
-                if (!editorGateway.setComposingRegion(
-                        cursorPosition - word.length,
-                        cursorPosition,
-                        beforeRead.token
-                    )
-                ) return@safeApply
-                englishComposer.resume(word)
+                ResumableWord.latinWordAtCursor(before, after)
             }
+                ?: return@safeApply
+            val regionStart = cursorPosition - match.cursorOffset
+            if (!editorGateway.setComposingRegion(
+                    regionStart,
+                    regionStart + match.word.length,
+                    beforeRead.token
+                )
+            ) return@safeApply
+            englishComposer.resume(
+                prefix = match.word,
+                cursorOffset = match.cursorOffset,
+                composingStart = regionStart
+            )
         }
     }
 

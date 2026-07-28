@@ -12,6 +12,7 @@ class WordComposerTest {
     private class RecordingInputConnection {
         val commits = mutableListOf<String>()
         val composingUpdates = mutableListOf<String>()
+        val selections = mutableListOf<Pair<Int, Int>>()
         var finishCount = 0
 
         private val connection: InputConnection by lazy {
@@ -30,6 +31,12 @@ class WordComposerTest {
                     }
                     "commitText" -> {
                         commits += args?.getOrNull(0)?.toString().orEmpty()
+                        true
+                    }
+                    "setSelection" -> {
+                        selections +=
+                            (args?.getOrNull(0) as? Int ?: -1) to
+                                (args?.getOrNull(1) as? Int ?: -1)
                         true
                     }
                     else -> when (method.returnType) {
@@ -89,6 +96,95 @@ class WordComposerTest {
         c.onCharacter("o")
         c.onCharacter("n")
         assertEquals("information", c.raw)
+    }
+
+    @Test
+    fun characterInMiddleUpdatesWholeBufferAndRestoresCaret() {
+        val recording = RecordingInputConnection()
+        val c = composer(inputConnection = { recording.asInputConnection() })
+        c.resume("inform")
+        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0))
+
+        c.onCharacter("h")
+
+        assertEquals("inhform", c.raw)
+        assertEquals("inhform", recording.composingUpdates.last())
+        assertEquals(3 to 3, recording.selections.last())
+    }
+
+    @Test
+    fun consecutiveCharactersInMiddleKeepUsingTheWholeBuffer() {
+        val recording = RecordingInputConnection()
+        val c = composer(inputConnection = { recording.asInputConnection() })
+        c.resume("inform")
+        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0))
+
+        c.onCharacter("h")
+        assertTrue(c.moveCursor(cursorOffset = 3, composingStart = 0))
+        c.onCharacter("x")
+
+        assertEquals("inhxform", c.raw)
+        assertEquals("inhxform", recording.composingUpdates.last())
+        assertEquals(4 to 4, recording.selections.last())
+    }
+
+    @Test
+    fun temporaryEndCallbackDoesNotMovePendingInternalCaret() {
+        val recording = RecordingInputConnection()
+        val c = composer(inputConnection = { recording.asInputConnection() })
+        c.resume("inform")
+        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0))
+        c.onCharacter("h")
+
+        assertTrue(c.moveCursor(cursorOffset = 7, composingStart = 0))
+        c.onCharacter("x")
+
+        assertEquals("inhxform", c.raw)
+    }
+
+    @Test
+    fun backspaceInMiddleUpdatesWholeBufferAndRestoresCaret() {
+        val recording = RecordingInputConnection()
+        val c = composer(inputConnection = { recording.asInputConnection() })
+        c.resume("inform")
+        assertTrue(c.moveCursor(cursorOffset = 3, composingStart = 4))
+
+        assertTrue(c.onBackspace())
+
+        assertEquals("inorm", c.raw)
+        assertEquals("inorm", recording.composingUpdates.last())
+        assertEquals(6 to 6, recording.selections.last())
+    }
+
+    @Test
+    fun commitAtCursorTransformsBothSidesAndRestoresCaretBetweenThem() {
+        val recording = RecordingInputConnection()
+        val committed = mutableListOf<Pair<String, String>>()
+        val c = composer(
+            inputConnection = { recording.asInputConnection() },
+            commitTransform = String::uppercase,
+            onCommit = { raw, display -> committed += raw to display }
+        )
+        c.resume("inform")
+        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 4))
+
+        assertTrue(c.commitAtCursor())
+
+        assertEquals(listOf("INFORM"), recording.commits)
+        assertEquals(6 to 6, recording.selections.last())
+        assertEquals(listOf("in" to "IN", "form" to "FORM"), committed)
+        assertFalse(c.isComposing)
+    }
+
+    @Test
+    fun commitAtCursorDoesNothingWhenCaretIsAlreadyAtEnd() {
+        val recording = RecordingInputConnection()
+        val c = composer(inputConnection = { recording.asInputConnection() })
+        c.resume("inform")
+
+        assertFalse(c.commitAtCursor())
+        assertTrue(c.isComposing)
+        assertTrue(recording.commits.isEmpty())
     }
 
     @Test

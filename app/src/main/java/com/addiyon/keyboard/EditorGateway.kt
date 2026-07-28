@@ -126,11 +126,45 @@ internal class EditorGateway(
     fun setComposingText(text: CharSequence, token: EditorToken? = null): Boolean =
         write(token) { it.setComposingText(text, 1) }
 
+    fun setComposingTextAndSelection(
+        text: CharSequence,
+        selection: Int,
+        token: EditorToken? = null
+    ): Boolean {
+        if (selection < 0) return false
+        return write(token) { connection ->
+            connection.beginBatchEdit()
+            try {
+                connection.setComposingText(text, 1) &&
+                    connection.setSelection(selection, selection)
+            } finally {
+                connection.endBatchEdit()
+            }
+        }
+    }
+
     fun finishComposingText(token: EditorToken? = null): Boolean =
         write(token) { it.finishComposingText() }
 
     fun commitText(text: CharSequence, token: EditorToken? = null): Boolean =
         write(token) { it.commitText(text, 1) }
+
+    fun commitTextAndSelection(
+        text: CharSequence,
+        selection: Int,
+        token: EditorToken? = null
+    ): Boolean {
+        if (selection < 0) return false
+        return write(token) { connection ->
+            connection.beginBatchEdit()
+            try {
+                connection.commitText(text, 1) &&
+                    connection.setSelection(selection, selection)
+            } finally {
+                connection.endBatchEdit()
+            }
+        }
+    }
 
     fun deleteBeforeCursor(chars: Int, token: EditorToken? = null): Boolean =
         write(token) { it.deleteSurroundingText(chars.coerceAtLeast(1), 0) }

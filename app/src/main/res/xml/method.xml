@@ -1,2 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<input-method xmlns:android="http://schemas.android.com/apk/res/android" />
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:supportsSwitchingToNextInputMethod="true">
+
+    <subtype
+        android:name="@string/subtype_amharic"
+        android:label="@string/subtype_amharic"
+        android:imeSubtypeLocale="am_ET"
+        android:languageTag="am-ET"
+        android:imeSubtypeMode="keyboard"
+        android:imeSubtypeExtraValue="AsciiCapable"
+        android:isAsciiCapable="true"
+        android:overridesImplicitlyEnabledSubtype="true" />
+
+</input-method>
