@@ -9,8 +9,6 @@
         <item name="colorSecondary">@color/addiyon_vermillion_dark</item>
         <item name="colorSecondaryVariant">@color/addiyon_vermillion_dark</item>
         <item name="colorOnSecondary">@color/addiyon_ink</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
 </resources>

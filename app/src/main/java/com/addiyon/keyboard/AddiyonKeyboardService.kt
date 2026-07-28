@@ -24,7 +24,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.core.view.WindowInsetsControllerCompat
@@ -1052,16 +1051,16 @@ class AddiyonKeyboardService : InputMethodService(),
 
     /**
      * Re-derives [isDarkTheme] from the system night flag and [palette] from
-     * the saved preference, then refreshes the nav-bar tint (which depends on
-     * both). Light/dark follows the system; only the color palette is user-
-     * selectable, and it themes just the keyboard.
+     * the saved preference, then refreshes navigation icon appearance. Light/
+     * dark follows the system; only the color palette is user-selectable, and
+     * it themes just the keyboard.
      */
     private fun refreshTheme(configuration: Configuration) {
         safeApply {
             palette = KeyboardPrefs.palette(this)
             val nightModeFlags = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
             isDarkTheme = nightModeFlags == Configuration.UI_MODE_NIGHT_YES
-            updateSystemNavigationBar()
+            updateSystemNavigationAppearance()
         }
     }
 
@@ -1086,34 +1085,12 @@ class AddiyonKeyboardService : InputMethodService(),
         }
     }
 
-    /**
-     * Colors the system navigation bar area beneath the keyboard (the strip
-     * that hosts the "hide keyboard" / "switch input method" affordances)
-     * to match the keyboard's own tray color, and flips the icon color to
-     * match. Without the icon-appearance part, those icons stay a fixed
-     * light/white color regardless of background, so they can disappear
-     * against a light tray.
-     *
-     * Also disables the automatic contrast scrim Android draws over the
-     * navigation bar (API 29+) -- otherwise the system overlays its own
-     * translucent tint on top of whatever color we set, which throws the
-     * match off again.
-     */
-    private fun updateSystemNavigationBar() {
+    private fun updateSystemNavigationAppearance() {
         safeApply {
-            val color = palette.tray(isDarkTheme)
-
             window?.window?.let { imeWindow ->
-                imeWindow.navigationBarColor = color.toArgb()
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    imeWindow.isNavigationBarContrastEnforced = false
-                }
-
-                // true = dark icons for a light background, false = light icons
-                // for a dark background.
                 WindowInsetsControllerCompat(imeWindow, imeWindow.decorView)
-                    .isAppearanceLightNavigationBars = !isDarkTheme
+                    .isAppearanceLightNavigationBars =
+                    palette.usesDarkNavigationIcons(isDarkTheme)
             }
         }
     }
@@ -2215,7 +2192,7 @@ class AddiyonKeyboardService : InputMethodService(),
             inputView.setViewTreeSavedStateRegistryOwner(this)
 
             ensureLifecycleStarted()
-            updateSystemNavigationBar()
+            updateSystemNavigationAppearance()
 
             inputView
         }

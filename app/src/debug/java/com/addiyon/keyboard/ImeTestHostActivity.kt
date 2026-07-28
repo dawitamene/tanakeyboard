@@ -21,6 +21,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.appcompat.widget.AppCompatEditText
 import java.util.EnumMap
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -193,7 +194,7 @@ class ImeTestHostActivity : ComponentActivity() {
     }
 }
 
-class FaultInjectingEditText(context: Context) : EditText(context) {
+class FaultInjectingEditText(context: Context) : AppCompatEditText(context) {
     @Volatile
     var faultMode: ImeFaultMode = ImeFaultMode.NONE
 

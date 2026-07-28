@@ -8,7 +8,6 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.baselineprofile)
 
@@ -68,7 +67,11 @@ if (keystoreProperties.isNotEmpty() && expectedReleaseCertificate.isNotEmpty()) 
 
 android {
     namespace = "com.addiyon.keyboard"
-    compileSdk = 36
+    compileSdk {
+        version = release(36) {
+            minorApiLevel = 1
+        }
+    }
 
     androidResources {
         ignoreAssetsPatterns.addAll(
@@ -155,45 +158,13 @@ android {
         }
     }
     sourceSets {
-        getByName("benchmark").java.srcDir("src/debug/java")
-        maybeCreate("benchmarkRelease").java.srcDir("src/debug/java")
-        maybeCreate("nonMinifiedRelease").java.srcDir("src/debug/java")
+        getByName("benchmark").kotlin.directories += "src/debug/java"
+        maybeCreate("benchmarkRelease").kotlin.directories += "src/debug/java"
+        maybeCreate("nonMinifiedRelease").kotlin.directories += "src/debug/java"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-    applicationVariants.all {
-        val variant = this
-
-        variant.outputs.all {
-        }
-
-        variant.assembleProvider.configure {
-            doLast {
-                // Local sideload convenience: drop a timestamped APK into a
-                // shared folder for the test device. No-op on any host that
-                // doesn't have that folder (CI, another machine, Play builds),
-                // so it never breaks the build there.
-                val targetDir = file("/Users/dev/Shared")
-                if (targetDir.isDirectory) {
-                    val timeFormat = SimpleDateFormat("yyyy-MM-dd-hh-mm-a", Locale.US)
-                    val fileName = "addiyon-${variant.name}-v" +
-                        "${variant.versionName}-${variant.versionCode}-" +
-                        "${timeFormat.format(Date())}.apk"
-
-                    copy {
-                        from(file("$buildDir/outputs/apk/${variant.name}"))
-                        include("*.apk")
-                        into(targetDir)
-                        rename { fileName }
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -211,7 +182,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.activity.compose.v191)
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.profileinstaller)
     implementation(libs.play.review)
     baselineProfile(project(":benchmark"))
@@ -220,15 +191,28 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
-kotlin {
-    sourceSets {
-        getByName("benchmark").kotlin.srcDir("src/debug/java")
-        getByName("benchmarkRelease").kotlin.srcDir("src/debug/java")
-        getByName("nonMinifiedRelease").kotlin.srcDir("src/debug/java")
-    }
-}
-
 androidComponents {
+    onVariants(selector().all()) { variant ->
+        val output = variant.outputs.single()
+        val copyTask = tasks.register<Copy>(
+            "copy${variant.name.replaceFirstChar { it.uppercase() }}ApkToShared"
+        ) {
+            from(variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.APK))
+            include("*.apk")
+            into("/Users/dev/Shared")
+            onlyIf { file("/Users/dev/Shared").isDirectory }
+            rename {
+                val timeFormat = SimpleDateFormat("yyyy-MM-dd-hh-mm-a", Locale.US)
+                "addiyon-${variant.name}-v${output.versionName.get()}-" +
+                    "${output.versionCode.get()}-${timeFormat.format(Date())}.apk"
+            }
+        }
+        tasks.matching {
+            it.name == "assemble${variant.name.replaceFirstChar { char -> char.uppercase() }}"
+        }.configureEach {
+            finalizedBy(copyTask)
+        }
+    }
     onVariants(selector().withName("benchmarkRelease")) {
         it.manifestPlaceholders.put("imeTestComponentsEnabled", "true")
     }

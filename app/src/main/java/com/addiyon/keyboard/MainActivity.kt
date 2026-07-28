@@ -59,11 +59,10 @@ class MainActivity : ComponentActivity() {
             // background) so the first frame is the splash. Swap to the real app
             // theme before Compose draws.
             setTheme(R.style.Theme_AddiyonKeyboard)
+            enableEdgeToEdge()
             super.onCreate(savedInstanceState)
 
             screenRequest = intent?.getStringExtra(EXTRA_OPEN_SCREEN)
-
-            enableEdgeToEdge()
 
             setContent {
             // The app's own UI uses the fixed Addiyon brand palette and follows

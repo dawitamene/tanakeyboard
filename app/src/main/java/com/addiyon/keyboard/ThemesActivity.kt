@@ -20,8 +20,8 @@ class ThemesActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
-            super.onCreate(savedInstanceState)
             enableEdgeToEdge()
+            super.onCreate(savedInstanceState)
             setContent {
                 ProvideAppLocalization {
                     AddiyonBrandTheme(isDarkTheme = isSystemInDarkTheme()) {

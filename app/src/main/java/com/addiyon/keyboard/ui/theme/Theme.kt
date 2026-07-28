@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.draw.drawWithCache
 import kotlin.math.sin
 import kotlin.random.Random
@@ -112,8 +113,7 @@ sealed interface KeyboardBackground {
 
 /**
  * A selectable keyboard color theme. Supplies a light and a dark
- * [ColorScheme] plus the tray color used to tint the system navigation-bar
- * strip beneath the keyboard (set by the service, outside Compose).
+ * [ColorScheme] plus the tray color drawn through the system navigation area.
  *
  * MINIMAL palettes keep near-white / dark keys and follow the system
  * light/dark setting. PASTEL and BOLD palettes recolor the key background too
@@ -294,6 +294,7 @@ enum class KeyboardPalette(
 
     fun scheme(isDark: Boolean): ColorScheme = if (isDark) darkScheme else lightScheme
     fun tray(isDark: Boolean): Color = if (isDark) dark.tray else light.tray
+    fun usesDarkNavigationIcons(isDark: Boolean): Boolean = tray(isDark).luminance() > 0.5f
 
     companion object {
         /** Parse a persisted [id], falling back to [CLASSIC] on anything unknown. */

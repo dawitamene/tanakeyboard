@@ -45,7 +45,8 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.AddiyonKeyboard.Splash">
+            android:theme="@style/Theme.AddiyonKeyboard.Splash"
+            android:windowSoftInputMode="adjustResize">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -64,7 +65,8 @@
         <activity
             android:name=".ManualActivity"
             android:exported="false"
-            android:theme="@style/Theme.AddiyonKeyboard" />
+            android:theme="@style/Theme.AddiyonKeyboard"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".FeedbackActivity"
             android:exported="false"

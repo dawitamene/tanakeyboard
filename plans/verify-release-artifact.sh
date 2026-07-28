@@ -35,12 +35,19 @@ if grep -Eq 'base/assets/.*_(words|ngrams)\.dat$' <<<"$entries"; then
     fail "raw dictionary inputs are packaged"
 fi
 
-grep -Fq 'android.permission.RECORD_AUDIO' "$manifest" ||
-    fail "expected RECORD_AUDIO permission is missing"
-grep -Fq 'com.addiyon.keyboard.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION' "$manifest" ||
-    fail "AndroidX dynamic-receiver permission is missing"
-if [[ "$(grep -c '<uses-permission' "$manifest")" -ne 2 ]]; then
-    fail "unexpected release permission found"
+expected_permissions="$(
+    printf '%s\n' \
+        android.permission.RECORD_AUDIO \
+        android.permission.VIBRATE \
+        com.addiyon.keyboard.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION |
+        sort
+)"
+actual_permissions="$(
+    sed -n 's/.*<uses-permission android:name="\([^"]*\)".*/\1/p' "$manifest" |
+        sort
+)"
+if [[ "$actual_permissions" != "$expected_permissions" ]]; then
+    fail "release permissions differ from the allowlist: $actual_permissions"
 fi
 grep -Fq 'android:name="com.addiyon.keyboard.AddiyonKeyboardService"' "$manifest" ||
     fail "IME service is missing"

@@ -1,12 +1,15 @@
 plugins {
     alias(libs.plugins.android.test)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.baselineprofile)
 }
 
 android {
     namespace = "com.addiyon.keyboard.benchmark"
-    compileSdk = 36
+    compileSdk {
+        version = release(36) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         minSdk = 24
@@ -21,10 +24,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-
     buildTypes {
         create("benchmark") {
             isDebuggable = true
@@ -34,8 +33,8 @@ android {
 
     testOptions {
         managedDevices {
-            devices {
-                maybeCreate<com.android.build.api.dsl.ManagedVirtualDevice>("pixel2Api35").apply {
+            localDevices {
+                maybeCreate("pixel2Api35").apply {
                     device = "Pixel 2"
                     apiLevel = 35
                     systemImageSource = "aosp"

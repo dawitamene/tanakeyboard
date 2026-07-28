@@ -9,8 +9,6 @@
         <item name="colorSecondary">@color/addiyon_vermillion_dark</item>
         <item name="colorSecondaryVariant">@color/addiyon_vermillion_dark</item>
         <item name="colorOnSecondary">@color/addiyon_warm_white</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
 
@@ -19,7 +17,5 @@
          before Compose draws. -->
     <style name="Theme.AddiyonKeyboard.Splash" parent="Theme.AddiyonKeyboard">
         <item name="android:windowBackground">@drawable/splash_screen</item>
-        <item name="android:statusBarColor">@color/splash_status_bar</item>
-        <item name="android:navigationBarColor">@color/splash_background</item>
     </style>
 </resources>
