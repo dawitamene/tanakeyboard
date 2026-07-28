@@ -240,6 +240,38 @@ class RealImeCrashTest {
     }
 
     @Test
+    fun deletingFromCommittedAmharicWordShowsSuggestionsForRemainingPrefix() {
+        ActivityScenario.launch(ImeTestHostActivity::class.java).use { scenario ->
+            clearAndFocus(scenario, ImeTestField.NORMAL)
+            if (!requireService().isAmharic) {
+                invokeService(AddiyonKeyboardService::toggleLanguage)
+            }
+            waitUntil { !requireService().isLanguageSwitching }
+            "endiet".forEach { char ->
+                invokeService { it.onCharacter(char.toString()) }
+            }
+            invokeService(AddiyonKeyboardService::onSpace)
+            waitUntil {
+                fieldText(scenario, ImeTestField.NORMAL) == "እንዴት "
+            }
+
+            invokeService(AddiyonKeyboardService::onDelete)
+            invokeService(AddiyonKeyboardService::onDelete)
+
+            waitUntil {
+                fieldText(scenario, ImeTestField.NORMAL) == "እንዴ"
+            }
+            waitUntil {
+                requireService().suggestions.any { it.startsWith("እንዴ") }
+            }
+            invokeService { it.onSuggestionTapped("እንዴት") }
+            waitUntil {
+                fieldText(scenario, ImeTestField.NORMAL) == "እንዴት "
+            }
+        }
+    }
+
+    @Test
     fun tappingCommittedAmharicNeverRestoresItsLatinBuffer() {
         ActivityScenario.launch(ImeTestHostActivity::class.java).use { scenario ->
             clearAndFocus(scenario, ImeTestField.NORMAL)

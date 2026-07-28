@@ -66,6 +66,41 @@ class ResumableWordTest {
         assertEquals("abc", ResumableWord.trailingLatinWord("ሰላምabc"))
     }
 
+    @Test
+    fun amharicWordAfterBackspaceUsesTheRemainingFidelAsItsPrefix() {
+        assertEquals(
+            ResumableWord.AtCursor(word = "እንዴ", cursorOffset = 3),
+            ResumableWord.amharicWordAfterBackspace(
+                before = "እንዴት",
+                after = "",
+                deletedChars = 1
+            )
+        )
+    }
+
+    @Test
+    fun amharicWordAfterBackspaceIncludesTheSuffixAtAnInteriorCursor() {
+        assertEquals(
+            ResumableWord.AtCursor(word = "እዴት", cursorOffset = 1),
+            ResumableWord.amharicWordAfterBackspace(
+                before = "እን",
+                after = "ዴት",
+                deletedChars = 1
+            )
+        )
+    }
+
+    @Test
+    fun boundaryBackspaceDoesNotResumeAnAmharicWord() {
+        assertNull(
+            ResumableWord.amharicWordAfterBackspace(
+                before = "እንዴት ",
+                after = "",
+                deletedChars = 1
+            )
+        )
+    }
+
     // ---- Shared window guard ----
 
     @Test

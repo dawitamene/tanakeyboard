@@ -40,6 +40,9 @@ internal object ResumableWord {
 
     private fun isEthiopic(char: Char): Boolean = char in 'ሀ'..'፿'
 
+    private fun isAmharicWordChar(char: Char): Boolean =
+        char.isLetter() && isEthiopic(char)
+
     private fun isEmailWordChar(char: Char): Boolean =
         char.isLetter() ||
             char == '\'' ||
@@ -63,10 +66,32 @@ internal object ResumableWord {
     ): AtCursor? =
         runAtCursor(before, after, ::isEmailWordChar)
 
+    fun amharicWordAfterBackspace(
+        before: CharSequence,
+        after: CharSequence,
+        deletedChars: Int
+    ): AtCursor? {
+        if (deletedChars !in 1..before.length) return null
+        val deletedStart = before.length - deletedChars
+        if (
+            before.subSequence(deletedStart, before.length)
+                .any { !isAmharicWordChar(it) }
+        ) {
+            return null
+        }
+        return runAtCursor(
+            before = before.subSequence(0, deletedStart),
+            after = after,
+            isWordChar = ::isAmharicWordChar,
+            lookbehindWasFull = before.length >= LOOKBEHIND
+        )
+    }
+
     private fun runAtCursor(
         before: CharSequence,
         after: CharSequence,
-        isWordChar: (Char) -> Boolean
+        isWordChar: (Char) -> Boolean,
+        lookbehindWasFull: Boolean = before.length >= LOOKBEHIND
     ): AtCursor? {
         var start = before.length
         while (start > 0 && isWordChar(before[start - 1])) start--
@@ -75,7 +100,7 @@ internal object ResumableWord {
         while (end < after.length && isWordChar(after[end])) end++
 
         if (start == before.length && end == 0) return null
-        if (start == 0 && before.length >= LOOKBEHIND) return null
+        if (start == 0 && lookbehindWasFull) return null
         if (end == after.length && after.length >= LOOKAHEAD) return null
 
         val left = before.subSequence(start, before.length).toString()

@@ -1974,17 +1974,39 @@ class AddiyonKeyboardService : InputMethodService(),
                 }
                 if (!editorGateway.commitText("")) deleteResumeGuard.clear()
             } else {
-                val beforeRead = editorGateway.textBeforeCursor(32, optional = false)
+                val beforeRead = editorGateway.textBeforeCursor(
+                    ResumableWord.LOOKBEHIND,
+                    optional = false
+                )
                 val cluster =
                     EmojiBackspace.lastClusterLength(beforeRead?.value ?: "").coerceAtLeast(1)
+                val afterRead = if (isAmharic && !isEmailField) {
+                    editorGateway.textAfterCursor(ResumableWord.LOOKAHEAD, optional = false)
+                } else {
+                    null
+                }
+                val amharicWord = if (
+                    beforeRead != null &&
+                    afterRead != null &&
+                    beforeRead.token == afterRead.token
+                ) {
+                    ResumableWord.amharicWordAfterBackspace(
+                        before = beforeRead.value,
+                        after = afterRead.value,
+                        deletedChars = cluster
+                    )
+                } else {
+                    null
+                }
                 val extracted = selectionRead?.value
+                var cursorPosition: Int? = null
                 if (
                     extracted != null &&
                     beforeRead != null &&
                     beforeRead.token == selectionRead.token &&
                     extracted.selectionStart == extracted.selectionEnd
                 ) {
-                    val cursorPosition =
+                    cursorPosition =
                         extracted.startOffset + extracted.selectionStart
                     if (cursorPosition >= cluster) {
                         deleteResumeGuard.expect(
@@ -1994,7 +2016,34 @@ class AddiyonKeyboardService : InputMethodService(),
                         )
                     }
                 }
-                if (!editorGateway.deleteBeforeCursor(cluster)) deleteResumeGuard.clear()
+                if (!editorGateway.deleteBeforeCursor(cluster)) {
+                    deleteResumeGuard.clear()
+                } else if (
+                    amharicWord != null &&
+                    cursorPosition != null &&
+                    beforeRead != null &&
+                    afterRead != null &&
+                    beforeRead.token == afterRead.token &&
+                    beforeRead.token == selectionRead?.token
+                ) {
+                    val newCursorPosition = cursorPosition - cluster
+                    val regionStart = newCursorPosition - amharicWord.cursorOffset
+                    val regionEnd =
+                        regionStart + amharicWord.word.length
+                    if (
+                        editorGateway.setComposingRegion(
+                            regionStart,
+                            regionEnd,
+                            beforeRead.token
+                        )
+                    ) {
+                        amharicComposer.resume(
+                            prefix = amharicWord.word,
+                            cursorOffset = amharicWord.cursorOffset,
+                            composingStart = regionStart
+                        )
+                    }
+                }
             }
             updateSuggestions()
         }
@@ -2423,6 +2472,14 @@ class AddiyonKeyboardService : InputMethodService(),
                     finalizeVoiceComposing()
                     voiceInputController?.restartSession()
                 }
+                return@safeApply
+            }
+
+            if (
+                activeComposer.isComposing &&
+                suppressResumeAfterDelete &&
+                newSelStart == newSelEnd
+            ) {
                 return@safeApply
             }
 

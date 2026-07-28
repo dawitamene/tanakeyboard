@@ -19,6 +19,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +30,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicText
@@ -52,6 +54,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -71,6 +74,8 @@ import com.addiyon.keyboard.voice.isRecording
 import com.addiyon.keyboard.voice.isVoiceMode
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+
+internal const val AMHARIC_SUGGESTION_STRIP_TAG = "amharic-suggestion-strip"
 
 /**
  * The word-completion strip above the key rows. Always reserves a fixed-height
@@ -126,7 +131,7 @@ fun SuggestionArea(
     ) {
         if (voiceMode) {
             ToolbarIcon(Icons.AutoMirrored.Outlined.ArrowBack, "Exit voice input", onExitVoice)
-            val label = voiceLabel(voiceUiState)
+            val label = voiceLabel(voiceUiState, isAmharic)
             Text(
                 text = label,
                 color = MaterialTheme.colorScheme.primary,
@@ -236,9 +241,9 @@ private fun LanguageLoadingDot() {
 // Deliberately static per state -- recognized text streams into the field's
 // composing region, never into this label, and session churn inside the
 // controller doesn't surface here. That's what keeps the bar flicker-free.
-private fun voiceLabel(state: VoiceUiState): String = when (state) {
+private fun voiceLabel(state: VoiceUiState, isAmharic: Boolean): String = when (state) {
     VoiceUiState.Idle -> ""
-    VoiceUiState.Listening -> "Listening…"
+    VoiceUiState.Listening -> if (isAmharic) "በማዳመጥ ላይ..." else "Listening…"
     VoiceUiState.Paused -> "Paused"
     VoiceUiState.PermissionRequired -> "Microphone permission required"
     is VoiceUiState.Unavailable -> state.message
@@ -339,52 +344,119 @@ private fun AmharicSuggestionStrip(
     isPredictions: Boolean,
     onTap: (String) -> Unit
 ) {
+    if (suggestions.size in 2..3) {
+        AmharicFixedSuggestionStrip(suggestions, isPredictions, onTap)
+    } else {
+        AmharicScrollableSuggestionStrip(suggestions, isPredictions, onTap)
+    }
+}
+
+@Composable
+private fun AmharicFixedSuggestionStrip(
+    suggestions: List<String>,
+    isPredictions: Boolean,
+    onTap: (String) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(40.dp)
             .background(MaterialTheme.colorScheme.background)
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.Start,
+            .testTag(AMHARIC_SUGGESTION_STRIP_TAG),
         verticalAlignment = Alignment.CenterVertically
     ) {
         suggestions.forEachIndexed { index, word ->
-            // The first chip is the space-commit target -- see
-            // AddiyonKeyboardService.topAmharicCandidate -- so it's
-            // highlighted (tinted + bold) to mark it as the default. Not
-            // for next-word PREDICTIONS: nothing is composing there, space
-            // just inserts a space, so no chip is "the default".
-            val isTop = index == 0 && !isPredictions
             Box(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxHeight()
                     .clickable { onTap(word) },
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = word,
-                    fontSize = 16.sp,
-                    fontWeight = if (isTop) FontWeight.Bold else FontWeight.Normal,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = if (isTop) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface
+                AmharicSuggestionText(
+                    word = word,
+                    isTop = index == 0 && !isPredictions
                 )
             }
-
-            // A separator BETWEEN words only -- no trailing divider after the
-            // last chip.
             if (index < suggestions.lastIndex) {
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .fillMaxHeight(0.5f)
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-                )
+                SuggestionDivider()
             }
         }
     }
+}
+
+@Composable
+private fun AmharicScrollableSuggestionStrip(
+    suggestions: List<String>,
+    isPredictions: Boolean,
+    onTap: (String) -> Unit
+) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        val viewportWidth = maxWidth
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .horizontalScroll(rememberScrollState())
+                .testTag(AMHARIC_SUGGESTION_STRIP_TAG)
+        ) {
+            Row(
+                modifier = Modifier
+                    .widthIn(min = viewportWidth)
+                    .fillMaxHeight(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                suggestions.forEachIndexed { index, word ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .clickable { onTap(word) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AmharicSuggestionText(
+                            word = word,
+                            isTop = index == 0 && !isPredictions
+                        )
+                    }
+                    if (index < suggestions.lastIndex) {
+                        SuggestionDivider()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AmharicSuggestionText(
+    word: String,
+    isTop: Boolean
+) {
+    Text(
+        text = word,
+        fontSize = 16.sp,
+        fontWeight = if (isTop) FontWeight.Bold else FontWeight.Normal,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.padding(horizontal = 16.dp),
+        color = if (isTop) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.onSurface
+    )
+}
+
+@Composable
+private fun SuggestionDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .fillMaxHeight(0.5f)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+    )
 }
 
 /**
