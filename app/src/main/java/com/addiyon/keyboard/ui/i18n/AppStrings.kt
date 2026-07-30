@@ -79,7 +79,12 @@ data class AppStrings(
     val tourSuggestionsTitle: String,
     val tourSuggestionsDescription: String,
     val tourPersonalizeTitle: String,
-    val tourPersonalizeDescription: String
+    val tourPersonalizeDescription: String,
+    // In-app update. Play owns the "update available" dialog itself; these are
+    // only for the restart nudge after a flexible update finishes downloading,
+    // which Play does not provide.
+    val updateDownloaded: String,
+    val updateRestart: String
 )
 
 val EnglishStrings = AppStrings(
@@ -119,8 +124,8 @@ val EnglishStrings = AppStrings(
     activateDescription = "Turn Addiyon Keyboard on in your device's input-method " +
         "settings. It only takes a moment.",
     openSettings = "Open Settings",
-    activateFootnote = "Addiyon Keyboard collects nothing and has no internet " +
-        "access. Everything you type stays on your device.",
+    activateFootnote = "Addiyon Keyboard never sends what you type. It collects no " +
+        "usage analytics and no crash diagnostics.",
     enableTitle = "Enable Addiyon Keyboard",
     enableDescription = "Pick Addiyon Keyboard from the keyboard switcher to make " +
         "it your active keyboard.",
@@ -140,7 +145,9 @@ val EnglishStrings = AppStrings(
         "type. Tap one to complete the word instantly.",
     tourPersonalizeTitle = "Make it yours",
     tourPersonalizeDescription = "Pick a color theme, type with your voice, and " +
-        "add emoji, all right above the keyboard keys."
+        "add emoji, all right above the keyboard keys.",
+    updateDownloaded = "Update downloaded",
+    updateRestart = "Restart"
 )
 
 val AmharicStrings = AppStrings(
@@ -180,8 +187,8 @@ val AmharicStrings = AppStrings(
     activateDescription = "አዲዮን ኪቦርድን በስልክዎ የፅህፈት ዘዴ ቅንብሮች ውስጥ ያብሩት። " +
         "ጥቂት ጊዜ ብቻ ነው የሚወስደው።",
     openSettings = "ቅንብሮችን ክፈት",
-    activateFootnote = "አዲዮን ኪቦርድ ምንም መረጃ አይሰበስብም፤ የኢንተርኔት ፈቃድም የለውም። " +
-        "የሚፅፉት ሁሉ በስልክዎ ላይ ይቆያል።",
+    activateFootnote = "አዲዮን ኪቦርድ የሚፅፉትን አይልክም። ምንም የአጠቃቀም ትንታኔ ወይም " +
+        "የብልሽት ምርመራ አይሰበስብም።",
     enableTitle = "አዲዮን ኪቦርድን ምረጥ",
     enableDescription = "አዲዮን ኪቦርድን ከኪቦርድ መቀየሪያው ይምረጡት።",
     switchKeyboard = "ኪቦርድ ቀይር",
@@ -200,7 +207,9 @@ val AmharicStrings = AppStrings(
         "ቃሉን ለማጠናቀቅ አንዱን ይንኩ።",
     tourPersonalizeTitle = "እንደፍላጎትዎ ያድርጉት",
     tourPersonalizeDescription = "ገጽታ ይምረጡ፣ በድምፅዎ ይፃፉ፣ ኢሞጂ ይጨምሩ፣ " +
-        "ሁሉም ከኪቦርዱ ቁልፎች በላይ አሉ።"
+        "ሁሉም ከኪቦርዱ ቁልፎች በላይ አሉ።",
+    updateDownloaded = "ዝማኔ ወርዷል",
+    updateRestart = "እንደገና አስጀምር"
 )
 
 /**

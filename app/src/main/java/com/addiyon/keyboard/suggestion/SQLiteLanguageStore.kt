@@ -10,6 +10,7 @@ import android.os.SystemClock
 import android.system.Os
 import android.system.OsConstants
 import com.addiyon.keyboard.SafeLog
+import com.addiyon.keyboard.telemetry.NonFatalCategory
 import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
@@ -20,6 +21,7 @@ internal class SQLiteLanguageStore(
     val assetName: String,
     val isLowRam: Boolean,
     private val onOutOfMemory: () -> Unit = {},
+    private val usableSpace: (File) -> Long = { it.usableSpace },
 ) {
     private enum class Status {
         CLOSED,
@@ -85,13 +87,15 @@ internal class SQLiteLanguageStore(
             } catch (_: Throwable) {
             }
             val opened = try {
-                installAndOpen()
+                SuggestionTrace.section("database_install_open") {
+                    installAndOpen()
+                }
             } catch (oom: OutOfMemoryError) {
-                SafeLog.e(oom, "SQLiteLanguageStore load OOM")
+                SafeLog.e(oom, "SQLiteLanguageStore load OOM", NonFatalCategory.DATABASE)
                 onOutOfMemory()
                 null
             } catch (t: Throwable) {
-                SafeLog.e(t, "SQLiteLanguageStore load")
+                SafeLog.e(t, "SQLiteLanguageStore load", NonFatalCategory.DATABASE)
                 null
             }
             postToMain main@{
@@ -121,7 +125,7 @@ internal class SQLiteLanguageStore(
                     try {
                         callback()
                     } catch (t: Throwable) {
-                        SafeLog.e(t, "SQLiteLanguageStore callback")
+                        SafeLog.e(t, "SQLiteLanguageStore callback", NonFatalCategory.DATABASE)
                     }
                 }
             }
@@ -140,7 +144,7 @@ internal class SQLiteLanguageStore(
         try {
             toClose?.close()
         } catch (t: Throwable) {
-            SafeLog.e(t, "SQLiteLanguageStore release")
+            SafeLog.e(t, "SQLiteLanguageStore release", NonFatalCategory.DATABASE)
         }
     }
 
@@ -159,7 +163,11 @@ internal class SQLiteLanguageStore(
         try {
             toClose?.close()
         } catch (closeFailure: Throwable) {
-            SafeLog.e(closeFailure, "SQLiteLanguageStore failure close")
+            SafeLog.e(
+                closeFailure,
+                "SQLiteLanguageStore failure close",
+                NonFatalCategory.DATABASE
+            )
         }
     }
 
@@ -178,7 +186,7 @@ internal class SQLiteLanguageStore(
 
         var swap: InstalledSwap? = null
         if (!isReusable(finalFile, checksumFile, metadata, asset)) {
-            require(storeDir.usableSpace >= asset.length + MIN_FREE_SPACE_AFTER_COPY)
+            require(usableSpace(storeDir) >= asset.length + MIN_FREE_SPACE_AFTER_COPY)
             swap = installAtomically(finalFile, checksumFile, metadata, asset)
         }
 
@@ -350,7 +358,7 @@ internal class SQLiteLanguageStore(
             try {
                 callback()
             } catch (t: Throwable) {
-                SafeLog.e(t, "SQLiteLanguageStore callback")
+                SafeLog.e(t, "SQLiteLanguageStore callback", NonFatalCategory.DATABASE)
             }
         }
     }
@@ -360,7 +368,7 @@ internal class SQLiteLanguageStore(
         try {
             if (!mainHandler.post(runnable)) runnable.run()
         } catch (t: Throwable) {
-            SafeLog.e(t, "SQLiteLanguageStore post")
+            SafeLog.e(t, "SQLiteLanguageStore post", NonFatalCategory.DATABASE)
             runnable.run()
         }
     }

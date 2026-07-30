@@ -1,9 +1,11 @@
 package com.addiyon.keyboard.composing
 
 import android.view.inputmethod.InputConnection
+import com.addiyon.keyboard.EditorGateway
 import java.lang.reflect.Proxy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -102,8 +104,8 @@ class WordComposerTest {
     fun characterInMiddleUpdatesWholeBufferAndRestoresCaret() {
         val recording = RecordingInputConnection()
         val c = composer(inputConnection = { recording.asInputConnection() })
-        c.resume("inform")
-        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0))
+        c.resume(prefix = "inform", composingStart = 0)
+        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0, composingEnd = 6))
 
         c.onCharacter("h")
 
@@ -116,11 +118,11 @@ class WordComposerTest {
     fun consecutiveCharactersInMiddleKeepUsingTheWholeBuffer() {
         val recording = RecordingInputConnection()
         val c = composer(inputConnection = { recording.asInputConnection() })
-        c.resume("inform")
-        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0))
+        c.resume(prefix = "inform", composingStart = 0)
+        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0, composingEnd = 6))
 
         c.onCharacter("h")
-        assertTrue(c.moveCursor(cursorOffset = 3, composingStart = 0))
+        assertTrue(c.moveCursor(cursorOffset = 3, composingStart = 0, composingEnd = 7))
         c.onCharacter("x")
 
         assertEquals("inhxform", c.raw)
@@ -132,11 +134,11 @@ class WordComposerTest {
     fun temporaryEndCallbackDoesNotMovePendingInternalCaret() {
         val recording = RecordingInputConnection()
         val c = composer(inputConnection = { recording.asInputConnection() })
-        c.resume("inform")
-        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0))
+        c.resume(prefix = "inform", composingStart = 0)
+        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0, composingEnd = 6))
         c.onCharacter("h")
 
-        assertTrue(c.moveCursor(cursorOffset = 7, composingStart = 0))
+        assertTrue(c.moveCursor(cursorOffset = 7, composingStart = 0, composingEnd = 7))
         c.onCharacter("x")
 
         assertEquals("inhxform", c.raw)
@@ -146,8 +148,8 @@ class WordComposerTest {
     fun backspaceInMiddleUpdatesWholeBufferAndRestoresCaret() {
         val recording = RecordingInputConnection()
         val c = composer(inputConnection = { recording.asInputConnection() })
-        c.resume("inform")
-        assertTrue(c.moveCursor(cursorOffset = 3, composingStart = 4))
+        c.resume(prefix = "inform", composingStart = 4)
+        assertTrue(c.moveCursor(cursorOffset = 3, composingStart = 4, composingEnd = 10))
 
         assertTrue(c.onBackspace())
 
@@ -165,8 +167,8 @@ class WordComposerTest {
             commitTransform = String::uppercase,
             onCommit = { raw, display -> committed += raw to display }
         )
-        c.resume("inform")
-        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 4))
+        c.resume(prefix = "inform", composingStart = 4)
+        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 4, composingEnd = 10))
 
         assertTrue(c.commitAtCursor())
 
@@ -191,6 +193,381 @@ class WordComposerTest {
     fun resumeWithEmptyPrefixIsANoOp() {
         val c = composer()
         c.resume("")
+        assertFalse(c.isComposing)
+    }
+
+    @Test
+    fun adoptionSeedsAnExistingRegionWithoutWritingUntilTheFirstEdit() {
+        val recording = RecordingInputConnection()
+        val c = composer(inputConnection = { recording.asInputConnection() })
+
+        assertTrue(
+            c.adopt(
+                word = "inform",
+                cursorOffset = 2,
+                composingStart = 4,
+                composingEnd = 10
+            )
+        )
+        assertTrue(recording.composingUpdates.isEmpty())
+
+        c.onCharacter("f")
+
+        assertEquals("infform", recording.composingUpdates.single())
+        assertEquals(7 to 7, recording.selections.single())
+    }
+
+    @Test
+    fun ownedRegionCannotRebindToAnotherEqualLengthSpan() {
+        val c = composer()
+        assertTrue(
+            c.adopt(
+                word = "same",
+                cursorOffset = 2,
+                composingStart = 1,
+                composingEnd = 5
+            )
+        )
+
+        assertFalse(
+            c.moveCursor(
+                cursorOffset = 2,
+                composingStart = 8,
+                composingEnd = 12
+            )
+        )
+        assertEquals("sa", c.textBeforeCursor())
+    }
+
+    @Test
+    fun firstCharacterOwnsItsRegionBeforeTheFirstCursorCallback() {
+        val recording = RecordingInputConnection()
+        val input = recording.asInputConnection()
+        val gateway = EditorGateway { input }
+        gateway.beginSession(initialSelectionStart = 8, initialSelectionEnd = 8)
+        val c = WordComposer(
+            inputConnection = { input },
+            editor = gateway
+        )
+
+        c.onCharacter("x", requireNotNull(gateway.currentToken()))
+
+        assertEquals(8 to 9, c.ownedComposingRegion())
+        assertFalse(c.moveCursor(cursorOffset = 1, composingStart = 1, composingEnd = 2))
+        assertEquals(8 to 9, c.ownedComposingRegion())
+        assertTrue(c.moveCursor(cursorOffset = 1, composingStart = 8, composingEnd = 9))
+    }
+
+    @Test
+    fun pushComposingAdvancesGatewaySelectionWithoutFrameworkCallback() {
+        val recording = RecordingInputConnection()
+        val input = recording.asInputConnection()
+        val gateway = EditorGateway { input }
+        gateway.beginSession(initialSelectionStart = 0, initialSelectionEnd = 0)
+        val c = WordComposer(
+            inputConnection = { input },
+            editor = gateway
+        )
+
+        c.onCharacter("i", requireNotNull(gateway.currentToken()))
+
+        assertEquals(1, gateway.currentToken()?.selectionStart)
+        assertEquals(1, gateway.currentToken()?.selectionEnd)
+
+        c.onCharacter("n", requireNotNull(gateway.currentToken()))
+
+        assertEquals(2, gateway.currentToken()?.selectionStart)
+        assertEquals(2, gateway.currentToken()?.selectionEnd)
+        assertEquals("in", c.raw)
+    }
+
+    @Test
+    fun pushComposingAdvancesMidWordSelectionWithoutFrameworkCallback() {
+        val recording = RecordingInputConnection()
+        val input = recording.asInputConnection()
+        val gateway = EditorGateway { input }
+        gateway.beginSession(initialSelectionStart = 0, initialSelectionEnd = 0)
+        val c = WordComposer(
+            inputConnection = { input },
+            editor = gateway
+        )
+
+        c.resume(prefix = "inorm", composingStart = 0)
+        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0, composingEnd = 5))
+        c.onCharacter("f", requireNotNull(gateway.currentToken()))
+
+        assertEquals(3, gateway.currentToken()?.selectionStart)
+        assertEquals(3, gateway.currentToken()?.selectionEnd)
+        assertEquals("inform", c.raw)
+    }
+
+    @Test
+    fun firstCharacterUsesTheLowerBoundOfASelectedRange() {
+        val recording = RecordingInputConnection()
+        val input = recording.asInputConnection()
+        val gateway = EditorGateway { input }
+        gateway.beginSession(initialSelectionStart = 10, initialSelectionEnd = 4)
+        val c = WordComposer(
+            inputConnection = { input },
+            editor = gateway
+        )
+
+        c.onCharacter("x", requireNotNull(gateway.currentToken()))
+
+        assertEquals(4 to 5, c.ownedComposingRegion())
+    }
+
+    @Test
+    fun cursorCallbackCannotAssignAnUnknownRegion() {
+        val c = composer()
+        c.resume("word")
+
+        assertNull(c.ownedComposingRegion())
+        assertFalse(c.moveCursor(cursorOffset = 2, composingStart = 8, composingEnd = 12))
+        assertNull(c.ownedComposingRegion())
+    }
+
+    @Test
+    fun adoptRejectsInvalidStateAndRegionGeometry() {
+        val active = composer()
+        active.onCharacter("x")
+        assertFalse(
+            active.adopt(
+                word = "word",
+                cursorOffset = 2,
+                composingStart = 0,
+                composingEnd = 4
+            )
+        )
+        assertFalse(
+            composer().adopt(
+                word = "",
+                cursorOffset = 0,
+                composingStart = 0,
+                composingEnd = 0
+            )
+        )
+        assertFalse(
+            composer().adopt(
+                word = "word",
+                cursorOffset = -1,
+                composingStart = 0,
+                composingEnd = 4
+            )
+        )
+        assertFalse(
+            composer().adopt(
+                word = "word",
+                cursorOffset = 5,
+                composingStart = 0,
+                composingEnd = 4
+            )
+        )
+        assertFalse(
+            composer().adopt(
+                word = "word",
+                cursorOffset = 2,
+                composingStart = -1,
+                composingEnd = 3
+            )
+        )
+        assertFalse(
+            composer().adopt(
+                word = "word",
+                cursorOffset = 2,
+                composingStart = 0,
+                composingEnd = 3
+            )
+        )
+    }
+
+    @Test
+    fun moveCursorRejectsInvalidStateAndRegionGeometry() {
+        assertFalse(
+            composer().moveCursor(
+                cursorOffset = 0,
+                composingStart = 0,
+                composingEnd = 0
+            )
+        )
+
+        val c = composer()
+        c.resume(prefix = "word", composingStart = 0)
+        assertFalse(c.moveCursor(cursorOffset = -1, composingStart = 0, composingEnd = 4))
+        assertFalse(c.moveCursor(cursorOffset = 5, composingStart = 0, composingEnd = 4))
+        assertFalse(c.moveCursor(cursorOffset = 2, composingStart = -1, composingEnd = 3))
+        assertFalse(c.moveCursor(cursorOffset = 2, composingStart = 0, composingEnd = 3))
+    }
+
+    @Test
+    fun backspaceAtBeginningOfCompositionFallsThrough() {
+        val c = composer()
+        c.resume(prefix = "word", composingStart = 0)
+        assertTrue(c.moveCursor(cursorOffset = 0, composingStart = 0, composingEnd = 4))
+
+        assertFalse(c.onBackspace())
+        assertEquals("word", c.raw)
+    }
+
+    @Test
+    fun failedBackspaceAndCommitWritesClearWithoutReporting() {
+        val backspaceConnection = RecordingInputConnection()
+        var activeBackspaceConnection: InputConnection? = backspaceConnection.asInputConnection()
+        val backspaceComposer = composer(inputConnection = { activeBackspaceConnection })
+        backspaceComposer.onCharacter("a")
+        backspaceComposer.onCharacter("b")
+        activeBackspaceConnection = null
+
+        assertTrue(backspaceComposer.onBackspace())
+        assertFalse(backspaceComposer.isComposing)
+
+        val commitConnection = RecordingInputConnection()
+        var activeCommitConnection: InputConnection? = commitConnection.asInputConnection()
+        val committed = mutableListOf<Pair<String, String>>()
+        val commitComposer = composer(
+            inputConnection = { activeCommitConnection },
+            onCommit = { raw, display -> committed += raw to display }
+        )
+        commitComposer.onCharacter("a")
+        activeCommitConnection = null
+
+        assertFalse(commitComposer.commit())
+        assertTrue(committed.isEmpty())
+        assertFalse(commitComposer.isComposing)
+    }
+
+    @Test
+    fun resumeWithKnownRegionOwnsItAndPushesAtEnd() {
+        val recording = RecordingInputConnection()
+        val c = composer(inputConnection = { recording.asInputConnection() })
+        assertNull(c.ownedComposingRegion())
+
+        c.resume(
+            prefix = "word",
+            cursorOffset = 4,
+            composingStart = 7
+        )
+
+        assertEquals(7 to 11, c.ownedComposingRegion())
+        assertEquals(listOf("word"), recording.composingUpdates)
+        assertTrue(recording.selections.isEmpty())
+    }
+
+    @Test
+    fun pendingCaretMismatchBecomesTheAuthoritativeCursor() {
+        val recording = RecordingInputConnection()
+        val c = composer(inputConnection = { recording.asInputConnection() })
+        c.resume(prefix = "inform", composingStart = 0)
+        assertTrue(c.moveCursor(cursorOffset = 2, composingStart = 0, composingEnd = 6))
+        c.onCharacter("h")
+
+        assertTrue(c.moveCursor(cursorOffset = 4, composingStart = 0, composingEnd = 7))
+        c.onCharacter("x")
+
+        assertEquals("inhfxorm", c.raw)
+    }
+
+    @Test
+    fun commitAtCursorRequiresAWordAndKnownRegion() {
+        val empty = composer()
+        assertFalse(empty.commitAtCursor())
+
+        val unknownRegion = composer()
+        unknownRegion.resume(prefix = "word", cursorOffset = 2)
+        assertFalse(unknownRegion.commitAtCursor())
+        assertTrue(unknownRegion.isComposing)
+    }
+
+    @Test
+    fun commitAtBeginningTransformsAndReportsOnlyTheRightSide() {
+        val recording = RecordingInputConnection()
+        val committed = mutableListOf<Pair<String, String>>()
+        val c = composer(
+            inputConnection = { recording.asInputConnection() },
+            commitTransform = String::uppercase,
+            onCommit = { raw, display -> committed += raw to display }
+        )
+        assertTrue(
+            c.adopt(
+                word = "word",
+                cursorOffset = 0,
+                composingStart = 5,
+                composingEnd = 9
+            )
+        )
+
+        assertTrue(c.commitAtCursor())
+
+        assertEquals(listOf("WORD"), recording.commits)
+        assertEquals(listOf("word" to "WORD"), committed)
+        assertEquals(5 to 5, recording.selections.single())
+        assertFalse(c.isComposing)
+    }
+
+    @Test
+    fun failedCommitAtCursorClearsWithoutReportingSegments() {
+        val recording = RecordingInputConnection()
+        var activeConnection: InputConnection? = recording.asInputConnection()
+        val committed = mutableListOf<Pair<String, String>>()
+        val c = composer(
+            inputConnection = { activeConnection },
+            onCommit = { raw, display -> committed += raw to display }
+        )
+        assertTrue(
+            c.adopt(
+                word = "word",
+                cursorOffset = 2,
+                composingStart = 5,
+                composingEnd = 9
+            )
+        )
+        activeConnection = null
+
+        assertTrue(c.commitAtCursor())
+
+        assertTrue(recording.commits.isEmpty())
+        assertTrue(committed.isEmpty())
+        assertFalse(c.isComposing)
+    }
+
+    @Test
+    fun staleComposingRegionHistoryRetainsOnlyFourMostRecentRegions() {
+        val c = composer()
+        assertTrue(
+            c.adopt(
+                word = "word",
+                cursorOffset = 2,
+                composingStart = 10,
+                composingEnd = 14
+            )
+        )
+
+        listOf("a", "b", "c", "d", "e").forEach(c::onCharacter)
+
+        assertFalse(c.isStaleComposingUpdate(10, 14))
+        assertTrue(c.isStaleComposingUpdate(10, 15))
+        assertTrue(c.isStaleComposingUpdate(10, 16))
+        assertTrue(c.isStaleComposingUpdate(10, 17))
+        assertTrue(c.isStaleComposingUpdate(10, 18))
+    }
+
+    @Test
+    fun commitSuggestionAdvancesSelectionAndClearsBuffer() {
+        val recording = RecordingInputConnection()
+        val input = recording.asInputConnection()
+        val gateway = EditorGateway { input }
+        gateway.beginSession(initialSelectionStart = 4, initialSelectionEnd = 4)
+        val c = WordComposer(
+            inputConnection = { input },
+            editor = gateway
+        )
+        c.resume(prefix = "infor", composingStart = 4)
+
+        assertTrue(c.commitSuggestion("information", requireNotNull(gateway.currentToken())))
+
+        assertEquals(listOf("information "), recording.commits)
+        assertEquals(16, gateway.currentToken()?.selectionStart)
+        assertEquals(16, gateway.currentToken()?.selectionEnd)
         assertFalse(c.isComposing)
     }
 

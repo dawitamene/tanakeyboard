@@ -52,6 +52,26 @@ class ResumableWordTest {
     }
 
     @Test
+    fun emailWordAcceptsEverySupportedTokenCharacterAndStopsAtOtherPunctuation() {
+        assertEquals(
+            ResumableWord.AtCursor(word = "o'neil`9@example.com", cursorOffset = 7),
+            ResumableWord.emailWordAtCursor(
+                before = "to o'neil`",
+                after = "9@example.com-next"
+            )
+        )
+        assertNull(ResumableWord.emailWordAtCursor(before = "name-", after = "_host"))
+    }
+
+    @Test
+    fun wordCanBeginExactlyAtTheCaret() {
+        assertEquals(
+            ResumableWord.AtCursor(word = "hello", cursorOffset = 0),
+            ResumableWord.latinWordAtCursor(before = "say ", after = "hello ")
+        )
+    }
+
+    @Test
     fun trailingBoundaryCharacterMeansNoLatinWord() {
         assertNull(ResumableWord.trailingLatinWord("hello cana "))
         assertNull(ResumableWord.trailingLatinWord("hello."))
@@ -95,6 +115,38 @@ class ResumableWordTest {
         assertNull(
             ResumableWord.amharicWordAfterBackspace(
                 before = "እንዴት ",
+                after = "",
+                deletedChars = 1
+            )
+        )
+    }
+
+    @Test
+    fun amharicBackspaceRejectsInvalidCountsAndNonFidelDeletedText() {
+        assertNull(
+            ResumableWord.amharicWordAfterBackspace(
+                before = "ሰላም",
+                after = "",
+                deletedChars = 0
+            )
+        )
+        assertNull(
+            ResumableWord.amharicWordAfterBackspace(
+                before = "ሰላም",
+                after = "",
+                deletedChars = 5
+            )
+        )
+        assertNull(
+            ResumableWord.amharicWordAfterBackspace(
+                before = "ሰላምa",
+                after = "",
+                deletedChars = 1
+            )
+        )
+        assertNull(
+            ResumableWord.amharicWordAfterBackspace(
+                before = "ሰላም።",
                 after = "",
                 deletedChars = 1
             )

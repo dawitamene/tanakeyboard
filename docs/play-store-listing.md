@@ -7,10 +7,12 @@ Primary keywords: *Amharic keyboard, Amharic typing, Ethiopian keyboard, Ge'ez /
 Fidel, transliteration, Ethiopia* — and in Ethiopic: *አማርኛ, ኪቦርድ, ፊደል, ግዕዝ*.
 
 > **Accuracy note.** The privacy wording below is deliberately scoped and must stay
-> identical in meaning to `ui/i18n/AppStrings.kt` (`aboutPrivacy`) and to
-> `site/privacy.html`. An earlier draft claimed the app "never collects any data" full
-> stop, which does not survive contact with the microphone permission. Listing copy that
-> contradicts the Data Safety form is a common IME rejection reason.
+> identical in meaning to the diagnostics and onboarding strings in
+> `ui/i18n/AppStrings.kt` and to `site/privacy.html`. Addiyon never collects
+> typed/editor content. Optional usage analytics and crash diagnostics are independent
+> opt-ins, both off by default. The listing and Data Safety form must disclose those
+> Firebase data categories and the speech-provider handoff without reverting to a
+> blanket "no data collected" claim.
 
 ---
 
@@ -76,7 +78,7 @@ Addiyon Amharic Keyboard: the Ethiopian keyboard that types the way you speak.
 
 የአዲዮን አማርኛ ኪቦርድ፦ ቀላል፣ ፈጣን እና ደህንነቱ የተጠበቀ የአማርኛ መጻፊያ።
 "selam" ብለው ይጻፉ፤ ሰላም ያገኛሉ። መዝገበ-ቃላቱ
-ጥቆማዎችን ይሰጣል፤ የሚጽፉት ሁሉ በስልክዎ ላይ ብቻ ይቆያል።
+ጥቆማዎችን ይሰጣል፤ አዲዮን የሚጽፉትን ለምርመራ አይልክም።
 ```
 
 ---
@@ -121,8 +123,9 @@ up.
 
 ግላዊነትዎ የተጠበቀ ነው
 
-አዲዮን ኪቦርድ የኢንተርኔት ፈቃድ የለውም፤ ስለዚህ የሚጽፉት ከስልክዎ አይወጣም።
-መለያ የለም፣ ማስታወቂያ የለም፣ ክትትል የለም። የድምጽ ጽሁፍ በእርስዎ ምርጫ ሲሆን
+አዲዮን ኪቦርድ የሚጽፉትን አይልክም። አማራጭ የአጠቃቀም ትንታኔ እና የብልሽት ምርመራ
+እርስዎ ካላበሩት በስተቀር ጠፍተው ይቆያሉ፤ የሚጽፉትን አያካትቱም።
+መለያ ወይም ማስታወቂያ የለም። የድምጽ ጽሁፍ በእርስዎ ምርጫ ሲሆን
 የሚስተናገደው በስልክዎ የድምጽ አገልግሎት ነው።
 
 እንዴት ይጠቀሙ

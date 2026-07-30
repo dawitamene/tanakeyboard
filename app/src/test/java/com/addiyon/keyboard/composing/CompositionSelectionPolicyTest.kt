@@ -51,4 +51,38 @@ class CompositionSelectionPolicyTest {
         assertFalse(isComposerTextImmediatelyBeforeCursor("hello", null))
         assertFalse(isComposerTextImmediatelyBeforeCursor("", ""))
     }
+
+    @Test
+    fun expectedDeleteCallbackWithMissingCandidateBoundsIsIgnoredOnlyAfterOwnershipVerification() {
+        assertTrue(
+            isVerifiedStaleDeleteCallback(
+                expectedDeleteSelection = true,
+                selectionStart = 3,
+                selectionEnd = 3,
+                candidatesStart = -1,
+                candidatesEnd = -1,
+                ownedRegionMatches = true
+            )
+        )
+        assertFalse(
+            isVerifiedStaleDeleteCallback(
+                expectedDeleteSelection = true,
+                selectionStart = 3,
+                selectionEnd = 3,
+                candidatesStart = -1,
+                candidatesEnd = -1,
+                ownedRegionMatches = false
+            )
+        )
+        assertFalse(
+            isVerifiedStaleDeleteCallback(
+                expectedDeleteSelection = true,
+                selectionStart = 3,
+                selectionEnd = 3,
+                candidatesStart = 0,
+                candidatesEnd = 3,
+                ownedRegionMatches = true
+            )
+        )
+    }
 }

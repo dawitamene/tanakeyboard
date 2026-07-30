@@ -102,7 +102,11 @@ internal class SQLiteDictionary(
             result
         } catch (t: Throwable) {
             store.handleQueryFailure(t)
-            com.addiyon.keyboard.SafeLog.e(t, "SQLiteDictionary.suggestionEntriesForPrefixes")
+            com.addiyon.keyboard.SafeLog.e(
+                t,
+                "SQLiteDictionary.suggestionEntriesForPrefixes",
+                com.addiyon.keyboard.telemetry.NonFatalCategory.DATABASE
+            )
             emptyMap()
         }
     }
@@ -135,7 +139,11 @@ internal class SQLiteDictionary(
             }
         } catch (t: Throwable) {
             store.handleQueryFailure(t)
-            com.addiyon.keyboard.SafeLog.e(t, "SQLiteDictionary.suggestionEntries")
+            com.addiyon.keyboard.SafeLog.e(
+                t,
+                "SQLiteDictionary.suggestionEntries",
+                com.addiyon.keyboard.telemetry.NonFatalCategory.DATABASE
+            )
             return emptyList()
         }
         cache.put(cacheKey, result)
@@ -159,7 +167,11 @@ internal class SQLiteDictionary(
             }
         } catch (t: Throwable) {
             store.handleQueryFailure(t)
-            com.addiyon.keyboard.SafeLog.e(t, "SQLiteDictionary.frequencyOf")
+            com.addiyon.keyboard.SafeLog.e(
+                t,
+                "SQLiteDictionary.frequencyOf",
+                com.addiyon.keyboard.telemetry.NonFatalCategory.DATABASE
+            )
             null
         }
     }
@@ -187,7 +199,11 @@ internal class SQLiteDictionary(
             }
         } catch (t: Throwable) {
             store.handleQueryFailure(t)
-            com.addiyon.keyboard.SafeLog.e(t, "SQLiteDictionary.frequenciesOf")
+            com.addiyon.keyboard.SafeLog.e(
+                t,
+                "SQLiteDictionary.frequenciesOf",
+                com.addiyon.keyboard.telemetry.NonFatalCategory.DATABASE
+            )
             return emptyMap()
         }
         return buildMap {
@@ -233,7 +249,11 @@ internal class SQLiteDictionary(
             }
         } catch (t: Throwable) {
             store.handleQueryFailure(t)
-            com.addiyon.keyboard.SafeLog.e(t, "SQLiteDictionary.fuzzySuggestions")
+            com.addiyon.keyboard.SafeLog.e(
+                t,
+                "SQLiteDictionary.fuzzySuggestions",
+                com.addiyon.keyboard.telemetry.NonFatalCategory.DATABASE
+            )
             return emptyList()
         }
         val matcher = FuzzyMatcher(maxEdits, insertCost, deleteCost, substitutionCost)

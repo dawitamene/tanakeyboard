@@ -4,16 +4,16 @@
     <application>
         <activity
             android:name="com.addiyon.keyboard.benchmarkhost.ImeTestHostActivity"
-            android:enabled="${imeTestComponentsEnabled}"
-            android:exported="${imeTestComponentsEnabled}"
+            android:enabled="true"
+            android:exported="true"
             android:launchMode="singleTop"
             android:screenOrientation="unspecified"
-            tools:ignore="MissingClass"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustResize"
+            tools:ignore="MissingClass" />
         <receiver
             android:name="com.addiyon.keyboard.debug.ImeTestCommandReceiver"
-            android:enabled="${imeTestComponentsEnabled}"
-            android:exported="${imeTestComponentsEnabled}"
+            android:enabled="true"
+            android:exported="true"
             tools:ignore="MissingClass">
             <intent-filter>
                 <action android:name="com.addiyon.keyboard.TEST_COMMAND" />

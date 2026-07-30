@@ -7,13 +7,19 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import com.addiyon.keyboard.review.ReviewPromptPolicy
-import com.google.android.play.core.review.ReviewManagerFactory
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import com.addiyon.keyboard.review.PlayReviewPlatform
+import com.addiyon.keyboard.review.ReviewPromptController
+import com.addiyon.keyboard.update.InAppUpdateController
+import com.addiyon.keyboard.ui.UpdateReadyBar
 import com.addiyon.keyboard.ui.manual.ManualScreen
 import com.addiyon.keyboard.ui.onboarding.OnboardingScreen
 import com.addiyon.keyboard.ui.settings.AboutScreen
@@ -25,9 +31,18 @@ import com.addiyon.keyboard.ui.settings.TestKeyboardScreen
 import com.addiyon.keyboard.ui.settings.ThemesScreen
 import com.addiyon.keyboard.ui.i18n.ProvideAppLocalization
 import com.addiyon.keyboard.ui.theme.AddiyonBrandTheme
+import com.addiyon.keyboard.telemetry.NonFatalCategory
+import com.addiyon.keyboard.telemetry.Telemetry
 
 private enum class ScreenKey {
-    Onboarding, Settings, Manual, SoundVibration, KeyboardHeight, TestKeyboard, About, Themes
+    Onboarding,
+    Settings,
+    Manual,
+    SoundVibration,
+    KeyboardHeight,
+    TestKeyboard,
+    About,
+    Themes
 }
 
 class MainActivity : ComponentActivity() {
@@ -47,6 +62,17 @@ class MainActivity : ComponentActivity() {
     // afterwards falls through to normal in-app navigation.
     private var keyboardEntryScreen by mutableStateOf<ScreenKey?>(null)
 
+    // Play in-app updates. Null when construction failed (no Play Services,
+    // Play disabled); every call site tolerates that, since an update check is
+    // never load-bearing for the app working.
+    private var updateController: InAppUpdateController? = null
+
+    // Set when a flexible update has finished downloading and only needs the
+    // restart that installs it. Observable so UpdateReadyBar can show it.
+    private var updateReadyToInstall by mutableStateOf(false)
+
+    private var reviewController: ReviewPromptController? = null
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -61,6 +87,35 @@ class MainActivity : ComponentActivity() {
             setTheme(R.style.Theme_AddiyonKeyboard)
             enableEdgeToEdge()
             super.onCreate(savedInstanceState)
+
+            // Must be built here: it registers an activity-result launcher,
+            // which is only legal before the Activity starts. savedInstanceState
+            // distinguishes the user opening the app from a mere recreation
+            // (rotation), so only the former offers Play's update dialog.
+            // Its own safeRun (not onCreate's catch) so a failure here leaves
+            // the app running normally without updates, rather than dropping
+            // the whole UI to renderFallback().
+            updateController = safeRun<InAppUpdateController?>(null) {
+                InAppUpdateController(
+                    activity = this,
+                    freshLaunch = savedInstanceState == null,
+                    onReadyToInstall = { updateReadyToInstall = true }
+                )
+            }
+            reviewController = ReviewPromptController(
+                sessions = { KeyboardPrefs.usageSessions(this) },
+                alreadyPrompted = { KeyboardPrefs.reviewPrompted(this) },
+                markPrompted = { KeyboardPrefs.setReviewPrompted(this) },
+                platform = PlayReviewPlatform(this),
+                hostIsActive = { !isFinishing && !isDestroyed },
+                onFailure = { failure ->
+                    com.addiyon.keyboard.SafeLog.e(
+                        failure,
+                        "in-app review",
+                        NonFatalCategory.REVIEW
+                    )
+                }
+            )
 
             screenRequest = intent?.getStringExtra(EXTRA_OPEN_SCREEN)
 
@@ -128,7 +183,10 @@ class MainActivity : ComponentActivity() {
                     // app instead of returning to Settings. Disabled on
                     // Settings/Onboarding so back there keeps the normal
                     // exit-app behavior.
-                    BackHandler(enabled = screen != ScreenKey.Settings && screen != ScreenKey.Onboarding) {
+                    BackHandler(
+                        enabled = screen != ScreenKey.Settings &&
+                            screen != ScreenKey.Onboarding
+                    ) {
                         goBack(screen)
                     }
 
@@ -140,10 +198,14 @@ class MainActivity : ComponentActivity() {
                         if (screen == ScreenKey.Settings) maybeRequestReview()
                     }
 
+                    Box(modifier = Modifier.fillMaxSize()) {
                     when (screen) {
                             ScreenKey.Onboarding -> OnboardingScreen(
                                 status = status,
-                                onDone = { screen = ScreenKey.Settings }
+                                onDone = {
+                                    Telemetry.onboardingCompleted()
+                                    screen = ScreenKey.Settings
+                                }
                             )
                             ScreenKey.Settings -> SettingsScreen(
                                 status = status,
@@ -151,7 +213,7 @@ class MainActivity : ComponentActivity() {
                                 onOpenSoundVibration = { screen = ScreenKey.SoundVibration },
                                 onOpenTestKeyboard = { screen = ScreenKey.TestKeyboard },
                                 onOpenAbout = { screen = ScreenKey.About },
-                                onOpenThemes = { screen = ScreenKey.Themes }
+                                onOpenThemes = { screen = ScreenKey.Themes },
                             )
                             ScreenKey.Manual -> ManualScreen(
                                 onBack = { goBack(ScreenKey.Manual) }
@@ -178,6 +240,17 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                     }
+
+                    // Overlays every screen: a flexible update can finish
+                    // downloading whichever one the user happens to be on,
+                    // and the restart prompt is the only part of the flow
+                    // Play doesn't render itself.
+                    UpdateReadyBar(
+                        visible = updateReadyToInstall,
+                        onInstall = { updateController?.completeUpdate() },
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
+                    }
             }
             }
         }
@@ -188,6 +261,21 @@ class MainActivity : ComponentActivity() {
             com.addiyon.keyboard.SafeLog.e(t, "MainActivity onCreate")
             renderFallback()
         }
+    }
+
+    // Play's update check runs on resume rather than in onCreate so the
+    // Activity is guaranteed resumed when its dialog is launched, and so an
+    // update that finished downloading while the user was elsewhere is picked
+    // up on their way back. UpdatePromptPolicy keeps it to one dialog per open.
+    override fun onResume() {
+        super.onResume()
+        updateController?.onResume()
+    }
+
+    override fun onDestroy() {
+        reviewController?.onDestroy()
+        updateController?.onDestroy()
+        super.onDestroy()
     }
 
     private fun renderFallback() {
@@ -205,35 +293,14 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Launches the Play in-app review flow once the user has enough keyboard
-     * sessions behind them (see [ReviewPromptPolicy]). One-shot: marked
+     * sessions behind them (see [ReviewPromptController]). One-shot: marked
      * prompted before launching, because the Play API is quota-limited and
      * deliberately gives no signal about whether its dialog actually showed —
      * there is nothing to retry on. Failures (no Play Store, emulator) are
      * ignored; the user still has the explicit Rate button in Settings.
      */
     private fun maybeRequestReview() {
-        com.addiyon.keyboard.safeApply {
-            val eligible = ReviewPromptPolicy.shouldPrompt(
-                sessions = KeyboardPrefs.usageSessions(this),
-                alreadyPrompted = KeyboardPrefs.reviewPrompted(this)
-            )
-            if (!eligible) return@safeApply
-            KeyboardPrefs.setReviewPrompted(this)
-            val manager = try {
-                ReviewManagerFactory.create(this)
-            } catch (oom: OutOfMemoryError) {
-                com.addiyon.keyboard.SafeLog.e(oom, "ReviewManagerFactory.create OOM")
-                return@safeApply
-            } catch (t: Throwable) {
-                com.addiyon.keyboard.SafeLog.e(t, "ReviewManagerFactory.create")
-                return@safeApply
-            }
-            manager.requestReviewFlow().addOnSuccessListener { info ->
-                com.addiyon.keyboard.safeApply {
-                    if (!isFinishing && !isDestroyed) manager.launchReviewFlow(this, info)
-                }
-            }
-        }
+        reviewController?.onNaturalMoment()
     }
 
     // Maps a keyboard-toolbar screen request (or null) to the screen it should

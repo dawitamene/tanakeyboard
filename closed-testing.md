@@ -1,5 +1,10 @@
 # Play Store Testing — Pre-Submission Readiness Checklist
 
+> **Superseded on 2026-07-30.** This is a historical pre-telemetry snapshot with old
+> package, SDK, permission, and Firebase facts. Use
+> `docs/production-launch-checklist.md`, `analytics.md`, and
+> `plans/verify-release-artifact.sh` for the current release.
+
 ## Context
 
 Tana Keyboard (`com.addiyon.tanakeyboard`) is being submitted to Google Play testing.

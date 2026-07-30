@@ -49,10 +49,8 @@ private fun KeyboardSuggestionArea(
     isAmharic: Boolean,
 ) {
     SuggestionArea(
-        suggestions = service.suggestions,
+        state = service.suggestionUiState,
         isAmharic = isAmharic,
-        isPredictions = service.suggestionsArePredictions,
-        emailSuggestions = service.emailSuggestions,
         onTap = service::onSuggestionTapped,
         onOpenSettings = { service.openAppScreen(MainActivity.SCREEN_SETTINGS) },
         onOpenThemes = { service.openAppScreen(MainActivity.SCREEN_THEMES) },
@@ -61,10 +59,8 @@ private fun KeyboardSuggestionArea(
         onAi = service::onAiAction,
         onClipboard = service::onClipboardAction,
         onEmoji = service::openEmojiPanel,
-        voiceUiState = service.voiceUiState,
         onVoice = service::onVoiceInput,
         onExitVoice = service::exitVoiceMode,
-        isLanguageSwitching = service.isLanguageSwitching,
     )
 }
 

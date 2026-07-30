@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties.HorizontalScrollAxisRange
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.addiyon.keyboard.TestKeyboardHost
+import com.addiyon.keyboard.suggestion.EmailChip
 import com.addiyon.keyboard.voice.VoiceUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -33,7 +35,7 @@ class SuggestionAreaUiTest {
         compose.setContent {
             TestKeyboardHost {
                 SuggestionArea(
-                    suggestions = emptyList(),
+                    state = SuggestionUiState.Toolbar,
                     isAmharic = true,
                     onTap = {},
                     onOpenSettings = { action = "settings" },
@@ -61,12 +63,15 @@ class SuggestionAreaUiTest {
 
     @Test
     fun suggestionTapCallsTheProvidedHandler() {
-        var tapped: String? = null
+        var tapped: SuggestionTap? = null
 
         compose.setContent {
             TestKeyboardHost {
                 SuggestionArea(
-                    suggestions = listOf("hello", "help", "helium"),
+                    state = SuggestionUiState.WordCompletions(
+                        words = listOf("hello", "help", "helium"),
+                        actionGeneration = 42L
+                    ),
                     isAmharic = false,
                     onTap = { tapped = it },
                     onOpenSettings = {},
@@ -81,8 +86,156 @@ class SuggestionAreaUiTest {
         }
 
         compose.onNodeWithText("help", useUnmergedTree = true).performClick()
-        compose.runOnIdle { assertEquals("help", tapped) }
+        compose.runOnIdle {
+            assertEquals(SuggestionTap("help", 42L), tapped)
+        }
         compose.onNodeWithContentDescription("Voice input").assertIsDisplayed()
+    }
+
+    @Test
+    fun completionToPendingToPredictionNeverRendersToolbarOrStaleChips() {
+        var state by mutableStateOf<SuggestionUiState>(
+            SuggestionUiState.WordCompletions(listOf("hello", "help", "helium"))
+        )
+
+        compose.setContent {
+            TestKeyboardHost {
+                SuggestionArea(
+                    state = state,
+                    isAmharic = false,
+                    onTap = {},
+                    onOpenSettings = {},
+                    onOpenThemes = {},
+                    onOpenGuide = {},
+                    onFeedback = {},
+                    onAi = {},
+                    onClipboard = {},
+                    onEmoji = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("hello").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings").assertDoesNotExist()
+
+        compose.runOnIdle {
+            state = SuggestionUiState.LoadingPredictions
+        }
+
+        compose.onNodeWithText("hello").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Settings").assertDoesNotExist()
+        compose.onNodeWithTag(PREDICTION_LOADING_STRIP_TAG).assertIsDisplayed()
+        repeat(3) { index ->
+            compose.onNodeWithTag(predictionLoadingSlotTag(index))
+                .assertExists()
+                .assertHasNoClickAction()
+        }
+
+        compose.runOnIdle {
+            state = SuggestionUiState.NextWordPredictions(
+                listOf("world", "there", "again")
+            )
+        }
+
+        compose.onNodeWithTag(PREDICTION_LOADING_STRIP_TAG).assertDoesNotExist()
+        compose.onNodeWithText("world").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings").assertDoesNotExist()
+    }
+
+    @Test
+    fun predictionLoadingIndicatorIsDelayedForOneHundredTwentyMilliseconds() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            TestKeyboardHost {
+                SuggestionArea(
+                    state = SuggestionUiState.LoadingPredictions,
+                    isAmharic = false,
+                    onTap = {},
+                    onOpenSettings = {},
+                    onOpenThemes = {},
+                    onOpenGuide = {},
+                    onFeedback = {},
+                    onAi = {},
+                    onClipboard = {},
+                    onEmoji = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag(PREDICTION_LOADING_STRIP_TAG).assertExists()
+        compose.onNodeWithTag(PREDICTION_LOADING_INDICATOR_TAG).assertDoesNotExist()
+        compose.mainClock.advanceTimeBy(
+            PREDICTION_LOADING_INDICATOR_DELAY_MILLIS - 1L,
+            ignoreFrameDuration = true,
+        )
+        compose.onNodeWithTag(PREDICTION_LOADING_INDICATOR_TAG).assertDoesNotExist()
+        compose.mainClock.advanceTimeBy(1L, ignoreFrameDuration = true)
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithTag(PREDICTION_LOADING_INDICATOR_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun languageLoadingAndPrivateStatesDoNotFallThroughToToolbar() {
+        var state by mutableStateOf<SuggestionUiState>(
+            SuggestionUiState.LoadingLanguage
+        )
+
+        compose.setContent {
+            TestKeyboardHost {
+                SuggestionArea(
+                    state = state,
+                    isAmharic = true,
+                    onTap = {},
+                    onOpenSettings = {},
+                    onOpenThemes = {},
+                    onOpenGuide = {},
+                    onFeedback = {},
+                    onAi = {},
+                    onClipboard = {},
+                    onEmoji = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag(LANGUAGE_LOADING_INDICATOR_TAG).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings").assertDoesNotExist()
+
+        compose.runOnIdle {
+            state = SuggestionUiState.Private
+        }
+
+        compose.onNodeWithTag(LANGUAGE_LOADING_INDICATOR_TAG).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Voice input").assertDoesNotExist()
+    }
+
+    @Test
+    fun emailStateShowsSuffixAndCommitsFullAddress() {
+        var tapped: String? = null
+
+        compose.setContent {
+            TestKeyboardHost {
+                SuggestionArea(
+                    state = SuggestionUiState.EmailSuggestions(
+                        listOf(EmailChip("@gmail.com", "user@gmail.com"))
+                    ),
+                    isAmharic = false,
+                    onTap = { tapped = it.word },
+                    onOpenSettings = {},
+                    onOpenThemes = {},
+                    onOpenGuide = {},
+                    onFeedback = {},
+                    onAi = {},
+                    onClipboard = {},
+                    onEmoji = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("@gmail.com", useUnmergedTree = true).performClick()
+        compose.runOnIdle {
+            assertEquals("user@gmail.com", tapped)
+        }
     }
 
     @Test
@@ -93,7 +246,7 @@ class SuggestionAreaUiTest {
         compose.setContent {
             TestKeyboardHost {
                 SuggestionArea(
-                    suggestions = visibleWords,
+                    state = SuggestionUiState.WordCompletions(visibleWords),
                     isAmharic = true,
                     onTap = {},
                     onOpenSettings = {},
@@ -143,7 +296,7 @@ class SuggestionAreaUiTest {
         compose.setContent {
             TestKeyboardHost {
                 SuggestionArea(
-                    suggestions = visibleWords,
+                    state = SuggestionUiState.WordCompletions(visibleWords),
                     isAmharic = true,
                     onTap = {},
                     onOpenSettings = {},
@@ -191,7 +344,7 @@ class SuggestionAreaUiTest {
         compose.setContent {
             TestKeyboardHost {
                 SuggestionArea(
-                    suggestions = words,
+                    state = SuggestionUiState.WordCompletions(words),
                     isAmharic = true,
                     onTap = {},
                     onOpenSettings = {},
@@ -230,7 +383,7 @@ class SuggestionAreaUiTest {
         compose.setContent {
             TestKeyboardHost {
                 SuggestionArea(
-                    suggestions = emptyList(),
+                    state = SuggestionUiState.Voice(VoiceUiState.Listening),
                     isAmharic = amharic,
                     onTap = {},
                     onOpenSettings = {},
@@ -240,7 +393,6 @@ class SuggestionAreaUiTest {
                     onAi = {},
                     onClipboard = {},
                     onEmoji = {},
-                    voiceUiState = VoiceUiState.Listening,
                     onVoice = { voiceTapped = true },
                     onExitVoice = { exited = true }
                 )

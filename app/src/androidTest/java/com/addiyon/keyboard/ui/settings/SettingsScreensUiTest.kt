@@ -1,22 +1,33 @@
 package com.addiyon.keyboard.ui.settings
 
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.addiyon.keyboard.ExternalActions
 import com.addiyon.keyboard.KeyboardStatusSnapshot
 import com.addiyon.keyboard.TestAppHost
+import com.addiyon.keyboard.telemetry.Telemetry
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_DEFAULT
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MAX
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MIN
+import com.addiyon.keyboard.ui.i18n.AmharicStrings
+import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -53,7 +64,8 @@ class SettingsScreensUiTest {
         compose.runOnIdle { assertEquals("preferences", opened) }
         compose.onNodeWithText("Test Keyboard").performClick()
         compose.runOnIdle { assertEquals("test", opened) }
-        compose.onNodeWithText("About").performClick()
+        compose.onNodeWithText("Privacy & diagnostics").assertDoesNotExist()
+        compose.onNodeWithText("About").performScrollTo().performClick()
         compose.runOnIdle { assertEquals("about", opened) }
 
         compose.onNodeWithText("Feedback").performClick()
@@ -146,5 +158,13 @@ class SettingsScreensUiTest {
 
         compose.onNodeWithContentDescription("Back").performClick()
         compose.runOnIdle { assertTrue(back) }
+    }
+
+    private class RecordingContext(base: Context) : ContextWrapper(base) {
+        var startedIntent: Intent? = null
+
+        override fun startActivity(intent: Intent) {
+            startedIntent = intent
+        }
     }
 }

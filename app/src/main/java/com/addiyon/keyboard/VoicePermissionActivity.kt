@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import com.addiyon.keyboard.telemetry.NonFatalCategory
 
 /**
  * Transparent, no-UI activity that requests RECORD_AUDIO on behalf of
@@ -36,10 +37,18 @@ class VoicePermissionActivity : ComponentActivity() {
                 requestPermission.launch(Manifest.permission.RECORD_AUDIO)
             }
         } catch (oom: OutOfMemoryError) {
-            com.addiyon.keyboard.SafeLog.e(oom, "VoicePermissionActivity onCreate OOM")
+            com.addiyon.keyboard.SafeLog.e(
+                oom,
+                "VoicePermissionActivity onCreate OOM",
+                NonFatalCategory.VOICE
+            )
             finish()
         } catch (t: Throwable) {
-            com.addiyon.keyboard.SafeLog.e(t, "VoicePermissionActivity onCreate")
+            com.addiyon.keyboard.SafeLog.e(
+                t,
+                "VoicePermissionActivity onCreate",
+                NonFatalCategory.VOICE
+            )
             finish()
         }
     }

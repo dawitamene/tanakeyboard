@@ -3,6 +3,7 @@ package com.addiyon.keyboard.suggestion
 import com.addiyon.keyboard.transliteration.Transliterator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -367,5 +368,79 @@ class CandidateRankerTest {
             CandidateRanker.DictionaryWord("apply", 90)
         )
         assertEquals(listOf("apple"), CandidateRanker.rankByContext(pool, emptyMap(), lower, 1))
+    }
+
+    @Test
+    fun invalidInputsReturnNoRankedCandidate() {
+        assertNull(CandidateRanker.bestCommitCandidate(emptyList(), frequencyOf = { 1 }))
+        assertTrue(
+            CandidateRanker.rankAmharic(
+                readings = emptyList(),
+                limit = 3,
+                frequencyOf = { null },
+                completionsForPrefix = { _, _ -> emptyList() }
+            ).isEmpty()
+        )
+        assertTrue(
+            CandidateRanker.rankAmharic(
+                readings = listOf("ሀ"),
+                limit = 0,
+                frequencyOf = { null },
+                completionsForPrefix = { _, _ -> emptyList() }
+            ).isEmpty()
+        )
+        assertTrue(
+            CandidateRanker.rankByContext(
+                candidates = listOf(CandidateRanker.DictionaryWord("hello", 100)),
+                ngramNext = emptyMap(),
+                normalize = lower,
+                limit = 0
+            ).isEmpty()
+        )
+    }
+
+    @Test
+    fun bestCommitCandidateKeepsEarlierHigherScoringWord() {
+        val frequencies = mapOf("ሀ" to 500, "ሁ" to 100)
+
+        assertEquals(
+            "ሀ",
+            CandidateRanker.bestCommitCandidate(
+                candidates = listOf("ሀ", "ሁ"),
+                frequencyOf = frequencies::get
+            )
+        )
+    }
+
+    @Test
+    fun duplicateCompletionRowsKeepTheHighestScoringCopy() {
+        val ranked = CandidateRanker.rankAmharic(
+            readings = listOf("ሀ"),
+            limit = 10,
+            frequencyOf = { null },
+            completionsForPrefix = { _, _ ->
+                listOf(
+                    CandidateRanker.DictionaryWord("ሀሁ", 100),
+                    CandidateRanker.DictionaryWord("ሀሁ", 900),
+                    CandidateRanker.DictionaryWord("ሀሁ", 900),
+                    CandidateRanker.DictionaryWord("ሀሁ", 100)
+                )
+            }
+        )
+
+        assertEquals(listOf("ሀ", "ሀሁ"), ranked)
+    }
+
+    @Test
+    fun preferGreedyLeavesAnAlreadyLeadingReadingUnchanged() {
+        val ranked = CandidateRanker.rankAmharic(
+            readings = listOf("ሀ", "ሁ"),
+            limit = 10,
+            frequencyOf = mapOf("ሀ" to 500, "ሁ" to 100)::get,
+            completionsForPrefix = { _, _ -> emptyList() },
+            preferGreedy = true
+        )
+
+        assertEquals(listOf("ሀ", "ሁ"), ranked)
     }
 }

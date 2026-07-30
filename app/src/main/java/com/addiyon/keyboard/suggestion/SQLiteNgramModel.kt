@@ -49,7 +49,11 @@ internal class SQLiteNgramModel(
             result
         } catch (t: Throwable) {
             store.handleQueryFailure(t)
-            com.addiyon.keyboard.SafeLog.e(t, "SQLiteNgramModel.predict")
+            com.addiyon.keyboard.SafeLog.e(
+                t,
+                "SQLiteNgramModel.predict",
+                com.addiyon.keyboard.telemetry.NonFatalCategory.DATABASE
+            )
             emptyList()
         }
     }

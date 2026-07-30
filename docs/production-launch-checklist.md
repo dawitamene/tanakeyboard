@@ -14,8 +14,8 @@ this pass — several are now resolved (see below).
 
 **Stale, do not work from:** `closed-testing.md` at the repo root. It names package
 `com.addiyon.tanakeyboard` (now `com.addiyon.keyboard`), SDK 35 (now 36), version 1.1.0
-(now 1.10.2), and "no `<uses-permission>` at all" (now two). Its A1 privacy-policy blocker
-is the one item still worth reading.
+(now 2.0.0), and predates the current Firebase and permission controls. It now carries a
+superseded marker; use this checklist and `analytics.md` instead.
 
 ---
 
@@ -66,6 +66,11 @@ Fixed in the 2026-07-28 pass, listed so nothing here gets re-litigated:
   rejected.
 - [ ] **Complete the content rating questionnaire.**
 - [ ] **Verify the release artifact** — see §6.
+- [ ] **Supply and pin the production Firebase identity.** Put exactly one downloaded
+  production config at `app/google-services.json` or
+  `app/src/release/google-services.json`, then copy its `mobilesdk_app_id` and
+  `project_id` into the matching blank fields in `version.properties`. Do not hand-edit
+  the Firebase JSON.
 
 ---
 
@@ -119,13 +124,18 @@ The verified facts to answer from:
 
 | Fact | Evidence |
 |---|---|
-| No `INTERNET` permission — the app cannot transmit anything itself | merged release manifest; asserted by `plans/verify-release-artifact.sh` |
-| Only two permissions: `RECORD_AUDIO`, `VIBRATE` | `AndroidManifest.xml` |
-| No analytics, ads, crash-reporting, or tracking SDK | dependency list in `app/build.gradle.kts` — only third-party is `play-review` |
+| Typed/editor content is never accepted by telemetry APIs | `TelemetryApiPrivacyTest`, enum/boolean-only facade |
+| Analytics and Crashlytics are independent opt-ins and off by default | manifest defaults, `TelemetryPrefs`, consent UI/tests |
+| `INTERNET`, network state, and wake lock are intentional Firebase requirements | merged release manifest; exact allowlist in `plans/verify-release-artifact.sh` |
+| Advertising ID and AdServices permissions are rejected | manifest removals and release-script deny checks |
 | Typing and suggestions are fully on-device | bundled `.db` assets; `suggestion/`, `transliteration/` |
 | Voice audio goes to the device's speech service | `voice/VoiceInputController.kt` delegates to `SpeechRecognizer` |
-| Backup covers exactly two prefs files | `res/xml/backup_rules.xml`, `res/xml/data_extraction_rules.xml` |
+| Diagnostics consent is never backed up or transferred | `res/xml/backup_rules.xml`, `res/xml/data_extraction_rules.xml` |
 
+- [ ] **Update Play Data safety for Firebase.** Do not claim "No data collected." Declare
+  optional app interactions/lifecycle analytics, crash logs, diagnostics, Firebase and
+  Crashlytics installation identifiers, device metadata, and approximate region if the
+  final console configuration derives it from network information.
 - [ ] **Declare the microphone/voice path honestly.** Do not tick "No data collected" and
   move on. Addiyon itself neither stores nor transmits audio, but it does hand audio to
   another app that may transmit it. Answer for what the app does, and let the policy
@@ -136,10 +146,15 @@ The verified facts to answer from:
   default — a product decision, not a blocker.
 - [ ] **Declare the Android Backup behaviour** if the form asks about data transfer:
   settings and recent emoji sync to the user's own Google account when they have backup
-  enabled.
-- [ ] **Re-read `AppStrings.aboutPrivacy` and `activateFootnote`** against whatever you
-  submit, and against the listing's "PRIVATE BY DESIGN" paragraph. All three were brought
-  into agreement in this pass — keep them that way.
+  enabled; diagnostics consent is explicitly excluded.
+- [ ] **Finish Firebase console privacy setup.** Use separate production/development
+  projects, two-month Analytics event-level retention, no Google Signals, no ad
+  personalization or Ads links, least-privilege roles, MFA, and Crashlytics alerts.
+- [ ] **Verify revocation.** Analytics off resets local data; Crashlytics off deletes
+  queued reports. Disabling cannot remove reports already uploaded.
+- [ ] **Re-read the `AppStrings` diagnostics fields and `activateFootnote`** against
+  whatever you submit, and against both localized listing privacy paragraphs. Keep those
+  surfaces aligned with the hosted policy.
 
 ---
 
@@ -188,8 +203,9 @@ The repo already has a strong gate — use it rather than eyeballing the upload.
 
 - [ ] **Commit everything first.** `plans/verify-release-artifact.sh` records
   `sourceStatus`, and the last recorded candidate came from a dirty tree.
-- [ ] **Bump `versionName`** in `version.properties` if this differs from 1.10.2.
-  `versionCode` derives from the git commit count, so it advances on its own.
+- [ ] **Confirm `versionName=2.0.0`** in `version.properties` is the intended public
+  version. The generated version code is the greater of `versionCodeFloor=68` and the Git
+  commit count; record it from the fresh candidate and compare it with Play Console.
 - [ ] Build the bundle:
 
 ```bash
@@ -203,18 +219,22 @@ REQUIRE_CLEAN_RELEASE=1 ./plans/verify-release-artifact.sh
 ```
 
   It asserts the AAB entries, that raw `*_words.dat`/`*_ngrams.dat` are not packaged,
-  exactly two `<uses-permission>` entries, targetSdk 36, `jarsigner -verify`, the signing
-  certificate against `releaseCertificateSha256`, and that baseline profiles carry no
-  benchmark-only classes.
-- [ ] **Note the stale metadata:** `app/build/outputs/release-candidate.properties` still
-  records 1.10.0 / 71 / `sourceStatus=dirty`, while the built AAB is 1.10.2 / 74. Whatever
-  you upload must be re-verified; do not trust that file.
+  the exact merged permission allowlist and advertising-permission denylist, production
+  the exact pinned Firebase app/project identity, Firebase resources and Crashlytics
+  mapping metadata, targetSdk 36,
+  `jarsigner -verify`, the signing certificate against `releaseCertificateSha256`, and
+  that release code contains no debug crash trigger or benchmark-only profile classes.
+- [ ] **Do not trust existing candidate metadata or build outputs.** Regenerate
+  `app/build/outputs/release-candidate.properties` from the exact frozen source and verify
+  its version name, generated version code, source status, hashes, and certificate before
+  upload.
 - [ ] **Install and test the Play-delivered build**, not just a local release APK. Only the
   Play-delivered artifact exercises split-APK delivery and Play App Signing.
-- [ ] **Confirm suggestions work after a fresh install of the minified build.**
-  `proguard-rules.pro` is still 100% the untouched default template while R8 and
-  `shrinkResources` are both on. The dictionary path is what would break silently. The
-  verify script confirms the assets are *present*; only running it confirms they *load*.
+- [ ] **Confirm suggestions and diagnostics work after a fresh install of the minified
+  build.** R8 and `shrinkResources` are both on. The verifier confirms the dictionary
+  assets and mapping are present, while static contract tests pin the narrow reflection
+  keep rules. Only running the exact artifact confirms the assets load and Firebase
+  initializes after consent.
 - [ ] Check Play's App bundle explorer for unexpected permissions, delivery warnings, or
   download size.
 - [ ] Confirm the R8 mapping file reached Play, so release crash traces stay readable.
@@ -261,10 +281,10 @@ specifically because of the changes made in this pass:
 
 ## 9. After launch
 
-No crash reporting is installed — `analytics.md` was planned and never implemented, and
-the codebase's pervasive `safeRun`/`SafeLog` swallow-and-continue pattern means many
-failures will surface nowhere at all. Android Vitals is therefore your only production
-signal for v1.
+Optional Firebase Analytics and Crashlytics are implemented behind independent,
+off-by-default consent controls. Android Vitals remains authoritative for Play stability;
+Firebase dashboards cover only devices whose users enabled the corresponding diagnostic
+choice.
 
 - [ ] **Roll out staged**, not to 100%. 20% → hold a few days → 50% → 100%. Staged rollout
   is the only mechanism that lets you halt a bad release.
@@ -273,10 +293,11 @@ signal for v1.
   suppresses store visibility.
 - [ ] **Read every 1- and 2-star review in the first two weeks.** For a keyboard, early
   reviews are also your best bug tracker.
-- [ ] **Consider adding crash reporting** before the release after this one. Shipping v1
-  blind is survivable; staying blind is not.
-- [ ] **Set up CI.** There are 46 JVM test classes, 9 instrumented classes, and a
-  macrobenchmark module — and no `.github/workflows/`, so none of it runs automatically.
-  Everything you built is only as good as the last time someone remembered to run it.
+- [ ] **Watch consent-bounded Firebase dashboards and alerts.** Validate safe event
+  volumes, sanitized non-fatals, fatal deobfuscation, and Crashlytics velocity alerts
+  without treating opt-in coverage as the install population.
+- [ ] **Set up CI.** The JVM, instrumented, privacy-contract, and macrobenchmark suites
+  have no `.github/workflows/`, so none of them runs automatically. Everything you built
+  is only as good as the last time someone remembered to run it.
 - [ ] **Baseline lint.** No `lint.xml`, no `lint-baseline.xml`, no `lint {}` block —
   `./gradlew lintDebug` has never been triaged, so its current state is unknown.

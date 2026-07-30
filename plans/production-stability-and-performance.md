@@ -1,5 +1,10 @@
 # Production stability and performance hardening plan
 
+> **Superseded for telemetry and release-state facts on 2026-07-30.** This document
+> preserves its original pre-Firebase audit. Use
+> `plans/input-safety-predictions-firebase-test-coverage.md`, `analytics.md`, and
+> `docs/production-launch-checklist.md` for the current implementation and release gate.
+
 ## Goal
 
 Prepare Addiyon Keyboard for production access without relying on a clean Play

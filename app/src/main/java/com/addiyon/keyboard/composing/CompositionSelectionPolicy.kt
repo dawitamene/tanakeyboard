@@ -39,3 +39,17 @@ internal fun isComposerTextImmediatelyBeforeCursor(
     textBeforeCursor: CharSequence?
 ): Boolean =
     composerText.isNotEmpty() && textBeforeCursor?.toString() == composerText
+
+internal fun isVerifiedStaleDeleteCallback(
+    expectedDeleteSelection: Boolean,
+    selectionStart: Int,
+    selectionEnd: Int,
+    candidatesStart: Int,
+    candidatesEnd: Int,
+    ownedRegionMatches: Boolean
+): Boolean =
+    expectedDeleteSelection &&
+        selectionStart == selectionEnd &&
+        candidatesStart < 0 &&
+        candidatesEnd < 0 &&
+        ownedRegionMatches

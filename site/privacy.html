@@ -61,14 +61,13 @@
 <main>
 
   <h1>Privacy Policy</h1>
-  <p class="updated">Addiyon Keyboard for Android · Last updated 28 July 2026</p>
+  <p class="updated">Addiyon Keyboard for Android · Last updated 30 July 2026</p>
 
   <div class="summary">
-    <p><strong>In short:</strong> Addiyon Keyboard does not collect, store, or transmit
-    what you type. The app has no internet permission, no account system, no ads, and no
-    analytics or tracking. The one exception to "nothing leaves your device" is the
-    optional voice typing feature, which hands your speech to the speech-recognition
-    service built into your device — explained in full below.</p>
+    <p><strong>In short:</strong> Addiyon Keyboard never collects, stores, or transmits
+    what you type. Optional usage analytics and crash diagnostics are independent choices
+    and both are off by default. Voice typing hands speech to the recognition service
+    selected on your device. These limited network features are explained below.</p>
   </div>
 
   <h2>Who this applies to</h2>
@@ -77,25 +76,60 @@
   you use the keyboard inside of, or the operating system itself.</p>
 
   <h2>What we do not collect</h2>
-  <p>Addiyon Keyboard does not collect any personal information. Specifically, we do not
-  collect, log, store, sell, or transmit:</p>
+  <p>Regardless of your diagnostics choices, we do not collect, log, store, sell, or
+  transmit:</p>
   <ul>
     <li>the text you type, in any app, at any time;</li>
-    <li>your contacts, location, photos, files, or device identifiers;</li>
-    <li>usage analytics, crash telemetry, advertising identifiers, or behavioural profiles;</li>
+    <li>your contacts, precise location, photos, files, clipboard, or email content;</li>
+    <li>suggestions, voice transcripts, target-app identity, field labels, or typing cadence;</li>
+    <li>advertising identifiers, advertising profiles, or custom account/user IDs;</li>
     <li>any account information — the app has no sign-up, sign-in, or user account.</li>
   </ul>
-  <p>There is no server behind Addiyon Keyboard, and no account we could tie data to.</p>
+  <p>There is no Addiyon account or typing-data server.</p>
 
   <h2>Why typing is private by construction</h2>
-  <p>Addiyon Keyboard does not request the Android <code>INTERNET</code> permission. An
-  Android app without that permission cannot open a network connection at all. This is
-  not only a promise about our intentions — it is enforced by the operating system, and
-  you can verify it yourself in the app's permission list on the Google Play listing.</p>
+  <p>Typing paths are separated from the app's narrow telemetry interface. That interface
+  accepts only fixed categories and booleans: it has no way to accept characters, words,
+  editor text, suggestions, transcripts, app identity, arbitrary parameters, or exception
+  messages. Private and password fields suppress every custom analytics event.</p>
   <p>Transliteration (turning "selam" into ሰላም) and word suggestions run entirely on your
   device against dictionary files bundled inside the app. Those dictionaries are fixed at
   install time. They are not personalised to you, and nothing you type is added to them
   or sent anywhere.</p>
+
+  <h2>Optional usage analytics and crash diagnostics</h2>
+  <p>The app offers two independent controls under <strong>Privacy &amp;
+  diagnostics</strong>. Both are off on a fresh install and stay off until you enable
+  them.</p>
+  <ul>
+    <li><strong>Usage analytics</strong> sends fixed app-lifecycle and feature-category
+    events, such as first use, a keyboard session, chosen keyboard language, opening a
+    layout, or accepting a completion versus a prediction. It can include a Firebase app
+    installation identifier, general device/app information, and approximate region
+    derived by Google from network information. It never includes typed or editor
+    content.</li>
+    <li><strong>Crash diagnostics</strong> sends fatal crash information and
+    privacy-sanitized caught-error reports, with app/device state and Firebase or
+    Crashlytics installation identifiers. Caught-error reports use a fixed category,
+    remove the original message, cause, suppressed exceptions, and outside stack frames,
+    and are rate-limited. Out-of-memory errors are not sent as caught reports.</li>
+  </ul>
+  <p>Google Firebase processes this data for Addiyon as our diagnostics service provider.
+  We do not set a Firebase/Analytics user ID, collect an advertising ID, enable Google
+  Signals or ad personalization, link Google Ads, sell this data, or use it for
+  advertising. Data is encrypted in transit.</p>
+  <p>After Addiyon confirms the choice was saved, turning Analytics off stops future
+  collection and resets its local app-instance data where supported. Turning
+  Crashlytics off stops future collection and deletes locally queued unsent reports. If
+  the device cannot save a choice, Addiyon keeps collection off while the app remains
+  open and asks you to retry before closing it. Disabling either cannot retroactively
+  remove reports already uploaded. Before production launch, the release owner must configure the Firebase
+  Analytics property for two-month user/event-level retention and verify that setting in
+  Firebase Console. That owner-side setup remains a release requirement until it is
+  recorded as complete; the app build cannot configure it. Standard aggregated reports
+  are not controlled by that setting. Firebase retains Crashlytics stack traces and
+  associated installation identifiers for 90 days before beginning removal from live and
+  backup systems. Contact us below with a privacy request or concern.</p>
 
   <h2>Permissions the app requests</h2>
   <ul>
@@ -106,8 +140,12 @@
     <li><strong>Vibrate (<code>VIBRATE</code>)</strong> — used for haptic feedback on
     keypress, which you can turn off in the app's settings. It involves no data of any
     kind.</li>
+    <li><strong>Internet (<code>INTERNET</code>)</strong> — used only for Firebase
+    diagnostics you opt into. This normal permission does not give the app access to
+    typed content.</li>
   </ul>
-  <p>The app requests no other permissions.</p>
+  <p>The release manifest explicitly removes Advertising ID and Android AdServices
+  permissions.</p>
 
   <h2>Voice typing (important)</h2>
   <p>Voice typing is optional, off by default, and only runs while you hold or activate
@@ -131,8 +169,8 @@
   This includes: your keyboard language, theme, keyboard height, number-row setting,
   sound and vibration settings, recently used emoji and skin-tone choices, and a simple
   counter used to decide when to ask you for a Play Store review.</p>
-  <p>This data never leaves your device by our doing, is readable only by Addiyon
-  Keyboard, and is deleted when you uninstall the app.</p>
+  <p>These preferences stay in the app's private storage and are deleted when you
+  uninstall the app. Diagnostics consent is stored separately from ordinary settings.</p>
 
   <h2>Android Backup</h2>
   <p>If you have Android's built-in backup enabled, Android may include the two
@@ -141,6 +179,9 @@
   stored in your Google account, and governed by Google's privacy policy. It contains
   your settings and recent emoji only. It does not contain typed text, because we never
   store any. You can disable this in your device's system backup settings.</p>
+  <p>The diagnostics-consent file is explicitly excluded from cloud backup and
+  device-to-device transfer, so a restored phone cannot silently inherit consent from
+  another device.</p>
 
   <h2>Links to other apps</h2>
   <p>The app can open a few external destinations at your request: the Google Play
@@ -151,8 +192,8 @@
 
   <h2>Children</h2>
   <p>Addiyon Keyboard is a general-purpose typing tool and is not directed at children.
-  Because it collects no personal information from anyone, it collects none from
-  children.</p>
+  We do not knowingly collect typed content from children or anyone else. Optional
+  diagnostics remain off until the device user enables them.</p>
 
   <h2>Changes to this policy</h2>
   <p>If this policy changes, the updated version will be posted at this address with a

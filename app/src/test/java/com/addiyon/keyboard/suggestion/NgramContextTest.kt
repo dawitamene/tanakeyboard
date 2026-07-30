@@ -80,6 +80,39 @@ class NgramContextTest {
         )
     }
 
+    @Test
+    fun leadingWhitespaceLeavesOnlyTheNearestContextWord() {
+        assertEquals(
+            NgramContext.Context(null, "ሰላም"),
+            ctx(" ሰላም ")
+        )
+    }
+
+    @Test
+    fun geminationOnlyRunNormalizesToEmptyContext() {
+        assertEquals(NgramContext.EMPTY, ctx("፝ "))
+    }
+
+    @Test
+    fun extendedEthiopicRangesAreWordsAndAdjacentCodePointsAreBoundaries() {
+        listOf(
+            '\u1380',
+            '\u138F',
+            '\u2D80',
+            '\u2DDE',
+            '\uAB01',
+            '\uAB2E'
+        ).forEach { character ->
+            assertEquals(
+                NgramContext.Context(null, character.toString()),
+                ctx("$character ")
+            )
+        }
+        listOf('\u1390', '\u2DDF', '\uAB2F').forEach { character ->
+            assertEquals(NgramContext.EMPTY, ctx("$character "))
+        }
+    }
+
     // ---- ENGLISH ----
 
     @Test

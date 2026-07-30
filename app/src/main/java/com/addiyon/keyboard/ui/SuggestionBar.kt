@@ -3,17 +3,12 @@ package com.addiyon.keyboard.ui
 
 import android.animation.ValueAnimator
 import android.os.Build
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -49,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,38 +67,22 @@ import com.addiyon.keyboard.ui.theme.LocalLowRamKeyboard
 import com.addiyon.keyboard.suggestion.EmailChip
 import com.addiyon.keyboard.voice.VoiceUiState
 import com.addiyon.keyboard.voice.isRecording
-import com.addiyon.keyboard.voice.isVoiceMode
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import kotlinx.coroutines.delay
 
 internal const val AMHARIC_SUGGESTION_STRIP_TAG = "amharic-suggestion-strip"
+internal const val LANGUAGE_LOADING_INDICATOR_TAG = "language-loading-indicator"
+internal const val PREDICTION_LOADING_STRIP_TAG = "prediction-loading-strip"
+internal const val PREDICTION_LOADING_INDICATOR_TAG = "prediction-loading-indicator"
+internal const val PREDICTION_LOADING_INDICATOR_DELAY_MILLIS = 120L
+internal fun predictionLoadingSlotTag(index: Int) = "prediction-loading-slot-$index"
 
-/**
- * The word-completion strip above the key rows. Always reserves a fixed-height
- * row while showing (the caller decides IF it should show at all, e.g. only on
- * a letter layout -- see [com.addiyon.keyboard.ui.KeyboardScreen]) so the
- * keyboard's height doesn't visibly jump as [suggestions] goes from empty to
- * populated and back; an empty [suggestions] just renders a blank bar.
- *
- * Two layouts, chosen by [isAmharic]:
- *
- *  - AMHARIC: the strip can be long (multiple fidel readings + completions of
- *    each), so it SCROLLS HORIZONTALLY -- each chip is sized to its content
- *    and a thin separator follows every word.
- *  - ENGLISH: a fixed three-up layout (Gboard-style), each slot an equal third
- *    of the width with its word CENTERED. A long word doesn't scroll or
- *    ellipsize -- its font auto-shrinks to fit its slot.
- *
- * Each chip routes its tap through [onTap] -- the same "everything goes through
- * a service method" convention every other key already follows (see [KeyRow]).
- */
 @Composable
 fun SuggestionArea(
-    suggestions: List<String>,
+    state: SuggestionUiState,
     isAmharic: Boolean,
-    isPredictions: Boolean = false,
-    emailSuggestions: List<EmailChip> = emptyList(),
-    onTap: (String) -> Unit,
+    onTap: (SuggestionTap) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenThemes: () -> Unit,
     onOpenGuide: () -> Unit,
@@ -110,76 +90,176 @@ fun SuggestionArea(
     onAi: () -> Unit,
     onClipboard: () -> Unit,
     onEmoji: () -> Unit,
-    voiceUiState: VoiceUiState = VoiceUiState.Idle,
     onVoice: () -> Unit = {},
     onExitVoice: () -> Unit = {},
-    isLanguageSwitching: Boolean = false,
 ) {
-    val voiceMode = voiceUiState.isVoiceMode
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(40.dp)
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 8.dp),
-        horizontalArrangement = if (!voiceMode && suggestions.isEmpty()) {
+        horizontalArrangement = if (
+            state == SuggestionUiState.Toolbar ||
+            state == SuggestionUiState.Private
+        ) {
             Arrangement.SpaceBetween
         } else {
             Arrangement.Start
         },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (voiceMode) {
-            ToolbarIcon(Icons.AutoMirrored.Outlined.ArrowBack, "Exit voice input", onExitVoice)
-            val label = voiceLabel(voiceUiState, isAmharic)
-            Text(
-                text = label,
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp)
-            )
-            MicToolbarIcon(isListening = voiceUiState.isRecording, onClick = onVoice)
-        } else if (suggestions.isEmpty() && emailSuggestions.isEmpty()) {
-            // AI + Clipboard kept for later, commented out for now:
-            // ToolbarIcon(Icons.Outlined.AutoAwesome, "AI", onAi)
-            // ToolbarIcon(Icons.Outlined.ContentPaste, "Clipboard", onClipboard)
-            ToolbarIcon(Icons.Outlined.Settings, "Settings", onOpenSettings)
-            ToolbarIcon(Icons.Outlined.EmojiEmotions, "Emoji", onEmoji)
-            ToolbarIcon(Icons.Outlined.MenuBook, "Typing guide", onOpenGuide)
-            ToolbarIcon(Icons.Outlined.Feedback, "Feedback", onFeedback)
-            ToolbarIcon(Icons.Outlined.Palette, "Themes", onOpenThemes)
-            MicToolbarIcon(isListening = false, onClick = onVoice)
-        } else {
-            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                AnimatedContent(
-                    targetState = isLanguageSwitching to (emailSuggestions.isNotEmpty() to isAmharic),
-                    transitionSpec = {
-                        (fadeIn(animationSpec = tween(180)) + scaleIn(initialScale = 0.96f))
-                            .togetherWith(fadeOut(animationSpec = tween(140)))
-                    },
-                    label = "suggestion-strip",
-                ) { (loading, emailOrAmharic) ->
-                    if (loading) {
-                        LanguageLoadingDot()
-                    } else {
-                        val (hasEmail, isAm) = emailOrAmharic
-                        when {
-                            hasEmail ->
-                                EmailSuggestionStrip(emailSuggestions, onTap)
-                            isAm ->
-                                AmharicSuggestionStrip(suggestions, isPredictions, onTap)
-                            else ->
-                                EnglishSuggestionStrip(suggestions, onTap)
+        when (state) {
+            SuggestionUiState.Toolbar -> {
+                ToolbarActions(
+                    onOpenSettings = onOpenSettings,
+                    onOpenThemes = onOpenThemes,
+                    onOpenGuide = onOpenGuide,
+                    onFeedback = onFeedback,
+                    onEmoji = onEmoji,
+                )
+                MicToolbarIcon(isListening = false, onClick = onVoice)
+            }
+
+            SuggestionUiState.Private -> {
+                ToolbarActions(
+                    onOpenSettings = onOpenSettings,
+                    onOpenThemes = onOpenThemes,
+                    onOpenGuide = onOpenGuide,
+                    onFeedback = onFeedback,
+                    onEmoji = onEmoji,
+                )
+            }
+
+            is SuggestionUiState.Voice -> {
+                ToolbarIcon(
+                    Icons.AutoMirrored.Outlined.ArrowBack,
+                    "Exit voice input",
+                    onExitVoice,
+                )
+                Text(
+                    text = voiceLabel(state.voiceUiState, isAmharic),
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
+                )
+                MicToolbarIcon(
+                    isListening = state.voiceUiState.isRecording,
+                    onClick = onVoice,
+                )
+            }
+
+            else -> {
+                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    when (state) {
+                        SuggestionUiState.LoadingLanguage -> LanguageLoadingDot()
+                        SuggestionUiState.LoadingPredictions,
+                        SuggestionUiState.LoadingCompletions -> PredictionLoadingStrip()
+                        is SuggestionUiState.WordCompletions -> {
+                            val scopedTap: (String) -> Unit = {
+                                onTap(SuggestionTap(it, state.actionGeneration))
+                            }
+                            if (isAmharic) {
+                                AmharicSuggestionStrip(
+                                    suggestions = state.words,
+                                    isPredictions = false,
+                                    onTap = scopedTap,
+                                )
+                            } else {
+                                EnglishSuggestionStrip(state.words, scopedTap)
+                            }
                         }
+
+                        is SuggestionUiState.NextWordPredictions -> {
+                            val scopedTap: (String) -> Unit = {
+                                onTap(SuggestionTap(it, state.actionGeneration))
+                            }
+                            if (isAmharic) {
+                                AmharicSuggestionStrip(
+                                    suggestions = state.words,
+                                    isPredictions = true,
+                                    onTap = scopedTap,
+                                )
+                            } else {
+                                EnglishSuggestionStrip(state.words, scopedTap)
+                            }
+                        }
+
+                        is SuggestionUiState.EmailSuggestions -> {
+                            val scopedTap: (String) -> Unit = {
+                                onTap(SuggestionTap(it, state.actionGeneration))
+                            }
+                            EmailSuggestionStrip(state.chips, scopedTap)
+                        }
+
+                        SuggestionUiState.Private,
+                        SuggestionUiState.Toolbar,
+                        is SuggestionUiState.Voice -> Unit
                     }
                 }
+                MicToolbarIcon(isListening = false, onClick = onVoice)
             }
-            MicToolbarIcon(isListening = false, onClick = onVoice)
+        }
+    }
+}
+
+@Composable
+private fun ToolbarActions(
+    onOpenSettings: () -> Unit,
+    onOpenThemes: () -> Unit,
+    onOpenGuide: () -> Unit,
+    onFeedback: () -> Unit,
+    onEmoji: () -> Unit,
+) {
+    ToolbarIcon(Icons.Outlined.Settings, "Settings", onOpenSettings)
+    ToolbarIcon(Icons.Outlined.EmojiEmotions, "Emoji", onEmoji)
+    ToolbarIcon(Icons.Outlined.MenuBook, "Typing guide", onOpenGuide)
+    ToolbarIcon(Icons.Outlined.Feedback, "Feedback", onFeedback)
+    ToolbarIcon(Icons.Outlined.Palette, "Themes", onOpenThemes)
+}
+
+@Composable
+private fun PredictionLoadingStrip() {
+    var showIndicator by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(PREDICTION_LOADING_INDICATOR_DELAY_MILLIS)
+        showIndicator = true
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .testTag(PREDICTION_LOADING_STRIP_TAG),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(3) { index ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .testTag(predictionLoadingSlotTag(index)),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (index == 1 && showIndicator) {
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .testTag(PREDICTION_LOADING_INDICATOR_TAG)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                                shape = CircleShape,
+                            )
+                    )
+                }
+            }
+            if (index < 2) {
+                SuggestionDivider()
+            }
         }
     }
 }
@@ -202,7 +282,9 @@ private fun LanguageLoadingDot() {
         animated
     }
     Row(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(LANGUAGE_LOADING_INDICATOR_TAG),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {

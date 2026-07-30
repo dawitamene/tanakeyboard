@@ -2,6 +2,7 @@ package com.addiyon.keyboard.composing
 
 import android.view.inputmethod.InputConnection
 import com.addiyon.keyboard.EditorGateway
+import com.addiyon.keyboard.EditorToken
 import java.util.ArrayDeque
 
 /**
@@ -93,8 +94,9 @@ internal class WordComposer(
     private var rawDirty = true
     private var cursorOffset = 0
     private var composingStart: Int? = null
+    private var composingEnd: Int? = null
     private var lastPushedLength = 0
-    private val replacedComposingLengths = ArrayDeque<Int>()
+    private val replacedComposingRegions = ArrayDeque<Pair<Int, Int>>()
     private var pendingCursorOffset: Int? = null
 
     /** True while there's an active composing region we're responsible for. */
@@ -123,11 +125,19 @@ internal class WordComposer(
      * the caller -- this class doesn't know about shift state. In Amharic,
      * feeding "H" vs "h" is how you reach ሐ vs ሀ once committed.
      */
-    fun onCharacter(char: String) {
+    fun onCharacter(char: String, token: EditorToken? = null) {
+        if (buffer.isEmpty()) {
+            val selectionStart = token?.selectionStart ?: -1
+            val selectionEnd = token?.selectionEnd ?: -1
+            if (selectionStart >= 0 && selectionEnd >= 0) {
+                composingStart = minOf(selectionStart, selectionEnd)
+                composingEnd = composingStart
+            }
+        }
         buffer.insert(cursorOffset, char)
         cursorOffset += char.length
         rawDirty = true
-        if (!pushComposing()) clearBuffer()
+        if (!pushComposing(token)) clearBuffer()
     }
 
     /**
@@ -139,7 +149,7 @@ internal class WordComposer(
      * languages by default, so the user clears the composed word letter by
      * letter.
      */
-    fun onBackspace(): Boolean {
+    fun onBackspace(token: EditorToken? = null): Boolean {
         if (buffer.isEmpty() || cursorOffset == 0) return false
         val unitStart = lastUnitStart(buffer.substring(0, cursorOffset))
             .coerceIn(0, cursorOffset)
@@ -151,11 +161,11 @@ internal class WordComposer(
             // must end up EMPTY in the field (setComposingText("")), not
             // finalized; finishComposingText then closes the empty region's
             // bookkeeping cleanly.
-            editor.setComposingText("")
-            editor.finishComposingText()
+            editor.setComposingText("", token)
+            editor.finishComposingText(token)
             clearBuffer()
         } else {
-            if (!pushComposing()) clearBuffer()
+            if (!pushComposing(token)) clearBuffer()
         }
         return true
     }
@@ -168,14 +178,16 @@ internal class WordComposer(
      * word; for Amharic it swaps the underlined Latin for the ranked top
      * fidel reading.
      */
-    fun commit() {
-        if (buffer.isEmpty()) return
+    fun commit(token: EditorToken? = null): Boolean {
+        if (buffer.isEmpty()) return false
         val committedRaw = raw
         val committedDisplay = commitTransform(committedRaw)
-        if (editor.commitText(committedDisplay)) {
+        val committed = editor.commitText(committedDisplay, token)
+        if (committed) {
             onCommit(committedRaw, committedDisplay)
         }
         clearBuffer()
+        return committed
     }
 
     /**
@@ -214,12 +226,51 @@ internal class WordComposer(
         buffer.append(prefix)
         this.cursorOffset = cursorOffset.coerceIn(0, prefix.length)
         this.composingStart = composingStart
+        composingEnd = composingStart?.plus(prefix.length)
         rawDirty = true
         if (!pushComposing()) clearBuffer()
     }
 
-    fun moveCursor(cursorOffset: Int, composingStart: Int): Boolean {
-        if (buffer.isEmpty() || cursorOffset !in 0..buffer.length || composingStart < 0) {
+    fun adopt(
+        word: String,
+        cursorOffset: Int,
+        composingStart: Int,
+        composingEnd: Int
+    ): Boolean {
+        if (
+            buffer.isNotEmpty() ||
+            word.isEmpty() ||
+            cursorOffset !in 0..word.length ||
+            composingStart < 0 ||
+            composingEnd - composingStart != word.length
+        ) {
+            return false
+        }
+        buffer.append(word)
+        this.cursorOffset = cursorOffset
+        this.composingStart = composingStart
+        this.composingEnd = composingEnd
+        lastPushedLength = word.length
+        rawDirty = true
+        return true
+    }
+
+    fun moveCursor(
+        cursorOffset: Int,
+        composingStart: Int,
+        composingEnd: Int
+    ): Boolean {
+        if (
+            buffer.isEmpty() ||
+            cursorOffset !in 0..buffer.length ||
+            composingStart < 0 ||
+            composingEnd - composingStart != buffer.length
+        ) {
+            return false
+        }
+        val ownedStart = this.composingStart ?: return false
+        val ownedEnd = this.composingEnd ?: return false
+        if (ownedStart != composingStart || ownedEnd != composingEnd) {
             return false
         }
         val pending = pendingCursorOffset
@@ -233,13 +284,17 @@ internal class WordComposer(
             }
         }
         this.cursorOffset = cursorOffset
-        this.composingStart = composingStart
         return true
     }
 
-    fun isStaleComposingUpdate(composingStart: Int, composingLength: Int): Boolean =
-        this.composingStart == composingStart &&
-            composingLength in replacedComposingLengths
+    fun isStaleComposingUpdate(composingStart: Int, composingEnd: Int): Boolean =
+        composingStart to composingEnd in replacedComposingRegions
+
+    fun ownedComposingRegion(): Pair<Int, Int>? {
+        val start = composingStart ?: return null
+        val end = composingEnd ?: return null
+        return start to end
+    }
 
     fun textBeforeCursor(): String =
         buffer.substring(0, cursorOffset)
@@ -247,7 +302,7 @@ internal class WordComposer(
     fun textAfterCursor(): String =
         buffer.substring(cursorOffset)
 
-    fun commitAtCursor(): Boolean {
+    fun commitAtCursor(token: EditorToken? = null): Boolean {
         if (buffer.isEmpty() || cursorOffset == buffer.length) return false
         val regionStart = composingStart ?: return false
         val leftRaw = buffer.substring(0, cursorOffset)
@@ -257,7 +312,10 @@ internal class WordComposer(
         if (
             editor.commitTextAndSelection(
                 text = leftDisplay + rightDisplay,
-                selection = regionStart + leftDisplay.length
+                selection = regionStart + leftDisplay.length,
+                expectedIntermediateSelection =
+                    regionStart + leftDisplay.length + rightDisplay.length,
+                token = token
             )
         ) {
             if (leftRaw.isNotEmpty()) onCommit(leftRaw, leftDisplay)
@@ -278,9 +336,14 @@ internal class WordComposer(
      * finishComposingText() call is needed first; clearing the buffer means
      * the next keystroke starts a fresh word.
      */
-    fun commitSuggestion(word: String) {
-        editor.commitText("$word ")
+    fun commitSuggestion(word: String, token: EditorToken? = null): Boolean {
+        val regionStart = composingStart ?: 0
+        val committed = editor.commitText("$word ", token)
+        if (committed) {
+            editor.noteSelection(regionStart + word.length + 1, regionStart + word.length + 1)
+        }
         clearBuffer()
+        return committed
     }
 
     /**
@@ -315,32 +378,55 @@ internal class WordComposer(
         buffer.clear()
         cursorOffset = 0
         composingStart = null
+        composingEnd = null
         lastPushedLength = 0
-        replacedComposingLengths.clear()
+        replacedComposingRegions.clear()
         pendingCursorOffset = null
         rawDirty = true
     }
 
-    private fun pushComposing(): Boolean {
+    private fun pushComposing(token: EditorToken? = null): Boolean {
         val desiredCursor = cursorOffset
         val regionStart = composingStart
         if (lastPushedLength > 0 && lastPushedLength != buffer.length) {
-            replacedComposingLengths.addLast(lastPushedLength)
-            while (replacedComposingLengths.size > 4) {
-                replacedComposingLengths.removeFirst()
+            if (regionStart != null) {
+                replacedComposingRegions.addLast(
+                    regionStart to (regionStart + lastPushedLength)
+                )
+            }
+            while (replacedComposingRegions.size > 4) {
+                replacedComposingRegions.removeFirst()
             }
         }
         lastPushedLength = buffer.length
+        if (regionStart != null) {
+            composingEnd = regionStart + buffer.length
+        }
         if (regionStart != null && desiredCursor < buffer.length) {
             pendingCursorOffset = desiredCursor
+            val selection = regionStart + desiredCursor
             val accepted = editor.setComposingTextAndSelection(
                 text = raw,
-                selection = regionStart + desiredCursor
+                selection = selection,
+                expectedIntermediateSelection = regionStart + raw.length,
+                token = token
             )
-            if (!accepted) pendingCursorOffset = null
+            if (accepted) {
+                editor.noteSelection(selection, selection)
+            } else {
+                pendingCursorOffset = null
+            }
             return accepted
         }
         pendingCursorOffset = null
-        return editor.setComposingText(raw)
+        if (regionStart == null) {
+            return editor.setComposingText(raw, token)
+        }
+        val selection = regionStart + raw.length
+        val accepted = editor.setComposingText(raw, token)
+        if (accepted) {
+            editor.noteSelection(selection, selection)
+        }
+        return accepted
     }
 }

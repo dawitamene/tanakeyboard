@@ -30,6 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.addiyon.keyboard.telemetry.Telemetry
+import com.addiyon.keyboard.telemetry.TelemetrySetting
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.AppPageTopBar
 
@@ -82,6 +84,7 @@ fun SoundVibrationScreen(
                         onCheckedChange = {
                             vibrate = it
                             KeyboardPrefs.setVibrateOnKeypress(context, it)
+                            Telemetry.settingChanged(TelemetrySetting.VIBRATION, it)
                         }
                     )
                 }
@@ -91,6 +94,7 @@ fun SoundVibrationScreen(
                     onCheckedChange = {
                         sound = it
                         KeyboardPrefs.setSoundOnKeypress(context, it)
+                        Telemetry.settingChanged(TelemetrySetting.SOUND, it)
                     }
                 )
                 ToggleRow(
@@ -99,6 +103,7 @@ fun SoundVibrationScreen(
                     onCheckedChange = {
                         numberRow = it
                         KeyboardPrefs.setNumberRow(context, it)
+                        Telemetry.settingChanged(TelemetrySetting.NUMBER_ROW, it)
                     }
                 )
             }

@@ -1,20 +1,13 @@
 package com.addiyon.keyboard.voice
 
 import android.content.Context
-import android.content.Intent
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import com.addiyon.keyboard.SafeLog
 import com.addiyon.keyboard.safeApply
 import com.addiyon.keyboard.safeRun
+import com.addiyon.keyboard.telemetry.NonFatalCategory
 
 /**
- * Drives Android's [SpeechRecognizer] for continuous dictation. The platform
+ * Drives Android's [android.speech.SpeechRecognizer] for continuous dictation. The platform
  * recognizer is single-utterance, so "continuous" means tearing the session
  * down and starting a fresh one after every final result / recoverable error
  * -- all of that churn stays INSIDE this class. The outside world only sees
@@ -40,15 +33,28 @@ import com.addiyon.keyboard.safeRun
  * acting. Timers are individually-cancelled named tokens -- never
  * removeCallbacksAndMessages(null), which cancels unrelated pending work.
  */
-class VoiceInputController(
-    private val context: Context,
+class VoiceInputController internal constructor(
+    private val recognizerFactory: VoiceRecognizerFactory,
+    private val scheduler: VoiceScheduler,
     private val onPartial: (String) -> Unit,
     private val onFinal: (String) -> Unit,
     private val onFatalError: (VoiceErrorKind) -> Unit
 ) {
-    private var recognizer: SpeechRecognizer? = null
+    constructor(
+        context: Context,
+        onPartial: (String) -> Unit,
+        onFinal: (String) -> Unit,
+        onFatalError: (VoiceErrorKind) -> Unit
+    ) : this(
+        recognizerFactory = AndroidVoiceRecognizerFactory(context),
+        scheduler = AndroidVoiceScheduler(),
+        onPartial = onPartial,
+        onFinal = onFinal,
+        onFatalError = onFatalError
+    )
+
+    private var recognizer: VoiceRecognizerHandle? = null
     private var activeLanguageTag: String? = null
-    private val handler = Handler(Looper.getMainLooper())
     private val ownership = VoiceSessionOwnership()
     private var userStopped = false
     private var lastPartial = ""
@@ -58,7 +64,7 @@ class VoiceInputController(
     private var restartToken: Runnable? = null
 
     val isAvailable: Boolean
-        get() = safeRun(false) { SpeechRecognizer.isRecognitionAvailable(context) }
+        get() = safeRun(false) { recognizerFactory.isAvailable() }
 
     fun start(languageTag: String) {
         safeApply {
@@ -127,60 +133,40 @@ class VoiceInputController(
 
             val session = ownership.begin() ?: return@safeApply
             val newRecognizer = try {
-                SpeechRecognizer.createSpeechRecognizer(context)
+                recognizerFactory.create()
             } catch (oom: OutOfMemoryError) {
-                SafeLog.e(oom, "createSpeechRecognizer OOM")
+                SafeLog.e(oom, "createSpeechRecognizer OOM", NonFatalCategory.VOICE)
                 failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             } catch (t: Throwable) {
-                SafeLog.e(t, "createSpeechRecognizer")
+                SafeLog.e(t, "createSpeechRecognizer", NonFatalCategory.VOICE)
                 failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             }
             recognizer = newRecognizer
             try {
-                newRecognizer.setRecognitionListener(createListener(session))
+                newRecognizer.setCallback(createListener(session))
             } catch (oom: OutOfMemoryError) {
-                SafeLog.e(oom, "setRecognitionListener OOM")
+                SafeLog.e(oom, "setRecognitionListener OOM", NonFatalCategory.VOICE)
                 failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             } catch (t: Throwable) {
-                SafeLog.e(t, "setRecognitionListener")
+                SafeLog.e(t, "setRecognitionListener", NonFatalCategory.VOICE)
                 failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             }
             try {
-                newRecognizer.startListening(recognizerIntent(languageTag))
+                newRecognizer.startListening(languageTag)
             } catch (oom: OutOfMemoryError) {
-                SafeLog.e(oom, "startListening OOM")
+                SafeLog.e(oom, "startListening OOM", NonFatalCategory.VOICE)
                 failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             } catch (t: Throwable) {
-                SafeLog.e(t, "startListening")
+                SafeLog.e(t, "startListening", NonFatalCategory.VOICE)
                 failSession(VoiceErrorKind.UNKNOWN)
                 return@safeApply
             }
             scheduleStartWatchdog(session)
-        }
-    }
-
-    private fun recognizerIntent(languageTag: String): Intent {
-        return safeRun(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)) {
-            Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag)
-                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1800)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1800)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1500)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    putExtra(RecognizerIntent.EXTRA_ENABLE_LANGUAGE_DETECTION, true)
-                    putStringArrayListExtra(
-                        RecognizerIntent.EXTRA_LANGUAGE_DETECTION_ALLOWED_LANGUAGES,
-                        arrayListOf("am-ET", "en-US")
-                    )
-                }
-            }
         }
     }
 
@@ -189,36 +175,44 @@ class VoiceInputController(
             val current = recognizer ?: return@safeApply
             recognizer = null
             try {
-                current.setRecognitionListener(null)
+                current.setCallback(null)
             } catch (oom: OutOfMemoryError) {
-                SafeLog.e(oom, "releaseRecognizer setRecognitionListener OOM")
+                SafeLog.e(
+                    oom,
+                    "releaseRecognizer setRecognitionListener OOM",
+                    NonFatalCategory.VOICE
+                )
             } catch (t: Throwable) {
-                SafeLog.e(t, "releaseRecognizer setRecognitionListener")
+                SafeLog.e(
+                    t,
+                    "releaseRecognizer setRecognitionListener",
+                    NonFatalCategory.VOICE
+                )
             }
             if (cancel) {
                 try {
                     current.cancel()
                 } catch (oom: OutOfMemoryError) {
-                    SafeLog.e(oom, "releaseRecognizer cancel OOM")
+                    SafeLog.e(oom, "releaseRecognizer cancel OOM", NonFatalCategory.VOICE)
                 } catch (t: Throwable) {
-                    SafeLog.e(t, "releaseRecognizer cancel")
+                    SafeLog.e(t, "releaseRecognizer cancel", NonFatalCategory.VOICE)
                 }
             }
             try {
                 current.destroy()
             } catch (oom: OutOfMemoryError) {
-                SafeLog.e(oom, "releaseRecognizer destroy OOM")
+                SafeLog.e(oom, "releaseRecognizer destroy OOM", NonFatalCategory.VOICE)
             } catch (t: Throwable) {
-                SafeLog.e(t, "releaseRecognizer destroy")
+                SafeLog.e(t, "releaseRecognizer destroy", NonFatalCategory.VOICE)
             }
         }
     }
 
-    private fun createListener(session: VoiceSessionTicket): RecognitionListener =
-        object : RecognitionListener {
+    private fun createListener(session: VoiceSessionTicket): VoiceRecognizerCallback =
+        object : VoiceRecognizerCallback {
         private fun isCurrent() = safeRun(false) { ownership.isCurrent(session) }
 
-        override fun onReadyForSpeech(params: Bundle?) {
+        override fun onReadyForSpeech() {
             safeApply {
                 if (!isCurrent()) return@safeApply
                 cancelStartWatchdog()
@@ -233,9 +227,6 @@ class VoiceInputController(
             }
         }
 
-        override fun onRmsChanged(rmsdB: Float) = Unit
-        override fun onBufferReceived(buffer: ByteArray?) = Unit
-
         override fun onEndOfSpeech() {
             safeApply {
                 if (!isCurrent()) return@safeApply
@@ -243,11 +234,10 @@ class VoiceInputController(
             }
         }
 
-        override fun onError(error: Int) {
+        override fun onError(kind: VoiceErrorKind) {
             safeApply {
                 if (!isCurrent()) return@safeApply
                 cancelSpeechEndFallback()
-                val kind = errorKind(error)
                 if (VoiceRecoveryPolicy.isRecoverable(kind)) {
                     recover()
                 } else {
@@ -256,13 +246,13 @@ class VoiceInputController(
             }
         }
 
-        override fun onResults(results: Bundle?) {
+        override fun onResults(result: String?) {
             safeApply {
                 if (!isCurrent()) return@safeApply
                 cancelSpeechEndFallback()
                 // A blank final falls back to the last partial: the user already
                 // saw that text, so it must be finalized, not dropped.
-                val final = bestHypothesis(results)?.takeIf { it.isNotBlank() } ?: lastPartial
+                val final = result?.takeIf { it.isNotBlank() } ?: lastPartial
                 if (final.isNotBlank()) {
                     lastPartial = ""
                     recoverableErrorCount = 0
@@ -274,17 +264,15 @@ class VoiceInputController(
             }
         }
 
-        override fun onPartialResults(partialResults: Bundle?) {
+        override fun onPartialResults(result: String?) {
             safeApply {
                 if (!isCurrent()) return@safeApply
-                bestHypothesis(partialResults)?.takeIf { it.isNotBlank() }?.let {
+                result?.takeIf { it.isNotBlank() }?.let {
                     lastPartial = it
                     onPartial(it)
                 }
             }
         }
-
-        override fun onEvent(eventType: Int, params: Bundle?) = Unit
     }
 
     private fun recover() {
@@ -341,9 +329,9 @@ class VoiceInputController(
             }
             watchdogToken = token
             try {
-                handler.postDelayed(token, START_WATCHDOG_MILLIS)
+                scheduler.postDelayed(token, START_WATCHDOG_MILLIS)
             } catch (t: Throwable) {
-                SafeLog.e(t, "scheduleStartWatchdog")
+                SafeLog.e(t, "scheduleStartWatchdog", NonFatalCategory.VOICE)
             }
         }
     }
@@ -352,9 +340,9 @@ class VoiceInputController(
         safeApply {
             watchdogToken?.let { token ->
                 try {
-                    handler.removeCallbacks(token)
+                    scheduler.removeCallbacks(token)
                 } catch (t: Throwable) {
-                    SafeLog.e(t, "cancelStartWatchdog")
+                    SafeLog.e(t, "cancelStartWatchdog", NonFatalCategory.VOICE)
                 }
             }
             watchdogToken = null
@@ -377,9 +365,9 @@ class VoiceInputController(
             }
             speechEndToken = token
             try {
-                handler.postDelayed(token, SPEECH_END_COMMIT_GRACE_MILLIS)
+                scheduler.postDelayed(token, SPEECH_END_COMMIT_GRACE_MILLIS)
             } catch (t: Throwable) {
-                SafeLog.e(t, "scheduleSpeechEndFallback")
+                SafeLog.e(t, "scheduleSpeechEndFallback", NonFatalCategory.VOICE)
             }
         }
     }
@@ -388,9 +376,9 @@ class VoiceInputController(
         safeApply {
             speechEndToken?.let { token ->
                 try {
-                    handler.removeCallbacks(token)
+                    scheduler.removeCallbacks(token)
                 } catch (t: Throwable) {
-                    SafeLog.e(t, "cancelSpeechEndFallback")
+                    SafeLog.e(t, "cancelSpeechEndFallback", NonFatalCategory.VOICE)
                 }
             }
             speechEndToken = null
@@ -425,9 +413,9 @@ class VoiceInputController(
             }
             restartToken = token
             try {
-                handler.postDelayed(token, delay)
+                scheduler.postDelayed(token, delay)
             } catch (t: Throwable) {
-                SafeLog.e(t, "scheduleRestart")
+                SafeLog.e(t, "scheduleRestart", NonFatalCategory.VOICE)
             }
         }
     }
@@ -436,9 +424,9 @@ class VoiceInputController(
         safeApply {
             restartToken?.let { token ->
                 try {
-                    handler.removeCallbacks(token)
+                    scheduler.removeCallbacks(token)
                 } catch (t: Throwable) {
-                    SafeLog.e(t, "cancelRestart")
+                    SafeLog.e(t, "cancelRestart", NonFatalCategory.VOICE)
                 }
             }
             restartToken = null
@@ -451,26 +439,6 @@ class VoiceInputController(
             cancelSpeechEndFallback()
             cancelRestart()
         }
-    }
-
-    private fun bestHypothesis(results: Bundle?): String? =
-        safeRun(null) {
-            results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-        }
-
-    private fun errorKind(error: Int): VoiceErrorKind = when (error) {
-        SpeechRecognizer.ERROR_AUDIO -> VoiceErrorKind.AUDIO
-        SpeechRecognizer.ERROR_CLIENT -> VoiceErrorKind.CLIENT
-        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> VoiceErrorKind.PERMISSION
-        SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> VoiceErrorKind.NETWORK
-        SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> VoiceErrorKind.NO_SPEECH
-        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> VoiceErrorKind.RECOGNIZER_BUSY
-        SpeechRecognizer.ERROR_SERVER -> VoiceErrorKind.SERVER
-        SpeechRecognizer.ERROR_SERVER_DISCONNECTED -> VoiceErrorKind.SERVER_DISCONNECTED
-        SpeechRecognizer.ERROR_TOO_MANY_REQUESTS -> VoiceErrorKind.TOO_MANY_REQUESTS
-        SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> VoiceErrorKind.LANGUAGE_UNSUPPORTED
-        SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> VoiceErrorKind.LANGUAGE_UNAVAILABLE
-        else -> VoiceErrorKind.UNKNOWN
     }
 
     private companion object {

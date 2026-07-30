@@ -29,11 +29,14 @@ is a common cause of IME review rejection.
 
 | Claim in the policy | What it depends on |
 |---|---|
-| "does not request the `INTERNET` permission" | `AndroidManifest.xml` requesting only `RECORD_AUDIO` and `VIBRATE`; asserted by `plans/verify-release-artifact.sh` |
-| No analytics / crash / ads SDKs | the dependency list in `app/build.gradle.kts` |
+| Typed/editor content is never sent | typed enum/boolean-only `telemetry/Telemetry.kt` API and static privacy tests |
+| Analytics and Crashlytics are independent opt-ins, off by default | manifest collection defaults, `TelemetryPrefs`, and `TelemetryConsentPolicyTest` |
+| No advertising ID, AdServices, signals, or ad personalization | manifest removals/defaults and `plans/verify-release-artifact.sh` deny checks |
 | Voice audio is handled by the device's speech service | `voice/VoiceInputController.kt` delegating to `SpeechRecognizer` |
-| Backup covers two named prefs files only | `res/xml/backup_rules.xml` and `res/xml/data_extraction_rules.xml` |
+| Diagnostics consent is not restored | explicit exclusions in `res/xml/backup_rules.xml` and `res/xml/data_extraction_rules.xml` |
 | The listed on-device settings | the `KEY_*` constants in `ui/settings/KeyboardPrefs.kt` |
 
-The matching in-app wording lives in `ui/i18n/AppStrings.kt` (`aboutPrivacy`,
-`activateFootnote`), in both English and Amharic.
+The matching in-app wording lives in `ui/i18n/AppStrings.kt` and
+`ui/settings/PrivacyDiagnosticsScreen.kt`, in both English and Amharic. Before deployment,
+confirm the production Firebase property uses two-month event-level Analytics retention,
+Google Signals and ad personalization are disabled, and the Play Data safety form matches.

@@ -15,15 +15,15 @@ Companion references:
 
 ## Current repo snapshot
 
-Verified from the repository on 2026-07-28:
+Verified from the repository on 2026-07-30:
 
 - [x] Google Play production access has been granted.
 - [x] Application ID is `com.addiyon.keyboard`.
 - [x] `targetSdk` and `compileSdk` are 36. This already meets Google Play's API 36
   requirement that begins on 2026-08-31.
 - [x] `minSdk` is 24.
-- [x] Intended version name is currently `1.10.2`.
-- [x] The generated release manifest currently reports version code `74`.
+- [x] `version.properties` declares intended version name `2.0.0` and version-code floor
+  `68`.
 - [x] Release minification and resource shrinking are enabled.
 - [x] A release signing certificate fingerprint is pinned in `version.properties`.
 - [x] A privacy-policy page exists in the repo and an in-app link points to
@@ -45,10 +45,11 @@ Verified from the repository on 2026-07-28:
 - [ ] Separate intentional release changes from local IDE files and unrelated work.
 - [ ] Commit the exact source intended for production.
 - [ ] Confirm the working tree is clean before generating the candidate.
-- [ ] Confirm `versionName=1.10.2` is the intended public version; change it before the
+- [ ] Confirm `versionName=2.0.0` is the intended public version; change it before the
   freeze if it is not.
 - [ ] In Play Console, find the highest version code already uploaded.
-- [ ] Confirm the generated version code is strictly higher than that Play Console value.
+- [ ] Record the freshly generated version code (`max(versionCodeFloor=68, git commit
+  count)`) and confirm it is strictly higher than that Play Console value.
 - [ ] Write final English and Amharic release notes for this version.
 - [ ] Record the candidate commit SHA and name one person as the final release owner.
 - [ ] After sign-off, do not rebuild or make a small last-minute change. Any change creates
@@ -57,27 +58,19 @@ Verified from the repository on 2026-07-28:
 The AAB currently under `app/build/outputs/bundle/release/` was built on 2026-07-25. It
 predates the current uncommitted changes and must not be treated as the final candidate.
 
-### 2. Repair the release verifier before trusting it
+### 2. Run the release verifier against fresh Firebase-enabled outputs
 
-- [ ] Resolve the permission-count contradiction in
-  `plans/verify-release-artifact.sh`.
-
-Current evidence:
-
-- The merged release manifest contains:
-  - `android.permission.RECORD_AUDIO`
-  - `android.permission.VIBRATE`
-  - `com.addiyon.keyboard.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`
-- The verifier requires `RECORD_AUDIO` and the AndroidX dynamic-receiver permission, but
-  then requires the total `<uses-permission>` count to be two.
-- Because `VIBRATE` is also intentionally present, that assertion cannot pass as written.
-
-The repaired check should compare the exact expected allowlist, including the internal
-signature-protected AndroidX permission, rather than relying only on a count.
+- [x] Replace the contradictory permission-count check with an exact allowlist and
+  advertising-permission denylist.
+- [x] Add production Firebase resource, Crashlytics mapping metadata, and debug crash
+  trigger checks to `plans/verify-release-artifact.sh`.
+- [ ] Supply exactly one valid production `google-services.json` downloaded from
+  Firebase, pin its `mobilesdk_app_id` and `project_id` in `version.properties`, and run
+  the config-enabled release gate.
 
 - [ ] Rebuild after repairing the verifier; do not validate against stale intermediates.
 - [ ] Confirm the final merged manifest has only the intended permissions.
-- [ ] Confirm no debug receiver or benchmark host is enabled or exported in release.
+- [ ] Confirm every debug receiver and benchmark host is absent from release.
 
 ### 3. Resolve privacy and policy declarations
 
@@ -92,10 +85,10 @@ signature-protected AndroidX permission, rather than relying only on a count.
   policy.
 - [ ] Complete the Data safety form based on the final AAB, including third-party SDK and
   Android Backup behavior.
-- [ ] Review the optional voice flow carefully: Addiyon has no `INTERNET` permission, but
-  Android's selected speech-recognition provider may process voice off-device. Ensure the
-  Data safety answers, hosted policy, in-app disclosure, permission prompt, and store
-  description all tell the same accurate story.
+- [ ] Review the optional voice flow carefully: Addiyon has `INTERNET` for optional
+  Firebase diagnostics, while Android's selected speech-recognition provider may process
+  voice off-device. Ensure the Data safety answers, hosted policy, in-app disclosure,
+  permission prompt, and store description distinguish those paths accurately.
 - [ ] Confirm the microphone permission is requested only after the user intentionally
   starts voice typing, with understandable context and a usable deny path.
 - [ ] Confirm the keyboard remains fully usable when microphone access is denied or
