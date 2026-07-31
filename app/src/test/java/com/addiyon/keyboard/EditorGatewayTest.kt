@@ -48,82 +48,6 @@ class EditorGatewayTest {
     }
 
     @Test
-    fun rejectedComposingRegionKeepsCurrentSessionAvailableForFallbackWrite() {
-        val commits = AtomicInteger()
-        val input = connection { method ->
-            when (method.name) {
-                "setComposingRegion" -> false
-                "commitText" -> {
-                    commits.incrementAndGet()
-                    true
-                }
-                else -> defaultValue(method.returnType)
-            }
-        }
-        val gateway = EditorGateway { input }
-        gateway.beginSession(initialSelectionStart = 4, initialSelectionEnd = 4)
-        val token = requireNotNull(gateway.currentToken())
-
-        assertFalse(gateway.setComposingRegion(0, 4, token))
-        assertTrue(gateway.isCurrent(token))
-        assertTrue(gateway.commitText("x", token))
-        assertEquals(1, commits.get())
-    }
-
-    @Test
-    fun throwingComposingRegionKeepsCurrentSessionAvailableForFallbackDelete() {
-        val deletes = AtomicInteger()
-        val input = connection { method ->
-            when (method.name) {
-                "setComposingRegion" -> throw RuntimeException("region rejected")
-                "deleteSurroundingText" -> {
-                    deletes.incrementAndGet()
-                    true
-                }
-                else -> defaultValue(method.returnType)
-            }
-        }
-        val gateway = EditorGateway { input }
-        gateway.beginSession(initialSelectionStart = 4, initialSelectionEnd = 4)
-        val token = requireNotNull(gateway.currentToken())
-
-        assertFalse(gateway.setComposingRegion(0, 4, token))
-        assertTrue(gateway.isCurrent(token))
-        assertTrue(gateway.deleteBeforeCursor(1, token))
-        assertEquals(1, deletes.get())
-    }
-
-    @Test
-    fun composingRegionFailureStillInvalidatesASwappedConnection() {
-        lateinit var second: InputConnection
-        var current: InputConnection? = null
-        val first = connection { method ->
-            if (method.name == "setComposingRegion") {
-                current = second
-                false
-            } else {
-                defaultValue(method.returnType)
-            }
-        }
-        second = connection { method ->
-            if (method.name == "commitText") true else defaultValue(method.returnType)
-        }
-        current = first
-        val gateway = EditorGateway { current }
-        gateway.beginSession(initialSelectionStart = 4, initialSelectionEnd = 4)
-
-        assertFalse(
-            gateway.setComposingRegion(
-                start = 0,
-                end = 4,
-                token = requireNotNull(gateway.currentToken())
-            )
-        )
-        assertNull(gateway.currentToken())
-        assertFalse(gateway.commitText("x"))
-    }
-
-    @Test
     fun selectionRevalidationReadsTheEditorsActualSelection() {
         var actualSelection = 2
         val reads = AtomicInteger()
@@ -157,7 +81,6 @@ class EditorGatewayTest {
 
         assertNull(gateway.textBeforeCursor(10))
         assertNull(gateway.textAfterCursor(10))
-        assertNull(gateway.extractedText())
 
         val disconnected = EditorGateway { null }
         disconnected.beginSession()
@@ -304,82 +227,6 @@ class EditorGatewayTest {
     }
 
     @Test
-    fun rangeReplacementAcceptsItsExpectedSynchronousSelectionCallback() {
-        lateinit var gateway: EditorGateway
-        val commits = AtomicInteger()
-        val batchEnds = AtomicInteger()
-        val input = connection { method ->
-            when (method.name) {
-                "beginBatchEdit" -> true
-                "setSelection" -> {
-                    gateway.noteSelection(1, 4)
-                    true
-                }
-                "commitText" -> {
-                    commits.incrementAndGet()
-                    true
-                }
-                "endBatchEdit" -> {
-                    batchEnds.incrementAndGet()
-                    true
-                }
-                else -> defaultValue(method.returnType)
-            }
-        }
-        gateway = EditorGateway { input }
-        gateway.beginSession(initialSelectionStart = 2, initialSelectionEnd = 2)
-
-        assertTrue(
-            gateway.replaceRange(
-                start = 1,
-                end = 4,
-                text = "word",
-                token = requireNotNull(gateway.currentToken())
-            )
-        )
-        assertEquals(1, commits.get())
-        assertEquals(1, batchEnds.get())
-    }
-
-    @Test
-    fun rangeReplacementAbortsAfterAnUnexpectedSynchronousSelectionCallback() {
-        lateinit var gateway: EditorGateway
-        val commits = AtomicInteger()
-        val batchEnds = AtomicInteger()
-        val input = connection { method ->
-            when (method.name) {
-                "beginBatchEdit" -> true
-                "setSelection" -> {
-                    gateway.noteSelection(8, 8)
-                    true
-                }
-                "commitText" -> {
-                    commits.incrementAndGet()
-                    true
-                }
-                "endBatchEdit" -> {
-                    batchEnds.incrementAndGet()
-                    true
-                }
-                else -> defaultValue(method.returnType)
-            }
-        }
-        gateway = EditorGateway { input }
-        gateway.beginSession(initialSelectionStart = 2, initialSelectionEnd = 2)
-
-        assertFalse(
-            gateway.replaceRange(
-                start = 1,
-                end = 4,
-                text = "word",
-                token = requireNotNull(gateway.currentToken())
-            )
-        )
-        assertEquals(0, commits.get())
-        assertEquals(1, batchEnds.get())
-    }
-
-    @Test
     fun acceptedReplacementAdvancesSelectionWithoutAFrameworkCallback() {
         val input = connection { method -> defaultValue(method.returnType) }
         val gateway = EditorGateway { input }
@@ -479,38 +326,6 @@ class EditorGatewayTest {
         } as InputConnection
 
     /**
-     * Regression: an editor that never echoes its composing spans back reported
-     * null bounds, and the composer's own verification read that as "the field
-     * disagrees with me" -- so every suggestion-chip tap was rejected and
-     * silently did nothing. Unknown bounds must not count as a contradiction.
-     */
-    @Test
-    fun absentComposingBoundsDoNotContradictTheRegionWeSet() {
-        val noBounds = surroundingText(
-            text = "info",
-            offset = 6,
-            selectionStart = 4,
-            selectionEnd = 4,
-            composingStart = null,
-            composingEnd = null
-        )
-
-        assertFalse(noBounds.composingRegionContradicts(start = 6, end = 10))
-        // A half-reported region is still only half-known: the end alone
-        // agreeing is enough not to veto.
-        assertFalse(
-            surroundingText(
-                text = "info",
-                offset = 6,
-                selectionStart = 4,
-                selectionEnd = 4,
-                composingStart = null,
-                composingEnd = 10
-            ).composingRegionContradicts(start = 6, end = 10)
-        )
-    }
-
-    /**
      * Regression: an editor whose getSurroundingText reply carries the
      * documented "offset unknown" marker (-1) -- which is what the framework's
      * DEFAULT implementation always reports, so every Compose text field does
@@ -559,54 +374,6 @@ class EditorGatewayTest {
             )
         )
     }
-
-    @Test
-    fun reportedComposingBoundsThatDisagreeStillContradict() {
-        val shifted = surroundingText(
-            text = "info",
-            offset = 6,
-            selectionStart = 4,
-            selectionEnd = 4,
-            composingStart = 5,
-            composingEnd = 10
-        )
-        val shortEnd = surroundingText(
-            text = "info",
-            offset = 6,
-            selectionStart = 4,
-            selectionEnd = 4,
-            composingStart = 6,
-            composingEnd = 9
-        )
-        val agreeing = surroundingText(
-            text = "info",
-            offset = 6,
-            selectionStart = 4,
-            selectionEnd = 4,
-            composingStart = 6,
-            composingEnd = 10
-        )
-
-        assertTrue(shifted.composingRegionContradicts(start = 6, end = 10))
-        assertTrue(shortEnd.composingRegionContradicts(start = 6, end = 10))
-        assertFalse(agreeing.composingRegionContradicts(start = 6, end = 10))
-    }
-
-    private fun surroundingText(
-        text: String,
-        offset: Int,
-        selectionStart: Int,
-        selectionEnd: Int,
-        composingStart: Int?,
-        composingEnd: Int?
-    ) = EditorSurroundingText(
-        text = text,
-        offset = offset,
-        selectionStart = selectionStart,
-        selectionEnd = selectionEnd,
-        composingStart = composingStart,
-        composingEnd = composingEnd
-    )
 
     private fun extractedText(
         text: String,

@@ -1,12 +1,12 @@
 # AGENTS.md
 
-Tana Keyboard is an Android IME (`InputMethodService`) with Amharic (Ge'ez script) Latin-to-Fidel transliteration and an English layout. UI is Jetpack Compose. Single module `:app`.
+Addiyon Keyboard is an Android IME (`InputMethodService`) with Amharic (Ge'ez script) Latin-to-Fidel transliteration, an English layout, and a SQLite-backed suggestion engine. UI is Jetpack Compose. Single module `:app`.
 
 ## Commands
 
 - Build: `./gradlew assembleDebug`
 - JVM unit tests (no emulator): `./gradlew testDebugUnitTest`
-- Single unit test: `./gradlew testDebugUnitTest --tests "com.addiyon.tanakeyboard.transliteration.SomeTest"`
+- Single unit test: `./gradlew testDebugUnitTest --tests "com.addiyon.keyboard.composing.TypingControllerTest"`
 - Compile-only check (fast): `./gradlew compileDebugKotlin`
 - Instrumented tests (needs emulator): `./gradlew connectedAndroidTest`
 - `app/build.gradle.kts` has an `assembleProvider` hook that copies the APK to `/Users/dev/Shared` with a timestamped filename — local convenience, do not remove.
@@ -14,22 +14,32 @@ Tana Keyboard is an Android IME (`InputMethodService`) with Amharic (Ge'ez scrip
 ## Architecture
 
 ### Entry points
-- `TanaKeyboardService` (:17) — the real product, an `InputMethodService`
-- `MainActivity` (:28) — settings/test harness only
+- `AddiyonKeyboardService` — the real product, an `InputMethodService`
+- `MainActivity` — settings/test harness only
 
 ### Transliteration pipeline (pure Kotlin, JVM-testable)
-`transliteration/AmharicTable.kt` → `transliteration/Transliterator.kt` → `transliteration/AmharicComposer.kt`
+`transliteration/AmharicTable.kt` → `transliteration/Transliterator.kt` → suggestions consumed via `candidateRanker` + `AmharicPrefixCompletion`.
 
 - **`AmharicTable`**: sole source of transliteration data. `Family` per consonant (7 syllabic forms + optional labialized "ua"). `bareVowels` is a *separate* index table from `vowels` — do not conflate them. "a" alone → አ (glottal order 1), "a" after consonant → order 4.
 - **`Transliterator`**: stateless, whole-buffer retransliteration on every keystroke (not incremental). Matching: longest consonant (case-sensitive first) → longest vowel → longest bare vowel → passthrough. Case-sensitive-first matters only for h/H, t/T, ch/C (the three families with distinct uppercase consonants); other letters fall through to case-insensitive.
-- **`AmharicComposer`**: owns the live word. Appends to a Latin `StringBuilder`, re-runs `Transliterator` on entire buffer, pushes to `InputConnection.setComposingText`. Backspace removes the whole last fidel unit via `Transliterator.lastUnitStart` (not one Latin char). Uses `InputConnection` lambda (not captured reference) — system swaps instances across sessions.
+
+### Composing layer (pure Kotlin, JVM-testable — THE load-bearing class for cursor/rich-text bugs)
+`composing/Composition.kt` + `composing/TypingController.kt` + `composing/WordAdoption.kt` + `composing/ResumableWord.kt`
+
+- **`Composition`** owns the raw buffer that IS the field's composing region. Never computes, stores, or passes an **absolute document offset** — every editor call (`setComposingText`, `commitText`, `finishComposingText`, `deleteBeforeCursor`) is cursor-relative, so the field's offset reporting (which Compose TextFields, WebViews and cross-platform toolkits do not reliably expose) cannot desync it. The invariant: a composition exists only while the caret is at its end; any other caret move finalizes the region in place (`finalizeInPlace`) and never adds, removes, or replaces text. Replacing the legacy `WordComposer` (which tracked `composingStart`/`composingEnd` as absolute offsets seeded from selection reads) is what made the "spaces disappear / random words appear" cursor bugs go away.
+- **`TypingController`** owns every edit the keyboard makes: key handling (`onCharacter` / `onSpace` / `onEnter` / `onDelete` / `onCommitText`), caret-aware word resume via `WordAdoption`, chip-tap replacement (`onSuggestionTap` with `SuggestionKind.COMPLETION` / `PREDICTION`), session lifecycle (`onStartInput` / `onFinishInput`), and selection-change handling (`onSelectionChanged`). The only platform-specific dependency is `EditorGateway`, which is mockable — see `TypingControllerTest` for the full behavioural contract.
+- **`WordAdoption`** re-opens a committed word the caret sits at the end of, offset-free: `deleteSurroundingText(n,0)` + `setComposingText(word, 1)`, both cursor-relative. Refuses interior carets (typing mid-word inserts plain text — what every mainstream IME does, and removes the entire absolute-offset-resume bug class).
+- **`ResumableWord`** extracts the word ENDING at the caret (Latin / Amharic / email). Pure, JVM-unit-testable.
 
 ### Service / UI layer
-- **`TanaKeyboardService`** owns `isAmharic`, `shiftState` (OFF → SHIFT → CAPS_LOCK → OFF), and `AmharicComposer`. All key handling goes through service methods (`onCharacter`, `onDelete`, `onSpace`, `onEnter`, `toggleShift`, `toggleLanguage`), never UI touching `InputConnection` directly. Case resolution from shift state happens inside `onCharacter` via `latin.uppercase()`/`.lowercase()`.
+- **`AddiyonKeyboardService`** owns `isAmharic`, `isEmailField`, `shiftState` (OFF → SHIFT → CAPS_LOCK → OFF), `numbersMode`, and the single `TypingController`. All key handling goes through service methods (`onCharacter`, `onDelete`, `onSpace`, `onEnter`, `toggleShift`, `toggleLanguage`), never UI touching `InputConnection` directly. Case resolution from shift state happens inside `onCharacter` via `latin.uppercase()`/`.lowercase()`. Language/field-specific behaviour comes from `typingProfile()`, read fresh on every controller call — a switch is just flipping `isAmharic`.
 - **UI stack**: `KeyboardScreen` → `KeyRow` → `KeyComposables` renders whichever `KeyboardLayout` is active (`AmharicLayout.kt` / `EnglishLayout.kt`, flat `KeyData` row lists).
 - Every `KeyData.Character` carries exactly one base Latin letter — digraphs ("sh", "ch", "gn") arise from sequential keypresses matching an `AmharicTable` family.
 - Composables never read `service.currentInputConnection` at composition time (goes stale across input sessions) — they call service methods that re-fetch it on each tap.
 - Corner preview glyph: looked up live via `AmharicTable.bareFormOf` off the shift-resolved letter, not baked into layout data.
+
+### Suggestion pipeline (service-owned)
+- `updateSuggestions()` derives the strip's UI state from the controller. The strip's row shape never changes mid-keystroke: completion and prediction lookups carry the previous chip-bearing state forward while the new one computes, instead of dropping to the toolbar (which swaps a row of icons for a row of chips and is the flash the user sees). The completion path also short-circuits a re-schedule when the same `(raw, amharic)` is already in flight or done (`activeCompletionKey`), so the selection-change echo that follows every keystroke doesn't double the lookup latency.
 
 ## Planning
 
@@ -45,3 +55,5 @@ When the user asks to create a plan or plan something, write a detailed plan as 
 - kotlin.code.style=official
 - No code comments in generated code (repo convention from prior work)
 - No multi-character key labels in layout data
+- No absolute document offsets in the composing layer; everything cursor-relative. New code that needs to identify a region must go through `EditorGateway` and use cursor-relative calls (`setComposingText`, `commitText`, `finishComposingText`, `deleteBeforeCursor`, `recomposeBeforeCursor`).
+

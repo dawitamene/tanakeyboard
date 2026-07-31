@@ -36,15 +36,11 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import com.addiyon.keyboard.composing.CommittedWordSnapshot
-import com.addiyon.keyboard.composing.CommittedWordSource
-import com.addiyon.keyboard.composing.DeleteResumeGuard
 import com.addiyon.keyboard.composing.ResumableWord
-import com.addiyon.keyboard.composing.WordComposer
-import com.addiyon.keyboard.composing.allowsCommittedWordResume
-import com.addiyon.keyboard.composing.composingCursorOffset
-import com.addiyon.keyboard.composing.isSelectionAtComposingEnd
-import com.addiyon.keyboard.composing.isVerifiedStaleDeleteCallback
+import com.addiyon.keyboard.composing.SuggestionKind
+import com.addiyon.keyboard.composing.TypingController
+import com.addiyon.keyboard.composing.TypingProfile
+import com.addiyon.keyboard.composing.isCompletionChipTapValid
 import com.addiyon.keyboard.model.EnterAction
 import com.addiyon.keyboard.model.EnterActionPolicy
 import com.addiyon.keyboard.model.NumbersMode
@@ -406,7 +402,7 @@ class AddiyonKeyboardService : InputMethodService(),
     private data class PublishedSuggestionAction(
         val generation: Long,
         val editorToken: EditorToken,
-        val committedWordSnapshot: CommittedWordSnapshot?,
+        val caretWord: String?,
         val predictionIdentity: EditorContentIdentity?,
         val amharic: Boolean,
         val emailField: Boolean,
@@ -436,17 +432,13 @@ class AddiyonKeyboardService : InputMethodService(),
         get() = nonVoiceSuggestionUiState is SuggestionUiState.LoadingLanguage
 
     /**
-     * The active composer's raw buffer -- the word the strip is answering.
+     * The controller's raw buffer -- the word the strip is answering.
      * Exposed for instrumented tests, which need to assert that the buffer
      * tracks what is actually in the field across clears and caret moves.
      */
     @get:VisibleForTesting
     val composingBufferForTest: String
-        get() = if (activeComposer.isComposing) {
-            activeComposer.raw
-        } else {
-            currentObservedWordSnapshot()?.word.orEmpty()
-        }
+        get() = typingController.buffer
 
     private var languageLoadGeneration = 0L
 
@@ -489,51 +481,77 @@ class AddiyonKeyboardService : InputMethodService(),
     // WORD COMPOSITION
     // ----------------------------
     //
-    // One composer per language; only the one matching the current mode is
-    // ever fed keystrokes, and every mode transition commits the active one
-    // first, so at most one has a non-empty buffer at any time.
-    //
-    // Both are fed a lambda, not a reference. currentInputConnection
-    // changes identity between input sessions (each new field the user
-    // taps into gets a fresh one), so we always re-read it at the moment
-    // of use -- same reasoning as the KeyboardScreen comment about not
-    // capturing an InputConnection at composition time.
-    private val amharicComposer = WordComposer(
-        inputConnection = { currentInputConnection },
-        // commitTransform picks the word that lands in the field on space/
-        // enter/exit-of-a-resumed-word: the top-RANKED transliteration
-        // candidate (dictionary-exact match promoted over the structurally
-        // greedy one -- see CandidateRanker), falling back to the plain
-        // greedy reading when the dictionary isn't loaded yet or ranking
-        // finds nothing. Recomputed from the CURRENT buffer at every commit
-        // site (WordComposer never caches it), so it can't go stale relative
-        // to what's in the buffer.
-        // Backspace uses the default one-char step so each typed letter can
-        // be cleared individually.
-        commitTransform = { raw -> topAmharicCandidate(raw) },
-        editor = editorGateway
+    // One TypingController owns every edit the keyboard makes: the live
+    // composing word, caret-aware word resume, and chip-tap replacement. It
+    // never names an absolute document offset (see composing/TypingController.kt),
+    // which is what makes it behave identically in plain EditTexts and in
+    // rich/Compose/WebView fields whose reported positions cannot be trusted.
+    // Language/field-specific behaviour comes from [typingProfile], read fresh
+    // on every use, so a language or field-type change takes effect without
+    // rebuilding the controller.
+    private val typingController = TypingController(
+        editor = editorGateway,
+        profile = ::typingProfile
     )
 
-    private val englishComposer = WordComposer(
-        inputConnection = { currentInputConnection },
-        editor = editorGateway
-    )
-
-    private val activeComposer: WordComposer
-        get() = if (isEmailField) englishComposer else if (isAmharic) amharicComposer else englishComposer
+    /**
+     * The typing rules for the current language and field:
+     *
+     *  - Email fields are always Latin (addresses don't transliterate) with a
+     *    wider word-character set, so the whole local-part@domain.tld token
+     *    stays one composed word and a chip tap replaces it in one commit.
+     *  - Amharic composes raw SERA Latin inline and swaps in the top-ranked
+     *    fidel reading on commit; committed fidel words can only be re-opened
+     *    when this keyboard composed them this session (remembersRawLatin --
+     *    reverse-transliterating arbitrary fidel would be a guess).
+     *  - English composes/commits Latin verbatim.
+     */
+    private fun typingProfile(): TypingProfile = when {
+        isEmailField -> TypingProfile(
+            isWordCharacter = ::isEmailWordCharacter,
+            wordEndingAtCursor = ResumableWord::emailWordEndingAtCursor
+        )
+        isAmharic -> TypingProfile(
+            isWordCharacter = ::isComposingWordCharacter,
+            commitTransform = { raw -> topAmharicCandidate(raw) },
+            transformStandalone = { raw -> Transliterator.transliterate(raw) },
+            wordEndingAtCursor = ResumableWord::amharicWordEndingAtCursor,
+            remembersRawLatin = true
+        )
+        else -> TypingProfile(
+            isWordCharacter = ::isComposingWordCharacter,
+            wordEndingAtCursor = ResumableWord::latinWordEndingAtCursor
+        )
+    }
 
     private fun telemetryLanguage(): TelemetryLanguage =
         if (isAmharic) TelemetryLanguage.AMHARIC else TelemetryLanguage.ENGLISH
 
-    private fun currentObservedWordSnapshot(): CommittedWordSnapshot? =
-        observedWordSnapshot?.takeIf {
-            it.matchesPolicy(
-                isAmharic = isAmharic,
-                isEmailField = isEmailField,
-                isPrivateField = isPrivateField,
-                isNumberMode = isNumberMode
-            ) && editorGateway.isCurrent(it.editorToken)
-        }
+    /**
+     * The committed word the caret sits at the end of, if any -- the word the
+     * suggestion strip answers when nothing is being composed, and the word a
+     * completion chip tap re-opens and replaces (see WordAdoption). Latin
+     * pipelines only: Amharic's buffer is SERA Latin while its field text is
+     * fidel, so a committed fidel word is never a suggestion lookup key
+     * (mirrors the old allowsCommittedWordResume rule).
+     *
+     * Read lazily at each use (never cached): two short cursor-relative reads,
+     * no absolute offsets involved. Optional, so an editor whose reads turn
+     * slow simply degrades to next-word predictions instead of blocking.
+     */
+    private data class CaretWord(val word: String, val token: EditorToken)
+
+    private fun currentCaretWord(): CaretWord? {
+        if (isAmharic && !isEmailField) return null
+        if (typingController.isComposing) return null
+        val profile = typingProfile()
+        val before = editorGateway.textBeforeCursor(ResumableWord.LOOKBEHIND, optional = true)
+            ?: return null
+        val after = editorGateway.textAfterCursor(1, optional = true)
+            ?.takeIf { it.token.sameEditorState(before.token) } ?: return null
+        val word = profile.wordEndingAtCursor(before.value, after.value) ?: return null
+        return CaretWord(word, before.token)
+    }
 
     // Built in onCreate(), not as property initializers here -- Context
     // isn't safely usable (applicationContext etc.) until attachBaseContext
@@ -580,30 +598,30 @@ class AddiyonKeyboardService : InputMethodService(),
             if (isEmailField) {
                 pendingPredictionBoundary = null
                 invalidateSuggestionWork()
-                val token = if (englishComposer.isComposing) {
-                    englishComposer.raw
+                val token = if (typingController.isComposing) {
+                    typingController.buffer
                 } else {
-                    currentObservedWordSnapshot()?.word.orEmpty()
+                    currentCaretWord()?.word.orEmpty()
                 }
                 publishEmailSuggestions(EmailSuggestions.emailChipsFor(token))
                 return@safeApply
             }
 
             val amharic = isAmharic
-            val composer = if (amharic) amharicComposer else englishComposer
-            val observed = if (amharic) null else currentObservedWordSnapshot()
+            val composing = typingController.isComposing
+            val caret = if (composing) null else currentCaretWord()
             val typed = when {
-                composer.isComposing -> composer.raw
-                observed != null -> observed.word
+                composing -> typingController.buffer
+                caret != null -> caret.word
                 else -> ""
             }
             val contextReader =
                 if (amharic) NgramContext.AMHARIC else NgramContext.ENGLISH
             val capturedContext = currentBoundaryContext(amharic)
-                ?: if (composer.isComposing) {
-                    composingContextForWord(amharic, contextReader, composer)
+                ?: if (composing) {
+                    composingContextForWord(amharic, contextReader)
                 } else {
-                    captureNgramContext(contextReader, composer)
+                    captureNgramContext(contextReader)
                 }
             val context = capturedContext?.context ?: NgramContext.EMPTY
             val store = if (amharic) amharicStore else englishStore
@@ -614,6 +632,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 return@safeApply
             }
             if (typed.isEmpty()) {
+                activeCompletionKey = null
                 clearComposingContextCache()
                 if (amharic) {
                     amharicSuggestionCache.clear()
@@ -651,7 +670,15 @@ class AddiyonKeyboardService : InputMethodService(),
                 ) {
                     return@safeApply
                 }
-                publishSuggestionState(SuggestionUiState.LoadingPredictions)
+                // Same anti-flicker rule as the completion path below, at the
+                // word boundary: keep the just-committed word's completions on
+                // screen while the next-word predictions compute, so the row
+                // never flashes the toolbar icons between words. The carried
+                // chips stay scoped to their pre-commit generation, and the
+                // caret has since moved, so a stale tap is rejected by the
+                // token revalidation in onSuggestionTapped.
+                val carried = nonVoiceSuggestionUiState as? SuggestionUiState.WordCompletions
+                publishSuggestionState(carried ?: SuggestionUiState.LoadingPredictions)
                 schedulePredictionComputation(
                     amharic = amharic,
                     capturedContext = capturedContext,
@@ -660,21 +687,29 @@ class AddiyonKeyboardService : InputMethodService(),
             } else {
                 pendingPredictionBoundary = null
                 invalidatePredictionWork()
+                // Selection-change echoes re-enter updateSuggestions with the
+                // same buffer after every keystroke; without this guard each
+                // echo cancelled the in-flight lookup and restarted it,
+                // doubling the time to chips for no reason.
+                val completionKey = CompletionRequestKey(typed, amharic)
+                if (completionKey == activeCompletionKey) return@safeApply
                 // Don't drop to the toolbar while the new completions compute.
                 // Publishing Toolbar here made the strip flash its icons between
                 // every keystroke -- chips, icons, chips -- because the lookup is
-                // async. Instead carry the previous completions over (republished,
-                // so they pick up a fresh generation and editor token and stay
-                // tappable during the in-flight window), and when there are none
-                // to carry show the blank three-slot strip rather than the
-                // toolbar, so the row never changes shape under the user.
+                // async. Instead carry the previous chips over (completions, or
+                // the predictions that were showing when the first letter of
+                // this word landed; both stay tappable-safe via their scoped
+                // generation), and when there are none to carry show the blank
+                // three-slot strip rather than the toolbar, so the row never
+                // changes shape under the user.
                 val carried = nonVoiceSuggestionUiState as? SuggestionUiState.WordCompletions
+                    ?: nonVoiceSuggestionUiState as? SuggestionUiState.NextWordPredictions
                 publishSuggestionState(carried ?: SuggestionUiState.LoadingCompletions)
                 scheduleSuggestionComputation(
                     raw = typed,
                     amharic = amharic,
                     context = context,
-                    observedToken = observed?.editorToken
+                    observedCaretWord = caret?.word
                 )
             }
         }
@@ -699,6 +734,16 @@ class AddiyonKeyboardService : InputMethodService(),
         val prev1: String?,
         val limit: Int
     )
+
+    /**
+     * Identity of the in-flight (or last-scheduled) completion lookup. The
+     * n-gram context is deliberately not part of the key: it is fixed for the
+     * lifetime of a word (cached in [composingNgramBoost]), so the raw buffer
+     * fully determines what a re-schedule would compute.
+     */
+    private data class CompletionRequestKey(val raw: String, val amharic: Boolean)
+
+    private var activeCompletionKey: CompletionRequestKey? = null
 
     private data class PredictionRequest(
         val key: PredictionRequestKey,
@@ -859,6 +904,7 @@ class AddiyonKeyboardService : InputMethodService(),
 
     private fun invalidateCompletionWork() {
         suggestionGeneration += 1
+        activeCompletionKey = null
         suggestionExecutor.queue.clear()
     }
 
@@ -898,18 +944,23 @@ class AddiyonKeyboardService : InputMethodService(),
         raw: String,
         amharic: Boolean,
         context: NgramContext.Context,
-        observedToken: EditorToken? = null
+        observedCaretWord: String? = null
     ) {
+        activeCompletionKey = CompletionRequestKey(raw, amharic)
         val generation = ++suggestionGeneration
         val contextGeneration = composingContextGeneration
         val lowRam = isLowRam
         val ngramModel = ngramModelFor(amharic)
         suggestionExecutor.queue.clear()
         suggestionExecutor.execute {
-            try {
-                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
-            } catch (_: Throwable) {
-            }
+            // Deliberately NOT lowered to THREAD_PRIORITY_BACKGROUND. That moves a
+            // thread into Android's background cgroup, which is capped at a small
+            // share of CPU whenever anything foreground is running -- and something
+            // foreground always is, because the user is typing. It was the largest
+            // single multiplier on suggestion latency: the work is short, it is on
+            // the critical path of every keystroke, and the user is waiting for it.
+            // The one-time 37 MB dictionary install still yields; see
+            // SQLiteLanguageStore, where a background thread is genuinely right.
             val predictionLimit = if (amharic) {
                 if (lowRam) 4 else AMHARIC_SUGGESTION_LIMIT
             } else {
@@ -966,17 +1017,16 @@ class AddiyonKeyboardService : InputMethodService(),
                 ) {
                     return@post
                 }
-                if (observedToken != null) {
-                    val currentObserved = currentObservedWordSnapshot() ?: return@post
-                    if (
-                        !currentObserved.editorToken.sameEditorState(observedToken) ||
-                        currentObserved.word != raw
-                    ) {
-                        return@post
-                    }
+                if (observedCaretWord != null) {
+                    // The strip was answering the committed word at the caret.
+                    // Re-read it rather than comparing tokens: an app tickling
+                    // its own spans (spell check, rich text) emits selection
+                    // callbacks that bump the selection generation without
+                    // moving the caret, and token equality would drop the
+                    // result those callbacks didn't actually invalidate.
+                    if (currentCaretWord()?.word != observedCaretWord) return@post
                 } else {
-                    val currentRaw = if (amharic) amharicComposer.raw else englishComposer.raw
-                    if (currentRaw != raw) return@post
+                    if (typingController.buffer != raw) return@post
                 }
                 if (computed.isEmpty() && raw.isNotEmpty()) {
                     // The user is in the middle of typing a word. Don't flash the
@@ -1039,7 +1089,7 @@ class AddiyonKeyboardService : InputMethodService(),
                             isEmailField ||
                             isPrivateField ||
                             isNumberMode ||
-                            activeComposer.isComposing ||
+                            typingController.isComposing ||
                             activePredictionRequest !== ticket
                         ) {
                             return@post
@@ -1129,15 +1179,14 @@ class AddiyonKeyboardService : InputMethodService(),
 
     private fun composingContextForWord(
         amharic: Boolean,
-        contextReader: NgramContext,
-        composer: WordComposer
+        contextReader: NgramContext
     ): CapturedNgramContext? {
         val key = ComposingContextKey(
             sessionGeneration = editorGateway.sessionGeneration,
             amharic = amharic
         )
         return composingContextCache.getOrCapture(key) {
-            captureNgramContext(contextReader, composer)
+            captureNgramContext(contextReader)
         }
     }
     private val amharicSuggestionCache = Collections.synchronizedMap(
@@ -1157,21 +1206,18 @@ class AddiyonKeyboardService : InputMethodService(),
      * Bigram/trigram next-word predictions for the words preceding the cursor,
      * read from the field via [contextReader] and looked up in [ngrams]; empty
      * until the model loads or when the field gives no context. While
-     * composing, the part of the raw composing region before the cursor would
-     * read as a hard boundary, so that prefix is stripped from the tail first.
+     * composing, the raw composing region before the cursor would read as a
+     * hard boundary, so that prefix is stripped from the tail first -- and the
+     * caret is always at the composing end, so the whole buffer is the prefix.
      */
     private fun captureNgramContext(
         contextReader: NgramContext,
-        composer: WordComposer,
     ): CapturedNgramContext? {
         return safeRun(null) {
-            val composingPrefix = if (composer.isComposing) {
-                composer.textBeforeCursor()
+            val composingPrefix = if (typingController.isComposing) {
+                typingController.buffer
             } else {
-                currentObservedWordSnapshot()
-                    ?.takeIf { !it.isAmharic || it.isEmailField }
-                    ?.let { it.word.substring(0, it.cursorOffset) }
-                    .orEmpty()
+                currentCaretWord()?.word.orEmpty()
             }
             val read = editorGateway
                 .surroundingText(
@@ -1240,6 +1286,15 @@ class AddiyonKeyboardService : InputMethodService(),
         safeApply {
             publishSuggestionState(
                 when {
+                    // An empty result mid-sentence must not drop to the toolbar.
+                    // Toolbar and the chip strip are different layouts, so the swap
+                    // is a full relayout the user sees as a flash of icons between
+                    // words. The completion path already held the previous strip
+                    // for this reason; predictions did not, which is why the
+                    // flicker survived at every word boundary. Hold the blank strip
+                    // instead -- same shape, no icons.
+                    value.isEmpty() && arePredictions ->
+                        SuggestionUiState.LoadingPredictions
                     value.isEmpty() -> SuggestionUiState.Toolbar
                     arePredictions -> SuggestionUiState.NextWordPredictions(value.toList())
                     else -> SuggestionUiState.WordCompletions(value.toList())
@@ -1259,6 +1314,22 @@ class AddiyonKeyboardService : InputMethodService(),
             )
         }
     }
+
+    /**
+     * Do these two states put exactly the same tappable chips on screen? Only the
+     * chip-bearing states can match: a toolbar or loading strip carries no action
+     * to keep scoped, so re-publishing one is free anyway.
+     */
+    private fun sameVisibleChips(current: SuggestionUiState, next: SuggestionUiState): Boolean =
+        when {
+            current is SuggestionUiState.WordCompletions &&
+                next is SuggestionUiState.WordCompletions -> current.words == next.words
+            current is SuggestionUiState.NextWordPredictions &&
+                next is SuggestionUiState.NextWordPredictions -> current.words == next.words
+            current is SuggestionUiState.EmailSuggestions &&
+                next is SuggestionUiState.EmailSuggestions -> current.chips == next.chips
+            else -> false
+        }
 
     private fun publishSuggestionState(state: SuggestionUiState) {
         val scopedState = scopeSuggestionState(state)
@@ -1280,6 +1351,19 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     private fun scopeSuggestionState(state: SuggestionUiState): SuggestionUiState {
+        // Reuse the current generation when the visible chips are unchanged.
+        //
+        // actionGeneration participates in the state's equals(), so bumping it on
+        // every publish made Compose recompose the whole strip on every keystroke
+        // even when the words were byte-identical -- and each recomposition re-ran
+        // TextAutoSize's iterative measurement across three slots. Carrying the
+        // previous completions forward during an in-flight lookup (the anti-flicker
+        // path) republishes constantly, so this was the common case, not the rare
+        // one. A tap is still scoped correctly: an unchanged strip is the same
+        // strip, so the same generation is the honest answer.
+        if (sameVisibleChips(nonVoiceSuggestionUiState, state)) {
+            return nonVoiceSuggestionUiState
+        }
         val generation = ++suggestionActionGeneration
         val scoped = when (state) {
             is SuggestionUiState.WordCompletions ->
@@ -1302,7 +1386,7 @@ class AddiyonKeyboardService : InputMethodService(),
             PublishedSuggestionAction(
                 generation = generation,
                 editorToken = token,
-                committedWordSnapshot = currentObservedWordSnapshot(),
+                caretWord = currentCaretWord()?.word,
                 predictionIdentity = if (
                     scoped is SuggestionUiState.NextWordPredictions
                 ) {
@@ -1693,9 +1777,9 @@ class AddiyonKeyboardService : InputMethodService(),
                 return@safeApply
             }
 
-            // Flush any half-typed word first: the WordComposer and voice must
+            // Flush any half-typed word first: the composition and voice must
             // never both own a composing region in the field.
-            commitActiveWordPreservingCursor()
+            typingController.commitActiveWord()
             voiceComposer.reset()
             // Set Listening BEFORE start(): an unavailable recognizer fails
             // synchronously through onVoiceFatalError, which must win.
@@ -1801,8 +1885,8 @@ class AddiyonKeyboardService : InputMethodService(),
      * Locks whatever the composing region currently shows into the field
      * (never commitText here -- the framework auto-finalizes a live region
      * when the session ends, and committing again would duplicate the text;
-     * see [WordComposer.finish] for the same lesson). Safe no-op when no
-     * utterance is live.
+     * see [com.addiyon.keyboard.composing.Composition.finalizeInPlace] for the
+     * same lesson). Safe no-op when no utterance is live.
      */
     private fun finalizeVoiceComposing() {
         safeApply {
@@ -1867,9 +1951,8 @@ class AddiyonKeyboardService : InputMethodService(),
     fun openEmojiPanel() {
         safeApply {
             if (isEmergencyMode) return@safeApply
-            observedWordSnapshot = null
             leaveVoiceModeForKeyboardInput()
-            commitActiveWordPreservingCursor()
+            typingController.commitActiveWord()
             updateSuggestions()
             emojiRepository.loadAsync()
             showEmojiPanel = true
@@ -1930,7 +2013,6 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun commitEmoji(emoji: String) {
         safeApply {
-            observedWordSnapshot = null
             editorGateway.commitText(emoji)
             recentEmojiStore.recordUse(emoji)
         }
@@ -1973,11 +2055,12 @@ class AddiyonKeyboardService : InputMethodService(),
     fun setLanguage(amharic: Boolean) {
         if (amharic == isAmharic) return
         safeApply {
-            deleteResumeGuard.clear()
-            observedWordSnapshot = null
             leaveVoiceModeForKeyboardInput()
             closeEmojiPanel()
-            commitActiveWordPreservingCursor()
+            // The half-typed word belongs to the outgoing language's pipeline:
+            // commit it BEFORE isAmharic flips, so the profile (and its
+            // commitTransform) is still the outgoing language's.
+            typingController.onLanguageChange()
             // Flush per-word caches BEFORE flipping -- the cache key folds
             // per-language, and the ranked results would otherwise leak across
             // a toggle (English prefix "th" ranked with Amharic boosts, etc.).
@@ -2050,10 +2133,9 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun toggleNumberMode() {
         safeApply {
-            observedWordSnapshot = null
             leaveVoiceModeForKeyboardInput()
             closeEmojiPanel()
-            commitActiveWordPreservingCursor()
+            typingController.commitActiveWord()
             numbersMode = if (numbersMode == NumbersMode.OFF) NumbersMode.NUMBERS else NumbersMode.OFF
             Telemetry.layoutOpened(
                 if (numbersMode == NumbersMode.OFF) {
@@ -2105,7 +2187,7 @@ class AddiyonKeyboardService : InputMethodService(),
         safeApply {
             leaveVoiceModeForKeyboardInput()
             closeEmojiPanel()
-            commitActiveWordPreservingCursor()
+            typingController.commitActiveWord()
             numbersMode = NumbersMode.KEYPAD
             Telemetry.layoutOpened(TelemetryLayout.KEYPAD, isPrivateField)
             updateSuggestions()
@@ -2203,7 +2285,6 @@ class AddiyonKeyboardService : InputMethodService(),
             fieldAllowsAutoCap = InputTypePolicy.allowsAutoCap(inputType)
             isEmailField = InputTypePolicy.isEmailInputType(inputType)
             isPrivateField = InputTypePolicy.isPrivateInputType(inputType)
-            if (isPrivateField) observedWordSnapshot = null
         }
     }
 
@@ -2234,7 +2315,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 if (autoShiftArmed) resetShift()
                 return@safeApply
             }
-            if (activeComposer.isComposing || shiftState == ShiftState.CAPS_LOCK) return@safeApply
+            if (typingController.isComposing || shiftState == ShiftState.CAPS_LOCK) return@safeApply
             val before = textBeforeCursor
                 ?: editorGateway.textBeforeCursor(SENTENCE_LOOKBEHIND)?.value
             val startsSentence = SentenceCase.startsNewSentence(
@@ -2287,7 +2368,6 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun onCharacter(latin: String) {
         safeApply {
-            deleteResumeGuard.clear()
             // Emoji search intercepts the real English key rows: keystrokes build
             // the query instead of touching the field. Same shift resolution as
             // the normal path so the query looks like what was typed (search
@@ -2304,83 +2384,17 @@ class AddiyonKeyboardService : InputMethodService(),
             cursorKnownAtFieldStart = false
             val output = if (isShiftEnabled) latin.uppercase() else latin.lowercase()
 
-            // Email fields use a wider word-character set so the entire email
-            // token (local-part + '@' + domain + '.' + digits) stays in the
-            // composing region. That lets a chip tap replace the whole token in
-            // one commitText call rather than just the trailing fragment, and
-            // also keeps the live in-progress token in englishComposer.raw for
-            // the email-suggestion pipeline to key off of.
-            val wordChar = if (isEmailField) isEmailWordCharacter(output) else isWordCharacter(output)
-            if (activeComposer.isComposing && activeComposerTokenIfCurrent() == null) {
-                activeComposer.abandon()
-            }
-            if (
-                wordChar &&
-                !activeComposer.isComposing &&
-                allowsCommittedWordResume(isAmharic, isEmailField)
-            ) {
-                val snapshot = observedWordSnapshot
-                    ?: captureCommittedWordSnapshot(
-                        source = CommittedWordSource.CURSOR_OBSERVATION,
-                        optional = false
-                    )
-                if (snapshot != null) {
-                    adoptCommittedWordForExplicitEdit(snapshot)
-                }
-            }
-            val actionToken = activeComposerTokenIfCurrent()
-
-            when {
-                isNumberMode -> {
-                    safeIc { it.commitText(output, 1) }
-                }
-                !wordChar -> {
-                    val text = if (isAmharic) Transliterator.transliterate(output) else output
-                    commitActiveWordPreservingCursor()
-                    safeIc { it.commitText(text, 1) }
-                }
-                // Email fields: always Latin passthrough, regardless of the
-                // user's current language mode -- addresses don't transliterate.
-                // The fidel-corner preview on the Amharic layout's keys is
-                // unaffected (it's purely visual, see KeyRow / AmharicTable).
-                isEmailField -> {
-                    englishComposer.onCharacter(output, actionToken)
-                }
-                isAmharic -> {
-                    amharicComposer.onCharacter(output, actionToken)
-                }
-                else -> {
-                    englishComposer.onCharacter(output, actionToken)
-                }
+            if (isNumberMode) {
+                editorGateway.commitText(output)
+            } else {
+                // Word composition, punctuation transliteration, committed-word
+                // resume and email passthrough are all profile-driven now --
+                // see typingProfile().
+                typingController.onCharacter(output)
             }
 
-            observedWordSnapshot = null
             consumeShiftAfterCharacter()
             updateSuggestions()
-        }
-    }
-
-    /**
-     * Whether [output] belongs inside a composing word rather than
-     * terminating one. Letters in both languages; apostrophe (English
-     * contractions, and the SERA spelling of the glottal አ family) and
-     * backtick (SERA pharyngeal ዐ) also count -- neither is on a letter
-     * layout today, but if one is ever added it must feed the composer,
-     * not chop the word.
-     */
-    private fun isWordCharacter(output: String) = isComposingWordCharacter(output)
-
-    private fun commitActiveWordPreservingCursor(): Boolean {
-        if (!activeComposer.isComposing) return true
-        val token = activeComposerTokenIfCurrent()
-        if (token == null) {
-            activeComposer.abandon()
-            return false
-        }
-        return if (activeComposer.commitAtCursor(token)) {
-            true
-        } else {
-            activeComposer.commit(token)
         }
     }
 
@@ -2407,8 +2421,6 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     private val suggestionRefreshGate = SuggestionRefreshGate()
-    private val deleteResumeGuard = DeleteResumeGuard()
-    private var observedWordSnapshot: CommittedWordSnapshot? = null
 
     fun onDeleteRepeatStart() {
         safeApply {
@@ -2419,176 +2431,17 @@ class AddiyonKeyboardService : InputMethodService(),
     fun onDeleteRepeatEnd() {
         safeApply {
             val pendingRefresh = suggestionRefreshGate.endDeleteGesture()
-            maybeResumeWordAfterDeleteRepeat()
-            if (pendingRefresh || activeComposer.isComposing) updateSuggestions()
+            if (pendingRefresh || typingController.isComposing) updateSuggestions()
         }
-    }
-
-    private fun maybeResumeWordAfterDeleteRepeat() {
-        safeApply {
-            if (activeComposer.isComposing) return@safeApply
-            val snapshot = captureCommittedWordSnapshot(
-                source = CommittedWordSource.EXPLICIT_DELETE,
-                optional = false
-            ) ?: return@safeApply
-            if (deleteResumeGuard.guards(snapshot.selectionStart)) return@safeApply
-            adoptCommittedWordForExplicitEdit(snapshot)
-        }
-    }
-
-    private fun captureCommittedWordSnapshot(
-        source: CommittedWordSource,
-        optional: Boolean
-    ): CommittedWordSnapshot? {
-        if (
-            isNumberMode ||
-            showEmojiPanel ||
-            isPrivateField ||
-            voiceUiState.isVoiceMode ||
-            activeComposer.isComposing ||
-            !allowsCommittedWordResume(isAmharic, isEmailField)
-        ) {
-            return null
-        }
-        val read = editorGateway.surroundingText(
-            beforeChars = ResumableWord.LOOKBEHIND,
-            afterChars = ResumableWord.LOOKAHEAD,
-            optional = optional
-        ) ?: return null
-        val surrounding = read.value
-        if (surrounding.selectionStart != surrounding.selectionEnd) return null
-        val match = if (isEmailField) {
-            ResumableWord.emailWordAtCursor(
-                surrounding.textBeforeSelection,
-                surrounding.textAfterSelection
-            )
-        } else {
-            ResumableWord.latinWordAtCursor(
-                surrounding.textBeforeSelection,
-                surrounding.textAfterSelection
-            )
-        } ?: return null
-        val selection = surrounding.absoluteSelectionStart
-        val spanStart = selection - match.cursorOffset
-        return CommittedWordSnapshot(
-            editorToken = read.token,
-            selectionStart = selection,
-            selectionEnd = selection,
-            spanStart = spanStart,
-            spanEnd = spanStart + match.word.length,
-            word = match.word,
-            cursorOffset = match.cursorOffset,
-            isAmharic = isAmharic,
-            isEmailField = isEmailField,
-            isPrivateField = isPrivateField,
-            isNumberMode = isNumberMode,
-            source = source
-        )
-    }
-
-    private fun revalidateCommittedWordSnapshot(
-        snapshot: CommittedWordSnapshot
-    ): CommittedWordSnapshot? {
-        if (
-            !snapshot.matchesPolicy(
-                isAmharic = isAmharic,
-                isEmailField = isEmailField,
-                isPrivateField = isPrivateField,
-                isNumberMode = isNumberMode
-            ) ||
-            !editorGateway.isCurrent(snapshot.editorToken)
-        ) {
-            return null
-        }
-        val current = captureCommittedWordSnapshot(
-            source = snapshot.source,
-            optional = false
-        ) ?: return null
-        if (!current.editorToken.sameEditorState(snapshot.editorToken)) return null
-        return current.takeIf {
-            it.selectionStart == snapshot.selectionStart &&
-                it.selectionEnd == snapshot.selectionEnd &&
-                it.spanStart == snapshot.spanStart &&
-                it.spanEnd == snapshot.spanEnd &&
-                it.word == snapshot.word &&
-                it.cursorOffset == snapshot.cursorOffset
-        }
-    }
-
-    private fun adoptCommittedWordForExplicitEdit(
-        snapshot: CommittedWordSnapshot
-    ): Boolean {
-        val current = revalidateCommittedWordSnapshot(snapshot) ?: return false
-        if (
-            !editorGateway.setComposingRegion(
-                start = current.spanStart,
-                end = current.spanEnd,
-                token = current.editorToken
-            )
-        ) {
-            return false
-        }
-        val regionToken = editorGateway.currentToken()
-        if (
-            regionToken == null ||
-            !editorGateway.isCurrentSession(current.editorToken) ||
-            regionToken.selectionStart != current.selectionStart ||
-            regionToken.selectionEnd != current.selectionEnd
-        ) {
-            regionToken?.let(editorGateway::finishComposingText)
-            return false
-        }
-        // We deliberately do not verify composing-region bounds after setting the
-        // region. Some editors (Compose TextField, WebViews) do not echo
-        // SPAN_COMPOSING back, so a positive-confirmation check would fail even
-        // though setComposingRegion succeeded. The snapshot/text validation above
-        // is sufficient; the next keystroke will re-verify the composer anyway.
-        observedWordSnapshot = null
-        return englishComposer.adopt(
-            word = current.word,
-            cursorOffset = current.cursorOffset,
-            composingStart = current.spanStart,
-            composingEnd = current.spanEnd
-        )
-    }
-
-    private fun activeComposerTokenIfCurrent(): EditorToken? {
-        if (!activeComposer.isComposing) return editorGateway.currentToken()
-        val ownedRegion = activeComposer.ownedComposingRegion() ?: return null
-        val expectedBefore = activeComposer.textBeforeCursor()
-        val expectedAfter = activeComposer.textAfterCursor()
-        val read = editorGateway.surroundingText(
-            beforeChars = expectedBefore.length,
-            afterChars = expectedAfter.length,
-            optional = false
-        ) ?: return null
-        val surrounding = read.value
-        val expectedSelection = ownedRegion.first + expectedBefore.length
-        // The text/selection comparisons above are the real verification: they
-        // prove the field still holds exactly the word we think we're composing,
-        // at the cursor we think we're at. We deliberately do NOT check the
-        // composing-region bounds here: some editors (Compose TextField, WebViews,
-        // cross-platform toolkits) report bounds that disagree with what the IME
-        // set, or report no bounds at all. Vetoing on those bounds would abandon
-        // a perfectly valid composition and make suggestions reset to the last
-        // key, which is exactly the bug in the in-app TestKeyboard field.
-        if (
-            surrounding.absoluteSelectionStart != expectedSelection ||
-            surrounding.absoluteSelectionEnd != expectedSelection ||
-            surrounding.textBeforeSelection != expectedBefore ||
-            surrounding.textAfterSelection != expectedAfter
-        ) {
-            return null
-        }
-        return read.token.takeIf(editorGateway::isCurrent)
     }
 
     /**
-     * Backspace pressed. Try to shrink the active composing buffer first --
-     * one full rendered character at a time, which in Amharic can be a
-     * multi-Latin-char span (so "she" -> ሸ, backspace -> nothing). If the
-     * buffer is empty, fall back to deleting a character from the text
-     * field itself.
+     * Backspace pressed. The controller shrinks the composing word first (one
+     * Latin character at a time, so each typed letter clears individually);
+     * with nothing composed it deletes from the field -- a range selection if
+     * there is one, else one emoji-aware cluster -- and then re-opens whatever
+     * word the caret landed at the end of, so the strip keeps answering the
+     * word being edited.
      */
     fun onDelete() {
         safeApply {
@@ -2613,195 +2466,40 @@ class AddiyonKeyboardService : InputMethodService(),
                 }
             }
             leaveVoiceModeForKeyboardInput()
-            if (
-                !activeComposer.isComposing &&
-                allowsCommittedWordResume(isAmharic, isEmailField)
-            ) {
-                captureCommittedWordSnapshot(
-                    source = CommittedWordSource.EXPLICIT_DELETE,
-                    optional = false
-                )?.let(::adoptCommittedWordForExplicitEdit)
-            }
-            var actionToken = activeComposerTokenIfCurrent()
-            if (activeComposer.isComposing && actionToken == null) {
-                activeComposer.abandon()
-                actionToken = editorGateway.currentToken()
-            }
-            if (activeComposer.onBackspace(actionToken)) {
-                observedWordSnapshot = null
-                updateSuggestions()
-                return@safeApply
-            }
-            observedWordSnapshot = null
-            val selectionRead = if (isAmharic && !isEmailField) {
-                editorGateway.extractedText(optional = false)
+            val cluster = if (typingController.isComposing) {
+                1
             } else {
-                null
-            }
-            val selectedRead = editorGateway.selectedText()
-            val selected = selectedRead?.value
-            if (!selected.isNullOrEmpty()) {
-                val extracted = selectionRead?.value
-                if (
-                    extracted != null &&
-                    selectedRead.token.sameEditorState(selectionRead.token)
-                ) {
-                    val selectionStart =
-                        extracted.startOffset + extracted.selectionStart
-                    val selectionEnd =
-                        extracted.startOffset + extracted.selectionEnd
-                    deleteResumeGuard.expect(
-                        sourceSelectionStart = selectionStart,
-                        sourceSelectionEnd = selectionEnd,
-                        expectedCursor = minOf(selectionStart, selectionEnd)
-                    )
-                }
-                if (!editorGateway.commitText("", selectedRead.token)) {
-                    deleteResumeGuard.clear()
-                }
-            } else {
-                val beforeRead = editorGateway.textBeforeCursor(
+                val before = editorGateway.textBeforeCursor(
                     ResumableWord.LOOKBEHIND,
                     optional = false
-                )
-                val cluster =
-                    EmojiBackspace.lastClusterLength(beforeRead?.value ?: "").coerceAtLeast(1)
-                val afterRead = if (isAmharic && !isEmailField) {
-                    editorGateway.textAfterCursor(ResumableWord.LOOKAHEAD, optional = false)
-                } else {
-                    null
-                }
-                val amharicWord = if (
-                    beforeRead != null &&
-                    afterRead != null &&
-                    beforeRead.token.sameEditorState(afterRead.token)
-                ) {
-                    ResumableWord.amharicWordAfterBackspace(
-                        before = beforeRead.value,
-                        after = afterRead.value,
-                        deletedChars = cluster
-                    )
-                } else {
-                    null
-                }
-                val extracted = selectionRead?.value
-                var cursorPosition: Int? = null
-                if (
-                    extracted != null &&
-                    beforeRead != null &&
-                    beforeRead.token.sameEditorState(selectionRead.token) &&
-                    extracted.selectionStart == extracted.selectionEnd
-                ) {
-                    cursorPosition =
-                        extracted.startOffset + extracted.selectionStart
-                    if (cursorPosition >= cluster) {
-                        deleteResumeGuard.expect(
-                            sourceSelectionStart = cursorPosition,
-                            sourceSelectionEnd = cursorPosition,
-                            expectedCursor = cursorPosition - cluster
-                        )
-                    }
-                }
-                if (!editorGateway.deleteBeforeCursor(cluster, beforeRead?.token)) {
-                    deleteResumeGuard.clear()
-                } else if (
-                    amharicWord != null &&
-                    cursorPosition != null &&
-                    beforeRead != null &&
-                    afterRead != null &&
-                    beforeRead.token.sameEditorState(afterRead.token) &&
-                    selectionRead != null &&
-                    beforeRead.token.sameEditorState(selectionRead.token)
-                ) {
-                    val newCursorPosition = cursorPosition - cluster
-                    val regionStart = newCursorPosition - amharicWord.cursorOffset
-                    val regionEnd =
-                        regionStart + amharicWord.word.length
-                    var postDeleteToken = editorGateway.currentToken()
-                    if (
-                        postDeleteToken?.sameEditorState(beforeRead.token) == true &&
-                        editorGateway.isCurrentSession(beforeRead.token)
-                    ) {
-                        editorGateway.noteSelection(
-                            newCursorPosition,
-                            newCursorPosition
-                        )
-                        postDeleteToken = editorGateway.currentToken()
-                    }
-                    val expectedDeleteState = postDeleteToken != null &&
-                        editorGateway.isCurrentSession(beforeRead.token) &&
-                        postDeleteToken.selectionStart == newCursorPosition &&
-                        postDeleteToken.selectionEnd == newCursorPosition
-                    if (
-                        expectedDeleteState &&
-                        editorGateway.setComposingRegion(
-                            regionStart,
-                            regionEnd,
-                            requireNotNull(postDeleteToken)
-                        )
-                    ) {
-                        val regionToken = editorGateway.currentToken()
-                        val regionMatches = regionToken != null &&
-                            editorGateway.composingRegionMatches(
-                                start = regionStart,
-                                end = regionEnd,
-                                selection = newCursorPosition,
-                                token = regionToken
-                            )
-                        if (
-                            regionToken != null &&
-                            editorGateway.isCurrentSession(requireNotNull(postDeleteToken)) &&
-                            (
-                                regionToken.sameEditorState(requireNotNull(postDeleteToken)) ||
-                                    (
-                                        regionToken.selectionStart == newCursorPosition &&
-                                            regionToken.selectionEnd == newCursorPosition
-                                        )
-                                ) &&
-                            regionMatches
-                        ) {
-                            amharicComposer.adopt(
-                                word = amharicWord.word,
-                                cursorOffset = amharicWord.cursorOffset,
-                                composingStart = regionStart,
-                                composingEnd = regionEnd
-                            )
-                        } else {
-                            regionToken?.let(editorGateway::finishComposingText)
-                        }
-                    } else {
-                        editorGateway.currentToken()?.let(editorGateway::finishComposingText)
-                    }
-                }
+                )?.value
+                EmojiBackspace.lastClusterLength(before ?: "").coerceAtLeast(1)
             }
+            typingController.onBackspace(cluster)
             updateSuggestions()
         }
     }
 
     fun commitText(text: String) {
         safeApply {
-            deleteResumeGuard.clear()
-            observedWordSnapshot = null
             leaveVoiceModeForKeyboardInput()
-            commitActiveWordPreservingCursor()
-            safeIc { it.commitText(text, 1) }
+            typingController.onCommitText(text)
         }
     }
 
     /**
      * Space commits any in-flight word first, then inserts a space.
      *
-     * [WordComposer.commit] replaces the underlined raw Latin with its
-     * commitTransform: for Amharic that's the top-ranked fidel reading (the
-     * same as suggestions[0], highlighted in the strip) -- so space picks
-     * the default reading and a tap is only needed for a NON-default one;
+     * The composition's [com.addiyon.keyboard.composing.Composition.commit]
+     * replaces the underlined raw Latin with its commitTransform: for Amharic
+     * that's the top-ranked fidel reading (the same as suggestions[0],
+     * highlighted in the strip) -- so space picks the default reading and a
+     * tap is only needed for a NON-default one;
      * for English it finalizes the inline composed word as-is. With no word
      * in flight it's a plain space.
      */
     fun onSpace() {
         safeApply {
-            deleteResumeGuard.clear()
-            observedWordSnapshot = null
             // CLDR annotations are multi-word ("red heart"), so space belongs to
             // the emoji search query, not the field.
             emojiSearchField?.let { field ->
@@ -2811,7 +2509,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 }
             }
             leaveVoiceModeForKeyboardInput()
-            commitActiveWordPreservingCursor()
+            typingController.commitActiveWord()
             val sourceToken = editorGateway.currentToken()
             val boundarySnapshot = SuggestionTrace.section("prediction_boundary_capture") {
                 sourceToken?.let {
@@ -2863,8 +2561,6 @@ class AddiyonKeyboardService : InputMethodService(),
      */
     fun onEnter() {
         safeApply {
-            deleteResumeGuard.clear()
-            observedWordSnapshot = null
             // In emoji search, enter commits the top result (with its remembered
             // skin tone) -- it never submits the field's IME action.
             emojiSearchQuery?.let { query ->
@@ -2876,7 +2572,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 }
             }
             leaveVoiceModeForKeyboardInput()
-            commitActiveWordPreservingCursor()
+            typingController.commitActiveWord()
             val beforeEnter = editorGateway.textBeforeCursor(SENTENCE_LOOKBEHIND)?.value
             if (enterAction == EnterAction.NEWLINE) {
                 editorGateway.sendEnter()
@@ -2931,7 +2627,6 @@ class AddiyonKeyboardService : InputMethodService(),
             val action = publishedSuggestionAction ?: return@safeApply
             val word = tap.word
             val prediction = state is SuggestionUiState.NextWordPredictions
-            deleteResumeGuard.clear()
             leaveVoiceModeForKeyboardInput()
             val acceptedKind = if (prediction) {
                 TelemetrySuggestionKind.PREDICTION
@@ -2940,111 +2635,61 @@ class AddiyonKeyboardService : InputMethodService(),
             }
             val contextReader = if (isAmharic) NgramContext.AMHARIC else NgramContext.ENGLISH
             val priorContext = currentBoundaryContext(isAmharic)
-                ?: captureNgramContext(contextReader, activeComposer)
+                ?: captureNgramContext(contextReader)
             val priorContextValue = priorContext?.context ?: NgramContext.EMPTY
-            var committed = false
-            var actionToken = if (activeComposer.isComposing) {
-                activeComposerTokenIfCurrent()
-            } else {
-                null
-            }
-            if (activeComposer.isComposing && actionToken == null) {
-                // The field no longer matches the word we believe we're
-                // composing, so we can't safely swap it out. Bail without
-                // touching the composition: abandoning it here would finalize
-                // the half-typed word and then fall through to the
-                // not-composing branch below, which has no committedWordSnapshot
-                // to work with (that snapshot is only captured for words already
-                // in the field) and so could do nothing but silently no-op --
-                // the user tapped a chip and watched their typed word stay put.
-                // Re-deriving suggestions re-syncs against the real field state
-                // so the next tap has a valid token.
-                pendingPredictionBoundary = null
-                observedWordSnapshot = null
-                updateSuggestions()
-                return@safeApply
-            }
             val replacement = "$word "
             val nextContext = predictionContextAfterAcceptedWord(
                 priorContext = priorContextValue,
                 word = word
             )
             pendingPredictionBoundary = null
-            if (activeComposer.isComposing) {
-                val token = requireNotNull(actionToken)
-                val ownedRegion = activeComposer.ownedComposingRegion()
-                val mutationSnapshot = ownedRegion?.let {
-                    predictionReplacementSnapshot(
-                        replacementStart = it.first,
-                        replacementEnd = it.second,
-                        token = token
-                    )
-                }
-                committed = duringPredictionBoundaryMutation {
-                    activeComposer.commitSuggestion(word, token)
-                }
-                if (committed) {
-                    pendingPredictionBoundary = predictionBoundaryAfterAcceptedReplacement(
-                        snapshot = mutationSnapshot,
-                        replacement = replacement,
-                        context = nextContext
-                    )
-                }
-            } else {
-                val snapshot = action.committedWordSnapshot
-                val current = snapshot?.let(::revalidateCommittedWordSnapshot)
-                if (current != null) {
-                    val mutationSnapshot = predictionReplacementSnapshot(
-                        replacementStart = current.spanStart,
-                        replacementEnd = current.spanEnd,
-                        token = current.editorToken
-                    )
-                    committed = duringPredictionBoundaryMutation {
-                        editorGateway.replaceRange(
-                            start = current.spanStart,
-                            end = current.spanEnd,
-                            text = replacement,
-                            token = current.editorToken
-                        )
-                    }
-                    if (committed) {
-                        pendingPredictionBoundary = predictionBoundaryAfterAcceptedReplacement(
-                            snapshot = mutationSnapshot,
-                            replacement = replacement,
-                            context = nextContext,
-                            allowedIntermediateSelectionStart = current.spanStart,
-                            allowedIntermediateSelectionEnd = current.spanEnd
-                        )
-                    }
-                } else if (prediction) {
-                    val token = action.editorToken.takeIf(editorGateway::isCurrent)
-                        ?: return@safeApply
-                    actionToken = token
-                    val mutationSnapshot = predictionReplacementSnapshot(
-                        replacementStart = minOf(token.selectionStart, token.selectionEnd),
-                        replacementEnd = maxOf(token.selectionStart, token.selectionEnd),
-                        token = token
-                    )
-                    committed = duringPredictionBoundaryMutation {
-                        editorGateway.commitText(replacement, token)
-                    }
-                    if (committed) {
-                        pendingPredictionBoundary = predictionBoundaryAfterAcceptedReplacement(
-                            snapshot = mutationSnapshot,
-                            replacement = replacement,
-                            context = nextContext
-                        )
-                    }
-                } else {
-                    pendingPredictionBoundary = null
-                    return@safeApply
+
+            // How much text before the caret the tapped chip replaces. A
+            // completion replaces the word it was offered for -- the composing
+            // buffer, or the committed word the caret sits at the end of (which
+            // the controller re-opens and swaps atomically; see WordAdoption).
+            // A prediction is a NEW word: it inserts at the caret and replaces
+            // nothing. The length is used only for the post-commit prediction
+            // boundary's before/after identity, never for an edit.
+            val composing = typingController.isComposing
+            val replacedLength = when {
+                prediction -> 0
+                composing -> typingController.buffer.length
+                else -> {
+                    // No composition and no committed word at the caret: a
+                    // completion has nothing to replace -- no-op, exactly like
+                    // the old null-snapshot bail, rather than inserting a
+                    // duplicate next to the word it was meant to swap out.
+                    val expected = action.caretWord ?: return@safeApply
+                    if (currentCaretWord()?.word != expected) return@safeApply
+                    expected.length
                 }
             }
-            if (!committed) pendingPredictionBoundary = null
+            val mutationSnapshot = editorGateway.currentToken()?.let { token ->
+                predictionReplacementSnapshot(
+                    replacementStart = minOf(token.selectionStart, token.selectionEnd) - replacedLength,
+                    replacementEnd = maxOf(token.selectionStart, token.selectionEnd),
+                    token = token
+                )
+            }
+            val committed = duringPredictionBoundaryMutation {
+                typingController.onSuggestionTap(
+                    word,
+                    if (prediction) SuggestionKind.PREDICTION else SuggestionKind.COMPLETION
+                )
+            }
+            pendingPredictionBoundary = if (committed) {
+                predictionBoundaryAfterAcceptedReplacement(
+                    snapshot = mutationSnapshot,
+                    replacement = replacement,
+                    context = nextContext
+                )
+            } else {
+                null
+            }
             if (committed) {
                 Telemetry.suggestionAccepted(acceptedKind, isPrivateField)
             }
-            observedWordSnapshot = null
             updateSuggestions()
         }
     }
@@ -3076,12 +2721,29 @@ class AddiyonKeyboardService : InputMethodService(),
         ) {
             return null
         }
-        val editorStateValid = if (state is SuggestionUiState.NextWordPredictions) {
-            action.predictionIdentity?.let {
-                editorGateway.contentIdentityMatches(it, action.editorToken)
-            } == true
-        } else {
-            editorGateway.revalidateSelection(action.editorToken)
+        // The stale-token check that lived here (`revalidateSelection`) compared
+        // the current caret against the position captured at publish time, and
+        // rejected every tap once the user typed even one more letter. That is
+        // exactly the silent-no-op in rich-text editors (Samsung Notes, Gmail,
+        // Docs, anything Compose or WebView backed): the strip carries the
+        // previous keystroke's chips forward while the next lookup is in flight
+        // -- the carry is visible, the generation still matches, but the
+        // captured selection has moved on. Validate against what the strip was
+        // ACTUALLY generated for instead: the live composing buffer (the
+        // controller is the authority that the field holds exactly that buffer
+        // with the caret at its end), or the committed word the caret sits at
+        // the end of (compared via [currentCaretWord]).
+        val editorStateValid = when (state) {
+            is SuggestionUiState.NextWordPredictions -> {
+                action.predictionIdentity?.let {
+                    editorGateway.contentIdentityMatches(it, action.editorToken)
+                } == true
+            }
+            else -> isCompletionChipTapValid(
+                composing = typingController.isComposing,
+                currentCaretWord = currentCaretWord()?.word,
+                publishedCaretWord = action.caretWord
+            )
         }
         if (!editorStateValid) {
             if (
@@ -3261,17 +2923,18 @@ class AddiyonKeyboardService : InputMethodService(),
 
     override fun onStartInput(editorInfo: EditorInfo?, restarting: Boolean) {
         safeApply {
-            deleteResumeGuard.clear()
             idleReleaseHandler.removeCallbacks(idleRelease)
             super.onStartInput(editorInfo, restarting)
             editorGateway.beginSession(
                 initialSelectionStart = editorInfo?.initialSelStart ?: -1,
                 initialSelectionEnd = editorInfo?.initialSelEnd ?: -1
             )
-            amharicComposer.reset()
-            englishComposer.reset()
+            // A new input session means a new InputConnection -- any half-typed
+            // word we were composing belongs to a field that's no longer ours.
+            // Drop the bookkeeping silently rather than writing into the wrong
+            // destination.
+            typingController.onStartInput()
             voiceComposer.reset()
-            observedWordSnapshot = null
             pendingPredictionBoundary = null
             clearComposingContextCache()
             invalidateSuggestionWork()
@@ -3302,7 +2965,6 @@ class AddiyonKeyboardService : InputMethodService(),
 
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
         safeApply {
-            deleteResumeGuard.clear()
             super.onStartInputView(editorInfo, restarting)
             // Fresh (non-restarting) sessions feed the engagement counter behind
             // the one-time in-app review prompt (see ReviewPromptPolicy).
@@ -3356,10 +3018,12 @@ class AddiyonKeyboardService : InputMethodService(),
     /**
      * The framework calls this whenever the cursor or selection changes in
      * the target field -- both when WE change it (by pushing composing text)
-     * and when the USER changes it (by tapping somewhere else). Only a
-     * collapsed caret inside the composing region updates the composer's edit
-     * position. A range or a caret outside it finalizes the visible text in
-     * place before another key can rewrite the composing region.
+     * and when the USER changes it (by tapping somewhere else).
+     *
+     * The one rule (see TypingController.onSelectionChanged): a composition
+     * survives only while the caret is still at its end. Anything else
+     * finalizes it in place -- cursor movement never adds, removes or
+     * replaces text.
      *
      * candidatesStart / candidatesEnd are the framework's view of the
      * current composing region; both are -1 when nothing is being composed.
@@ -3380,7 +3044,6 @@ class AddiyonKeyboardService : InputMethodService(),
             )
             if (predictionBoundaryMutationDepth > 0) {
                 editorGateway.noteSelection(newSelStart, newSelEnd)
-                observedWordSnapshot = null
                 return@safeApply
             }
             val verifiedPredictionBoundaryEcho = pendingPredictionBoundary?.let {
@@ -3396,25 +3059,15 @@ class AddiyonKeyboardService : InputMethodService(),
             if (pendingPredictionBoundary != null) {
                 currentBoundaryContext(isAmharic)
             }
-            observedWordSnapshot = null
-
-            val cursorAtComposingEnd = isSelectionAtComposingEnd(
-                selectionStart = newSelStart,
-                selectionEnd = newSelEnd,
-                composingStart = candidatesStart,
-                composingEnd = candidatesEnd
-            )
-            val suppressResumeAfterDelete = deleteResumeGuard.onSelectionUpdate(
-                oldSelectionStart = oldSelStart,
-                oldSelectionEnd = oldSelEnd,
-                newSelectionStart = newSelStart,
-                newSelectionEnd = newSelEnd
-            )
 
             // Voice dictation in flight: a deliberate cursor move finalizes the
             // utterance where it was showing and restarts recognition cleanly at
             // the new position.
             if (voiceComposer.isComposing) {
+                val cursorAtComposingEnd = newSelStart == newSelEnd &&
+                    candidatesStart >= 0 &&
+                    candidatesEnd >= candidatesStart &&
+                    newSelStart == candidatesEnd
                 if (!cursorAtComposingEnd) {
                     finalizeVoiceComposing()
                     voiceInputController?.restartSession()
@@ -3422,73 +3075,14 @@ class AddiyonKeyboardService : InputMethodService(),
                 return@safeApply
             }
 
-            if (activeComposer.isComposing) {
-                val shouldVerifyStaleDelete =
-                    suppressResumeAfterDelete &&
-                        newSelStart == newSelEnd &&
-                        candidatesStart < 0 &&
-                        candidatesEnd < 0
-                val ownedRegionMatches = if (shouldVerifyStaleDelete) {
-                    val ownedRegion = activeComposer.ownedComposingRegion()
-                    val selectionToken = editorGateway.currentToken()
-                    ownedRegion != null &&
-                        selectionToken != null &&
-                        editorGateway.composingRegionMatches(
-                            start = ownedRegion.first,
-                            end = ownedRegion.second,
-                            selection = newSelStart,
-                            token = selectionToken
-                        )
-                } else {
-                    false
-                }
-                if (
-                    isVerifiedStaleDeleteCallback(
-                        expectedDeleteSelection = suppressResumeAfterDelete,
-                        selectionStart = newSelStart,
-                        selectionEnd = newSelEnd,
-                        candidatesStart = candidatesStart,
-                        candidatesEnd = candidatesEnd,
-                        ownedRegionMatches = ownedRegionMatches
-                    )
-                ) {
-                    return@safeApply
-                }
-                val cursorOffset = composingCursorOffset(
-                    selectionStart = newSelStart,
-                    selectionEnd = newSelEnd,
-                    composingStart = candidatesStart,
-                    composingEnd = candidatesEnd
-                )
-                if (
-                    cursorOffset != null &&
-                    candidatesEnd - candidatesStart == activeComposer.raw.length &&
-                    activeComposer.moveCursor(
-                        cursorOffset = cursorOffset,
-                        composingStart = candidatesStart,
-                        composingEnd = candidatesEnd
-                    )
-                ) {
-                    return@safeApply
-                }
-                if (
-                    activeComposer.isStaleComposingUpdate(
-                        composingStart = candidatesStart,
-                        composingEnd = candidatesEnd
-                    )
-                ) {
-                    return@safeApply
-                }
-                activeComposer.abandon()
-                updateSuggestions()
-            } else {
-                if (!suppressResumeAfterDelete && newSelStart == newSelEnd) {
-                    observedWordSnapshot = captureCommittedWordSnapshot(
-                        source = CommittedWordSource.CURSOR_OBSERVATION,
-                        optional = true
-                    )
-                }
-                updateSuggestions()
+            typingController.onSelectionChanged(
+                selectionStart = newSelStart,
+                selectionEnd = newSelEnd,
+                candidatesStart = candidatesStart,
+                candidatesEnd = candidatesEnd
+            )
+            updateSuggestions()
+            if (!typingController.isComposing) {
                 maybeAutoCapitalize()
             }
         }
@@ -3496,15 +3090,13 @@ class AddiyonKeyboardService : InputMethodService(),
 
     override fun onFinishInput() {
         safeApply {
-            deleteResumeGuard.clear()
-            activeComposer.finish()
-            amharicComposer.reset()
-            englishComposer.reset()
+            // The session is ending without an explicit commit: freeze what is
+            // visible, never rewrite it.
+            typingController.onFinishInput()
             voiceInputController?.stop()
             finalizeVoiceComposing()
             voiceComposer.reset()
             resetVoiceUi()
-            observedWordSnapshot = null
             pendingPredictionBoundary = null
             clearComposingContextCache()
             invalidateSuggestionWork()
@@ -3520,8 +3112,7 @@ class AddiyonKeyboardService : InputMethodService(),
             // Field is going away without an explicit commit. Finalize the
             // composing region in place so hiding the keyboard can never erase
             // or replace text.
-            activeComposer.finish()
-            observedWordSnapshot = null
+            typingController.onFinishInput()
             pendingPredictionBoundary = null
             clearComposingContextCache()
             invalidateSuggestionWork()
@@ -3567,10 +3158,7 @@ class AddiyonKeyboardService : InputMethodService(),
 
     override fun onDestroy() {
         safeApply {
-            activeComposer.finish()
-            amharicComposer.reset()
-            englishComposer.reset()
-            observedWordSnapshot = null
+            typingController.onFinishInput()
             pendingPredictionBoundary = null
             clearComposingContextCache()
             editorGateway.endSession()

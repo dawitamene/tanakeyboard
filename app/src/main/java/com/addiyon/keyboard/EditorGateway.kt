@@ -54,27 +54,6 @@ internal data class EditorSurroundingText(
 
     val textAfterSelection: String
         get() = text.substring(maxOf(selectionStart, selectionEnd))
-
-    /**
-     * True only when the editor reported a composing region that actually
-     * DISAGREES with [start]..[end].
-     *
-     * [composingStart]/[composingEnd] are null whenever the editor didn't
-     * surface composing spans at all -- `getSurroundingText` handed back plain
-     * (non-[android.text.Spanned]) text, or styled text whose SPAN_COMPOSING
-     * markers didn't survive being windowed. That is "unknown", not "wrong":
-     * plenty of real editors (WebViews, some Compose text fields, cross-platform
-     * toolkits) never echo the region back even though they applied it.
-     *
-     * So this is the check to use when verifying a region THIS IME set and is
-     * therefore already the authority on. Treating null as a mismatch there
-     * makes every such editor look permanently desynced -- which silently broke
-     * suggestion-chip taps. Use [EditorGateway.composingRegionMatches] instead
-     * when you need the editor to positively confirm a region.
-     */
-    fun composingRegionContradicts(start: Int, end: Int): Boolean =
-        (composingStart != null && composingStart != start) ||
-            (composingEnd != null && composingEnd != end)
 }
 
 internal data class EditorContentIdentity(
@@ -294,11 +273,6 @@ internal class EditorGateway(
     fun selectedText(optional: Boolean = false): EditorRead<String>? =
         read(optional) { connection -> connection.getSelectedText(0)?.toString() }
 
-    fun extractedText(optional: Boolean = true): EditorRead<ExtractedText>? =
-        read(optional) { connection ->
-            connection.getExtractedText(ExtractedTextRequest(), 0)
-        }
-
     fun surroundingText(
         beforeChars: Int,
         afterChars: Int,
@@ -484,70 +458,8 @@ internal class EditorGateway(
         null
     }
 
-    /**
-     * Confirms the editor reports the expected composing region. Unknown bounds
-     * (null) are accepted as a match, because many editors -- Compose
-     * TextField, WebViews, cross-platform toolkits -- apply the region but never
-     * echo SPAN_COMPOSING back. Bounds that *are* reported must still agree.
-     */
-    fun composingRegionMatches(
-        start: Int,
-        end: Int,
-        selection: Int,
-        token: EditorToken
-    ): Boolean {
-        if (
-            start < 0 ||
-            end < start ||
-            selection !in start..end ||
-            !isCurrent(token)
-        ) {
-            return false
-        }
-        val result = surroundingText(
-            beforeChars = selection - start,
-            afterChars = end - selection,
-            optional = false
-        ) ?: return false
-        val composingStartMatches = result.value.composingStart == null ||
-            result.value.composingStart == start
-        val composingEndMatches = result.value.composingEnd == null ||
-            result.value.composingEnd == end
-        return result.token.sameEditorState(token) &&
-            result.value.absoluteSelectionStart == selection &&
-            result.value.absoluteSelectionEnd == selection &&
-            composingStartMatches &&
-            composingEndMatches
-    }
-
     fun setComposingText(text: CharSequence, token: EditorToken? = null): Boolean =
         write(token) { it.setComposingText(text, 1) }
-
-    fun setComposingTextAndSelection(
-        text: CharSequence,
-        selection: Int,
-        expectedIntermediateSelection: Int,
-        token: EditorToken? = null
-    ): Boolean {
-        if (selection < 0 || expectedIntermediateSelection < 0) return false
-        return write(token) { connection ->
-            connection.beginBatchEdit()
-            try {
-                if (!connection.setComposingText(text, 1)) {
-                    false
-                } else if (
-                    token != null &&
-                    !selectionAllowsExpectedTransition(token, expectedIntermediateSelection)
-                ) {
-                    false
-                } else {
-                    connection.setSelection(selection, selection)
-                }
-            } finally {
-                connection.endBatchEdit()
-            }
-        }
-    }
 
     fun finishComposingText(token: EditorToken? = null): Boolean =
         write(token) { it.finishComposingText() }
@@ -555,62 +467,26 @@ internal class EditorGateway(
     fun commitText(text: CharSequence, token: EditorToken? = null): Boolean =
         write(token) { it.commitText(text, 1) }
 
-    fun commitTextAndSelection(
-        text: CharSequence,
-        selection: Int,
-        expectedIntermediateSelection: Int,
-        token: EditorToken? = null
-    ): Boolean {
-        if (selection < 0 || expectedIntermediateSelection < 0) return false
-        return write(token) { connection ->
-            connection.beginBatchEdit()
-            try {
-                if (!connection.commitText(text, 1)) {
-                    false
-                } else if (
-                    token != null &&
-                    !selectionAllowsExpectedTransition(token, expectedIntermediateSelection)
-                ) {
-                    false
-                } else {
-                    connection.setSelection(selection, selection)
-                }
-            } finally {
-                connection.endBatchEdit()
-            }
-        }
-    }
-
     fun deleteBeforeCursor(chars: Int, token: EditorToken? = null): Boolean =
         write(token) { it.deleteSurroundingText(chars.coerceAtLeast(1), 0) }
 
-    fun setComposingRegion(start: Int, end: Int, token: EditorToken? = null): Boolean {
-        if (start < 0 || end < start) return false
-        return writeInternal(
-            token = token,
-            invalidateOnRejectedOperation = false
-        ) {
-            it.setComposingRegion(start, end)
-        }
-    }
-
-    fun replaceRange(
-        start: Int,
-        end: Int,
-        text: CharSequence,
-        token: EditorToken
-    ): Boolean {
-        if (start < 0 || end < start) return false
-        return write(token) { connection ->
+    /**
+     * Turn [chars] characters immediately before the caret into the composing
+     * region holding [text], as one atomic edit.
+     *
+     * The offset-free alternative to `setComposingRegion(start, end)`: both calls
+     * are anchored to the caret, so no absolute document position is involved and
+     * no editor capability is depended on. Callers pass the text they just read
+     * from that exact range, so the field's characters are unchanged — only the
+     * composing span is new. See [com.addiyon.keyboard.composing.WordAdoption].
+     */
+    fun recomposeBeforeCursor(chars: Int, text: CharSequence): Boolean {
+        if (chars <= 0) return false
+        return write { connection ->
             connection.beginBatchEdit()
             try {
-                if (!connection.setSelection(start, end)) {
-                    false
-                } else if (!selectionAllowsRangeReplacement(token, start, end)) {
-                    false
-                } else {
-                    connection.commitText(text, 1)
-                }
+                connection.deleteSurroundingText(chars, 0) &&
+                    connection.setComposingText(text, 1)
             } finally {
                 connection.endBatchEdit()
             }
@@ -626,33 +502,6 @@ internal class EditorGateway(
             val up = connection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
             down && up
         }
-
-    private fun selectionAllowsRangeReplacement(
-        token: EditorToken,
-        start: Int,
-        end: Int
-    ): Boolean {
-        val current = currentToken() ?: return false
-        if (!isCurrentSession(token)) return false
-        return current.sameEditorState(token) ||
-            (
-                current.selectionStart == start &&
-                current.selectionEnd == end
-                )
-    }
-
-    private fun selectionAllowsExpectedTransition(
-        token: EditorToken,
-        expectedSelection: Int
-    ): Boolean {
-        val current = currentToken() ?: return false
-        if (!isCurrentSession(token)) return false
-        return current.sameEditorState(token) ||
-            (
-                current.selectionStart == expectedSelection &&
-                    current.selectionEnd == expectedSelection
-                )
-    }
 
     private fun currentConnection(): InputConnection? {
         if (!sessionActive) return null

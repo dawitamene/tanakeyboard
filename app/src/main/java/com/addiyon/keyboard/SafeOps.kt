@@ -33,7 +33,3 @@ internal fun safeOnMain(handler: Handler, block: () -> Unit) {
         SafeLog.e(t, "safeOnMain")
     }
 }
-
-internal inline fun AddiyonKeyboardService.safeIc(
-    crossinline block: (android.view.inputmethod.InputConnection) -> Boolean
-): Boolean = editorGateway.write { block(it) }

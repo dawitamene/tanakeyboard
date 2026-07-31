@@ -81,6 +81,14 @@ abstract class DictionaryDbGenerator : DefaultTask() {
                     )
                     """.trimIndent()
                 )
+                // Measured, not assumed: a completion lookup against this index
+                // costs ~0.05 ms (200 warm lookups over 10 varied 3-char English
+                // prefixes ran in ~11 ms). Widening it to (key, freq DESC) so the
+                // ORDER BY comes out of the index was tried and reverted -- it won
+                // ~11% of 0.05 ms while costing 488 KB against the size budget in
+                // DictionaryDbSizeBudgetTest, which amharic.db has under 2 MB of
+                // room in. Suggestion latency lives in the thread priority and the
+                // main-thread editor reads around this query, not in the query.
                 st.execute("CREATE INDEX idx_words_key ON words(key)")
                 st.execute(
                     """

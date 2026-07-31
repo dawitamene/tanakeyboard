@@ -10,10 +10,9 @@ package com.addiyon.keyboard.suggestion
  *     commits "jo@mycomp.com", appending the suffix to whatever the user has
  *     already typed.
  *
- * WordComposer's [com.addiyon.keyboard.composing.WordComposer.commitSuggestion]
- * treats [commit] as the replacement text for the current composing region --
- * here that region is the full email token, so a chip tap ends up rewriting
- * the whole token plus a trailing space.
+ * TypingController's suggestion-tap path treats [commit] as the replacement
+ * text for the current composing region -- here that region is the full email
+ * token, so a chip tap ends up rewriting the whole token plus a trailing space.
  */
 data class EmailChip(val display: String, val commit: String)
 

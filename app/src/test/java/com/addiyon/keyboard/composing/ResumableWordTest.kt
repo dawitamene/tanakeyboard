@@ -6,151 +6,83 @@ import org.junit.Test
 
 class ResumableWordTest {
 
-    // ---- Latin (English composer) ----
+    // ---- Latin (English pipeline) ----
 
     @Test
-    fun latinWordAtEndIsExtracted() {
-        assertEquals("cana", ResumableWord.trailingLatinWord("hello cana"))
-        assertEquals("cana", ResumableWord.trailingLatinWord("cana"))
+    fun latinWordEndingAtCaretIsExtracted() {
+        assertEquals("cana", ResumableWord.latinWordEndingAtCursor("hello cana", ""))
+        assertEquals("cana", ResumableWord.latinWordEndingAtCursor("cana", ""))
     }
 
     @Test
     fun apostropheBelongsToTheLatinWord() {
-        assertEquals("don't", ResumableWord.trailingLatinWord("i said don't"))
+        assertEquals("don't", ResumableWord.latinWordEndingAtCursor("i said don't", ""))
     }
 
     @Test
-    fun latinWordSurroundingCursorIncludesBothSides() {
-        assertEquals(
-            ResumableWord.AtCursor(word = "inform", cursorOffset = 2),
-            ResumableWord.latinWordAtCursor(before = "in", after = "form")
-        )
-        assertEquals(
-            ResumableWord.AtCursor(word = "don't", cursorOffset = 3),
-            ResumableWord.latinWordAtCursor(before = "don", after = "'t")
-        )
+    fun latinInteriorCaretIsNotAWordEnd() {
+        assertNull(ResumableWord.latinWordEndingAtCursor("in", "form"))
+        assertNull(ResumableWord.latinWordEndingAtCursor("don", "'t"))
+        assertNull(ResumableWord.latinWordEndingAtCursor("say in", "form now"))
     }
 
     @Test
-    fun latinWordAtCursorStopsAtVisibleBoundaries() {
-        assertEquals(
-            ResumableWord.AtCursor(word = "inform", cursorOffset = 2),
-            ResumableWord.latinWordAtCursor(before = "say in", after = "form now")
-        )
-        assertNull(ResumableWord.latinWordAtCursor(before = "say ", after = " now"))
+    fun latinCaretBeforeAWordIsNotAWordEnd() {
+        assertNull(ResumableWord.latinWordEndingAtCursor("say ", "hello "))
     }
 
     @Test
-    fun emailWordAtCursorIncludesTheWholeAddressToken() {
+    fun latinWordEndRequiresAVisibleBoundary() {
+        assertNull(ResumableWord.latinWordEndingAtCursor("hello cana ", ""))
+        assertNull(ResumableWord.latinWordEndingAtCursor("hello.", ""))
+        assertNull(ResumableWord.latinWordEndingAtCursor("abc123", ""))
+        assertNull(ResumableWord.latinWordEndingAtCursor("", ""))
         assertEquals(
-            ResumableWord.AtCursor(word = "test@example.com", cursorOffset = 5),
-            ResumableWord.emailWordAtCursor(
-                before = "to test@",
-                after = "example.com next"
-            )
+            "inform",
+            ResumableWord.latinWordEndingAtCursor("say inform", " now")
         )
-    }
-
-    @Test
-    fun emailWordAcceptsEverySupportedTokenCharacterAndStopsAtOtherPunctuation() {
-        assertEquals(
-            ResumableWord.AtCursor(word = "o'neil`9@example.com", cursorOffset = 7),
-            ResumableWord.emailWordAtCursor(
-                before = "to o'neil`",
-                after = "9@example.com-next"
-            )
-        )
-        assertNull(ResumableWord.emailWordAtCursor(before = "name-", after = "_host"))
-    }
-
-    @Test
-    fun wordCanBeginExactlyAtTheCaret() {
-        assertEquals(
-            ResumableWord.AtCursor(word = "hello", cursorOffset = 0),
-            ResumableWord.latinWordAtCursor(before = "say ", after = "hello ")
-        )
-    }
-
-    @Test
-    fun trailingBoundaryCharacterMeansNoLatinWord() {
-        assertNull(ResumableWord.trailingLatinWord("hello cana "))
-        assertNull(ResumableWord.trailingLatinWord("hello."))
-        assertNull(ResumableWord.trailingLatinWord("abc123"))
-        assertNull(ResumableWord.trailingLatinWord(""))
     }
 
     @Test
     fun fidelNeverCountsAsLatin() {
-        assertNull(ResumableWord.trailingLatinWord("ሰላም"))
+        assertNull(ResumableWord.latinWordEndingAtCursor("ሰላም", ""))
         // ...but a Latin word AFTER fidel stops at the script boundary.
-        assertEquals("abc", ResumableWord.trailingLatinWord("ሰላምabc"))
+        assertEquals("abc", ResumableWord.latinWordEndingAtCursor("ሰላምabc", ""))
+    }
+
+    // ---- Amharic (fidel pipeline) ----
+
+    @Test
+    fun amharicWordEndingAtCaretIsExtracted() {
+        assertEquals("ሰላም", ResumableWord.amharicWordEndingAtCursor("ሰላም", ""))
+        assertEquals("ሰላም", ResumableWord.amharicWordEndingAtCursor("ጤና ሰላም", ""))
     }
 
     @Test
-    fun amharicWordAfterBackspaceUsesTheRemainingFidelAsItsPrefix() {
+    fun amharicInteriorCaretAndLatinAreNotWordEnds() {
+        assertNull(ResumableWord.amharicWordEndingAtCursor("ሰ", "ላም"))
+        assertNull(ResumableWord.amharicWordEndingAtCursor("selam", ""))
+        assertNull(ResumableWord.amharicWordEndingAtCursor("ሰላም ", ""))
+    }
+
+    // ---- Email ----
+
+    @Test
+    fun emailWordEndingAtCaretIncludesTheWholeAddressToken() {
         assertEquals(
-            ResumableWord.AtCursor(word = "እንዴ", cursorOffset = 3),
-            ResumableWord.amharicWordAfterBackspace(
-                before = "እንዴት",
-                after = "",
-                deletedChars = 1
-            )
+            "test@example.com",
+            ResumableWord.emailWordEndingAtCursor("to test@example.com", " next")
         )
-    }
-
-    @Test
-    fun amharicWordAfterBackspaceIncludesTheSuffixAtAnInteriorCursor() {
         assertEquals(
-            ResumableWord.AtCursor(word = "እዴት", cursorOffset = 1),
-            ResumableWord.amharicWordAfterBackspace(
-                before = "እን",
-                after = "ዴት",
-                deletedChars = 1
-            )
+            "o'neil`9@example.com",
+            ResumableWord.emailWordEndingAtCursor("to o'neil`9@example.com", "-next")
         )
     }
 
     @Test
-    fun boundaryBackspaceDoesNotResumeAnAmharicWord() {
-        assertNull(
-            ResumableWord.amharicWordAfterBackspace(
-                before = "እንዴት ",
-                after = "",
-                deletedChars = 1
-            )
-        )
-    }
-
-    @Test
-    fun amharicBackspaceRejectsInvalidCountsAndNonFidelDeletedText() {
-        assertNull(
-            ResumableWord.amharicWordAfterBackspace(
-                before = "ሰላም",
-                after = "",
-                deletedChars = 0
-            )
-        )
-        assertNull(
-            ResumableWord.amharicWordAfterBackspace(
-                before = "ሰላም",
-                after = "",
-                deletedChars = 5
-            )
-        )
-        assertNull(
-            ResumableWord.amharicWordAfterBackspace(
-                before = "ሰላምa",
-                after = "",
-                deletedChars = 1
-            )
-        )
-        assertNull(
-            ResumableWord.amharicWordAfterBackspace(
-                before = "ሰላም።",
-                after = "",
-                deletedChars = 1
-            )
-        )
+    fun emailInteriorCaretIsNotAWordEnd() {
+        assertNull(ResumableWord.emailWordEndingAtCursor("to test@", "example.com next"))
+        assertNull(ResumableWord.emailWordEndingAtCursor("name-", "_host"))
     }
 
     // ---- Shared window guard ----
@@ -158,29 +90,16 @@ class ResumableWordTest {
     @Test
     fun wordFillingTheWholeLookbehindWindowIsRejected() {
         val full = "a".repeat(ResumableWord.LOOKBEHIND)
-        assertNull(ResumableWord.trailingLatinWord(full))
+        assertNull(ResumableWord.latinWordEndingAtCursor(full, ""))
         // A window-length text with a boundary inside still yields the word:
         // the start is visible, so it is not a fragment.
         val bounded = " " + "a".repeat(ResumableWord.LOOKBEHIND - 1)
-        assertEquals("a".repeat(ResumableWord.LOOKBEHIND - 1), ResumableWord.trailingLatinWord(bounded))
+        assertEquals(
+            "a".repeat(ResumableWord.LOOKBEHIND - 1),
+            ResumableWord.latinWordEndingAtCursor(bounded, "")
+        )
         // Shorter than the window and all word chars: the field simply starts
         // with the word, adopt it whole.
-        assertEquals("abc", ResumableWord.trailingLatinWord("abc"))
-    }
-
-    @Test
-    fun wordFillingEitherCursorWindowIsRejected() {
-        assertNull(
-            ResumableWord.latinWordAtCursor(
-                before = "a".repeat(ResumableWord.LOOKBEHIND),
-                after = "bc"
-            )
-        )
-        assertNull(
-            ResumableWord.latinWordAtCursor(
-                before = "ab",
-                after = "c".repeat(ResumableWord.LOOKAHEAD)
-            )
-        )
+        assertEquals("abc", ResumableWord.latinWordEndingAtCursor("abc", ""))
     }
 }

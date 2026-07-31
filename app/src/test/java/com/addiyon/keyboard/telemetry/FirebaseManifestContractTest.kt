@@ -21,7 +21,19 @@ class FirebaseManifestContractTest {
             it.attributes.getNamedItemNS(android, "name").nodeValue
         }.toSet()
 
-        assertTrue("android.permission.INTERNET" in names)
+        // INTERNET is declared if and only if the telemetry stack is compiled
+        // in. Nothing else in the app touches the network -- Play in-app
+        // review/update reach the Play Store app over IPC, voice typing runs in
+        // the recognizer's own process -- so while telemetry is off a keyboard
+        // asking for "Full network access" is a trust cost with no feature
+        // behind it. Firebase, on the other hand, cannot upload a thing without
+        // it, so turning TelemetryFeature.ENABLED back on must uncomment the
+        // permission in the manifest; this assertion is what enforces the pair.
+        assertEquals(
+            "INTERNET must be declared exactly when telemetry is compiled in",
+            TelemetryFeature.ENABLED,
+            "android.permission.INTERNET" in names
+        )
         val features = document.getElementsByTagName("uses-feature")
         val microphoneFeature = (0 until features.length)
             .map(features::item)
