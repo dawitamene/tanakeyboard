@@ -12,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
 import com.addiyon.keyboard.ui.feedback.FeedbackOptions
 import com.addiyon.keyboard.ui.feedback.openFeedbackTelegram
 import com.addiyon.keyboard.ui.feedback.sendFeedbackEmail
@@ -32,7 +31,7 @@ class FeedbackActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
             super.onCreate(savedInstanceState)
-            WindowCompat.setDecorFitsSystemWindows(window, false)
+            applyAddiyonEdgeToEdge()
             setContent {
                 ProvideAppLocalization {
                     AddiyonBrandTheme(isDarkTheme = isSystemInDarkTheme()) {

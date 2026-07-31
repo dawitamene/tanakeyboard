@@ -15,7 +15,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.core.view.WindowCompat
 import com.addiyon.keyboard.review.PlayReviewPlatform
 import com.addiyon.keyboard.review.ReviewPromptController
 import com.addiyon.keyboard.update.InAppUpdateController
@@ -86,7 +85,7 @@ class MainActivity : ComponentActivity() {
             // theme before Compose draws.
             setTheme(R.style.Theme_AddiyonKeyboard)
             super.onCreate(savedInstanceState)
-            WindowCompat.setDecorFitsSystemWindows(window, false)
+            applyAddiyonEdgeToEdge()
 
             // Must be built here: it registers an activity-result launcher,
             // which is only legal before the Activity starts. savedInstanceState

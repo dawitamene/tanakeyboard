@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.core.view.WindowCompat
 import com.addiyon.keyboard.ui.manual.ManualScreen
 import com.addiyon.keyboard.ui.i18n.ProvideAppLocalization
 import com.addiyon.keyboard.ui.theme.AddiyonBrandTheme
@@ -20,7 +19,7 @@ class ManualActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
             super.onCreate(savedInstanceState)
-            WindowCompat.setDecorFitsSystemWindows(window, false)
+            applyAddiyonEdgeToEdge()
             setContent {
                 ProvideAppLocalization {
                     AddiyonBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
