@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.core.view.WindowCompat
 import com.addiyon.keyboard.review.PlayReviewPlatform
 import com.addiyon.keyboard.review.ReviewPromptController
 import com.addiyon.keyboard.update.InAppUpdateController
@@ -85,8 +85,8 @@ class MainActivity : ComponentActivity() {
             // background) so the first frame is the splash. Swap to the real app
             // theme before Compose draws.
             setTheme(R.style.Theme_AddiyonKeyboard)
-            enableEdgeToEdge()
             super.onCreate(savedInstanceState)
+            WindowCompat.setDecorFitsSystemWindows(window, false)
 
             // Must be built here: it registers an activity-result launcher,
             // which is only legal before the Activity starts. savedInstanceState

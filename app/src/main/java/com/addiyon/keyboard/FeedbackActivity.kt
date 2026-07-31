@@ -3,7 +3,6 @@ package com.addiyon.keyboard
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import com.addiyon.keyboard.ui.feedback.FeedbackOptions
 import com.addiyon.keyboard.ui.feedback.openFeedbackTelegram
 import com.addiyon.keyboard.ui.feedback.sendFeedbackEmail
@@ -31,8 +31,8 @@ class FeedbackActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
-            enableEdgeToEdge()
             super.onCreate(savedInstanceState)
+            WindowCompat.setDecorFitsSystemWindows(window, false)
             setContent {
                 ProvideAppLocalization {
                     AddiyonBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
