@@ -431,10 +431,10 @@ def main():
                         help="tiny-corpus mode: no pruning thresholds, no "
                              "dictionary gating (display = folded form); "
                              "pass <corpus> <out> as the two positionals")
-    parser.add_argument("--bigram-min-context", type=int, default=4)
-    parser.add_argument("--bigram-min-succ", type=int, default=3)
+    parser.add_argument("--bigram-min-context", type=int, default=10)
+    parser.add_argument("--bigram-min-succ", type=int, default=8)
     parser.add_argument("--k-bigram", type=int, default=8)
-    parser.add_argument("--trigram-min-succ", type=int, default=3)
+    parser.add_argument("--trigram-min-succ", type=int, default=8)
     parser.add_argument("--k-trigram", type=int, default=6)
     args = parser.parse_args()
     if args.lang == "english":

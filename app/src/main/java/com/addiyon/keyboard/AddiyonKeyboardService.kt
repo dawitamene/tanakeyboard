@@ -107,6 +107,13 @@ private const val AMHARIC_SUGGESTION_LIMIT = 10
 private const val NEXT_WORD_LIMIT = 6
 
 /**
+ * Next-word fallback when the n-gram model has no successor for the current
+ * context: the top most frequent dictionary words, capped at the English
+ * strip's three fixed slots (Amharic reuses [AMHARIC_SUGGESTION_LIMIT]).
+ */
+private const val PREDICTION_FALLBACK_ENGLISH_LIMIT = 3
+
+/**
  * English strip capacity: exact-prefix completions first, then up to
  * [ENGLISH_FUZZY_LIMIT] typo corrections appended below them.
  */
@@ -1074,9 +1081,23 @@ class AddiyonKeyboardService : InputMethodService(),
             executor.execute {
                 SuggestionTrace.endAsync("prediction_queue", cookie)
                 val predictions = try {
-                    ngramModel?.let { predictionsFor(it, context, limit) }
+                    val model = ngramModel
+                    val ngramPredictions = model?.let { predictionsFor(it, context, limit) }
                         .orEmpty()
-                        .map { it.word }
+                    if (ngramPredictions.isEmpty()) {
+                        // No trigram or bigram successor for this context: fall
+                        // back to the most frequent dictionary words so the strip
+                        // still offers next-word candidates instead of going blank.
+                        model?.topFrequentWords(
+                            if (amharic) {
+                                AMHARIC_SUGGESTION_LIMIT
+                            } else {
+                                PREDICTION_FALLBACK_ENGLISH_LIMIT
+                            }
+                        ).orEmpty()
+                    } else {
+                        ngramPredictions
+                    }.map { it.word }
                 } catch (_: RuntimeException) {
                     emptyList()
                 }

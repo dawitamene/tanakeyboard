@@ -194,6 +194,7 @@ fun RowScope.ShiftKey(
     KeyButton(
         icon = icon,
         iconTint = tint,
+        iconSize = 24.dp,
         showLockIndicator = shiftState == ShiftState.CAPS_LOCK,
         modifier = Modifier.width(width * KeyWeights.SHIFT),
         height = height,
@@ -225,6 +226,7 @@ fun RowScope.DeleteKey(
 ) {
     KeyButton(
         icon = Icons.Outlined.Backspace,
+        iconSize = 24.dp,
         modifier = Modifier.width(width * widthMultiplier),
         height = height,
         isSpecial = true,

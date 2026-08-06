@@ -28,6 +28,8 @@ import com.addiyon.keyboard.model.NumbersMode
 import com.addiyon.keyboard.ui.emoji.EmojiPanel
 import com.addiyon.keyboard.ui.emoji.EmojiSearchHeader
 
+private val KEY_ROWS_VERTICAL_PADDING = 9.dp
+
 private fun keyboardRows(
     layout: KeyboardLayout,
     numbersMode: NumbersMode,
@@ -70,8 +72,7 @@ fun KeyboardScreen(
 ) {
     val isLandscape =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val standardRowSpacing = if (isLandscape) 3.dp else 6.dp
-    val rowsVerticalPadding = if (isLandscape) 3.dp else 6.dp
+    val standardRowSpacing = if (isLandscape) 7.dp else 10.dp
 
     // NOTE: we deliberately do NOT read service.currentInputConnection here.
     // Reading it once at composition time would bake a possibly-stale
@@ -152,11 +153,12 @@ fun KeyboardScreen(
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         // Mirror the key branch's sizing exactly so opening the
                         // emoji panel never resizes the IME window: its
-                        // BoxWithConstraints measures width AFTER 4.dp horizontal
-                        // padding (hence -8.dp here), each row is keyHeight plus
-                        // a 6.dp spacer (keyboardRowsHeight), and the box adds
-                        // 6.dp vertical padding top and bottom (12.dp). Plus the
-                        // 40.dp suggestion area this panel renders in place of.
+                        // BoxWithConstraints measures the same width AFTER the
+                        // 2.dp horizontal padding (hence -4.dp here), each row
+                        // is keyHeight plus the standard row spacer
+                        // (keyboardRowsHeight), plus the same vertical padding
+                        // top and bottom. Plus the 40.dp suggestion area this
+                        // panel renders in place of.
                         val rows = remember(
                             layout,
                             service.numbersMode,
@@ -172,7 +174,7 @@ fun KeyboardScreen(
                         val metrics = remember(rows, maxWidth, heightScale, isLandscape) {
                             computeKeyboardMetrics(
                                 rows = rows,
-                                availableWidth = maxWidth - 8.dp,
+                                availableWidth = maxWidth - 4.dp,
                                 columns = layout.columns,
                                 heightScale = heightScale,
                                 isLandscape = isLandscape
@@ -185,7 +187,7 @@ fun KeyboardScreen(
                             keyHeight = metrics.keyHeight,
                             rowCount = targetRowCount,
                             rowSpacing = standardRowSpacing
-                        ) + rowsVerticalPadding * 2
+                        ) + KEY_ROWS_VERTICAL_PADDING * 2
                         EmojiPanel(service = service, height = panelHeight)
                     }
                     return@keyboardContent
@@ -205,7 +207,7 @@ fun KeyboardScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()
-                        .padding(horizontal = 4.dp, vertical = rowsVerticalPadding)
+                        .padding(horizontal = 2.dp, vertical = KEY_ROWS_VERTICAL_PADDING)
                 ) {
 
                     // Emoji search always types on the plain English rows (the
@@ -257,7 +259,7 @@ fun KeyboardScreen(
                         metrics
                     }
                     val rowSpacing =
-                        if (isLandscape) 3.dp else if (isKeypadLayout) 4.dp else 6.dp
+                        if (isKeypadLayout && !isLandscape) 4.dp else standardRowSpacing
                     val prefixRowCount = rows.size - effectiveLayout.rows.size
 
                     Column(

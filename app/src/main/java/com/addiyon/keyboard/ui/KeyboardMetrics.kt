@@ -27,7 +27,7 @@ internal data class KeyboardMetrics(
 )
 
 internal fun keyboardRowsHeight(keyHeight: Dp, rowCount: Int, rowSpacing: Dp = 6.dp): Dp =
-    (keyHeight + rowSpacing) * rowCount
+    keyHeight * rowCount + rowSpacing * (rowCount - 1)
 
 internal fun keyboardRowCount(numberRowEnabled: Boolean): Int =
     if (numberRowEnabled) 5 else 4
@@ -42,7 +42,8 @@ internal fun expandedKeyHeight(
     keyHeight = baseKeyHeight,
     rowCount = targetRowCount,
     rowSpacing = targetRowSpacing
-) / actualRowCount.toFloat() - actualRowSpacing
+) / actualRowCount.toFloat() -
+    actualRowSpacing * (actualRowCount - 1) / actualRowCount.toFloat()
 
 /**
  * Derives key sizing from the available width and the layout's rows.
@@ -76,9 +77,9 @@ internal fun computeKeyboardMetrics(
     val keyWidth = availableWidth / cellCount
     val heightReferenceWidth = availableWidth / KEY_HEIGHT_REFERENCE_COLUMNS
     val baseKeyHeight = if (isLandscape) {
-        (heightReferenceWidth * 0.72f).coerceIn(28.dp, 34.dp) - 1.dp
+        (heightReferenceWidth * 0.72f).coerceIn(28.dp, 34.dp)
     } else {
-        (heightReferenceWidth * 1.1f).coerceIn(36.dp, 46.dp) - 1.dp
+        (heightReferenceWidth * 1.1f).coerceIn(36.dp, 46.dp)
     }
 
     return KeyboardMetrics(

@@ -66,9 +66,9 @@ python3 tools/build_ngrams.py CACO_TEXT.txt amharic_corpus_abdulmunim.txt
   boundary on the punctuation side; standalone punctuation, numbers, Latin,
   and mixed tokens (`ዓ.ም`, `በ2007`) are wholly **boundaries**, so no
   bigram/trigram ever spans them.
-- Pruning (all tunable via flags): bigram contexts with total count ≥ 4,
-  successors count ≥ 3, top 8 per context; trigrams only where the (w1, w2)
-  context survived as a bigram, successors count ≥ 3, top 6, and dropped when
+- Pruning (all tunable via flags): bigram contexts with total count ≥ 10,
+  successors count ≥ 8, top 8 per context; trigrams only where the (w1, w2)
+  context survived as a bigram, successors count ≥ 8, top 6, and dropped when
   identical to their bigram backoff prefix.
 - Output: a binary word-ID model, **format v2** (vocab table sorted by folded
   key + sorted context arrays + offset/successor/weight arrays, big-endian,

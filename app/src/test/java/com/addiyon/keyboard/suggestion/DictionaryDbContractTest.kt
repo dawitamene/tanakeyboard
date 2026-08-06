@@ -94,6 +94,32 @@ class DictionaryDbContractTest {
         }
     }
 
+    @Test
+    fun topFrequentWordsFallbackIsFreqDescending() {
+        listOf("amharic.db", "english.db").forEach { name ->
+            val db = dbFile(name)
+            assumeTrue("$name not built (run ./gradlew generateDictionaryDbs)", db != null)
+            DriverManager.getConnection("jdbc:sqlite:${db!!.absolutePath}").use { conn ->
+                // Exact query SQLiteNgramModel.topFrequentWords runs for its
+                // next-word fallback; the strip needs 10 (Amharic) at most.
+                val words = conn.createStatement().use { st ->
+                    st.executeQuery("SELECT word, freq FROM words ORDER BY freq DESC LIMIT 10")
+                        .use { rs ->
+                            buildList {
+                                while (rs.next()) add(rs.getString(1) to rs.getLong(2))
+                            }
+                        }
+                }
+                assertEquals(10, words.size)
+                assertTrue(
+                    "expected strictly non-increasing freq, got ${words.map { it.second }}",
+                    words.zipWithNext().all { (a, b) -> a.second >= b.second }
+                )
+                assertTrue(words.all { it.first.isNotEmpty() })
+            }
+        }
+    }
+
     private fun loadKey(conn: java.sql.Connection, word: String): String? =
         conn.prepareStatement("SELECT key FROM words WHERE word = ?").use { ps ->
             ps.setString(1, word)

@@ -16,6 +16,9 @@ internal class SQLiteNgramModel(
 ) {
     data class Prediction(val word: String, val weight: Int)
 
+    @Volatile
+    private var topWordsCache: List<Prediction>? = null
+
     val isReady: Boolean
         get() = store.isReady
 
@@ -28,6 +31,33 @@ internal class SQLiteNgramModel(
 
     fun release() {
         store.release()
+    }
+
+    /**
+     * The most frequent [limit] dictionary words by corpus frequency, used as
+     * the next-word fallback when the n-gram model has no successor for the
+     * current context. The data is static for a given asset (content-addressed
+     * install), so the query runs once per model and is cached; callers may
+     * ask for fewer than the cached count.
+     */
+    fun topFrequentWords(limit: Int): List<Prediction> {
+        if (!isReady || limit <= 0) return emptyList()
+        return try {
+            val cache = topWordsCache ?: synchronized(this) {
+                topWordsCache ?: fetchTopFrequentWords(TOP_FREQUENT_WORD_COUNT).also {
+                    topWordsCache = it
+                }
+            }
+            cache.take(limit)
+        } catch (t: Throwable) {
+            store.handleQueryFailure(t)
+            com.addiyon.keyboard.SafeLog.e(
+                t,
+                "SQLiteNgramModel.topFrequentWords",
+                com.addiyon.keyboard.telemetry.NonFatalCategory.DATABASE
+            )
+            emptyList()
+        }
     }
 
     fun predict(prev2: String?, prev1: String, limit: Int): List<Prediction> {
@@ -128,5 +158,23 @@ internal class SQLiteNgramModel(
         1 -> word.replaceFirstChar { it.uppercaseChar() }
         2 -> word.uppercase()
         else -> word
+    }
+
+    private fun fetchTopFrequentWords(count: Int): List<Prediction> {
+        val db = store.databaseOrNull() ?: return emptyList()
+        return db.rawQuery(
+            "SELECT word, freq FROM words ORDER BY freq DESC LIMIT ?",
+            arrayOf(count.toString())
+        ).use { cursor ->
+            ArrayList<Prediction>(count).apply {
+                while (cursor.moveToNext()) {
+                    add(Prediction(cursor.getString(0), cursor.getLong(1).coerceIn(0, 255).toInt()))
+                }
+            }
+        }
+    }
+
+    companion object {
+        private const val TOP_FREQUENT_WORD_COUNT = 10
     }
 }

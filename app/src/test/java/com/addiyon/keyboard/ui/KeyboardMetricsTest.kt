@@ -19,14 +19,14 @@ class KeyboardMetricsTest {
     fun tenCharacterTopRowDefinesLetterWidth() {
         val metrics = computeKeyboardMetrics(EnglishLayout.rows, 320.dp)
         assertEquals(32.dp, metrics.keyWidth)
-        assertEquals(35.dp, metrics.keyHeight)
+        assertEquals(36.dp, metrics.keyHeight)
     }
 
     @Test
     fun heightIsCappedAtTheUpperBoundOnWideScreens() {
         val metrics = computeKeyboardMetrics(AmharicLayout.rows, 1000.dp)
         assertEquals(100.dp, metrics.keyWidth)
-        assertEquals(45.dp, metrics.keyHeight)
+        assertEquals(46.dp, metrics.keyHeight)
     }
 
     @Test
@@ -36,32 +36,32 @@ class KeyboardMetricsTest {
             1000.dp,
             isLandscape = true
         )
-        assertEquals(33.dp, metrics.keyHeight)
+        assertEquals(34.dp, metrics.keyHeight)
     }
 
     @Test
     fun heightIsCappedAtTheLowerBoundOnNarrowScreens() {
         val metrics = computeKeyboardMetrics(NumberLayout.rows, 240.dp)
         assertEquals(24.dp, metrics.keyWidth)
-        assertEquals(35.dp, metrics.keyHeight)
+        assertEquals(36.dp, metrics.keyHeight)
     }
 
     @Test
     fun heightScaleEnlargesKeyHeightProportionally() {
-        // Base height at 320.dp is 35.dp; the user scale multiplies it.
+        // Base height at 320.dp is 36dp; the user scale multiplies it.
         val metrics = computeKeyboardMetrics(EnglishLayout.rows, 320.dp, heightScale = 1.2f)
-        assertEquals(42.dp, metrics.keyHeight)
+        assertEquals(43.2f, metrics.keyHeight.value, 0.001f)
         // Width is unaffected by the height scale -- the keyboard still fills its width.
         assertEquals(32.dp, metrics.keyWidth)
     }
 
     @Test
     fun heightScaleAppliesAfterTheClamp() {
-        // The 36-46dp clamp bounds the width-derived base (35.dp here); the user
+        // The 36-46dp clamp bounds the width-derived base (36dp here); the user
         // scale then multiplies that clamped value, so a sub-1.0 scale can drop
         // the final height below the clamp floor.
         val metrics = computeKeyboardMetrics(EnglishLayout.rows, 320.dp, heightScale = 0.8f)
-        assertEquals(28.dp, metrics.keyHeight)
+        assertEquals(28.8f, metrics.keyHeight.value, 0.001f)
     }
 
     @Test
@@ -69,7 +69,7 @@ class KeyboardMetricsTest {
         val scaled = computeKeyboardMetrics(EnglishLayout.rows, 320.dp, heightScale = 1f)
         val unscaled = computeKeyboardMetrics(EnglishLayout.rows, 320.dp)
         assertEquals(unscaled.keyHeight, scaled.keyHeight)
-        assertEquals(35.dp, scaled.keyHeight)
+        assertEquals(36.dp, scaled.keyHeight)
     }
 
     @Test
@@ -86,7 +86,7 @@ class KeyboardMetricsTest {
     fun keypadColumnsOverrideTheCharacterCountHeuristic() {
         val metrics = computeKeyboardMetrics(KeypadLayout.rows, 420.dp, columns = KeypadLayout.columns)
         assertEquals(420.dp / 5.3f, metrics.keyWidth)
-        assertEquals(45.dp, metrics.keyHeight)
+        assertEquals(46.dp, metrics.keyHeight)
     }
 
     @Test
@@ -105,9 +105,9 @@ class KeyboardMetricsTest {
 
     @Test
     fun fixedRowAreaHeightDoesNotDependOnTheVisibleRowCount() {
-        assertEquals(205.dp, keyboardRowsHeight(35.dp, rowCount = 5))
-        assertEquals(164.dp, keyboardRowsHeight(35.dp, rowCount = 4))
-        assertEquals(205.dp, keyboardRowsHeight(37.dp, rowCount = 5, rowSpacing = 4.dp))
+        assertEquals(199.dp, keyboardRowsHeight(35.dp, rowCount = 5))
+        assertEquals(158.dp, keyboardRowsHeight(35.dp, rowCount = 4))
+        assertEquals(201.dp, keyboardRowsHeight(37.dp, rowCount = 5, rowSpacing = 4.dp))
     }
 
     @Test
@@ -117,7 +117,7 @@ class KeyboardMetricsTest {
             targetRowCount = keyboardRowCount(numberRowEnabled = true),
             actualRowCount = 4
         )
-        assertEquals(47.25.dp, keypadKeyHeight)
+        assertEquals(46.75.dp, keypadKeyHeight)
         assertEquals(
             keyboardRowsHeight(35.dp, rowCount = 5),
             keyboardRowsHeight(keypadKeyHeight, rowCount = 4, rowSpacing = 4.dp)

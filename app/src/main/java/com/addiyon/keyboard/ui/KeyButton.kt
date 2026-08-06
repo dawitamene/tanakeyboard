@@ -176,6 +176,7 @@ fun KeyButton(
     isSpecial: Boolean = false,
     isHighlighted: Boolean = false,
     iconTint: Color = MaterialTheme.colorScheme.onSurface,
+    iconSize: Dp = 20.dp,
     showLockIndicator: Boolean = false,
     repeatable: Boolean = false,
     onRepeatStart: () -> Unit = {},
@@ -281,7 +282,7 @@ fun KeyButton(
     Box(
         modifier = modifier
             .height(height)
-            .padding(horizontal = 3.dp)
+            .padding(horizontal = 2.5.dp)
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
             .clip(RoundedCornerShape(6.dp))
             .background(background)
@@ -303,7 +304,7 @@ fun KeyButton(
                         imageVector = icon,
                         contentDescription = null,
                         tint = iconTint,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(iconSize)
                     )
 
                     if (showLockIndicator) {

@@ -102,10 +102,8 @@ private val ControlButtonContent = Color(0xFF1F1F1F)
  * [CharacterKey] needs the running IME service to dispatch typing -- which a
  * settings screen has no access to.
  *
- * The replica reserves the bottom system-bar space the real keyboard reserves
- * (via [WindowInsets.systemBars], mirroring KeyboardScreen), so it sits at the
- * same height off the bottom -- above the navigation / IME-switcher bar -- and
- * doesn't read as lower than the real thing.
+ * The replica reserves the same bottom system-bar space the real keyboard
+ * reserves, so it sits above the navigation / IME-switcher bar.
  */
 @Composable
 fun KeyboardHeightScreen(
@@ -117,8 +115,7 @@ fun KeyboardHeightScreen(
     val isDark = isSystemInDarkTheme()
     val isLandscape =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val rowSpacing = if (isLandscape) 3.dp else 6.dp
-    val previewVerticalPadding = if (isLandscape) 3.dp else 6.dp
+    val rowSpacing = if (isLandscape) 7.dp else 10.dp
     // Snapshot the keyboard's own settings so the replica matches what the user
     // actually types on (their palette, script, and number-row choice).
     val palette = remember { KeyboardPrefs.palette(context) }
@@ -128,10 +125,8 @@ fun KeyboardHeightScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        // Consume nothing: the replica reserves the bottom system-bar inset
-        // itself (below) via the SAME WindowInsets.systemBars source the real
-        // keyboard uses, so its offset from the bottom matches exactly -- and is
-        // 0 on phones with no bottom bar. The top bar handles the status bar on
+        // Consume nothing: the replica uses the same full-width, flush-bottom
+        // layout as the real keyboard. The top bar handles the status bar on
         // its own.
         contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
         topBar = {
@@ -188,9 +183,6 @@ fun KeyboardHeightScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        // Reserve the same bottom bar space the real keyboard
-                        // does, so the replica sits above the nav / IME-switcher
-                        // bar rather than flush against the screen bottom.
                         .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom))
                 ) {
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -199,10 +191,10 @@ fun KeyboardHeightScreen(
                         val rows =
                             if (showNumberRow) listOf(LatinNumberRow) + layout.rows else layout.rows
                         val rowCount = keyboardRowCount(showNumberRow)
-                        // Mirror KeyboardScreen: the key rows sit inside 4.dp of
-                        // horizontal padding, so the width they size against is
-                        // the full width minus 8.dp.
-                        val availableWidth = maxWidth - 8.dp
+                        // Mirror KeyboardScreen: 2.dp of horizontal padding on
+                        // each side, so the width they size against is the full
+                        // width minus 4.dp.
+                        val availableWidth = maxWidth - 4.dp
                         val metrics = computeKeyboardMetrics(
                             rows = rows,
                             availableWidth = availableWidth,
@@ -239,7 +231,7 @@ fun KeyboardHeightScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 4.dp, vertical = previewVerticalPadding)
+                                    .padding(horizontal = 2.dp, vertical = 9.dp)
                             ) {
                                 // The keys themselves -- translucent, so the
                                 // surface reads as a preview, not a live keyboard.
