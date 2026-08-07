@@ -271,6 +271,9 @@ dependencies {
     implementation(libs.security.crypto)
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services)
+    implementation(libs.google.id)
     if (hasAnyFirebaseConfig) {
         implementation(platform(libs.firebase.bom))
         implementation(libs.firebase.analytics)

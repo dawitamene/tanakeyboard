@@ -56,9 +56,74 @@ class AiRepository(
         }
     }
 
-    suspend fun issueMagicLink(email: String, redirectUri: String): Result<IssueLinkResponse> {
+    suspend fun authContinue(email: String): Result<ContinueResponse> {
         return try {
-            val res = api.issueLink(IssueLinkRequest(email, redirectUri))
+            val res = api.authContinue(ContinueRequest(email))
+            Result.success(res)
+        } catch (e: HttpException) {
+            Result.failure(mapHttp(e))
+        } catch (e: IOException) {
+            Result.failure(Exception(AiError.Offline.toString(), e))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun sendOtp(email: String): Result<SendOtpResponse> {
+        return try {
+            val res = api.sendOtp(SendOtpRequest(email))
+            Result.success(res)
+        } catch (e: HttpException) {
+            Result.failure(mapHttp(e))
+        } catch (e: IOException) {
+            Result.failure(Exception(AiError.Offline.toString(), e))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun verifyOtp(email: String, otp: String): Result<VerifyOtpResponse> {
+        return try {
+            val res = api.verifyOtp(VerifyOtpRequest(email, otp))
+            Result.success(res)
+        } catch (e: HttpException) {
+            Result.failure(mapHttp(e))
+        } catch (e: IOException) {
+            Result.failure(Exception(AiError.Offline.toString(), e))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun login(email: String, password: String): Result<AuthResponse> {
+        return try {
+            val res = api.login(LoginRequest(email, password))
+            Result.success(res)
+        } catch (e: HttpException) {
+            Result.failure(mapHttp(e))
+        } catch (e: IOException) {
+            Result.failure(Exception(AiError.Offline.toString(), e))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun register(otpToken: String, name: String, password: String): Result<AuthResponse> {
+        return try {
+            val res = api.register(RegisterRequest(otpToken, name, password))
+            Result.success(res)
+        } catch (e: HttpException) {
+            Result.failure(mapHttp(e))
+        } catch (e: IOException) {
+            Result.failure(Exception(AiError.Offline.toString(), e))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun googleToken(idToken: String): Result<AuthResponse> {
+        return try {
+            val res = api.googleToken(GoogleTokenRequest(idToken))
             Result.success(res)
         } catch (e: HttpException) {
             Result.failure(mapHttp(e))
@@ -87,11 +152,14 @@ class AiRepository(
 
     private fun mapHttp(e: HttpException): Exception {
         val code = e.code()
+        val body = try { e.response()?.errorBody()?.string() } catch (_: Exception) { null }
+        val msg = body?.takeIf { it.isNotBlank() } ?: e.message()
         return when (code) {
             401 -> Exception(AiError.NeedsAuth.toString())
             429 -> Exception(AiError.QuotaExceeded().toString())
-            400 -> Exception(AiError.Server(e.message()).toString())
-            else -> Exception(AiError.Server("HTTP $code").toString())
+            400 -> Exception(AiError.Server(msg).toString())
+            404 -> Exception(AiError.Server("Not found: $msg").toString())
+            else -> Exception(AiError.Server("HTTP $code $msg").toString())
         }
     }
 

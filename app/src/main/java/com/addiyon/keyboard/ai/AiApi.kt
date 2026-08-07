@@ -31,15 +31,72 @@ data class AlternativesResponse(
 )
 
 @JsonClass(generateAdapter = true)
-data class IssueLinkRequest(
-    val email: String,
-    @Json(name = "redirectUri") val redirectUri: String
+data class ContinueRequest(
+    val email: String
 )
 
 @JsonClass(generateAdapter = true)
-data class IssueLinkResponse(
-    val sent: Boolean,
-    val devLink: String? = null
+data class ContinueResponse(
+    val email: String,
+    val nextStep: String
+)
+
+@JsonClass(generateAdapter = true)
+data class SendOtpRequest(
+    val email: String,
+    val otpFor: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class SendOtpResponse(
+    val email: String,
+    val retryAfter: Int? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class VerifyOtpRequest(
+    val email: String,
+    val otp: String
+)
+
+@JsonClass(generateAdapter = true)
+data class VerifyOtpResponse(
+    val email: String,
+    val token: String
+)
+
+@JsonClass(generateAdapter = true)
+data class LoginRequest(
+    val email: String,
+    val password: String
+)
+
+@JsonClass(generateAdapter = true)
+data class RegisterRequest(
+    val otpToken: String,
+    val name: String,
+    val password: String
+)
+
+@JsonClass(generateAdapter = true)
+data class AuthResponse(
+    val message: String? = null,
+    val token: String,
+    val user: AuthUser? = null,
+    val expiresAt: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class AuthUser(
+    val id: Int? = null,
+    val email: String? = null,
+    val name: String? = null,
+    val role: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class GoogleTokenRequest(
+    val idToken: String
 )
 
 @JsonClass(generateAdapter = true)
@@ -65,8 +122,23 @@ interface AiApi {
         @Header("X-Anonymous-Id") anonId: String? = null
     ): AlternativesResponse
 
-    @POST("auth/link")
-    suspend fun issueLink(@Body body: IssueLinkRequest): IssueLinkResponse
+    @POST("auth/continue")
+    suspend fun authContinue(@Body body: ContinueRequest): ContinueResponse
+
+    @POST("auth/send-otp")
+    suspend fun sendOtp(@Body body: SendOtpRequest): SendOtpResponse
+
+    @POST("auth/verify-otp")
+    suspend fun verifyOtp(@Body body: VerifyOtpRequest): VerifyOtpResponse
+
+    @POST("auth/login")
+    suspend fun login(@Body body: LoginRequest): AuthResponse
+
+    @POST("auth/register")
+    suspend fun register(@Body body: RegisterRequest): AuthResponse
+
+    @POST("auth/oauth/google/token")
+    suspend fun googleToken(@Body body: GoogleTokenRequest): AuthResponse
 
     @GET("usage/status")
     suspend fun quotaStatus(

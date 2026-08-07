@@ -2074,29 +2074,10 @@ class AddiyonKeyboardService : InputMethodService(),
         safeApply { aiUiState = aiUiState.copy(authEmail = email) }
     }
 
+    @Deprecated("Magic link deprecated, use AiAccountActivity")
     fun onAiSendLink() {
         safeApply {
-            val email = aiUiState.authEmail.trim()
-            if (!email.contains("@")) {
-                aiUiState = aiUiState.copy(authMessage = "Enter a valid email")
-                return@safeApply
-            }
-            aiUiState = aiUiState.copy(authSending = true, authMessage = null)
-            aiScope.launch {
-                val res = withContext(Dispatchers.IO) {
-                    aiRepository.issueMagicLink(email, "addiyon://auth/callback")
-                }
-                safeApply {
-                    res.onSuccess { r ->
-                        KeyboardPrefs.setAiEmail(this@AddiyonKeyboardService, email)
-                        val msg = if (r.devLink != null) "Link sent (dev): ${r.devLink}" else "Check your email for the link"
-                        aiUiState = aiUiState.copy(authSending = false, authMessage = msg)
-                    }.onFailure { t ->
-                        val err = aiController.parseError(t)
-                        aiUiState = aiUiState.copy(authSending = false, authMessage = err.toString())
-                    }
-                }
-            }
+            aiUiState = aiUiState.copy(authMessage = "Open the app to sign in")
         }
     }
 

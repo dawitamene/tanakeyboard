@@ -7,7 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -17,6 +16,7 @@ import androidx.compose.ui.Modifier
 import com.addiyon.keyboard.ai.AiRepository
 import com.addiyon.keyboard.ai.AiServiceFactory
 import com.addiyon.keyboard.ui.ai.AiAuthBottomSheet
+import com.addiyon.keyboard.ui.ai.AuthStep
 import com.addiyon.keyboard.ui.ai.AiDashboardContent
 import com.addiyon.keyboard.ui.i18n.ProvideAppLocalization
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
@@ -24,6 +24,11 @@ import com.addiyon.keyboard.ui.theme.AddiyonBrandTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 class AiAccountActivity : ComponentActivity() {
 
@@ -33,34 +38,21 @@ class AiAccountActivity : ComponentActivity() {
             super.onCreate(savedInstanceState)
             applyAddiyonEdgeToEdge()
             val initialMode = intent.getStringExtra(EXTRA_MODE) ?: MODE_AUTH
-            val tokenFromIntent = intent.data?.getQueryParameter("token")
-                ?: intent.getStringExtra(EXTRA_TOKEN)
 
             setContent {
                 ProvideAppLocalization {
                     AddiyonBrandTheme(isDarkTheme = isSystemInDarkTheme()) {
                         var mode by remember { mutableStateOf(initialMode) }
                         var authEmail by remember { mutableStateOf(KeyboardPrefs.aiEmail(this@AiAccountActivity) ?: "") }
+                        var authPassword by remember { mutableStateOf("") }
+                        var authName by remember { mutableStateOf("") }
+                        var authOtp by remember { mutableStateOf("") }
                         var authSending by remember { mutableStateOf(false) }
                         var authMessage by remember { mutableStateOf<String?>(null) }
-                        var showEmailField by remember { mutableStateOf(false) }
+                        var authStep by remember { mutableStateOf(AuthStep.Email) }
+                        var pendingOtpToken by remember { mutableStateOf<String?>(null) }
                         val scope = rememberCoroutineScope()
-                        val jwt = KeyboardPrefs.aiJwt(this@AiAccountActivity)
-                        val isLoggedIn = !jwt.isNullOrBlank()
-
-                        LaunchedEffect(tokenFromIntent) {
-                            if (!tokenFromIntent.isNullOrBlank()) {
-                                KeyboardPrefs.setAiJwt(this@AiAccountActivity, tokenFromIntent)
-                                authMessage = "Authenticated"
-                                mode = MODE_DASHBOARD
-                            }
-                        }
-
-                        LaunchedEffect(mode, isLoggedIn) {
-                            if (mode == MODE_DASHBOARD && !isLoggedIn) {
-                                mode = MODE_AUTH
-                            }
-                        }
+                        val repo = remember { AiRepository(AiServiceFactory.create()) }
 
                         Box(modifier = Modifier.fillMaxSize()) {
                             when (mode) {
@@ -77,29 +69,42 @@ class AiAccountActivity : ComponentActivity() {
                                 else -> {
                                     AiAuthBottomSheet(
                                         email = authEmail,
-                                        onEmailChanged = { authEmail = it },
+                                        onEmailChanged = { authEmail = it; authMessage = null },
+                                        password = authPassword,
+                                        onPasswordChanged = { authPassword = it; authMessage = null },
+                                        name = authName,
+                                        onNameChanged = { authName = it; authMessage = null },
+                                        otp = authOtp,
+                                        onOtpChanged = { authOtp = it; authMessage = null },
                                         sending = authSending,
                                         message = authMessage,
-                                        showEmailField = showEmailField,
-                                        isLoggedIn = isLoggedIn,
+                                        step = authStep,
                                         onContinueWithGoogle = {
                                             scope.launch {
                                                 authSending = true
                                                 authMessage = null
                                                 try {
-                                                    withContext(Dispatchers.IO) {
-                                                        kotlinx.coroutines.delay(800)
+                                                    val idToken = getGoogleIdToken()
+                                                    if (idToken == null) {
+                                                        authMessage = "Google Sign-In cancelled"
+                                                        return@launch
                                                     }
-                                                    authMessage = "Google Sign-In coming soon — use email for now"
+                                                    val res = withContext(Dispatchers.IO) { repo.googleToken(idToken) }
+                                                    res.onSuccess { r ->
+                                                        KeyboardPrefs.setAiJwt(this@AiAccountActivity, r.token)
+                                                        r.user?.email?.let { KeyboardPrefs.setAiEmail(this@AiAccountActivity, it) }
+                                                        mode = MODE_DASHBOARD
+                                                    }.onFailure { t ->
+                                                        authMessage = t.message ?: "Google sign-in failed"
+                                                    }
+                                                } catch (e: Exception) {
+                                                    authMessage = e.message ?: "Google sign-in failed"
                                                 } finally {
                                                     authSending = false
                                                 }
                                             }
                                         },
-                                        onEnterEmailClick = {
-                                            showEmailField = true
-                                        },
-                                        onSendLink = {
+                                        onContinueEmail = {
                                             val email = authEmail.trim()
                                             if (!email.contains("@") || !email.contains(".")) {
                                                 authMessage = "Enter a valid email"
@@ -108,21 +113,80 @@ class AiAccountActivity : ComponentActivity() {
                                             scope.launch {
                                                 authSending = true
                                                 authMessage = null
-                                                val repo = AiRepository(AiServiceFactory.create())
-                                                val res = withContext(Dispatchers.IO) {
-                                                    repo.issueMagicLink(email, "addiyon://auth/callback")
-                                                }
+                                                val res = withContext(Dispatchers.IO) { repo.authContinue(email) }
                                                 res.onSuccess { r ->
                                                     KeyboardPrefs.setAiEmail(this@AiAccountActivity, email)
-                                                    authMessage = if (r.devLink != null) "Link sent (dev): ${r.devLink}" else "Check your email for the link"
-                                                }.onFailure { t ->
-                                                    authMessage = t.message ?: "Failed to send link"
-                                                }
+                                                    when (r.nextStep.lowercase()) {
+                                                        "password" -> { authStep = AuthStep.Password; authMessage = null }
+                                                        "otp", "otp_sent", "otp_required" -> {
+                                                            val otpRes = withContext(Dispatchers.IO) { repo.sendOtp(email) }
+                                                            otpRes.onSuccess {
+                                                                authStep = AuthStep.Otp
+                                                                authMessage = "Code sent to $email"
+                                                            }.onFailure { t -> authMessage = t.message ?: "Failed to send code" }
+                                                        }
+                                                        else -> { authStep = AuthStep.Otp; authMessage = r.nextStep }
+                                                    }
+                                                }.onFailure { t -> authMessage = t.message ?: "Failed" }
                                                 authSending = false
                                             }
                                         },
-                                        onDismiss = { finish() },
-                                        onGoToDashboard = { mode = MODE_DASHBOARD }
+                                        onLogin = {
+                                            val email = authEmail.trim()
+                                            scope.launch {
+                                                authSending = true
+                                                authMessage = null
+                                                val res = withContext(Dispatchers.IO) { repo.login(email, authPassword) }
+                                                res.onSuccess { r ->
+                                                    KeyboardPrefs.setAiJwt(this@AiAccountActivity, r.token)
+                                                    r.user?.email?.let { KeyboardPrefs.setAiEmail(this@AiAccountActivity, it) }
+                                                    mode = MODE_DASHBOARD
+                                                }.onFailure { t -> authMessage = t.message ?: "Login failed" }
+                                                authSending = false
+                                            }
+                                        },
+                                        onSendOtp = {
+                                            val email = authEmail.trim()
+                                            scope.launch {
+                                                authSending = true
+                                                authMessage = null
+                                                val res = withContext(Dispatchers.IO) { repo.sendOtp(email) }
+                                                res.onSuccess { authMessage = "Code resent" }.onFailure { t -> authMessage = t.message ?: "Failed" }
+                                                authSending = false
+                                            }
+                                        },
+                                        onVerifyOtp = {
+                                            val email = authEmail.trim()
+                                            scope.launch {
+                                                authSending = true
+                                                authMessage = null
+                                                val res = withContext(Dispatchers.IO) { repo.verifyOtp(email, authOtp) }
+                                                res.onSuccess { r ->
+                                                    pendingOtpToken = r.token
+                                                    authStep = AuthStep.Register
+                                                    authMessage = null
+                                                }.onFailure { t -> authMessage = t.message ?: "Invalid code" }
+                                                authSending = false
+                                            }
+                                        },
+                                        onRegister = {
+                                            if (authName.trim().length < 2) { authMessage = "Name must be 2-50 chars"; return@AiAuthBottomSheet }
+                                            if (authPassword.length < 8) { authMessage = "Password must be at least 8 chars"; return@AiAuthBottomSheet }
+                                            val token = pendingOtpToken ?: run { authMessage = "Verify code first"; return@AiAuthBottomSheet }
+                                            scope.launch {
+                                                authSending = true
+                                                authMessage = null
+                                                val res = withContext(Dispatchers.IO) { repo.register(token, authName.trim(), authPassword) }
+                                                res.onSuccess { r ->
+                                                    KeyboardPrefs.setAiJwt(this@AiAccountActivity, r.token)
+                                                    r.user?.email?.let { KeyboardPrefs.setAiEmail(this@AiAccountActivity, it) }
+                                                    mode = MODE_DASHBOARD
+                                                }.onFailure { t -> authMessage = t.message ?: "Registration failed" }
+                                                authSending = false
+                                            }
+                                        },
+                                        onBackToEmail = { authStep = AuthStep.Email; authMessage = null },
+                                        onDismiss = { finish() }
                                     )
                                 }
                             }
@@ -136,6 +200,29 @@ class AiAccountActivity : ComponentActivity() {
         } catch (t: Throwable) {
             SafeLog.e(t, "AiAccountActivity onCreate")
             finish()
+        }
+    }
+
+    private suspend fun getGoogleIdToken(): String? {
+        return try {
+            val serverClientId = getString(R.string.default_web_client_id)
+            if (serverClientId.isBlank() || serverClientId.startsWith("YOUR")) return null
+            val googleIdOption = GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(serverClientId)
+                .setAutoSelectEnabled(false)
+                .build()
+            val request = GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build()
+            val manager = CredentialManager.create(this)
+            val result = manager.getCredential(this, request)
+            val cred = GoogleIdTokenCredential.createFrom(result.credential.data)
+            cred.idToken
+        } catch (e: GetCredentialException) {
+            null
+        } catch (_: Exception) {
+            null
         }
     }
 
