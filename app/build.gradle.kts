@@ -335,8 +335,8 @@ androidComponents {
         ) {
             from(variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.APK))
             include("*.apk")
-            into("/Users/dev/Shared")
-            onlyIf { file("/Users/dev/Shared").isDirectory }
+            into("/Users/dev/Sync")
+            onlyIf { file("/Users/dev/Sync").isDirectory }
             rename {
                 val timeFormat = SimpleDateFormat("yyyy-MM-dd-hh-mm-a", Locale.US)
                 "addiyon-${variant.name}-v${output.versionName.get()}-" +

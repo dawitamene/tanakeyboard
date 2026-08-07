@@ -4,14 +4,17 @@ Addiyon Keyboard is an Android IME (`InputMethodService`) with Amharic (Ge'ez sc
 
 ## Commands
 
-- Build: `./gradlew assembleDebug`
-- JVM unit tests (no emulator): `./gradlew testDebugUnitTest`
-- Single unit test: `./gradlew testDebugUnitTest --tests "com.addiyon.keyboard.composing.TypingControllerTest"`
-- Compile-only check (fast): `./gradlew compileDebugKotlin`
-- Instrumented tests (needs emulator): `./gradlew connectedAndroidTest`
-- `app/build.gradle.kts` has an `assembleProvider` hook that copies the APK to `/Users/dev/Shared` with a timestamped filename — local convenience, do not remove.
+All commands assume workspace root `/Users/dev/code/addiyon-keyboard`. When the user asks for a command, always include the full path so it can be pasted from any terminal — e.g. `/Users/dev/code/addiyon-keyboard/gradlew assembleDebug` (or `bash /Users/dev/code/addiyon-keyboard/gradlew ...`), not just `./gradlew ...`.
+
+- Build: `/Users/dev/code/addiyon-keyboard/gradlew assembleDebug` (also via `./gradlew assembleDebug` from workspace root)
+- JVM unit tests (no emulator): `/Users/dev/code/addiyon-keyboard/gradlew testDebugUnitTest`
+- Single unit test: `/Users/dev/code/addiyon-keyboard/gradlew testDebugUnitTest --tests "com.addiyon.keyboard.composing.TypingControllerTest"`
+- Compile-only check (fast): `/Users/dev/code/addiyon-keyboard/gradlew compileDebugKotlin`
+- Instrumented tests (needs emulator): `/Users/dev/code/addiyon-keyboard/gradlew connectedAndroidTest`
+- `app/build.gradle.kts` has an `assembleProvider` hook that copies the APK to `/Users/dev/Sync` with a timestamped filename — local convenience, do not remove.
 
 ## Architecture
+
 
 ### Entry points
 - `AddiyonKeyboardService` — the real product, an `InputMethodService`
@@ -48,12 +51,11 @@ When the user asks to create a plan or plan something, write a detailed plan as 
 ## After every code change
 - Run the relevant test(s) for the changed behavior. Prefer the focused test class/target when possible; broaden the test run when shared behavior is affected.
 - When adding a new feature, add or update tests that cover that feature.
-- Build and install on emulator: `./gradlew installDebug`
-- Generate timestamped APK in `/Users/dev/Shared`: `./gradlew assembleDebug`
+- Build and install on emulator: `/Users/dev/code/addiyon-keyboard/gradlew installDebug`
+- Generate timestamped APK in `/Users/dev/Sync`: `/Users/dev/code/addiyon-keyboard/gradlew assembleDebug`
 
 ## Conventions
 - kotlin.code.style=official
 - No code comments in generated code (repo convention from prior work)
 - No multi-character key labels in layout data
 - No absolute document offsets in the composing layer; everything cursor-relative. New code that needs to identify a region must go through `EditorGateway` and use cursor-relative calls (`setComposingText`, `commitText`, `finishComposingText`, `deleteBeforeCursor`, `recomposeBeforeCursor`).
-
