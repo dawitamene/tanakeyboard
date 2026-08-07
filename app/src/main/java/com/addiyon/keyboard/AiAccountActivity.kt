@@ -124,18 +124,8 @@ class AiAccountActivity : ComponentActivity() {
                                                     when (r.nextStep.lowercase()) {
                                                         "password" -> { authStep = AuthStep.Password; authMessage = null }
                                                         "otp", "otp_sent", "otp_required" -> {
-                                                            val otpRes = withContext(Dispatchers.IO) { repo.sendOtp(email) }
-                                                            otpRes.onSuccess {
-                                                                authStep = AuthStep.Otp
-                                                                authMessage = "Code sent to $email"
-                                                            }.onFailure { t ->
-                                                                val err = repo.parseAiError(t)
-                                                                authMessage = when (err) {
-                                                                    is com.addiyon.keyboard.ai.AiError.RateLimited -> "Too many codes — wait ${err.retryAfter ?: 60}s"
-                                                                    is com.addiyon.keyboard.ai.AiError.Server -> err.message.substringAfter("Server(").substringBeforeLast(")").ifBlank { t.message }
-                                                                    else -> t.message
-                                                                } ?: "Failed to send code"
-                                                            }
+                                                            authStep = AuthStep.Otp
+                                                            authMessage = "Code sent to $email"
                                                         }
                                                         else -> { authStep = AuthStep.Otp; authMessage = r.nextStep }
                                                     }
