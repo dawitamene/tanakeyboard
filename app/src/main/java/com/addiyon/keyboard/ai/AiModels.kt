@@ -56,7 +56,7 @@ sealed interface AiError {
     data object PrivateField : AiError
     data object Offline : AiError
     data class Server(val message: String) : AiError
-    data object RateLimited : AiError
+    data class RateLimited(val retryAfter: Int? = null, val message: String? = null) : AiError
     data object Unknown : AiError
 }
 

@@ -61,7 +61,7 @@ class AiRepository(
             val res = api.authContinue(ContinueRequest(email))
             Result.success(res)
         } catch (e: HttpException) {
-            Result.failure(mapHttp(e))
+            Result.failure(mapAuthHttp(e))
         } catch (e: IOException) {
             Result.failure(Exception(AiError.Offline.toString(), e))
         } catch (e: Exception) {
@@ -74,7 +74,7 @@ class AiRepository(
             val res = api.sendOtp(SendOtpRequest(email))
             Result.success(res)
         } catch (e: HttpException) {
-            Result.failure(mapHttp(e))
+            Result.failure(mapAuthHttp(e))
         } catch (e: IOException) {
             Result.failure(Exception(AiError.Offline.toString(), e))
         } catch (e: Exception) {
@@ -87,7 +87,7 @@ class AiRepository(
             val res = api.verifyOtp(VerifyOtpRequest(email, otp))
             Result.success(res)
         } catch (e: HttpException) {
-            Result.failure(mapHttp(e))
+            Result.failure(mapAuthHttp(e))
         } catch (e: IOException) {
             Result.failure(Exception(AiError.Offline.toString(), e))
         } catch (e: Exception) {
@@ -100,7 +100,7 @@ class AiRepository(
             val res = api.login(LoginRequest(email, password))
             Result.success(res)
         } catch (e: HttpException) {
-            Result.failure(mapHttp(e))
+            Result.failure(mapAuthHttp(e))
         } catch (e: IOException) {
             Result.failure(Exception(AiError.Offline.toString(), e))
         } catch (e: Exception) {
@@ -113,7 +113,7 @@ class AiRepository(
             val res = api.register(RegisterRequest(otpToken, name, password))
             Result.success(res)
         } catch (e: HttpException) {
-            Result.failure(mapHttp(e))
+            Result.failure(mapAuthHttp(e))
         } catch (e: IOException) {
             Result.failure(Exception(AiError.Offline.toString(), e))
         } catch (e: Exception) {
@@ -126,7 +126,7 @@ class AiRepository(
             val res = api.googleToken(GoogleTokenRequest(idToken))
             Result.success(res)
         } catch (e: HttpException) {
-            Result.failure(mapHttp(e))
+            Result.failure(mapAuthHttp(e))
         } catch (e: IOException) {
             Result.failure(Exception(AiError.Offline.toString(), e))
         } catch (e: Exception) {
@@ -163,11 +163,31 @@ class AiRepository(
         }
     }
 
+    private fun mapAuthHttp(e: HttpException): Exception {
+        val code = e.code()
+        val body = try { e.response()?.errorBody()?.string() } catch (_: Exception) { null }
+        val msg = body?.takeIf { it.isNotBlank() } ?: e.message() ?: ""
+        val retryAfter = Regex("\"retryAfter\"\\s*:\\s*(\\d+)").find(msg)?.groupValues?.get(1)?.toIntOrNull()
+            ?: Regex("wait (\\d+)s").find(msg)?.groupValues?.get(1)?.toIntOrNull()
+        return when (code) {
+            429 -> Exception(AiError.RateLimited(retryAfter, msg).toString())
+            401 -> Exception(AiError.Server(msg.ifBlank { "Invalid email or password" }).toString())
+            400 -> Exception(AiError.Server(msg).toString())
+            404 -> Exception(AiError.Server("Not found: $msg").toString())
+            else -> Exception(AiError.Server("HTTP $code $msg").toString())
+        }
+    }
+
     fun parseAiError(exception: Throwable): AiError {
         val msg = exception.message ?: ""
         return when {
             msg.contains("NeedsAuth") -> AiError.NeedsAuth
             msg.contains("QuotaExceeded") -> AiError.QuotaExceeded()
+            msg.contains("RateLimited") -> {
+                val retry = Regex("retryAfter=(\\d+)").find(msg)?.groupValues?.get(1)?.toIntOrNull()
+                    ?: Regex("wait (\\d+)s").find(msg)?.groupValues?.get(1)?.toIntOrNull()
+                AiError.RateLimited(retry, msg)
+            }
             msg.contains("Offline") -> AiError.Offline
             else -> AiError.Server(msg.ifEmpty { "Unknown error" })
         }

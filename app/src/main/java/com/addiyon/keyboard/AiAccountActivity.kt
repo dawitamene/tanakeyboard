@@ -86,7 +86,7 @@ class AiAccountActivity : ComponentActivity() {
                                                 try {
                                                     val idToken = getGoogleIdToken()
                                                     if (idToken == null) {
-                                                        authMessage = "Google Sign-In cancelled"
+                                                        authMessage = "Google Sign-In cancelled — picker dismissed or no account on device"
                                                         return@launch
                                                     }
                                                     val res = withContext(Dispatchers.IO) { repo.googleToken(idToken) }
@@ -95,7 +95,12 @@ class AiAccountActivity : ComponentActivity() {
                                                         r.user?.email?.let { KeyboardPrefs.setAiEmail(this@AiAccountActivity, it) }
                                                         mode = MODE_DASHBOARD
                                                     }.onFailure { t ->
-                                                        authMessage = t.message ?: "Google sign-in failed"
+                                                        val err = repo.parseAiError(t)
+                                                        authMessage = when (err) {
+                                                            is com.addiyon.keyboard.ai.AiError.RateLimited -> "Too many attempts — wait ${err.retryAfter ?: 60}s"
+                                                            is com.addiyon.keyboard.ai.AiError.Server -> err.message.substringAfter("Server(").substringBeforeLast(")").ifBlank { t.message }
+                                                            else -> t.message
+                                                        } ?: "Google sign-in failed"
                                                     }
                                                 } catch (e: Exception) {
                                                     authMessage = e.message ?: "Google sign-in failed"
@@ -123,11 +128,25 @@ class AiAccountActivity : ComponentActivity() {
                                                             otpRes.onSuccess {
                                                                 authStep = AuthStep.Otp
                                                                 authMessage = "Code sent to $email"
-                                                            }.onFailure { t -> authMessage = t.message ?: "Failed to send code" }
+                                                            }.onFailure { t ->
+                                                                val err = repo.parseAiError(t)
+                                                                authMessage = when (err) {
+                                                                    is com.addiyon.keyboard.ai.AiError.RateLimited -> "Too many codes — wait ${err.retryAfter ?: 60}s"
+                                                                    is com.addiyon.keyboard.ai.AiError.Server -> err.message.substringAfter("Server(").substringBeforeLast(")").ifBlank { t.message }
+                                                                    else -> t.message
+                                                                } ?: "Failed to send code"
+                                                            }
                                                         }
                                                         else -> { authStep = AuthStep.Otp; authMessage = r.nextStep }
                                                     }
-                                                }.onFailure { t -> authMessage = t.message ?: "Failed" }
+                                                }.onFailure { t ->
+                                                    val err = repo.parseAiError(t)
+                                                    authMessage = when (err) {
+                                                        is com.addiyon.keyboard.ai.AiError.RateLimited -> "Too many attempts — wait ${err.retryAfter ?: 60}s"
+                                                        is com.addiyon.keyboard.ai.AiError.Server -> err.message.substringAfter("Server(").substringBeforeLast(")").ifBlank { t.message }
+                                                        else -> t.message
+                                                    } ?: "Failed"
+                                                }
                                                 authSending = false
                                             }
                                         },
@@ -141,7 +160,22 @@ class AiAccountActivity : ComponentActivity() {
                                                     KeyboardPrefs.setAiJwt(this@AiAccountActivity, r.token)
                                                     r.user?.email?.let { KeyboardPrefs.setAiEmail(this@AiAccountActivity, it) }
                                                     mode = MODE_DASHBOARD
-                                                }.onFailure { t -> authMessage = t.message ?: "Login failed" }
+                                                }.onFailure { t ->
+                                                    val err = repo.parseAiError(t)
+                                                    authMessage = when (err) {
+                                                        is com.addiyon.keyboard.ai.AiError.RateLimited -> "Too many attempts — wait ${err.retryAfter ?: 60}s"
+                                                        is com.addiyon.keyboard.ai.AiError.Server -> {
+                                                            val raw = err.message.substringAfter("Server(").substringBeforeLast(")")
+                                                            when {
+                                                                raw.contains("Invalid email or password", true) -> "Invalid email or password"
+                                                                raw.contains("banned", true) -> "This account has been banned"
+                                                                raw.contains("suspended", true) -> raw
+                                                                else -> raw.ifBlank { t.message }
+                                                            }
+                                                        }
+                                                        else -> t.message
+                                                    } ?: "Login failed"
+                                                }
                                                 authSending = false
                                             }
                                         },
@@ -151,7 +185,13 @@ class AiAccountActivity : ComponentActivity() {
                                                 authSending = true
                                                 authMessage = null
                                                 val res = withContext(Dispatchers.IO) { repo.sendOtp(email) }
-                                                res.onSuccess { authMessage = "Code resent" }.onFailure { t -> authMessage = t.message ?: "Failed" }
+                                                res.onSuccess { authMessage = "Code resent" }.onFailure { t ->
+                                                    val err = repo.parseAiError(t)
+                                                    authMessage = when (err) {
+                                                        is com.addiyon.keyboard.ai.AiError.RateLimited -> "Too many codes — wait ${err.retryAfter ?: 60}s"
+                                                        else -> t.message
+                                                    } ?: "Failed"
+                                                }
                                                 authSending = false
                                             }
                                         },
@@ -165,7 +205,13 @@ class AiAccountActivity : ComponentActivity() {
                                                     pendingOtpToken = r.token
                                                     authStep = AuthStep.Register
                                                     authMessage = null
-                                                }.onFailure { t -> authMessage = t.message ?: "Invalid code" }
+                                                }.onFailure { t ->
+                                                    val err = repo.parseAiError(t)
+                                                    authMessage = when (err) {
+                                                        is com.addiyon.keyboard.ai.AiError.Server -> err.message.substringAfter("Server(").substringBeforeLast(")").ifBlank { t.message }
+                                                        else -> t.message
+                                                    } ?: "Invalid code"
+                                                }
                                                 authSending = false
                                             }
                                         },
