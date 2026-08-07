@@ -59,3 +59,11 @@ When the user asks to create a plan or plan something, write a detailed plan as 
 - No code comments in generated code (repo convention from prior work)
 - No multi-character key labels in layout data
 - No absolute document offsets in the composing layer; everything cursor-relative. New code that needs to identify a region must go through `EditorGateway` and use cursor-relative calls (`setComposingText`, `commitText`, `finishComposingText`, `deleteBeforeCursor`, `recomposeBeforeCursor`).
+
+## Related repositories
+
+This keyboard's AI feature (`ai/AiApi.kt` → `https://api.textrevamp.com`) is not self-contained — two sibling repos on this machine own the backend and its deployment:
+
+- **`textrevamp` backend** — `/Users/dev/code/textrevamp/server` (NestJS 10, `server/` in that repo; Chrome extension side is `extension/`). API contract is `POST /text` / `POST /text/alternatives` / `GET /usage/status` / `POST /auth/link` defined in `app/src/main/java/com/addiyon/keyboard/ai/AiApi.kt` and mirrored in `textrevamp/server/src/text/dto/revamp-text-dto.ts` + `ToneOptions` (must stay identical between keyboard and server). Keyboard uses `AiServiceFactory.BASE_URL = https://api.textrevamp.com/` via Retrofit/Moshi. Server proxies Bedrock GPT-OSS 120B, talks to Postgres (`users` table, `DATABASE_URL`), and exposes `PORT=8080` in container (see `textrevamp/AGENTS.md` and `textrevamp/CLAUDE.md`). Any change to request/response shapes, quotas, or auth (JWT / `X-Anonymous-Id`) must be coordinated there first.
+
+- **`addiyon-gitops`** — `/Users/dev/code/addiyon-gitops` (Argo CD GitOps repo, app-of-apps in `kustomization.yaml`, auto-sync + prune on `main`). `textrevamp/resources/deployment.yaml` (namespace `textrevamp`, Deployment `ghcr.io/dawitamene/textrevamp-server:<short-sha>`, Service + Traefik `IngressRoute` for `api.textrevamp.com`) is bumped by `textrevamp/.github/workflows/ci.yml` on every `server/**` push to `main`: it builds `ghcr.io/dawitamene/textrevamp-server`, then commits the new tag into `addiyon-gitops` and Argo CD deploys it. Do not edit the image tag manually — let CI do it. Validate with `kubectl kustomize .` / `kubectl apply --dry-run=client -f textrevamp/resources/` before any manual GitOps edit (see `addiyon-gitops/CLAUDE.md`).
