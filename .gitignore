@@ -37,3 +37,4 @@ keystore.properties
 # Removed from the index; it still exists in git history (rewriting that is a
 # separate, destructive operation).
 testers.csv
+.kotlin/
