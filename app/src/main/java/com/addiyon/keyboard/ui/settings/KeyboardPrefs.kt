@@ -26,6 +26,13 @@ object KeyboardPrefs {
     const val KEY_FEATURE_TOUR_SEEN = "feature_tour_seen"
     const val KEY_USAGE_SESSIONS = "usage_sessions"
     const val KEY_REVIEW_PROMPTED = "review_prompted"
+    const val KEY_PERSONAL_DICTIONARY = "personal_dictionary"
+    const val KEY_AI_JWT = "ai_jwt"
+    const val KEY_AI_EMAIL = "ai_email"
+    const val KEY_AI_ANON_ID = "ai_anon_id"
+    const val KEY_AI_WORDS_USED_TODAY = "ai_words_used_today"
+    const val KEY_AI_QUOTA_DAY = "ai_quota_day"
+    const val KEY_AI_DAILY_LIMIT = "ai_daily_limit"
 
     /** Exposed so the service can register an OnSharedPreferenceChangeListener. */
     fun prefs(context: Context): SharedPreferences =
@@ -136,6 +143,56 @@ object KeyboardPrefs {
 
     fun setReviewPrompted(context: Context) =
         writeSafely(context) { putBoolean(KEY_REVIEW_PROMPTED, true) }
+
+    fun personalDictionary(context: Context): String? =
+        readString(context, KEY_PERSONAL_DICTIONARY, null, MAX_OPAQUE_PREF_LENGTH)
+
+    fun setPersonalDictionary(context: Context, value: String) =
+        writeSafely(context) { putString(KEY_PERSONAL_DICTIONARY, value.take(MAX_OPAQUE_PREF_LENGTH)) }
+
+    fun aiJwt(context: Context): String? =
+        readString(context, KEY_AI_JWT, null, 4096)
+
+    fun setAiJwt(context: Context, value: String?) =
+        writeSafely(context) {
+            if (value == null) remove(KEY_AI_JWT) else putString(KEY_AI_JWT, value.take(4096))
+        }
+
+    fun aiEmail(context: Context): String? =
+        readString(context, KEY_AI_EMAIL, null, 320)
+
+    fun setAiEmail(context: Context, value: String?) =
+        writeSafely(context) {
+            if (value == null) remove(KEY_AI_EMAIL) else putString(KEY_AI_EMAIL, value.take(320))
+        }
+
+    fun aiAnonId(context: Context): String {
+        val existing = readString(context, KEY_AI_ANON_ID, null, 64)
+        if (existing != null && existing.isNotBlank()) return existing
+        val generated = java.util.UUID.randomUUID().toString()
+        writeSafely(context) { putString(KEY_AI_ANON_ID, generated) }
+        return generated
+    }
+
+    fun aiWordsUsedToday(context: Context): Int =
+        readInt(context, KEY_AI_WORDS_USED_TODAY, 0, 0, 100000)
+
+    fun setAiWordsUsedToday(context: Context, value: Int) =
+        writeSafely(context) { putInt(KEY_AI_WORDS_USED_TODAY, value.coerceIn(0, 100000)) }
+
+    fun aiQuotaDay(context: Context): String? =
+        readString(context, KEY_AI_QUOTA_DAY, null, 20)
+
+    fun setAiQuotaDay(context: Context, value: String?) =
+        writeSafely(context) {
+            if (value == null) remove(KEY_AI_QUOTA_DAY) else putString(KEY_AI_QUOTA_DAY, value.take(20))
+        }
+
+    fun aiDailyLimit(context: Context): Int =
+        readInt(context, KEY_AI_DAILY_LIMIT, 800, 50, 100000)
+
+    fun setAiDailyLimit(context: Context, value: Int) =
+        writeSafely(context) { putInt(KEY_AI_DAILY_LIMIT, value.coerceIn(50, 100000)) }
 
     private fun readBoolean(context: Context, key: String, default: Boolean): Boolean {
         val raw = rawValue(context, key)

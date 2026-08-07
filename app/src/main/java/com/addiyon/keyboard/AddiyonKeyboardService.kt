@@ -55,6 +55,7 @@ import com.addiyon.keyboard.suggestion.AmharicCommitPolicy
 import com.addiyon.keyboard.suggestion.CandidateRanker
 import com.addiyon.keyboard.suggestion.EmailChip
 import com.addiyon.keyboard.suggestion.EmailSuggestions
+import com.addiyon.keyboard.suggestion.PersonalDictionary
 import com.addiyon.keyboard.suggestion.NgramContext
 import com.addiyon.keyboard.suggestion.PerWordCache
 import com.addiyon.keyboard.suggestion.PredictionCache
@@ -77,6 +78,16 @@ import com.addiyon.keyboard.telemetry.TelemetryVoiceResult
 import com.addiyon.keyboard.transliteration.Transliterator
 import com.addiyon.keyboard.util.MemoryProbe
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_DEFAULT
+import com.addiyon.keyboard.ai.AiController
+import com.addiyon.keyboard.ai.AiError
+import com.addiyon.keyboard.ai.AiQuota
+import com.addiyon.keyboard.ai.AiRepository
+import com.addiyon.keyboard.ai.AiServiceFactory
+import com.addiyon.keyboard.ai.AiStrength
+import com.addiyon.keyboard.ai.AiToneTab
+import com.addiyon.keyboard.ai.AiUiState
+import com.addiyon.keyboard.ai.countWords
+import com.addiyon.keyboard.ai.todayIso
 import com.addiyon.keyboard.ui.SuggestionTap
 import com.addiyon.keyboard.ui.SuggestionUiState
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
@@ -91,6 +102,12 @@ import java.util.Collections
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Max chips in the Amharic suggestion strip: the live word's readings plus
@@ -302,6 +319,34 @@ class AddiyonKeyboardService : InputMethodService(),
     // VOICE INPUT
     // ----------------------------
 
+    var aiUiState by mutableStateOf(AiUiState())
+        private set
+
+    private val aiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private lateinit var aiRepository: AiRepository
+    private lateinit var aiController: AiController
+
+    private fun currentAiQuota(): AiQuota {
+        val today = todayIso()
+        val storedDay = KeyboardPrefs.aiQuotaDay(this)
+        val storedUsed = KeyboardPrefs.aiWordsUsedToday(this)
+        val limit = KeyboardPrefs.aiDailyLimit(this)
+        if (storedDay != today) {
+            KeyboardPrefs.setAiQuotaDay(this, today)
+            KeyboardPrefs.setAiWordsUsedToday(this, 0)
+            return AiQuota(0, limit, limit, today)
+        }
+        val used = storedUsed.coerceIn(0, limit)
+        return AiQuota(used, limit, (limit - used).coerceAtLeast(0), today)
+    }
+
+    private fun consumeAiQuota(words: Int) {
+        val quota = currentAiQuota()
+        val newUsed = (quota.used + words).coerceAtMost(quota.limit)
+        KeyboardPrefs.setAiWordsUsedToday(this, newUsed)
+        aiUiState = aiUiState.copy(quota = currentAiQuota())
+    }
+
     var voiceUiState by mutableStateOf<VoiceUiState>(VoiceUiState.Idle)
         private set
 
@@ -498,8 +543,26 @@ class AddiyonKeyboardService : InputMethodService(),
     // rebuilding the controller.
     private val typingController = TypingController(
         editor = editorGateway,
-        profile = ::typingProfile
+        profile = ::typingProfile,
+        onWordCommitted = ::rememberWord
     )
+
+    private lateinit var personalDictionary: PersonalDictionary
+
+    private fun rememberWord(word: String) {
+        if (!::personalDictionary.isInitialized || isPrivateField || isNumberMode) return
+        personalDictionary.learn(word)
+        try {
+            val before = editorGateway.textBeforeCursor(ResumableWord.LOOKBEHIND, optional = true)?.value
+            val after = editorGateway.textAfterCursor(1, optional = true)?.value ?: ""
+            if (before != null) {
+                val email = ResumableWord.emailWordEndingAtCursor(before, after)
+                if (email != null && email != word && '@' in email) personalDictionary.learn(email)
+            }
+        } catch (_: Throwable) {
+        }
+        KeyboardPrefs.setPersonalDictionary(this, personalDictionary.encode())
+    }
 
     /**
      * The typing rules for the current language and field:
@@ -610,7 +673,9 @@ class AddiyonKeyboardService : InputMethodService(),
                 } else {
                     currentCaretWord()?.word.orEmpty()
                 }
-                publishEmailSuggestions(EmailSuggestions.emailChipsFor(token))
+                publishEmailSuggestions(
+                    EmailSuggestions.emailChipsFor(token, personalDictionary.emailAddresses())
+                )
                 return@safeApply
             }
 
@@ -677,6 +742,25 @@ class AddiyonKeyboardService : InputMethodService(),
                 ) {
                     return@safeApply
                 }
+                val language = if (amharic) PredictionLanguage.AMHARIC else PredictionLanguage.ENGLISH
+                val cached = predictionCache.get(language, context.prev2, context.prev1, request.limit)
+                if (cached != null && cached.isNotEmpty()) {
+                    val merged = cached.map { it.word }.let { words ->
+                        if (!::personalDictionary.isInitialized) words
+                        else if (amharic) {
+                            val personal = personalDictionary.ranked(limit = request.limit).filter { w -> w.any { it in 'ሀ'..'፿' } }
+                            (words + personal).distinct().take(request.limit)
+                        } else {
+                            val personal = personalDictionary.ranked(limit = request.limit).filter { '@' !in it }
+                            (words + personal).distinct().take(request.limit)
+                        }
+                    }
+                    if (merged.isNotEmpty()) {
+                        activePredictionRequest = PredictionRequest(request, contextToken, capturedContext.contentIdentity)
+                        publishSuggestions(merged, arePredictions = true)
+                        return@safeApply
+                    }
+                }
                 // Same anti-flicker rule as the completion path below, at the
                 // word boundary: keep the just-committed word's completions on
                 // screen while the next-word predictions compute, so the row
@@ -685,6 +769,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 // caret has since moved, so a stale tap is rejected by the
                 // token revalidation in onSuggestionTapped.
                 val carried = nonVoiceSuggestionUiState as? SuggestionUiState.WordCompletions
+                    ?: nonVoiceSuggestionUiState as? SuggestionUiState.NextWordPredictions
                 publishSuggestionState(carried ?: SuggestionUiState.LoadingPredictions)
                 schedulePredictionComputation(
                     amharic = amharic,
@@ -1098,6 +1183,16 @@ class AddiyonKeyboardService : InputMethodService(),
                     } else {
                         ngramPredictions
                     }.map { it.word }
+                    .let { words ->
+                        if (!::personalDictionary.isInitialized) words
+                        else if (amharic) {
+                            val personal = personalDictionary.ranked(limit = limit).filter { w -> w.any { it in 'ሀ'..'፿' } }
+                            (words + personal).distinct().take(limit)
+                        } else {
+                            val personal = personalDictionary.ranked(limit = limit).filter { '@' !in it }
+                            (words + personal).distinct().take(limit)
+                        }
+                    }
                 } catch (_: RuntimeException) {
                     emptyList()
                 }
@@ -1249,7 +1344,7 @@ class AddiyonKeyboardService : InputMethodService(),
                     afterChars = PREDICTION_IDENTITY_AFTER,
                     optional = true
                 )
-                ?: return@safeRun null
+                ?: return@safeRun captureNgramContextFromCursor(contextReader, composingPrefix)
             val surrounding = read.value
             if (surrounding.selectionStart != surrounding.selectionEnd) {
                 return@safeRun null
@@ -1268,6 +1363,36 @@ class AddiyonKeyboardService : InputMethodService(),
                     ?: return@safeRun null
             )
         }
+    }
+
+    private fun captureNgramContextFromCursor(
+        contextReader: NgramContext,
+        composingPrefix: String
+    ): CapturedNgramContext? {
+        val beforeRead = editorGateway.textBeforeCursor(
+            maxOf(PREDICTION_IDENTITY_BEFORE, NgramContext.WINDOW + composingPrefix.length),
+            optional = false
+        ) ?: return null
+        val afterRead = editorGateway.textAfterCursor(PREDICTION_IDENTITY_AFTER, optional = false)
+            ?.takeIf { it.token.sameEditorState(beforeRead.token) }
+            ?: return null
+        val before = beforeRead.value
+        val field = if (composingPrefix.isNotEmpty()) {
+            if (!before.endsWith(composingPrefix)) return null
+            before.removeSuffix(composingPrefix)
+        } else before
+        val selection = beforeRead.token.selectionStart
+        if (selection < 0) return null
+        return CapturedNgramContext(
+            context = contextReader.extract(field),
+            editorToken = beforeRead.token,
+            contentIdentity = EditorContentIdentity(
+                selectionStart = selection,
+                selectionEnd = selection,
+                textBeforeSelection = before.takeLast(PREDICTION_IDENTITY_BEFORE),
+                textAfterSelection = afterRead.value.take(PREDICTION_IDENTITY_AFTER)
+            )
+        )
     }
 
     private fun predictionsFor(
@@ -1352,9 +1477,49 @@ class AddiyonKeyboardService : InputMethodService(),
             else -> false
         }
 
+    var expandedSuggestionsVisible by mutableStateOf(false)
+        private set
+
+    fun toggleExpandedSuggestions() {
+        safeApply {
+            if (voiceUiState.isVoiceMode) return@safeApply
+            val hasRemaining = when (val s = nonVoiceSuggestionUiState) {
+                is SuggestionUiState.WordCompletions -> s.words.size > 3
+                is SuggestionUiState.NextWordPredictions -> s.words.size > 3
+                is SuggestionUiState.EmailSuggestions -> s.chips.size > 3
+                else -> false
+            }
+            if (!hasRemaining) return@safeApply
+            expandedSuggestionsVisible = !expandedSuggestionsVisible
+        }
+    }
+
+    fun hideExpandedSuggestions() {
+        expandedSuggestionsVisible = false
+    }
+
+    fun dismissSuggestions() {
+        safeApply {
+            if (voiceUiState.isVoiceMode) return@safeApply
+            when (nonVoiceSuggestionUiState) {
+                is SuggestionUiState.WordCompletions,
+                is SuggestionUiState.NextWordPredictions,
+                is SuggestionUiState.EmailSuggestions,
+                SuggestionUiState.LoadingPredictions,
+                SuggestionUiState.LoadingCompletions -> Unit
+                else -> return@safeApply
+            }
+            expandedSuggestionsVisible = false
+            invalidateSuggestionWork()
+            publishSuggestionState(SuggestionUiState.Toolbar)
+        }
+    }
+
     private fun publishSuggestionState(state: SuggestionUiState) {
         val scopedState = scopeSuggestionState(state)
+        val changed = scopedState != nonVoiceSuggestionUiState
         nonVoiceSuggestionUiState = scopedState
+        if (changed) expandedSuggestionsVisible = false
         if (!voiceUiState.isVoiceMode) {
             suggestionUiState = scopedState
         }
@@ -1456,10 +1621,8 @@ class AddiyonKeyboardService : InputMethodService(),
                 .map { CandidateRanker.DictionaryWord(it.word, it.frequency) }
             val merged = ArrayList<String>(ENGLISH_SUGGESTION_LIMIT)
             for (word in CandidateRanker.rankByContext(pool, ngramNext, ::englishFold, ENGLISH_EXACT_LIMIT)) {
-                // Swap in the context proper-noun casing ("york" -> "York") when the
-                // model predicts this word capitalized after the same context.
                 val cased = casing[englishFold(word)] ?: word
-                if (cased !in merged) merged.add(cased)
+                if (cased !in merged && merged.size < ENGLISH_SUGGESTION_LIMIT) merged.add(cased)
             }
 
             if (merged.size < ENGLISH_EXACT_LIMIT && !lowRam) {
@@ -1473,6 +1636,21 @@ class AddiyonKeyboardService : InputMethodService(),
                         merged.add(match.word)
                         if (merged.size >= ENGLISH_SUGGESTION_LIMIT) break
                     }
+                }
+            }
+            if (::personalDictionary.isInitialized && merged.size < ENGLISH_SUGGESTION_LIMIT) {
+                val personalRaw = personalDictionary.completions(typed, ENGLISH_COMPLETION_POOL)
+                val emailFirst = personalRaw.filter { '@' in it }
+                val nonEmail = personalRaw.filter { '@' !in it }
+                for (word in emailFirst) {
+                    if (merged.size >= ENGLISH_SUGGESTION_LIMIT) break
+                    val cased = matchCase(typed, word)
+                    if (cased !in merged) merged.add(cased)
+                }
+                for (word in nonEmail) {
+                    if (merged.size >= ENGLISH_SUGGESTION_LIMIT) break
+                    val cased = matchCase(typed, word)
+                    if (cased !in merged) merged.add(cased)
                 }
             }
 
@@ -1499,9 +1677,22 @@ class AddiyonKeyboardService : InputMethodService(),
             val readings = candidateReadings.map { it.text }
             val readingFrequencies = amharicDictionary.frequenciesOf(readings)
             val visibleReadings = readings
-            // Structural split readings: kept for completions/quirk chips, but not
-            // allowed to win the default over the natural greedy reading.
             val quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet()
+            val personalAmharic = if (!::personalDictionary.isInitialized) emptyList() else {
+                val seen = HashSet<String>()
+                val out = ArrayList<String>(AMHARIC_SUGGESTION_LIMIT)
+                for (reading in readings.distinct()) {
+                    for (w in personalDictionary.completions(reading, AMHARIC_SUGGESTION_LIMIT)) {
+                        if (w !in seen) {
+                            seen.add(w)
+                            out.add(w)
+                            if (out.size >= AMHARIC_SUGGESTION_LIMIT) break
+                        }
+                    }
+                    if (out.size >= AMHARIC_SUGGESTION_LIMIT) break
+                }
+                out
+            }
             val commitCandidate = CandidateRanker.bestCommitCandidate(
                 readings,
                 readingFrequencies::get,
@@ -1568,10 +1759,11 @@ class AddiyonKeyboardService : InputMethodService(),
                 ngramNext = ngramNext,
                 preferGreedy = Transliterator.hasExplicitFamilySelection(latin)
             )
-            if (ranked.size >= AMHARIC_SUGGESTION_LIMIT ||
+            val rankedWithPersonal = if (personalAmharic.isEmpty()) ranked else (ranked + personalAmharic).distinct().take(AMHARIC_SUGGESTION_LIMIT)
+            if (rankedWithPersonal.size >= AMHARIC_SUGGESTION_LIMIT ||
                 readings.none { it.length <= MAX_FUZZY_READING_LENGTH }
             ) {
-                return@safeRun pinPreferredAlternate(ranked, preferredAlternate).also {
+                return@safeRun pinPreferredAlternate(rankedWithPersonal, preferredAlternate).also {
                     if (amharicDictionary.isReady) amharicSuggestionCache[latin] = it
                 }
             }
@@ -1587,7 +1779,7 @@ class AddiyonKeyboardService : InputMethodService(),
             // have" that doesn't justify an in-Kotlin DP over a bounded SQL
             // candidate set on every keystroke at 1 GB.
             if (lowRam) {
-                return@safeRun pinPreferredAlternate(ranked, preferredAlternate).also {
+                return@safeRun pinPreferredAlternate(rankedWithPersonal, preferredAlternate).also {
                     if (amharicDictionary.isReady) amharicSuggestionCache[latin] = it
                 }
             }
@@ -1611,8 +1803,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 }
             }
 
-            pinPreferredAlternate(
-                CandidateRanker.rankAmharic(
+            val rankedFuzzy = CandidateRanker.rankAmharic(
                     readings = readings,
                     limit = AMHARIC_SUGGESTION_LIMIT,
                     frequencyOf = readingFrequencies::get,
@@ -1622,7 +1813,10 @@ class AddiyonKeyboardService : InputMethodService(),
                     quirkReadings = quirkReadings,
                     ngramNext = ngramNext,
                     preferGreedy = Transliterator.hasExplicitFamilySelection(latin)
-                ),
+                )
+            val rankedFuzzyWithPersonal = if (personalAmharic.isEmpty()) rankedFuzzy else (rankedFuzzy + personalAmharic).distinct().take(AMHARIC_SUGGESTION_LIMIT)
+            pinPreferredAlternate(
+                rankedFuzzyWithPersonal,
                 preferredAlternate
             ).also {
                 if (amharicDictionary.isReady) amharicSuggestionCache[latin] = it
@@ -1718,10 +1912,212 @@ class AddiyonKeyboardService : InputMethodService(),
         }
     }
 
-    /** AI assist entry point from the suggestion toolbar. Not wired up yet. */
     fun onAiAction() {
         safeApply {
-            // TODO: hook up AI feature.
+            if (aiUiState.isVisible) {
+                dismissAiPanel()
+                return@safeApply
+            }
+            if (!::aiController.isInitialized) return@safeApply
+            if (showEmojiPanel) showEmojiPanel = false
+            if (voiceUiState.isVoiceMode) {
+                voiceInputController?.stop()
+                finalizeVoiceComposing()
+                resetVoiceUi()
+            }
+            val jwt = KeyboardPrefs.aiJwt(this)
+            val needsAuth = jwt.isNullOrBlank()
+            if (needsAuth) {
+                val intent = Intent(this, AiAccountActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra(AiAccountActivity.EXTRA_MODE, AiAccountActivity.MODE_AUTH)
+                }
+                ExternalActions.start(this, intent, "Unable to open AI sign-in.")
+                return@safeApply
+            }
+            val quota = currentAiQuota()
+            val captured = if (isPrivateField) null else aiController.captureInput()
+            aiUiState = AiUiState(
+                isVisible = true,
+                selectedTab = aiUiState.selectedTab,
+                strength = aiUiState.strength,
+                input = captured,
+                result = null,
+                alternatives = emptyList(),
+                isLoading = false,
+                error = if (isPrivateField) AiError.PrivateField else null,
+                quota = quota,
+                isPrivateField = isPrivateField,
+                needsAuth = false,
+                authEmail = KeyboardPrefs.aiEmail(this) ?: aiUiState.authEmail
+            )
+        }
+    }
+
+    fun openAiDashboard() {
+        safeApply {
+            val intent = Intent(this, AiAccountActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                putExtra(AiAccountActivity.EXTRA_MODE, AiAccountActivity.MODE_DASHBOARD)
+            }
+            ExternalActions.start(this, intent, "Unable to open AI dashboard.")
+        }
+    }
+
+    fun dismissAiPanel() {
+        safeApply { aiUiState = aiUiState.copy(isVisible = false, isLoading = false) }
+    }
+
+    fun onAiTabSelected(tab: AiToneTab) {
+        safeApply {
+            aiUiState = aiUiState.copy(selectedTab = tab, result = null, error = null)
+            val input = aiUiState.input
+            if (input == null || input.text.isBlank()) {
+                aiUiState = aiUiState.copy(error = AiError.NoText)
+                return@safeApply
+            }
+            if (isPrivateField) {
+                aiUiState = aiUiState.copy(error = AiError.PrivateField)
+                return@safeApply
+            }
+            if (aiUiState.needsAuth) {
+                aiUiState = aiUiState.copy(error = AiError.NeedsAuth)
+                return@safeApply
+            }
+            if (aiUiState.quota.remaining <= 0 || input.wordCount > aiUiState.quota.remaining) {
+                aiUiState = aiUiState.copy(error = AiError.QuotaExceeded(aiUiState.quota.remaining))
+                return@safeApply
+            }
+            aiUiState = aiUiState.copy(isLoading = true, error = null)
+            aiScope.launch {
+                val res = withContext(Dispatchers.IO) { aiController.revamp(input, tab, aiUiState.strength) }
+                safeApply {
+                    res.onSuccess { result ->
+                        consumeAiQuota(input.wordCount)
+                        aiUiState = aiUiState.copy(result = result, isLoading = false)
+                    }.onFailure { t ->
+                        val err = aiController.parseError(t)
+                        if (err is AiError.QuotaExceeded) aiUiState = aiUiState.copy(quota = currentAiQuota())
+                        aiUiState = aiUiState.copy(error = err, isLoading = false)
+                    }
+                }
+            }
+        }
+    }
+
+    fun onAiStrengthSelected(strength: AiStrength) {
+        safeApply { aiUiState = aiUiState.copy(strength = strength) }
+    }
+
+    fun onAiCopy() {
+        safeApply {
+            val text = aiUiState.result?.text ?: return@safeApply
+            val clipboard = getSystemService(android.content.ClipboardManager::class.java)
+            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("AI result", text))
+            try { Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show() } catch (_: Throwable) {}
+        }
+    }
+
+    fun onAiReplace() {
+        safeApply {
+            val result = aiUiState.result ?: return@safeApply
+            val input = aiUiState.input ?: return@safeApply
+            val snapshot = input.snapshot
+            val replacement = result.text
+            if (snapshot != null) {
+                val token = editorGateway.currentToken()
+                if (token == null || token.generation != snapshot.tokenGeneration) {
+                    aiUiState = aiUiState.copy(error = AiError.Server("Text changed — reopen AI"))
+                    return@safeApply
+                }
+                val selStart = minOf(snapshot.replacementStart, snapshot.replacementEnd)
+                val selEnd = maxOf(snapshot.replacementStart, snapshot.replacementEnd)
+                val currentToken = editorGateway.currentToken()
+                if (currentToken != null && (currentToken.selectionStart != selStart || currentToken.selectionEnd != selEnd)) {
+                    if (input.source == com.addiyon.keyboard.ai.AiSource.Selection) {
+                        aiUiState = aiUiState.copy(error = AiError.Server("Selection changed — reopen AI"))
+                        return@safeApply
+                    }
+                }
+                val snapshotObj = editorGateway.replacementSnapshot(selStart, selEnd, 128, 128)
+                val ok = if (snapshotObj != null) {
+                    editorGateway.write(snapshotObj.token) { conn ->
+                        try {
+                            conn.setComposingRegion(selStart, selEnd)
+                            conn.commitText(replacement, 1)
+                            true
+                        } catch (_: Throwable) { conn.commitText(replacement, 1) }
+                    }
+                } else {
+                    editorGateway.commitText(replacement)
+                }
+                if (ok) {
+                    aiUiState = aiUiState.copy(isVisible = false)
+                    typingController.onSelectionChanged(selStart + replacement.length, selStart + replacement.length, -1, -1)
+                    updateSuggestions()
+                } else {
+                    aiUiState = aiUiState.copy(error = AiError.Server("Replace failed"))
+                }
+            } else {
+                val ok = editorGateway.commitText(replacement)
+                if (ok) {
+                    aiUiState = aiUiState.copy(isVisible = false)
+                    updateSuggestions()
+                } else {
+                    aiUiState = aiUiState.copy(error = AiError.Server("Replace failed"))
+                }
+            }
+        }
+    }
+
+    fun onAiAuthEmailChanged(email: String) {
+        safeApply { aiUiState = aiUiState.copy(authEmail = email) }
+    }
+
+    fun onAiSendLink() {
+        safeApply {
+            val email = aiUiState.authEmail.trim()
+            if (!email.contains("@")) {
+                aiUiState = aiUiState.copy(authMessage = "Enter a valid email")
+                return@safeApply
+            }
+            aiUiState = aiUiState.copy(authSending = true, authMessage = null)
+            aiScope.launch {
+                val res = withContext(Dispatchers.IO) {
+                    aiRepository.issueMagicLink(email, "addiyon://auth/callback")
+                }
+                safeApply {
+                    res.onSuccess { r ->
+                        KeyboardPrefs.setAiEmail(this@AddiyonKeyboardService, email)
+                        val msg = if (r.devLink != null) "Link sent (dev): ${r.devLink}" else "Check your email for the link"
+                        aiUiState = aiUiState.copy(authSending = false, authMessage = msg)
+                    }.onFailure { t ->
+                        val err = aiController.parseError(t)
+                        aiUiState = aiUiState.copy(authSending = false, authMessage = err.toString())
+                    }
+                }
+            }
+        }
+    }
+
+    fun onAiAuthTokenReceived(token: String) {
+        safeApply {
+            aiUiState = aiUiState.copy(authSending = true)
+            aiScope.launch {
+                val ok = withContext(Dispatchers.IO) {
+                    try {
+                        val api = aiRepository
+                        val anonId = KeyboardPrefs.aiAnonId(this@AddiyonKeyboardService)
+                        val quotaRes = api.quota(KeyboardPrefs.aiJwt(this@AddiyonKeyboardService), anonId)
+                        quotaRes.isSuccess
+                    } catch (_: Throwable) { false }
+                }
+                safeApply {
+                    KeyboardPrefs.setAiJwt(this@AddiyonKeyboardService, token)
+                    val quota = currentAiQuota()
+                    aiUiState = aiUiState.copy(needsAuth = false, authSending = false, quota = quota, error = null, authMessage = "Authenticated")
+                }
+            }
         }
     }
 
@@ -2658,7 +3054,8 @@ class AddiyonKeyboardService : InputMethodService(),
             val priorContext = currentBoundaryContext(isAmharic)
                 ?: captureNgramContext(contextReader)
             val priorContextValue = priorContext?.context ?: NgramContext.EMPTY
-            val replacement = "$word "
+            val addTrailingSpace = !isEmailField && '@' !in word
+            val replacement = if (addTrailingSpace) "$word " else word
             val nextContext = predictionContextAfterAcceptedWord(
                 priorContext = priorContextValue,
                 word = word
@@ -2696,7 +3093,8 @@ class AddiyonKeyboardService : InputMethodService(),
             val committed = duringPredictionBoundaryMutation {
                 typingController.onSuggestionTap(
                     word,
-                    if (prediction) SuggestionKind.PREDICTION else SuggestionKind.COMPLETION
+                    if (prediction) SuggestionKind.PREDICTION else SuggestionKind.COMPLETION,
+                    trailingSpace = addTrailingSpace
                 )
             }
             pendingPredictionBoundary = if (committed) {
@@ -2906,6 +3304,7 @@ class AddiyonKeyboardService : InputMethodService(),
             )
             amharicNgrams = SQLiteNgramModel(amharicStore, EthiopicNormalizer::normalize)
             englishNgrams = SQLiteNgramModel(englishStore, ::englishFold)
+            personalDictionary = PersonalDictionary.decode(KeyboardPrefs.personalDictionary(this))
             emojiRepository = EmojiRepository(this, onOutOfMemory = this::enterEmergencyMode)
             // Both stores decode lazily on first use, and the prefs file is
             // already loaded in memory by the theme/number-row reads above, so
@@ -2928,6 +3327,17 @@ class AddiyonKeyboardService : InputMethodService(),
             // plus one ngram model, instead of two dictionaries + two models
             // competing for the page cache on low-RAM devices.
             ensureActiveLanguageStoreLoaded("after_active")
+            val api = AiServiceFactory.create(debug = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0)
+            aiRepository = AiRepository(api)
+            aiController = AiController(
+                editorGateway = editorGateway,
+                repository = aiRepository,
+                quotaProvider = ::currentAiQuota,
+                jwtProvider = { KeyboardPrefs.aiJwt(this) },
+                anonIdProvider = { KeyboardPrefs.aiAnonId(this) },
+                isPrivateFieldProvider = { isPrivateField }
+            )
+            aiUiState = aiUiState.copy(quota = currentAiQuota(), authEmail = KeyboardPrefs.aiEmail(this) ?: "")
         }
     }
 
@@ -2994,8 +3404,9 @@ class AddiyonKeyboardService : InputMethodService(),
             // word we were composing belongs to a field that's no longer
             // ours. Drop it silently rather than trying to commit into the
             // wrong destination.
-            // A new session starts on the keyboard, not a stale emoji panel.
+            // A new session starts on the keyboard, not a stale emoji/AI panel.
             closeEmojiPanel()
+            if (aiUiState.isVisible) aiUiState = aiUiState.copy(isVisible = false)
             // The Enter key adapts to this field's IME action (search/go/send/...).
             resolveEnterAction(editorInfo)
             // Whether English auto-capitalization applies in this field.
@@ -3186,6 +3597,7 @@ class AddiyonKeyboardService : InputMethodService(),
             super.onDestroy()
             currentInstance = null
             KeyboardPrefs.prefs(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
+            aiScope.cancel()
             voiceInputController?.destroy()
             resetVoiceUi()
             invalidateSuggestionWork()

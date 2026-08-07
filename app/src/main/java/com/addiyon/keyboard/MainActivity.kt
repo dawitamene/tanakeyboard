@@ -41,7 +41,8 @@ private enum class ScreenKey {
     KeyboardHeight,
     TestKeyboard,
     About,
-    Themes
+    Themes,
+    PersonalDictionary
 }
 
 class MainActivity : ComponentActivity() {
@@ -213,6 +214,7 @@ class MainActivity : ComponentActivity() {
                                 onOpenTestKeyboard = { screen = ScreenKey.TestKeyboard },
                                 onOpenAbout = { screen = ScreenKey.About },
                                 onOpenThemes = { screen = ScreenKey.Themes },
+                                onOpenPersonalDictionary = { screen = ScreenKey.PersonalDictionary },
                             )
                             ScreenKey.Manual -> ManualScreen(
                                 onBack = { goBack(ScreenKey.Manual) }
@@ -232,11 +234,12 @@ class MainActivity : ComponentActivity() {
                             )
                             ScreenKey.Themes -> ThemesScreen(
                                 onBack = { goBack(ScreenKey.Themes) },
-                                // Picking a theme when Themes was opened from the
-                                // keyboard returns straight to it.
                                 onPaletteChosen = {
                                     if (fromKeyboard && keyboardEntryScreen == ScreenKey.Themes) finish()
                                 }
+                            )
+                            ScreenKey.PersonalDictionary -> com.addiyon.keyboard.ui.settings.PersonalDictionaryScreen(
+                                onBack = { goBack(ScreenKey.PersonalDictionary) }
                             )
                     }
 

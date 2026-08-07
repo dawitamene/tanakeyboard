@@ -2,12 +2,20 @@
 package com.addiyon.keyboard.ui
 
 import android.content.res.Configuration
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 
@@ -25,6 +33,7 @@ import com.addiyon.keyboard.layout.numericRows
 import com.addiyon.keyboard.model.KeyData
 import com.addiyon.keyboard.model.KeyboardLayout
 import com.addiyon.keyboard.model.NumbersMode
+import com.addiyon.keyboard.ui.ai.AiPanel
 import com.addiyon.keyboard.ui.emoji.EmojiPanel
 import com.addiyon.keyboard.ui.emoji.EmojiSearchHeader
 
@@ -53,7 +62,10 @@ private fun KeyboardSuggestionArea(
     SuggestionArea(
         state = service.suggestionUiState,
         isAmharic = isAmharic,
-        onTap = service::onSuggestionTapped,
+        onTap = {
+            service.onSuggestionTapped(it)
+            service.hideExpandedSuggestions()
+        },
         onOpenSettings = { service.openAppScreen(MainActivity.SCREEN_SETTINGS) },
         onOpenThemes = { service.openAppScreen(MainActivity.SCREEN_THEMES) },
         onOpenGuide = { service.openAppScreen(MainActivity.SCREEN_GUIDE) },
@@ -63,6 +75,8 @@ private fun KeyboardSuggestionArea(
         onEmoji = service::openEmojiPanel,
         onVoice = service::onVoiceInput,
         onExitVoice = service::exitVoiceMode,
+        onDismissSuggestions = service::dismissSuggestions,
+        onToggleExpanded = service::toggleExpandedSuggestions,
     )
 }
 
@@ -144,6 +158,32 @@ fun KeyboardScreen(
                 // Column, with the layout forced to English.
                 val emojiSearching = service.showEmojiPanel && service.emojiSearchQuery != null
 
+                if (service.aiUiState.isVisible) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        val rows = remember(layout, service.numbersMode, service.showNumberRow) {
+                            keyboardRows(layout = layout, numbersMode = service.numbersMode, numberRowEnabled = service.showNumberRow, emojiSearching = false)
+                        }
+                        val metrics = remember(rows, maxWidth, heightScale, isLandscape) {
+                            computeKeyboardMetrics(rows = rows, availableWidth = maxWidth - 4.dp, columns = layout.columns, heightScale = heightScale, isLandscape = isLandscape)
+                        }
+                        val targetRowCount = remember(service.showNumberRow) { keyboardRowCount(service.showNumberRow) }
+                        val panelHeight = 40.dp + keyboardRowsHeight(keyHeight = metrics.keyHeight, rowCount = targetRowCount, rowSpacing = standardRowSpacing) + KEY_ROWS_VERTICAL_PADDING * 2
+                        Box(modifier = Modifier.height(panelHeight)) {
+                            AiPanel(
+                                state = service.aiUiState,
+                                onDismiss = service::dismissAiPanel,
+                                onTabSelected = service::onAiTabSelected,
+                                onStrengthSelected = service::onAiStrengthSelected,
+                                onCopy = service::onAiCopy,
+                                onReplace = service::onAiReplace,
+                                onEmailChanged = service::onAiAuthEmailChanged,
+                                onSendLink = service::openAiDashboard
+                            )
+                        }
+                    }
+                    return@keyboardContent
+                }
+
                 // The emoji panel replaces BOTH the suggestion strip and the key
                 // rows at exactly their combined height (computed below from the
                 // same metrics the key branch uses), so opening/closing it never
@@ -203,12 +243,24 @@ fun KeyboardScreen(
                     KeyboardSuggestionArea(service, isAmharic)
                 }
 
-                BoxWithConstraints(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()
-                        .padding(horizontal = 2.dp, vertical = KEY_ROWS_VERTICAL_PADDING)
                 ) {
+                    val showExpanded = service.expandedSuggestionsVisible
+                    val expandedWords: List<String> = when (val s = service.suggestionUiState) {
+                        is com.addiyon.keyboard.ui.SuggestionUiState.WordCompletions -> if (s.words.size > 3) s.words.drop(3) else emptyList()
+                        is com.addiyon.keyboard.ui.SuggestionUiState.NextWordPredictions -> if (s.words.size > 3) s.words.drop(3) else emptyList()
+                        is com.addiyon.keyboard.ui.SuggestionUiState.EmailSuggestions -> if (s.chips.size > 3) s.chips.drop(3).map { it.commit } else emptyList()
+                        else -> emptyList()
+                    }
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .padding(horizontal = 2.dp, vertical = KEY_ROWS_VERTICAL_PADDING)
+                    ) {
 
                     // Emoji search always types on the plain English rows (the
                     // query is Latin, and CLDR keywords are English), whatever
@@ -307,7 +359,73 @@ fun KeyboardScreen(
                         }
                     }
                 }
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showExpanded && expandedWords.isNotEmpty(),
+                    enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+                    modifier = Modifier.matchParentSize()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(androidx.compose.ui.graphics.Color.White)
+                            .clickable { service.hideExpandedSuggestions() }
+                            .padding(horizontal = 2.dp, vertical = KEY_ROWS_VERTICAL_PADDING)
+                    ) {
+                        val rows = (expandedWords.size + 2) / 3
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Top
+                        ) {
+                            for (row in 0 until rows) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(40.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                ) {
+                                    for (col in 0 until 3) {
+                                        val word = expandedWords.getOrNull(row * 3 + col)
+                                        androidx.compose.foundation.layout.Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxHeight()
+                                                .clickable(enabled = word != null) {
+                                                    word?.let {
+                                                        val gen = when (val s = service.suggestionUiState) {
+                                                            is com.addiyon.keyboard.ui.SuggestionUiState.WordCompletions -> s.actionGeneration
+                                                            is com.addiyon.keyboard.ui.SuggestionUiState.NextWordPredictions -> s.actionGeneration
+                                                            is com.addiyon.keyboard.ui.SuggestionUiState.EmailSuggestions -> s.actionGeneration
+                                                            else -> 0L
+                                                        }
+                                                        service.onSuggestionTapped(com.addiyon.keyboard.ui.SuggestionTap(it, gen))
+                                                        service.hideExpandedSuggestions()
+                                                    }
+                                                },
+                                            contentAlignment = androidx.compose.ui.Alignment.Center
+                                        ) {
+                                            if (word != null) {
+                                                androidx.compose.material3.Text(
+                                                    text = word,
+                                                    maxLines = 1,
+                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                    style = androidx.compose.ui.text.TextStyle(
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                        fontSize = 16.sp
+                                                    ),
+                                                    modifier = Modifier.padding(horizontal = 6.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
+}
 }

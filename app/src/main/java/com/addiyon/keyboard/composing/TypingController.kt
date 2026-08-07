@@ -32,7 +32,8 @@ internal class TypingController(
     private val editor: EditorGateway,
     private val profile: () -> TypingProfile,
     /** Notified whenever the composing buffer changes, so suggestions can refresh. */
-    private val onCompositionChanged: () -> Unit = {}
+    private val onCompositionChanged: () -> Unit = {},
+    private val onWordCommitted: (String) -> Unit = {}
 ) {
 
     private val resumedWords = ResumedWordMemory()
@@ -67,6 +68,7 @@ internal class TypingController(
         lastUnitStart = { raw -> profile().lastUnitStart(raw) },
         onCommit = { raw, display ->
             if (profile().remembersRawLatin) resumedWords.remember(display, raw)
+            onWordCommitted(display)
         }
     )
 
@@ -162,12 +164,16 @@ internal class TypingController(
      * A prediction is a NEW word: it inserts at the caret and must never replace
      * anything, so it deliberately skips adoption.
      */
-    fun onSuggestionTap(word: String, kind: SuggestionKind): Boolean = applyingOwnEdit {
+    fun onSuggestionTap(
+        word: String,
+        kind: SuggestionKind,
+        trailingSpace: Boolean = true
+    ): Boolean = applyingOwnEdit {
         if (word.isEmpty()) return@applyingOwnEdit false
         if (kind == SuggestionKind.COMPLETION && !composition.isActive) {
             adoptWordAtCaret(profile())
         }
-        composition.replaceWith(word).also { onCompositionChanged() }
+        composition.replaceWith(word, trailingSpace).also { onCompositionChanged() }
     }
 
     // -------------------------------------------------------------- editor events

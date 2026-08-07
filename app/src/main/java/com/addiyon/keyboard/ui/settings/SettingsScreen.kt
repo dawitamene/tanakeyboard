@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Keyboard
@@ -71,6 +72,7 @@ fun SettingsScreen(
     onOpenTestKeyboard: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenThemes: () -> Unit,
+    onOpenPersonalDictionary: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -145,6 +147,7 @@ fun SettingsScreen(
                     SettingsItem(Icons.Default.MenuBook, strings.typingGuide, onClick = onOpenManual)
                     SettingsItem(Icons.Default.Tune, strings.preferences, onClick = onOpenSoundVibration)
                     SettingsItem(Icons.Default.Keyboard, strings.testKeyboard, onClick = onOpenTestKeyboard)
+                    SettingsItem(Icons.Default.Book, strings.personalDictionary, onClick = onOpenPersonalDictionary)
                 }
             }
             val secondaryGroups: @Composable () -> Unit = {

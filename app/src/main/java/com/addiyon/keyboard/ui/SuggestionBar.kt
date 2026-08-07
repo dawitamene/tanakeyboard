@@ -15,6 +15,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -32,12 +33,15 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -76,6 +80,7 @@ internal const val LANGUAGE_LOADING_INDICATOR_TAG = "language-loading-indicator"
 internal const val PREDICTION_LOADING_STRIP_TAG = "prediction-loading-strip"
 internal const val PREDICTION_LOADING_INDICATOR_TAG = "prediction-loading-indicator"
 internal const val PREDICTION_LOADING_INDICATOR_DELAY_MILLIS = 120L
+internal const val SUGGESTION_DISMISS_TAG = "suggestion-dismiss"
 internal fun predictionLoadingSlotTag(index: Int) = "prediction-loading-slot-$index"
 
 @Composable
@@ -92,117 +97,187 @@ fun SuggestionArea(
     onEmoji: () -> Unit,
     onVoice: () -> Unit = {},
     onExitVoice: () -> Unit = {},
+    onDismissSuggestions: () -> Unit = {},
+    onToggleExpanded: () -> Unit = {},
 ) {
-    Row(
+    val remainingWords: List<String> = when (state) {
+        is SuggestionUiState.WordCompletions -> if (state.words.size > 3) state.words.drop(3) else emptyList()
+        is SuggestionUiState.NextWordPredictions -> if (state.words.size > 3) state.words.drop(3) else emptyList()
+        is SuggestionUiState.EmailSuggestions -> if (state.chips.size > 3) state.chips.drop(3).map { it.commit } else emptyList()
+        else -> emptyList()
+    }
+    val hasRemaining = remainingWords.isNotEmpty()
+    val isSuggestionState = state is SuggestionUiState.WordCompletions ||
+        state is SuggestionUiState.NextWordPredictions ||
+        state is SuggestionUiState.EmailSuggestions ||
+        state == SuggestionUiState.LoadingPredictions ||
+        state == SuggestionUiState.LoadingCompletions
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 8.dp),
-        horizontalArrangement = if (
-            state == SuggestionUiState.Toolbar ||
-            state == SuggestionUiState.Private
-        ) {
-            Arrangement.SpaceBetween
-        } else {
-            Arrangement.Start
-        },
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        when (state) {
-            SuggestionUiState.Toolbar -> {
-                ToolbarActions(
-                    onOpenSettings = onOpenSettings,
-                    onOpenThemes = onOpenThemes,
-                    onOpenGuide = onOpenGuide,
-                    onFeedback = onFeedback,
-                    onEmoji = onEmoji,
-                )
-                MicToolbarIcon(isListening = false, onClick = onVoice)
-            }
-
-            SuggestionUiState.Private -> {
-                ToolbarActions(
-                    onOpenSettings = onOpenSettings,
-                    onOpenThemes = onOpenThemes,
-                    onOpenGuide = onOpenGuide,
-                    onFeedback = onFeedback,
-                    onEmoji = onEmoji,
-                )
-            }
-
-            is SuggestionUiState.Voice -> {
-                ToolbarIcon(
-                    Icons.AutoMirrored.Outlined.ArrowBack,
-                    "Exit voice input",
-                    onExitVoice,
-                )
-                Text(
-                    text = voiceLabel(state.voiceUiState, isAmharic),
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp)
-                )
-                MicToolbarIcon(
-                    isListening = state.voiceUiState.isRecording,
-                    onClick = onVoice,
-                )
-            }
-
-            else -> {
-                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    when (state) {
-                        SuggestionUiState.LoadingLanguage -> LanguageLoadingDot()
-                        SuggestionUiState.LoadingPredictions,
-                        SuggestionUiState.LoadingCompletions -> PredictionLoadingStrip()
-                        is SuggestionUiState.WordCompletions -> {
-                            val scopedTap: (String) -> Unit = {
-                                onTap(SuggestionTap(it, state.actionGeneration))
-                            }
-                            if (isAmharic) {
-                                AmharicSuggestionStrip(
-                                    suggestions = state.words,
-                                    isPredictions = false,
-                                    onTap = scopedTap,
-                                )
-                            } else {
-                                EnglishSuggestionStrip(state.words, scopedTap)
-                            }
-                        }
-
-                        is SuggestionUiState.NextWordPredictions -> {
-                            val scopedTap: (String) -> Unit = {
-                                onTap(SuggestionTap(it, state.actionGeneration))
-                            }
-                            if (isAmharic) {
-                                AmharicSuggestionStrip(
-                                    suggestions = state.words,
-                                    isPredictions = true,
-                                    onTap = scopedTap,
-                                )
-                            } else {
-                                EnglishSuggestionStrip(state.words, scopedTap)
-                            }
-                        }
-
-                        is SuggestionUiState.EmailSuggestions -> {
-                            val scopedTap: (String) -> Unit = {
-                                onTap(SuggestionTap(it, state.actionGeneration))
-                            }
-                            EmailSuggestionStrip(state.chips, scopedTap)
-                        }
-
-                        SuggestionUiState.Private,
-                        SuggestionUiState.Toolbar,
-                        is SuggestionUiState.Voice -> Unit
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .background(MaterialTheme.colorScheme.background),
+            horizontalArrangement = if (
+                state == SuggestionUiState.Toolbar ||
+                state == SuggestionUiState.Private
+            ) {
+                Arrangement.SpaceBetween
+            } else {
+                Arrangement.Start
+            },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            when (state) {
+                SuggestionUiState.Toolbar -> {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp).weight(1f),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ToolbarActions(
+                            onOpenSettings = onOpenSettings,
+                            onOpenThemes = onOpenThemes,
+                            onOpenGuide = onOpenGuide,
+                            onFeedback = onFeedback,
+                            onEmoji = onEmoji,
+                            onAi = onAi,
+                        )
+                    }
+                    Box(modifier = Modifier.padding(end = 8.dp)) {
+                        MicToolbarIcon(isListening = false, onClick = onVoice)
                     }
                 }
-                MicToolbarIcon(isListening = false, onClick = onVoice)
+
+                SuggestionUiState.Private -> {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp).weight(1f),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ToolbarActions(
+                            onOpenSettings = onOpenSettings,
+                            onOpenThemes = onOpenThemes,
+                            onOpenGuide = onOpenGuide,
+                            onFeedback = onFeedback,
+                            onEmoji = onEmoji,
+                            onAi = onAi,
+                        )
+                    }
+                }
+
+                is SuggestionUiState.Voice -> {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ToolbarIcon(
+                            Icons.AutoMirrored.Outlined.ArrowBack,
+                            "Exit voice input",
+                            onExitVoice,
+                        )
+                        Text(
+                            text = voiceLabel(state.voiceUiState, isAmharic),
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp)
+                        )
+                        MicToolbarIcon(
+                            isListening = state.voiceUiState.isRecording,
+                            onClick = onVoice,
+                        )
+                    }
+                }
+
+                else -> {
+                    if (isSuggestionState) {
+                        Box(modifier = Modifier.padding(start = 8.dp)) {
+                            BarButton(
+                                onClick = onDismissSuggestions,
+                                testTag = SUGGESTION_DISMISS_TAG
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    contentDescription = "Dismiss suggestions",
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                    }
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        when (state) {
+                            SuggestionUiState.LoadingLanguage -> LanguageLoadingDot()
+                            SuggestionUiState.LoadingPredictions,
+                            SuggestionUiState.LoadingCompletions -> PredictionLoadingStrip()
+                            is SuggestionUiState.WordCompletions -> {
+                                val scopedTap: (String) -> Unit = {
+                                    onTap(SuggestionTap(it, state.actionGeneration))
+                                }
+                                if (isAmharic) {
+                                    AmharicSuggestionStrip(
+                                        suggestions = state.words.take(3),
+                                        isPredictions = false,
+                                        onTap = scopedTap,
+                                    )
+                                } else {
+                                    EnglishSuggestionStrip(state.words.take(3), scopedTap)
+                                }
+                            }
+
+                            is SuggestionUiState.NextWordPredictions -> {
+                                val scopedTap: (String) -> Unit = {
+                                    onTap(SuggestionTap(it, state.actionGeneration))
+                                }
+                                if (isAmharic) {
+                                    AmharicSuggestionStrip(
+                                        suggestions = state.words.take(3),
+                                        isPredictions = true,
+                                        onTap = scopedTap,
+                                    )
+                                } else {
+                                    EnglishSuggestionStrip(state.words.take(3), scopedTap)
+                                }
+                            }
+
+                            is SuggestionUiState.EmailSuggestions -> {
+                                val scopedTap: (String) -> Unit = {
+                                    onTap(SuggestionTap(it, state.actionGeneration))
+                                }
+                                EmailSuggestionStrip(state.chips.take(3), scopedTap)
+                            }
+
+                            SuggestionUiState.Private,
+                            SuggestionUiState.Toolbar,
+                            is SuggestionUiState.Voice -> Unit
+                        }
+                    }
+                    if (isSuggestionState) {
+                        val enabled = hasRemaining
+                        Box(modifier = Modifier.padding(end = 8.dp)) {
+                            BarButton(
+                                onClick = onToggleExpanded,
+                                enabled = enabled
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.MoreHoriz,
+                                    contentDescription = "Show more suggestions",
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -215,9 +290,11 @@ private fun ToolbarActions(
     onOpenGuide: () -> Unit,
     onFeedback: () -> Unit,
     onEmoji: () -> Unit,
+    onAi: (() -> Unit)? = null,
 ) {
     ToolbarIcon(Icons.Outlined.Settings, "Settings", onOpenSettings)
     ToolbarIcon(Icons.Outlined.EmojiEmotions, "Emoji", onEmoji)
+    if (onAi != null) ToolbarIcon(Icons.Outlined.AutoAwesome, "AI Rephrase", onAi)
     ToolbarIcon(Icons.Outlined.MenuBook, "Typing guide", onOpenGuide)
     ToolbarIcon(Icons.Outlined.Feedback, "Feedback", onFeedback)
     ToolbarIcon(Icons.Outlined.Palette, "Themes", onOpenThemes)
@@ -245,20 +322,16 @@ private fun PredictionLoadingStrip() {
                     .testTag(predictionLoadingSlotTag(index)),
                 contentAlignment = Alignment.Center,
             ) {
-                if (index == 1 && showIndicator) {
-                    Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .testTag(PREDICTION_LOADING_INDICATOR_TAG)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
-                                shape = CircleShape,
-                            )
+                if (showIndicator) {
+                    Text(
+                        text = "...",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        maxLines = 1,
+                        modifier = if (index == 1) Modifier.testTag(PREDICTION_LOADING_INDICATOR_TAG) else Modifier
                     )
                 }
-            }
-            if (index < 2) {
-                SuggestionDivider()
             }
         }
     }
@@ -332,20 +405,33 @@ private fun voiceLabel(state: VoiceUiState, isAmharic: Boolean): String = when (
 }
 
 @Composable
+private fun BarButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    testTag: String? = null,
+    content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .clip(CircleShape)
+            .clickable(enabled = enabled, onClick = onClick)
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
+            .padding(horizontal = 10.dp)
+            .alpha(if (enabled) 1f else 0.35f),
+        contentAlignment = Alignment.Center,
+        content = content
+    )
+}
+
+@Composable
 private fun ToolbarIcon(
     icon: ImageVector,
     description: String,
     onClick: () -> Unit,
     tinted: Boolean = false
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .clip(CircleShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
+    BarButton(onClick = onClick) {
         Icon(
             imageVector = icon,
             contentDescription = description,
@@ -381,14 +467,7 @@ private fun MicToolbarIcon(
     } else {
         1f
     }
-    Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .clip(CircleShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
+    BarButton(onClick = onClick) {
         Icon(
             imageVector = if (isListening) Icons.Filled.Mic else Icons.Outlined.Mic,
             contentDescription = if (isListening) "Stop voice input" else "Voice input",
@@ -426,11 +505,7 @@ private fun AmharicSuggestionStrip(
     isPredictions: Boolean,
     onTap: (String) -> Unit
 ) {
-    if (suggestions.size in 2..3) {
-        AmharicFixedSuggestionStrip(suggestions, isPredictions, onTap)
-    } else {
-        AmharicScrollableSuggestionStrip(suggestions, isPredictions, onTap)
-    }
+    AmharicFixedSuggestionStrip(suggestions, isPredictions, onTap)
 }
 
 @Composable
@@ -462,9 +537,6 @@ private fun AmharicFixedSuggestionStrip(
                         isTop = index == 0 && !isPredictions
                     )
                 }
-            }
-            if (index < 2) {
-                SuggestionDivider()
             }
         }
     }
@@ -564,15 +636,6 @@ private fun EnglishSuggestionStrip(
     ) {
         for (i in 0 until 3) {
             EnglishSuggestionSlot(word = suggestions.getOrNull(i), onTap = onTap)
-
-            if (i < 2) {
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .fillMaxHeight(0.5f)
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-                )
-            }
         }
     }
 }
@@ -635,14 +698,6 @@ private fun EmailSuggestionStrip(
     ) {
         for (i in 0 until 3) {
             EmailSuggestionSlot(chip = chips.getOrNull(i), onTap = onTap)
-            if (i < 2) {
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .fillMaxHeight(0.5f)
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-                )
-            }
         }
     }
 }

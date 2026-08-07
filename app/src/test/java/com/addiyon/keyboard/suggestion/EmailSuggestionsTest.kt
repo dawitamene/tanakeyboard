@@ -95,4 +95,13 @@ class EmailSuggestionsTest {
         assertEquals(".com", list[0].display)
         assertEquals("a@@b.com", list[0].commit)
     }
+
+    @Test
+    fun savedAddressIsPrioritizedAndDoesNotAddASecondSuffix() {
+        val list = EmailSuggestions.emailChipsFor(
+            "jo",
+            listOf("jo@example.com", "jordan@example.com")
+        )
+        assertEquals("jo@example.com", list[0].commit)
+    }
 }

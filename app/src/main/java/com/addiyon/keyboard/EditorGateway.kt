@@ -426,8 +426,16 @@ internal class EditorGateway(
             beforeChars = identity.textBeforeSelection.length,
             afterChars = identity.textAfterSelection.length,
             optional = false
-        ) ?: return false
-        return read.token.sameEditorState(token) && identity.matches(read.value)
+        )
+        if (read != null) return read.token.sameEditorState(token) && identity.matches(read.value)
+        val before = textBeforeCursor(identity.textBeforeSelection.length, optional = false) ?: return false
+        val after = textAfterCursor(identity.textAfterSelection.length, optional = false)
+            ?: return false
+        if (!after.token.sameEditorState(before.token)) return false
+        return before.token.selectionStart == identity.selectionStart &&
+            before.token.selectionEnd == identity.selectionEnd &&
+            before.value.takeLast(identity.textBeforeSelection.length) == identity.textBeforeSelection &&
+            after.value.take(identity.textAfterSelection.length) == identity.textAfterSelection
     }
 
     @RequiresApi(Build.VERSION_CODES.S)

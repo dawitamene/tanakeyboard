@@ -27,6 +27,7 @@ data class AppStrings(
     val typingGuide: String,
     val preferences: String,
     val testKeyboard: String,
+    val personalDictionary: String,
     val shareApp: String,
     val rateApp: String,
     val feedback: String,
@@ -53,6 +54,11 @@ data class AppStrings(
     val done: String,
     // Test keyboard
     val testPlaceholder: String,
+    // Personal dictionary
+    val personalDictionaryTitle: String,
+    val personalDictionaryEmpty: String,
+    val personalDictionaryClearAll: String,
+    val delete: String,
     // About
     val versionFormat: String,
     val aboutDescription: String,
@@ -93,6 +99,7 @@ val EnglishStrings = AppStrings(
     typingGuide = "Typing Guide",
     preferences = "Preferences",
     testKeyboard = "Test Keyboard",
+    personalDictionary = "Personal dictionary",
     shareApp = "Share Addiyon Keyboard",
     rateApp = "Rate Addiyon Keyboard",
     feedback = "Feedback",
@@ -115,6 +122,10 @@ val EnglishStrings = AppStrings(
     reset = "Reset",
     done = "Done",
     testPlaceholder = "Type \"selam\" → ሰላም",
+    personalDictionaryTitle = "Personal dictionary",
+    personalDictionaryEmpty = "No saved words yet. Words you type will appear here and can be removed.",
+    personalDictionaryClearAll = "Clear all",
+    delete = "Delete",
     versionFormat = "Version %s",
     aboutDescription = "Type Amharic (Ge'ez) using simple Latin transliteration. " +
         "For example, \"selam\" becomes ሰላም.",
@@ -156,6 +167,7 @@ val AmharicStrings = AppStrings(
     typingGuide = "የአፃፃፍ መመሪያ",
     preferences = "ምርጫዎች",
     testKeyboard = "ኪቦርዱን ሞክር",
+    personalDictionary = "የግል መዝገበ ቃላት",
     shareApp = "አዲዮን ኪቦርድን አጋራ",
     rateApp = "አዲዮን ኪቦርድን ደረጃ ስጥ",
     feedback = "አስተያየት",
@@ -178,6 +190,10 @@ val AmharicStrings = AppStrings(
     reset = "ዳግም አስጀምር",
     done = "ተከናውኗል",
     testPlaceholder = "\"selam\" ብለው ይፃፉ → ሰላም",
+    personalDictionaryTitle = "የግል መዝገበ ቃላት",
+    personalDictionaryEmpty = "ምንም የተቀመጡ ቃላት የሉም። የሚተይቧቸው ቃላት እዚህ ይታያሉ እና ማስወገድ ይችላሉ።",
+    personalDictionaryClearAll = "ሁሉንም አጥፋ",
+    delete = "ሰርዝ",
     versionFormat = "ስሪት %s",
     aboutDescription = "የእንግሊዝኛ ፊደላትን በመጠቀም በቀላሉ አማርኛ ይፃፉ። " +
         "ለምሳሌ \"selam\" ወደ ሰላም ይቀየራል።",

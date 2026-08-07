@@ -49,10 +49,19 @@ object EmailSuggestions {
         ".net",
     )
 
-    fun emailChipsFor(token: String): List<EmailChip> {
+    fun emailChipsFor(token: String, savedEmails: List<String> = emptyList()): List<EmailChip> {
         if (token.isBlank()) return emptyList()
         if (token.any { it.isWhitespace() }) return emptyList()
+        val saved = savedEmails
+            .asSequence()
+            .filter { it.startsWith(token, ignoreCase = true) && it != token }
+            .distinct()
+            .take(3)
+            .map { EmailChip(display = it, commit = it) }
         val sources = if ('@' in token) TLD_CHIPS else DOMAIN_CHIPS
-        return sources.map { EmailChip(display = it, commit = "$token$it") }
+        return (saved + sources.asSequence().map { EmailChip(display = it, commit = "$token$it") })
+            .distinctBy { it.commit }
+            .take(3)
+            .toList()
     }
 }

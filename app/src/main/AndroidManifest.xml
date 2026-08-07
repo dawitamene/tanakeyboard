@@ -4,17 +4,7 @@
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <!-- Nothing in the shipped build makes a network call: the telemetry stack
-         (Firebase Analytics + Crashlytics) is the only thing that ever needed
-         this, and it is compiled out while telemetryEnabled = false in
-         app/build.gradle.kts. Play in-app review/update reach the Play Store
-         app over IPC, and voice typing runs in the recognizer's own process,
-         so neither needs it here. A keyboard advertising "Full network access"
-         it never uses is a trust cost, so keep this off.
-         RE-ENABLE THIS LINE if telemetry is ever turned back on
-         (telemetryEnabled = true / TelemetryFeature.ENABLED): Firebase
-         cannot upload anything without it. -->
-    <!-- <uses-permission android:name="android.permission.INTERNET" /> -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-feature
         android:name="android.hardware.microphone"
         android:required="false" />
@@ -45,6 +35,7 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -103,6 +94,11 @@
             android:theme="@style/Theme.AddiyonKeyboard" />
         <activity
             android:name=".ManualActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AddiyonKeyboard"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".AiAccountActivity"
             android:exported="false"
             android:theme="@style/Theme.AddiyonKeyboard"
             android:windowSoftInputMode="adjustResize" />

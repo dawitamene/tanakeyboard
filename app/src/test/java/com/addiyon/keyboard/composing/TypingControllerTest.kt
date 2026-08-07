@@ -129,6 +129,13 @@ class TypingControllerTest {
         assertEquals("say hello ", driver.text)
     }
 
+    @Test
+    fun emailCompletionCanReplaceWithoutTrailingSpace() = everywhere { driver ->
+        "me".forEach(driver::type)
+        driver.emailCompletion("me@gmail.com")
+        assertEquals("me@gmail.com", driver.text)
+    }
+
     /**
      * The case the offset-based path could not do: the word is committed text the
      * caret merely sits at the end of, so replacing it used to need absolute span
@@ -445,6 +452,11 @@ private class ControllerDriver(
 
     fun completion(word: String) {
         controller.onSuggestionTap(word, SuggestionKind.COMPLETION)
+        editor.flush()
+    }
+
+    fun emailCompletion(word: String) {
+        controller.onSuggestionTap(word, SuggestionKind.COMPLETION, trailingSpace = false)
         editor.flush()
     }
 
