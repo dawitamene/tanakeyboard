@@ -84,9 +84,10 @@ class AiAccountActivity : ComponentActivity() {
                                                 authSending = true
                                                 authMessage = null
                                                 try {
-                                                    val idToken = getGoogleIdToken()
+                                                    val tokenResult = getGoogleIdTokenResult()
+                                                    val idToken = tokenResult.token
                                                     if (idToken == null) {
-                                                        authMessage = "Google Sign-In cancelled — picker dismissed or no account on device"
+                                                        authMessage = tokenResult.errorMessage
                                                         return@launch
                                                     }
                                                     val res = withContext(Dispatchers.IO) { repo.googleToken(idToken) }
@@ -239,28 +240,69 @@ class AiAccountActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun getGoogleIdToken(): String? {
-        return try {
-            val serverClientId = getString(R.string.default_web_client_id)
-            if (serverClientId.isBlank() || serverClientId.startsWith("YOUR")) return null
-            val googleIdOption = GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(serverClientId)
-                .setAutoSelectEnabled(false)
-                .build()
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .build()
-            val manager = CredentialManager.create(this)
+    private data class GoogleTokenResult(val token: String?, val errorMessage: String)
+
+    private suspend fun getGoogleIdTokenResult(): GoogleTokenResult {
+        val serverClientId = getString(R.string.default_web_client_id)
+        if (serverClientId.isBlank() || serverClientId.startsWith("YOUR")) {
+            return GoogleTokenResult(null, "Google Sign-In not configured — check default_web_client_id")
+        }
+        val manager = CredentialManager.create(this)
+        fun buildOption(filterByAuthorized: Boolean, autoSelect: Boolean) = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(filterByAuthorized)
+            .setServerClientId(serverClientId)
+            .setAutoSelectEnabled(autoSelect)
+            .build()
+
+        suspend fun tryRequest(option: GetGoogleIdOption): String? {
+            val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
             val result = manager.getCredential(this, request)
             val cred = GoogleIdTokenCredential.createFrom(result.credential.data)
-            cred.idToken
+            return cred.idToken.takeIf { !it.isNullOrBlank() }
+        }
+
+        return try {
+            var token: String? = null
+            var lastError: GetCredentialException? = null
+            try {
+                token = tryRequest(buildOption(false, false))
+            } catch (e: GetCredentialException) {
+                lastError = e
+                val lower = (e.message ?: "").lowercase()
+                val isNoCred = e is androidx.credentials.exceptions.NoCredentialException || lower.contains("no credential")
+                if (isNoCred) {
+                    try {
+                        token = tryRequest(buildOption(true, false))
+                    } catch (e2: GetCredentialException) {
+                        lastError = e2
+                    }
+                }
+            }
+            if (!token.isNullOrBlank()) return GoogleTokenResult(token, "")
+            throw lastError ?: Exception("Google Sign-In failed — no ID token")
         } catch (e: GetCredentialException) {
-            null
-        } catch (_: Exception) {
-            null
+            val msg = e.message ?: ""
+            val lower = msg.lowercase()
+            val isNoCred = e is androidx.credentials.exceptions.NoCredentialException || lower.contains("no credential") || lower.contains("no account")
+            val isCancelled = lower.contains("canceled") || lower.contains("cancelled") || lower.contains("dismissed") || lower.contains("user cancelled")
+            val isInterrupted = lower.contains("interrupted")
+            val userMessage = when {
+                isNoCred -> "No Google account available — ensure a Google account is added, Google Play Services is updated, and the app's SHA-1 is registered in Google Cloud Console. (${e.message})"
+                isCancelled -> "Google Sign-In cancelled"
+                isInterrupted -> "Google Sign-In interrupted — try again"
+                lower.contains("network") -> "Network error during Google Sign-In — check connection and try again"
+                else -> "Google Sign-In failed: ${e.message ?: "unknown error"}"
+            }
+            SafeLog.e(e, "getGoogleIdToken failed: ${e::class.simpleName} ${e.message}")
+            GoogleTokenResult(null, userMessage)
+        } catch (e: Exception) {
+            SafeLog.e(e, "getGoogleIdToken failed")
+            GoogleTokenResult(null, e.message ?: "Google Sign-In failed")
         }
     }
+
+    @Deprecated("Use getGoogleIdTokenResult")
+    private suspend fun getGoogleIdToken(): String? = getGoogleIdTokenResult().token
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
