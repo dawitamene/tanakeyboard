@@ -20,7 +20,7 @@ Always do the relevant verification after making changes:
 1. Run the relevant test(s) for the changed behavior. Prefer a focused test class/target when possible; broaden the test run when shared behavior is affected.
 2. When adding a new feature, add or update tests that cover that feature.
 3. Install and run on emulator: `./gradlew installDebug`
-4. Generate timestamped APK in `/Users/dev/Shared`: `./gradlew assembleDebug`
+4. Generate timestamped APK in `/Users/dev/Sync`: `./gradlew assembleDebug`
 
 ## Commands
 
@@ -32,11 +32,22 @@ Always do the relevant verification after making changes:
 - Instrumented tests (needs emulator/device): `./gradlew connectedAndroidTest`
 
 Note: `app/build.gradle.kts` has an `assembleProvider` hook that copies the built APK to
-`/Users/dev/Shared` with a timestamped filename after every assemble — this is a local
+`/Users/dev/Sync` with a timestamped filename after every assemble — this is a local
 convenience for sideloading onto a test device, not something to remove or "fix".
 
 To actually try the keyboard: install the debug APK, enable "Addiyon Keyboard" in
 Settings > System > Languages & input > On-screen keyboard, then switch to it in any text field.
+
+## Mandatory design system
+
+Before any UI work, read [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+Use `AddiyonBrandTheme` for branded app screens and `CustomKeyboardTheme` for
+the user-themed IME. Use the public design tokens and shared components in
+`ui/design`; use Material semantic roles instead of raw colors, arbitrary
+one-off values, or new hard-coded app copy. Keep fixed-height IME surfaces
+non-scrolling and every control functional. Run
+`DesignSystemContractTest` after UI changes. If the system changes, update the
+design-system document and contract test in the same change.
 
 ## Architecture
 

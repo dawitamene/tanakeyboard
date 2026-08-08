@@ -1,6 +1,8 @@
 package com.addiyon.keyboard.ai
 
 import com.addiyon.keyboard.EditorGateway
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 internal class AiController(
     private val editorGateway: EditorGateway,
@@ -14,32 +16,19 @@ internal class AiController(
         if (isPrivateFieldProvider()) {
             return AiInput("", 0, AiSource.Empty, null)
         }
-        val selected = editorGateway.selectedText(optional = true)?.value
-        if (!selected.isNullOrBlank()) {
-            val trimmed = selected.trim()
+        val selected = editorGateway.selectedText(optional = false)?.value
+        if (!selected.isNullOrEmpty()) {
             val snapshot = buildSelectionSnapshot()
-            return AiInput(trimmed, countWords(trimmed), AiSource.Selection, snapshot)
+            return AiInput(selected, countWords(selected), AiSource.Selection, snapshot)
         }
-        val surrounding = editorGateway.surroundingText(beforeChars = 400, afterChars = 50, optional = true)
-        if (surrounding != null) {
-            val before = surrounding.value.textBeforeSelection
-            val after = surrounding.value.textAfterSelection
-            val cursorText = before
-            val sentence = extractSentence(cursorText)
-            if (sentence.isNotBlank()) {
-                val snapshot = buildSentenceSnapshot(surrounding.value.textBeforeSelection, sentence)
-                return AiInput(sentence, countWords(sentence), AiSource.Sentence, snapshot)
-            }
-            val fallback = cursorText.trim().split(Regex("\\s+")).takeLast(40).joinToString(" ").trim()
-            if (fallback.isNotBlank()) {
-                val snapshot = buildSentenceSnapshot(surrounding.value.textBeforeSelection, fallback)
-                return AiInput(fallback, countWords(fallback), AiSource.Sentence, snapshot)
-            }
-        }
-        val beforeCursor = editorGateway.textBeforeCursor(400, optional = true)?.value ?: ""
-        val sentence = extractSentence(beforeCursor)
-        if (sentence.isNotBlank()) {
-            return AiInput(sentence, countWords(sentence), AiSource.Sentence, null)
+        val field = editorGateway.surroundingText(
+            beforeChars = Int.MAX_VALUE,
+            afterChars = Int.MAX_VALUE,
+            optional = false
+        )?.value
+        if (field != null && field.offset == 0 && field.text.isNotBlank()) {
+            val snapshot = buildFieldSnapshot(field.text.length)
+            return AiInput(field.text, countWords(field.text), AiSource.Field, snapshot)
         }
         return AiInput("", 0, AiSource.Empty, null)
     }
@@ -54,16 +43,10 @@ internal class AiController(
         return AiSnapshot(start, end, token.generation, token.selectionGeneration)
     }
 
-    private fun buildSentenceSnapshot(fullBefore: String, sentence: String): AiSnapshot? {
+    private fun buildFieldSnapshot(fieldLength: Int): AiSnapshot? {
         val token = editorGateway.currentToken() ?: return null
-        val sel = token.selectionStart
-        if (sel < 0) return null
-        val idx = fullBefore.lastIndexOf(sentence)
-        if (idx < 0) return null
-        val absoluteStart = token.selectionStart - (fullBefore.length - idx)
-        val absoluteEnd = absoluteStart + sentence.length
-        if (absoluteStart < 0) return null
-        return AiSnapshot(absoluteStart, absoluteEnd, token.generation, token.selectionGeneration)
+        if (token.selectionStart !in 0..fieldLength || token.selectionEnd !in 0..fieldLength) return null
+        return AiSnapshot(0, fieldLength, token.generation, token.selectionGeneration)
     }
 
     suspend fun revamp(input: AiInput, tab: AiToneTab, strength: AiStrength = AiStrength.Balanced): Result<AiResult> {
@@ -76,6 +59,30 @@ internal class AiController(
         val jwt = jwtProvider()
         val anonId = anonIdProvider()
         return repository.revamp(input.text, tab, strength, jwt, anonId)
+    }
+
+    suspend fun revampAll(input: AiInput, tab: AiToneTab): Map<AiStrength, Result<AiResult>> {
+        if (isPrivateFieldProvider()) {
+            val err = Result.failure<AiResult>(Exception(AiError.PrivateField.toString()))
+            return AiStrength.entries.associateWith { err }
+        }
+        if (input.text.isBlank()) {
+            val err = Result.failure<AiResult>(Exception(AiError.NoText.toString()))
+            return AiStrength.entries.associateWith { err }
+        }
+        val quota = quotaProvider()
+        if (quota.remaining <= 0 || input.wordCount > quota.remaining) {
+            val err = Result.failure<AiResult>(Exception(AiError.QuotaExceeded(quota.remaining).toString()))
+            return AiStrength.entries.associateWith { err }
+        }
+        val jwt = jwtProvider()
+        val anonId = anonIdProvider()
+        return coroutineScope {
+            val deferreds = AiStrength.entries.associateWith { strength ->
+                async { repository.revamp(input.text, tab, strength, jwt, anonId) }
+            }
+            deferreds.mapValues { it.value.await() }
+        }
     }
 
     fun isReplaceValid(snapshot: AiSnapshot?): Boolean {

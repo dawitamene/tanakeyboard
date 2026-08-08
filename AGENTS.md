@@ -13,6 +13,17 @@ All commands assume workspace root `/Users/dev/code/addiyon-keyboard`. When the 
 - Instrumented tests (needs emulator): `/Users/dev/code/addiyon-keyboard/gradlew connectedAndroidTest`
 - `app/build.gradle.kts` has an `assembleProvider` hook that copies the APK to `/Users/dev/Sync` with a timestamped filename — local convenience, do not remove.
 
+## Mandatory design system
+
+Before any UI work, read [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+Use `AddiyonBrandTheme` for branded app screens and `CustomKeyboardTheme` for
+the user-themed IME. Use the public design tokens and shared components in
+`ui/design`; use Material semantic roles instead of raw colors, arbitrary
+one-off values, or new hard-coded app copy. Keep fixed-height IME surfaces
+non-scrolling and every control functional. Run
+`DesignSystemContractTest` after UI changes. If the system changes, update the
+design-system document and contract test in the same change.
+
 ## Architecture
 
 

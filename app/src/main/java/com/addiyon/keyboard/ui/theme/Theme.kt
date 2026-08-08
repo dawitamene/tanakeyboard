@@ -27,6 +27,9 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.draw.drawWithCache
 import kotlin.math.sin
 import kotlin.random.Random
+import com.addiyon.keyboard.ui.design.AddiyonDarkColors
+import com.addiyon.keyboard.ui.design.AddiyonLightColors
+import com.addiyon.keyboard.ui.design.LocalAddiyonColors
 
 val PlaypenSansBrand = FontFamily(Font(R.font.playpen_sans_extrabold))
 
@@ -40,7 +43,7 @@ val PoppinsFamily = FontFamily(
 
 val LocalLowRamKeyboard = staticCompositionLocalOf { false }
 
-private val KeyboardTypography = Typography().let { base ->
+val AddiyonTypography = Typography().let { base ->
     Typography(
         displayLarge = base.displayLarge.copy(fontFamily = PoppinsFamily),
         displayMedium = base.displayMedium.copy(fontFamily = PoppinsFamily),
@@ -477,15 +480,20 @@ fun AddiyonBrandTheme(
     isDarkTheme: Boolean,
     content: @Composable () -> Unit
 ) {
-    MaterialTheme(
-        colorScheme = if (isDarkTheme) AddiyonDarkScheme else AddiyonLightScheme,
-        content = {
-            Box(modifier = Modifier.fillMaxSize()) {
-                PaperBackground(isDark = isDarkTheme)
-                content()
+    CompositionLocalProvider(
+        LocalAddiyonColors provides if (isDarkTheme) AddiyonDarkColors else AddiyonLightColors
+    ) {
+        MaterialTheme(
+            colorScheme = if (isDarkTheme) AddiyonDarkScheme else AddiyonLightScheme,
+            typography = AddiyonTypography,
+            content = {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    PaperBackground(isDark = isDarkTheme)
+                    content()
+                }
             }
-        }
-    )
+        )
+    }
 }
 
 /**
@@ -507,10 +515,13 @@ fun CustomKeyboardTheme(
     isLowRam: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    CompositionLocalProvider(LocalLowRamKeyboard provides isLowRam) {
+    CompositionLocalProvider(
+        LocalLowRamKeyboard provides isLowRam,
+        LocalAddiyonColors provides if (isDarkTheme) AddiyonDarkColors else AddiyonLightColors
+    ) {
         MaterialTheme(
             colorScheme = palette.scheme(isDarkTheme),
-            typography = KeyboardTypography,
+            typography = AddiyonTypography,
             content = {
                 Box(
                     modifier = Modifier

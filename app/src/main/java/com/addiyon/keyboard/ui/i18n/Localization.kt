@@ -2,16 +2,21 @@ package com.addiyon.keyboard.ui.i18n
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -65,14 +70,12 @@ fun ProvideAppLocalization(content: @Composable () -> Unit) {
  */
 @Composable
 fun LanguageToggle(modifier: Modifier = Modifier, compact: Boolean = false) {
-    val controller = LocalAppLanguage.current
-    val textStyle = if (compact) {
-        MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Normal)
-    } else {
-        MaterialTheme.typography.labelLarge
+    if (compact) {
+        CompactLanguageMenu(modifier = modifier)
+        return
     }
-    val hPadding = if (compact) 10.dp else 14.dp
-    val vPadding = if (compact) 4.dp else 6.dp
+    val controller = LocalAppLanguage.current
+    val textStyle = MaterialTheme.typography.labelLarge
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(percent = 50))
@@ -95,8 +98,41 @@ fun LanguageToggle(modifier: Modifier = Modifier, compact: Boolean = false) {
                         if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
                     )
                     .clickable { controller.set(lang) }
-                    .padding(horizontal = hPadding, vertical = vPadding)
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun CompactLanguageMenu(modifier: Modifier = Modifier) {
+    val controller = LocalAppLanguage.current
+    var expanded by remember { mutableStateOf(false) }
+    val currentLabel = when (controller.current) {
+        AppLanguage.ENGLISH -> "EN"
+        AppLanguage.AMHARIC -> "አማ"
+    }
+    Box(modifier = modifier) {
+        Text(
+            text = currentLabel,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .clip(RoundedCornerShape(percent = 50))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable { expanded = true }
+                .padding(horizontal = 14.dp, vertical = 7.dp)
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            AppLanguage.entries.forEach { lang ->
+                DropdownMenuItem(
+                    text = { Text(lang.label) },
+                    onClick = {
+                        controller.set(lang)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }

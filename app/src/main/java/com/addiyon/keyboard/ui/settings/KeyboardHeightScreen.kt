@@ -36,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
@@ -81,10 +80,6 @@ const val KEYBOARD_HEIGHT_SLIDER_TAG = "keyboard_height_slider"
 
 /** How translucent the replica's keys are, to read as a non-typing preview. */
 private const val PREVIEW_ALPHA = 0.6f
-
-/** Light-gray face for the Reset/Done controls, fixed across light/dark. */
-private val ControlButtonBackground = Color(0xFFE6E6E6)
-private val ControlButtonContent = Color(0xFF1F1F1F)
 
 /**
  * "Keyboard height" screen: direct-manipulation resizing. A faithful, live
@@ -256,8 +251,8 @@ fun KeyboardHeightScreen(
                                 // Crisp controls floating over the dimmed keys,
                                 // both on a light-gray face.
                                 val controlColors = ButtonDefaults.buttonColors(
-                                    containerColor = ControlButtonBackground,
-                                    contentColor = ControlButtonContent
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Row(
                                     modifier = Modifier.align(Alignment.Center),

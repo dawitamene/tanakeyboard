@@ -3,6 +3,7 @@ package com.addiyon.keyboard.ui.settings
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,7 +19,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Info
@@ -28,6 +31,8 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.StarRate
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -42,20 +47,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.addiyon.keyboard.AiAccountActivity
 import com.addiyon.keyboard.ExternalActions
 import com.addiyon.keyboard.KeyboardStatusSnapshot
-import com.addiyon.keyboard.R
 import com.addiyon.keyboard.ui.AppBrandHeader
 import com.addiyon.keyboard.ui.feedback.FeedbackOptions
 import com.addiyon.keyboard.ui.feedback.openFeedbackTelegram
 import com.addiyon.keyboard.ui.feedback.sendFeedbackEmail
-import com.addiyon.keyboard.ui.i18n.LanguageToggle
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
+import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 
 /**
  * App home. Header with the app name + placeholder logo and grouped lists of
@@ -148,6 +153,20 @@ fun SettingsScreen(
                     SettingsItem(Icons.Default.Tune, strings.preferences, onClick = onOpenSoundVibration)
                     SettingsItem(Icons.Default.Keyboard, strings.testKeyboard, onClick = onOpenTestKeyboard)
                     SettingsItem(Icons.Default.Book, strings.personalDictionary, onClick = onOpenPersonalDictionary)
+                    SettingsItemWithBadge(
+                        icon = Icons.Default.AutoAwesome,
+                        label = strings.ai,
+                        badgeText = strings.newBadge,
+                        onClick = {
+                            val jwt = KeyboardPrefs.aiJwt(context)
+                            val mode = if (jwt.isNullOrBlank()) AiAccountActivity.MODE_AUTH else AiAccountActivity.MODE_DASHBOARD
+                            context.startActivity(
+                                Intent(context, AiAccountActivity::class.java).apply {
+                                    putExtra(AiAccountActivity.EXTRA_MODE, mode)
+                                }
+                            )
+                        }
+                    )
                 }
             }
             val secondaryGroups: @Composable () -> Unit = {
@@ -234,5 +253,44 @@ private fun SettingsItem(
             text = label,
             style = MaterialTheme.typography.bodyLarge
         )
+    }
+}
+
+@Composable
+private fun SettingsItemWithBadge(
+    icon: ImageVector,
+    label: String,
+    badgeText: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.width(20.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        Badge(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.clip(RoundedCornerShape(12.dp))
+        ) {
+            Text(
+                text = badgeText,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            )
+        }
     }
 }

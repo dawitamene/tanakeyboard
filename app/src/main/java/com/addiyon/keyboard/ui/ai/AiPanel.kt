@@ -1,322 +1,588 @@
 package com.addiyon.keyboard.ui.ai
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.addiyon.keyboard.ai.AiError
 import com.addiyon.keyboard.ai.AiStrength
 import com.addiyon.keyboard.ai.AiToneTab
 import com.addiyon.keyboard.ai.AiUiState
+import com.addiyon.keyboard.ui.SuggestionChevronLeftButton
+import com.addiyon.keyboard.ui.design.AddiyonElevation
+import com.addiyon.keyboard.ui.design.AddiyonMotion
+import com.addiyon.keyboard.ui.design.AddiyonRadii
+import com.addiyon.keyboard.ui.design.AddiyonSizes
+import com.addiyon.keyboard.ui.design.AddiyonSpacing
+import com.addiyon.keyboard.ui.design.addiyonColors
+import com.addiyon.keyboard.ui.i18n.AppStrings
+import com.addiyon.keyboard.ui.i18n.LocalAppStrings
+
+fun aiPanelVariantTag(strength: AiStrength): String = "ai.panel.variant.${strength.name.lowercase()}"
+fun aiPanelCopyTag(strength: AiStrength): String = "ai.panel.copy.${strength.name.lowercase()}"
+fun aiPanelReplaceTag(strength: AiStrength): String = "ai.panel.replace.${strength.name.lowercase()}"
+const val AI_PANEL_SKELETON_TAG = "ai.panel.skeleton"
+private const val AI_RESULT_VARIANT_COUNT = 3
 
 @Composable
 fun AiPanel(
     state: AiUiState,
     onDismiss: () -> Unit,
     onTabSelected: (AiToneTab) -> Unit,
-    onStrengthSelected: (AiStrength) -> Unit,
-    onCopy: () -> Unit,
-    onReplace: () -> Unit,
-    onEmailChanged: (String) -> Unit,
+    onCopyVariant: (AiStrength) -> Unit,
+    onReplaceVariant: (AiStrength) -> Unit,
     onSendLink: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .fillMaxHeight()
             .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        AiPanelToolbar(
+            state = state,
+            onDismiss = onDismiss,
+            onTabSelected = onTabSelected,
+            strings = strings
+        )
+
+        val hasResult = state.variantResults.isNotEmpty() || state.result != null
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = true)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = AddiyonSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Filled.AutoAwesome,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = "AI Rephrase",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                if (state.quota.limit > 0) {
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = "${state.quota.remaining}/${state.quota.limit} words left",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
+            when {
+                state.isPrivateField -> {
+                    AiPanelNotice(
+                        icon = Icons.Filled.Lock,
+                        title = strings.aiPrivateTitle,
+                        message = strings.aiPrivateMessage,
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        iconContainerColor = MaterialTheme.colorScheme.onErrorContainer,
+                        iconContentColor = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.padding(top = AddiyonSpacing.sm)
                     )
                 }
-            }
-            IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Filled.Close, contentDescription = "Close AI panel", modifier = Modifier.size(18.dp))
-            }
-        }
 
-        if (state.isPrivateField) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = "AI is not available in private fields",
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    fontSize = 13.sp
-                )
-            }
-            return@Column
-        }
+                state.needsAuth -> {
+                    AiPanelAuthCard(
+                        state = state,
+                        onSendLink = onSendLink,
+                        strings = strings,
+                        modifier = Modifier.padding(top = AddiyonSpacing.sm)
+                    )
+                }
 
-        if (state.needsAuth) {
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(Modifier.padding(12.dp)) {
-                    Text(text = "Sign in required", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
-                    Text(text = "AI needs sign-in. Open the app to continue with Google or email.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
-                    Button(onClick = onSendLink, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                        Text("Open sign-in")
+                else -> {
+                    if (state.isLoading) {
+                        SkeletonResults()
                     }
-                }
-            }
-            return@Column
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            for (tab in AiToneTab.DefaultTabs) {
-                FilterChip(
-                    selected = state.selectedTab == tab,
-                    onClick = { onTabSelected(tab) },
-                    label = { Text(tab.label, fontSize = 13.sp) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                )
-            }
-        }
+                    state.error?.let { error ->
+                        ErrorCard(
+                            error = error,
+                            quotaRemaining = state.quota.remaining,
+                            strings = strings
+                        )
+                    }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp)
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            for (strength in AiStrength.entries) {
-                FilterChip(
-                    selected = state.strength == strength,
-                    onClick = { onStrengthSelected(strength) },
-                    label = { Text(strength.label, fontSize = 12.sp) }
-                )
-            }
-        }
-
-        if (!state.hasInput) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = "Select text or place cursor at end of a sentence, then pick a tone.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(Modifier.padding(10.dp)) {
-                    Text(
-                        text = "Input · ${state.inputWordCount} words",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = state.input?.text ?: "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-        }
-
-        if (state.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Text("Rephrasing...", style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
-
-        if (state.error != null) {
-            val msg = when (val e = state.error) {
-                is AiError.NeedsAuth -> "Please register with email to use AI."
-                is AiError.QuotaExceeded -> "Daily limit reached (${state.quota.remaining} words left). Try tomorrow or upgrade."
-                is AiError.NoText -> "No text to rephrase."
-                is AiError.PrivateField -> "Not available in private fields."
-                is AiError.Offline -> "Offline — check connection and retry."
-                is AiError.Server -> e.message
-                else -> state.error.toString()
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .padding(10.dp)
-            ) {
-                Text(text = msg, color = MaterialTheme.colorScheme.onErrorContainer, fontSize = 13.sp)
-            }
-        }
-
-        if (state.hasResult) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-            ) {
-                Column(Modifier.padding(12.dp)) {
-                    Text(
-                        text = state.result?.tone ?: state.selectedTab.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = state.result?.text ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-                    if (state.result?.truncated == true) {
-                        Text(
-                            text = "Truncated to 4000 chars",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(top = 4.dp)
+                    if (hasResult || state.variantErrors.isNotEmpty()) {
+                        ResultContent(
+                            state = state,
+                            strings = strings,
+                            onCopyVariant = onCopyVariant,
+                            onReplaceVariant = onReplaceVariant
                         )
                     }
                 }
             }
-            Row(
+            Spacer(Modifier.height(AddiyonSpacing.xs))
+        }
+    }
+}
+
+@Composable
+private fun AiPanelToolbar(
+    state: AiUiState,
+    onDismiss: () -> Unit,
+    onTabSelected: (AiToneTab) -> Unit,
+    strings: AppStrings
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                top = AddiyonSpacing.xs,
+                bottom = AddiyonSpacing.sm
+            )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(AddiyonSizes.minimumTouchTarget)
+                .padding(
+                    start = AddiyonSpacing.xxs,
+                    end = AddiyonSpacing.sm
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SuggestionChevronLeftButton(
+                onClick = onDismiss,
+                contentDescription = strings.back
+            )
+            if (!state.isPrivateField && !state.needsAuth) {
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm)
+                ) {
+                    AiToneTab.DefaultTabs.forEach { tab ->
+                        val selected = state.selectedTab == tab
+                        val containerColor = if (selected) {
+                            MaterialTheme.addiyonColors.brandPrimary
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        }
+                        val contentColor = if (selected) {
+                            MaterialTheme.addiyonColors.onBrandPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        Surface(
+                            selected = selected,
+                            onClick = { onTabSelected(tab) },
+                            shape = RoundedCornerShape(AddiyonRadii.pill),
+                            color = containerColor,
+                            contentColor = contentColor
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .height(AddiyonSizes.compact)
+                                    .padding(horizontal = AddiyonSpacing.xs),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = toneLabel(tab, strings),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = contentColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiPanelAuthCard(
+    state: AiUiState,
+    onSendLink: () -> Unit,
+    strings: AppStrings,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AddiyonRadii.card),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = AddiyonElevation.low)
+    ) {
+        Column(Modifier.padding(AddiyonSpacing.md)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    modifier = Modifier.size(AddiyonSizes.iconLarge),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(AddiyonSizes.iconSmall)
+                        )
+                    }
+                }
+                Spacer(Modifier.width(AddiyonSpacing.xs))
+                Text(
+                    text = strings.aiAuthTitle,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Text(
+                text = strings.aiAuthMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = AddiyonSpacing.xs)
+            )
+            state.authMessage?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = AddiyonSpacing.xs)
+                )
+            }
+            Button(
+                onClick = onSendLink,
+                enabled = !state.authSending,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(top = AddiyonSpacing.sm)
+                    .height(AddiyonSizes.keyboardAction),
+                shape = RoundedCornerShape(AddiyonRadii.medium)
             ) {
-                OutlinedButton(
-                    onClick = onCopy,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Copy")
-                }
-                Button(
-                    onClick = onReplace,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Filled.SwapHoriz, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Replace")
+                if (state.authSending) {
+                    CircularProgressIndicator(modifier = Modifier.size(AddiyonSizes.iconSmall))
+                    Spacer(Modifier.width(AddiyonSpacing.xs))
+                    Text(text = strings.aiAuthSending, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                } else {
+                    Text(text = strings.aiAuthAction, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            if (state.quota.remaining < 50) {
+        }
+    }
+}
+
+@Composable
+private fun AiPanelNotice(
+    icon: ImageVector,
+    title: String,
+    message: String,
+    containerColor: Color,
+    contentColor: Color,
+    iconContainerColor: Color,
+    iconContentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AddiyonRadii.medium),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = AddiyonElevation.none)
+    ) {
+        Row(
+            modifier = Modifier.padding(AddiyonSpacing.md),
+            verticalAlignment = Alignment.Top
+        ) {
+            IconBubble(
+                icon = icon,
+                containerColor = iconContainerColor,
+                contentColor = iconContentColor
+            )
+            Spacer(Modifier.width(AddiyonSpacing.xs))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Upgrade for unlimited words — coming soon",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable {}
-                        .padding(8.dp)
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = contentColor,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor,
+                    modifier = Modifier.padding(top = AddiyonSpacing.xxs)
                 )
             }
         }
-
-        Spacer(Modifier.height(4.dp))
     }
+}
+
+@Composable
+private fun IconBubble(
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .size(AddiyonSizes.iconLarge)
+            .background(containerColor, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(AddiyonSizes.iconSmall)
+        )
+    }
+}
+
+@Composable
+private fun SkeletonResults() {
+    val transition = rememberInfiniteTransition(label = "aiSkeleton")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = AddiyonMotion.gentle * AI_RESULT_VARIANT_COUNT,
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "aiSkeletonShimmer"
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(AI_PANEL_SKELETON_TAG),
+        verticalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm)
+    ) {
+        repeat(AI_RESULT_VARIANT_COUNT) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(AddiyonRadii.medium),
+                color = MaterialTheme.addiyonColors.aiResultSurface,
+                contentColor = MaterialTheme.addiyonColors.onAiResultSurface
+            ) {
+                Column(
+                    modifier = Modifier.padding(AddiyonSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(AddiyonSpacing.xs)
+                ) {
+                    SkeletonLine(Modifier.fillMaxWidth(), phase)
+                    SkeletonLine(Modifier.fillMaxWidth(0.82f), phase)
+                    SkeletonLine(Modifier.fillMaxWidth(0.58f), phase)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SkeletonLine(modifier: Modifier, phase: Float) {
+    BoxWithConstraints(
+        modifier = modifier
+            .height(AddiyonSpacing.xs)
+            .clip(RoundedCornerShape(AddiyonRadii.pill))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        val width = constraints.maxWidth.toFloat()
+        val shimmerWidth = width * 0.45f
+        val start = (width + shimmerWidth) * phase - shimmerWidth
+        Spacer(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.addiyonColors.aiResultSurface.copy(alpha = 0f),
+                            MaterialTheme.addiyonColors.aiResultSurface.copy(alpha = 0.85f),
+                            MaterialTheme.addiyonColors.aiResultSurface.copy(alpha = 0f)
+                        ),
+                        start = Offset(start, 0f),
+                        end = Offset(start + shimmerWidth, constraints.maxHeight.toFloat())
+                    )
+                )
+        )
+    }
+}
+
+@Composable
+private fun ErrorCard(error: AiError, quotaRemaining: Int, strings: AppStrings) {
+    val message = when (error) {
+        is AiError.NeedsAuth -> strings.aiErrorNeedsAuth
+        is AiError.QuotaExceeded -> strings.aiErrorQuotaFormat.format(quotaRemaining.coerceAtLeast(0))
+        is AiError.NoText -> strings.aiErrorNoText
+        is AiError.PrivateField -> strings.aiErrorPrivateField
+        is AiError.Offline -> strings.aiErrorOffline
+        is AiError.Server -> error.message
+        is AiError.RateLimited -> error.message ?: strings.aiErrorRateLimited
+        is AiError.Unknown -> strings.aiErrorUnknown
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AddiyonRadii.medium),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = AddiyonElevation.none)
+    ) {
+        Row(
+            modifier = Modifier.padding(AddiyonSpacing.sm),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ErrorOutline,
+                contentDescription = strings.aiErrorDescription,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(AddiyonSizes.iconSmall)
+            )
+            Spacer(Modifier.width(AddiyonSpacing.xs))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ResultContent(
+    state: AiUiState,
+    strings: AppStrings,
+    onCopyVariant: (AiStrength) -> Unit,
+    onReplaceVariant: (AiStrength) -> Unit
+) {
+    val variants = if (state.variantResults.isNotEmpty()) {
+        state.variantResults
+    } else {
+        state.result?.let { mapOf(AiStrength.Balanced to it) }.orEmpty()
+    }
+    val orderedVariants = variants.entries.sortedBy { it.key.ordinal }
+    orderedVariants.forEach { (strength, result) ->
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(aiPanelVariantTag(strength)),
+            shape = RoundedCornerShape(AddiyonRadii.medium),
+            color = MaterialTheme.addiyonColors.aiResultSurface,
+            contentColor = MaterialTheme.addiyonColors.onAiResultSurface
+        ) {
+            Column(Modifier.padding(AddiyonSpacing.sm)) {
+                SelectionContainer {
+                    Text(
+                        text = result.text,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.addiyonColors.onAiResultSurface
+                    )
+                }
+                if (result.truncated) {
+                    Text(
+                        text = strings.aiTruncated,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = AddiyonSpacing.xs)
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    IconButton(
+                        onClick = { onCopyVariant(strength) },
+                        modifier = Modifier
+                            .size(AddiyonSizes.compact)
+                            .testTag(aiPanelCopyTag(strength))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ContentCopy,
+                            contentDescription = strings.aiCopyDescription,
+                            tint = MaterialTheme.addiyonColors.brandPrimary,
+                            modifier = Modifier.size(AddiyonSizes.iconSmall)
+                        )
+                    }
+                    IconButton(
+                        onClick = { onReplaceVariant(strength) },
+                        modifier = Modifier
+                            .size(AddiyonSizes.compact)
+                            .testTag(aiPanelReplaceTag(strength))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.SwapHoriz,
+                            contentDescription = strings.aiReplaceDescription,
+                            tint = MaterialTheme.addiyonColors.brandPrimary,
+                            modifier = Modifier.size(AddiyonSizes.iconSmall)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    state.variantErrors.entries.sortedBy { it.key.ordinal }.forEach { (strength, error) ->
+        if (strength !in variants) {
+            Text(
+                text = variantErrorMessage(error, strings),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = AddiyonSpacing.xxs)
+            )
+        }
+    }
+}
+
+private fun toneLabel(tab: AiToneTab, strings: AppStrings): String = when (tab) {
+    AiToneTab.Humanize -> strings.aiToneHumanize
+    AiToneTab.Professional -> strings.aiToneProfessional
+    AiToneTab.Casual -> strings.aiToneCasual
+    AiToneTab.Formal -> strings.aiToneFormal
+    AiToneTab.Friendly -> strings.aiToneFriendly
+    AiToneTab.FixGrammar -> strings.aiToneFixGrammar
+    AiToneTab.Shorten -> strings.aiToneShorten
+    AiToneTab.Summarize -> strings.aiToneSummarize
+}
+
+private fun variantErrorMessage(error: AiError, strings: AppStrings): String = when (error) {
+    is AiError.Offline -> strings.aiVariantErrorOffline
+    is AiError.Server -> error.message
+    is AiError.RateLimited -> error.message ?: strings.aiVariantErrorTryAgain
+    is AiError.QuotaExceeded -> strings.aiVariantErrorQuota
+    is AiError.NeedsAuth -> strings.aiVariantErrorNeedsAuth
+    is AiError.NoText -> strings.aiVariantErrorNoText
+    is AiError.PrivateField -> strings.aiVariantErrorPrivateField
+    is AiError.Unknown -> strings.aiVariantErrorUnavailable
 }

@@ -90,6 +90,10 @@ import com.addiyon.keyboard.ai.countWords
 import com.addiyon.keyboard.ai.todayIso
 import com.addiyon.keyboard.ui.SuggestionTap
 import com.addiyon.keyboard.ui.SuggestionUiState
+import com.addiyon.keyboard.ui.i18n.AmharicStrings
+import com.addiyon.keyboard.ui.i18n.AppLanguage
+import com.addiyon.keyboard.ui.i18n.EnglishStrings
+import com.addiyon.keyboard.ui.i18n.LanguagePrefs
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 import com.addiyon.keyboard.voice.VoiceComposer
@@ -104,6 +108,7 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -323,6 +328,7 @@ class AddiyonKeyboardService : InputMethodService(),
         private set
 
     private val aiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var aiRequestJob: Job? = null
     private lateinit var aiRepository: AiRepository
     private lateinit var aiController: AiController
 
@@ -1937,10 +1943,10 @@ class AddiyonKeyboardService : InputMethodService(),
             }
             val quota = currentAiQuota()
             val captured = if (isPrivateField) null else aiController.captureInput()
+            aiRequestJob?.cancel()
             aiUiState = AiUiState(
                 isVisible = true,
-                selectedTab = aiUiState.selectedTab,
-                strength = aiUiState.strength,
+                selectedTab = null,
                 input = captured,
                 result = null,
                 alternatives = emptyList(),
@@ -1965,17 +1971,24 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     fun dismissAiPanel() {
-        safeApply { aiUiState = aiUiState.copy(isVisible = false, isLoading = false) }
+        safeApply {
+            aiRequestJob?.cancel()
+            aiRequestJob = null
+            aiUiState = aiUiState.copy(isVisible = false, isLoading = false)
+        }
     }
 
     fun onAiTabSelected(tab: AiToneTab) {
         safeApply {
-            aiUiState = aiUiState.copy(selectedTab = tab, result = null, error = null)
-            val input = aiUiState.input
-            if (input == null || input.text.isBlank()) {
-                aiUiState = aiUiState.copy(error = AiError.NoText)
-                return@safeApply
-            }
+            aiRequestJob?.cancel()
+            aiUiState = aiUiState.copy(
+                selectedTab = tab,
+                result = null,
+                error = null,
+                variantResults = emptyMap(),
+                variantErrors = emptyMap(),
+                selectedVariant = null
+            )
             if (isPrivateField) {
                 aiUiState = aiUiState.copy(error = AiError.PrivateField)
                 return@safeApply
@@ -1984,50 +1997,112 @@ class AddiyonKeyboardService : InputMethodService(),
                 aiUiState = aiUiState.copy(error = AiError.NeedsAuth)
                 return@safeApply
             }
+            val input = aiController.captureInput()
+            aiUiState = aiUiState.copy(input = input)
+            if (input.text.isBlank()) {
+                aiUiState = aiUiState.copy(error = AiError.NoText)
+                return@safeApply
+            }
             if (aiUiState.quota.remaining <= 0 || input.wordCount > aiUiState.quota.remaining) {
                 aiUiState = aiUiState.copy(error = AiError.QuotaExceeded(aiUiState.quota.remaining))
                 return@safeApply
             }
             aiUiState = aiUiState.copy(isLoading = true, error = null)
-            aiScope.launch {
-                val res = withContext(Dispatchers.IO) { aiController.revamp(input, tab, aiUiState.strength) }
+            aiRequestJob = aiScope.launch {
+                val results = withContext(Dispatchers.IO) { aiController.revampAll(input, tab) }
                 safeApply {
-                    res.onSuccess { result ->
+                    if (!aiUiState.isVisible || aiUiState.selectedTab != tab) return@safeApply
+                    val successes = results.mapNotNull { (k, v) -> v.getOrNull()?.let { k to it } }.toMap()
+                    val failures = results.mapNotNull { (k, v) ->
+                        v.exceptionOrNull()?.let { k to aiController.parseError(it) }
+                    }.toMap()
+                    if (successes.isNotEmpty()) {
                         consumeAiQuota(input.wordCount)
-                        aiUiState = aiUiState.copy(result = result, isLoading = false)
-                    }.onFailure { t ->
-                        val err = aiController.parseError(t)
-                        if (err is AiError.QuotaExceeded) aiUiState = aiUiState.copy(quota = currentAiQuota())
-                        aiUiState = aiUiState.copy(error = err, isLoading = false)
+                        val first = successes.keys.firstOrNull()
+                        aiUiState = aiUiState.copy(
+                            variantResults = successes,
+                            variantErrors = failures,
+                            selectedVariant = first,
+                            result = successes[first],
+                            isLoading = false,
+                            error = if (successes.isEmpty() && failures.isNotEmpty()) failures.values.firstOrNull() else null
+                        )
+                    } else {
+                        val firstErr = failures.values.firstOrNull()
+                        if (firstErr is AiError.QuotaExceeded) aiUiState = aiUiState.copy(quota = currentAiQuota())
+                        aiUiState = aiUiState.copy(
+                            variantResults = emptyMap(),
+                            variantErrors = failures,
+                            isLoading = false,
+                            error = firstErr
+                        )
                     }
                 }
             }
         }
     }
 
-    fun onAiStrengthSelected(strength: AiStrength) {
-        safeApply { aiUiState = aiUiState.copy(strength = strength) }
+    fun onAiStrengthSelected(@Suppress("UNUSED_PARAMETER") strength: AiStrength) {
+    }
+
+    fun onAiVariantSelected(variant: AiStrength) {
+        safeApply {
+            val chosen = aiUiState.variantResults[variant] ?: return@safeApply
+            aiUiState = aiUiState.copy(selectedVariant = variant, result = chosen)
+        }
+    }
+
+    fun onAiCopyVariant(variant: AiStrength) {
+        safeApply {
+            val chosen = aiUiState.variantResults[variant]
+                ?: aiUiState.result?.takeIf { variant == AiStrength.Balanced }
+                ?: return@safeApply
+            aiUiState = aiUiState.copy(selectedVariant = variant, result = chosen)
+            onAiCopy()
+        }
+    }
+
+    fun onAiReplaceVariant(variant: AiStrength) {
+        safeApply {
+            val chosen = aiUiState.variantResults[variant]
+                ?: aiUiState.result?.takeIf { variant == AiStrength.Balanced }
+                ?: return@safeApply
+            aiUiState = aiUiState.copy(selectedVariant = variant, result = chosen)
+            onAiReplace()
+        }
     }
 
     fun onAiCopy() {
         safeApply {
-            val text = aiUiState.result?.text ?: return@safeApply
+            val text = (aiUiState.effectiveResult?.text ?: aiUiState.result?.text) ?: return@safeApply
+            val strings = if (LanguagePrefs.language(this) == AppLanguage.AMHARIC) {
+                AmharicStrings
+            } else {
+                EnglishStrings
+            }
             val clipboard = getSystemService(android.content.ClipboardManager::class.java)
-            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("AI result", text))
-            try { Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show() } catch (_: Throwable) {}
+            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText(strings.aiClipboardLabel, text))
+            try {
+                Toast.makeText(this, strings.aiCopiedMessage, Toast.LENGTH_SHORT).show()
+            } catch (_: Throwable) {}
         }
     }
 
     fun onAiReplace() {
         safeApply {
-            val result = aiUiState.result ?: return@safeApply
+            val result = aiUiState.effectiveResult ?: aiUiState.result ?: return@safeApply
             val input = aiUiState.input ?: return@safeApply
             val snapshot = input.snapshot
             val replacement = result.text
+            val strings = if (LanguagePrefs.language(this) == AppLanguage.AMHARIC) {
+                AmharicStrings
+            } else {
+                EnglishStrings
+            }
             if (snapshot != null) {
                 val token = editorGateway.currentToken()
                 if (token == null || token.generation != snapshot.tokenGeneration) {
-                    aiUiState = aiUiState.copy(error = AiError.Server("Text changed — reopen AI"))
+                    aiUiState = aiUiState.copy(error = AiError.Server(strings.aiErrorTextChanged))
                     return@safeApply
                 }
                 val selStart = minOf(snapshot.replacementStart, snapshot.replacementEnd)
@@ -2035,7 +2110,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 val currentToken = editorGateway.currentToken()
                 if (currentToken != null && (currentToken.selectionStart != selStart || currentToken.selectionEnd != selEnd)) {
                     if (input.source == com.addiyon.keyboard.ai.AiSource.Selection) {
-                        aiUiState = aiUiState.copy(error = AiError.Server("Selection changed — reopen AI"))
+                        aiUiState = aiUiState.copy(error = AiError.Server(strings.aiErrorSelectionChanged))
                         return@safeApply
                     }
                 }
@@ -2056,7 +2131,7 @@ class AddiyonKeyboardService : InputMethodService(),
                     typingController.onSelectionChanged(selStart + replacement.length, selStart + replacement.length, -1, -1)
                     updateSuggestions()
                 } else {
-                    aiUiState = aiUiState.copy(error = AiError.Server("Replace failed"))
+                    aiUiState = aiUiState.copy(error = AiError.Server(strings.aiErrorReplaceFailed))
                 }
             } else {
                 val ok = editorGateway.commitText(replacement)
@@ -2064,7 +2139,7 @@ class AddiyonKeyboardService : InputMethodService(),
                     aiUiState = aiUiState.copy(isVisible = false)
                     updateSuggestions()
                 } else {
-                    aiUiState = aiUiState.copy(error = AiError.Server("Replace failed"))
+                    aiUiState = aiUiState.copy(error = AiError.Server(strings.aiErrorReplaceFailed))
                 }
             }
         }

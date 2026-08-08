@@ -173,10 +173,8 @@ fun KeyboardScreen(
                                 state = service.aiUiState,
                                 onDismiss = service::dismissAiPanel,
                                 onTabSelected = service::onAiTabSelected,
-                                onStrengthSelected = service::onAiStrengthSelected,
-                                onCopy = service::onAiCopy,
-                                onReplace = service::onAiReplace,
-                                onEmailChanged = service::onAiAuthEmailChanged,
+                                onCopyVariant = service::onAiCopyVariant,
+                                onReplaceVariant = service::onAiReplaceVariant,
                                 onSendLink = service::openAiDashboard
                             )
                         }
@@ -368,7 +366,7 @@ fun KeyboardScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(androidx.compose.ui.graphics.Color.White)
+                            .background(MaterialTheme.colorScheme.surface)
                             .clickable { service.hideExpandedSuggestions() }
                             .padding(horizontal = 2.dp, vertical = KEY_ROWS_VERTICAL_PADDING)
                     ) {

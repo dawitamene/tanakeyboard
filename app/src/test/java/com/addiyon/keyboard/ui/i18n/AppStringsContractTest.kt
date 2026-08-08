@@ -51,7 +51,8 @@ class AppStringsContractTest {
     fun amharicTableContainsEthiopicTextBeyondSharedTechnicalExamples() {
         val sharedTechnicalValues = setOf(
             EnglishStrings.tourTypingExample,
-            EnglishStrings.telegram
+            EnglishStrings.telegram,
+            EnglishStrings.ai
         )
         stringValues(AmharicStrings)
             .filterValues { it !in sharedTechnicalValues }

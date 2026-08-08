@@ -201,17 +201,11 @@ fun SuggestionArea(
                 else -> {
                     if (isSuggestionState) {
                         Box(modifier = Modifier.padding(start = 8.dp)) {
-                            BarButton(
+                            SuggestionChevronLeftButton(
                                 onClick = onDismissSuggestions,
+                                contentDescription = "Dismiss suggestions",
                                 testTag = SUGGESTION_DISMISS_TAG
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                                    contentDescription = "Dismiss suggestions",
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
+                            )
                         }
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
@@ -422,6 +416,22 @@ private fun BarButton(
         contentAlignment = Alignment.Center,
         content = content
     )
+}
+
+@Composable
+internal fun SuggestionChevronLeftButton(
+    onClick: () -> Unit,
+    contentDescription: String,
+    testTag: String? = null
+) {
+    BarButton(onClick = onClick, testTag = testTag) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            modifier = Modifier.size(22.dp)
+        )
+    }
 }
 
 @Composable

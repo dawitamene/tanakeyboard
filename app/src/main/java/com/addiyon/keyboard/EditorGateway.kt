@@ -534,7 +534,7 @@ internal class EditorGateway(
         }
 
     private companion object {
-        const val MAX_READ_CHARS = 4096
+        const val MAX_READ_CHARS = 32768
         const val UNKNOWN_SELECTION = -1
     }
 }

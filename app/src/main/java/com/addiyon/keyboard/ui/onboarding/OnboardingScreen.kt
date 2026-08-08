@@ -46,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -57,11 +56,10 @@ import com.addiyon.keyboard.KeyboardStatusSnapshot
 import com.addiyon.keyboard.R
 import com.addiyon.keyboard.ExternalActions
 import com.addiyon.keyboard.ui.AppBrandHeader
+import com.addiyon.keyboard.ui.design.addiyonColors
 import com.addiyon.keyboard.ui.i18n.LanguageToggle
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
-
-private val GreenCheck = Color(0xFF2E7D32)
 
 /** The distinct full-screen pages of the first-run flow. */
 private enum class Phase { Activate, Enable, AllSet, Tour }
@@ -414,7 +412,7 @@ private fun AllSetPage() {
             Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = null,
-                tint = GreenCheck,
+                tint = MaterialTheme.addiyonColors.success,
                 modifier = Modifier
                     .size(72.dp)
                     .scale(scale)

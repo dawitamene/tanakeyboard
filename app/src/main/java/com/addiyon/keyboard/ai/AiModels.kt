@@ -33,7 +33,7 @@ data class AiInput(
     val snapshot: AiSnapshot?
 )
 
-enum class AiSource { Selection, Sentence, Empty }
+enum class AiSource { Selection, Field, Sentence, Empty }
 
 data class AiSnapshot(
     val replacementStart: Int,
