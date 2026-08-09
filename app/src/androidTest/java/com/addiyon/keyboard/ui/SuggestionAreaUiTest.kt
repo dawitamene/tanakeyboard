@@ -93,6 +93,36 @@ class SuggestionAreaUiTest {
     }
 
     @Test
+    fun fifteenSuggestionsKeepTwelveForTheExpandedView() {
+        val suggestions = (1..SUGGESTION_LIST_LIMIT).map { "suggestion$it" }
+        var expandedRequested = false
+
+        compose.setContent {
+            TestKeyboardHost {
+                SuggestionArea(
+                    state = SuggestionUiState.WordCompletions(suggestions),
+                    isAmharic = false,
+                    onTap = {},
+                    onOpenSettings = {},
+                    onOpenThemes = {},
+                    onOpenGuide = {},
+                    onFeedback = {},
+                    onAi = {},
+                    onClipboard = {},
+                    onEmoji = {},
+                    onToggleExpanded = { expandedRequested = true }
+                )
+            }
+        }
+
+        compose.onNodeWithText(suggestions.take(SUGGESTION_STRIP_VISIBLE_LIMIT).last())
+            .assertIsDisplayed()
+        compose.onNodeWithText(suggestions[SUGGESTION_STRIP_VISIBLE_LIMIT]).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Show more suggestions").performClick()
+        compose.runOnIdle { assertTrue(expandedRequested) }
+    }
+
+    @Test
     fun completionToPendingToPredictionNeverRendersToolbarOrStaleChips() {
         var state by mutableStateOf<SuggestionUiState>(
             SuggestionUiState.WordCompletions(listOf("hello", "help", "helium"))

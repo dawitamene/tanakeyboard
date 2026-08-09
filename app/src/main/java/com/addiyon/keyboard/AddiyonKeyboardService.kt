@@ -90,6 +90,8 @@ import com.addiyon.keyboard.ai.countWords
 import com.addiyon.keyboard.ai.todayIso
 import com.addiyon.keyboard.ui.SuggestionTap
 import com.addiyon.keyboard.ui.SuggestionUiState
+import com.addiyon.keyboard.ui.SUGGESTION_LIST_LIMIT
+import com.addiyon.keyboard.ui.SUGGESTION_STRIP_VISIBLE_LIMIT
 import com.addiyon.keyboard.ui.i18n.AmharicStrings
 import com.addiyon.keyboard.ui.i18n.AppLanguage
 import com.addiyon.keyboard.ui.i18n.EnglishStrings
@@ -119,29 +121,30 @@ import kotlinx.coroutines.withContext
  * dictionary completions. The strip scrolls horizontally, so this can be
  * generous.
  */
-private const val AMHARIC_SUGGESTION_LIMIT = 10
+private const val AMHARIC_SUGGESTION_LIMIT = SUGGESTION_LIST_LIMIT
 
 /**
  * Max next-word prediction chips shown when the Amharic buffer is empty
  * (right after a commit): pure bigram/trigram predictions from the words
  * before the cursor, zero keystrokes typed.
  */
-private const val NEXT_WORD_LIMIT = 6
+private const val NEXT_WORD_LIMIT = SUGGESTION_LIST_LIMIT
 
 /**
  * Next-word fallback when the n-gram model has no successor for the current
- * context: the top most frequent dictionary words, capped at the English
- * strip's three fixed slots (Amharic reuses [AMHARIC_SUGGESTION_LIMIT]).
+ * context: the top most frequent dictionary words, capped at the shared
+ * suggestion-list limit.
  */
-private const val PREDICTION_FALLBACK_ENGLISH_LIMIT = 3
+private const val PREDICTION_FALLBACK_ENGLISH_LIMIT = SUGGESTION_LIST_LIMIT
 
 /**
- * English strip capacity: exact-prefix completions first, then up to
- * [ENGLISH_FUZZY_LIMIT] typo corrections appended below them.
+ * English suggestion-list capacity: exact-prefix completions first, then up
+ * to [ENGLISH_FUZZY_LIMIT] typo corrections appended when fewer exact matches
+ * are available.
  */
-private const val ENGLISH_EXACT_LIMIT = 3
+private const val ENGLISH_SUGGESTION_LIMIT = SUGGESTION_LIST_LIMIT
+private const val ENGLISH_EXACT_LIMIT = ENGLISH_SUGGESTION_LIMIT
 private const val ENGLISH_FUZZY_LIMIT = 2
-private const val ENGLISH_SUGGESTION_LIMIT = ENGLISH_EXACT_LIMIT + ENGLISH_FUZZY_LIMIT
 private const val LOW_RAM_IDLE_RELEASE_MS = 20_000L
 private const val PREDICTION_CACHE_SIZE = 64
 private const val PREDICTION_IDENTITY_BEFORE = 256
@@ -151,7 +154,7 @@ private const val PREDICTION_IDENTITY_AFTER = 128
  * Candidate pool pulled from the trie for the English completion strip: the
  * top [ENGLISH_COMPLETION_POOL] prefix matches by frequency, from which the
  * n-gram context reorder ([CandidateRanker.rankByContext]) picks the
- * [ENGLISH_EXACT_LIMIT] shown. Larger than the visible count so a
+ * [ENGLISH_EXACT_LIMIT] shown. Larger than the visible strip count so a
  * context-predicted continuation ranked below the top few by raw frequency can
  * still surface; the trie's best-first search keeps this cheap.
  */
@@ -738,7 +741,7 @@ class AddiyonKeyboardService : InputMethodService(),
                     amharic = amharic,
                     prev2 = context.prev2,
                     prev1 = context.prev1,
-                    limit = if (isLowRam) 3 else NEXT_WORD_LIMIT
+                    limit = if (isLowRam) SUGGESTION_STRIP_VISIBLE_LIMIT else NEXT_WORD_LIMIT
                 )
                 val contextToken = capturedContext?.editorToken
                 if (contextToken == null) {
@@ -1496,9 +1499,9 @@ class AddiyonKeyboardService : InputMethodService(),
         safeApply {
             if (voiceUiState.isVoiceMode) return@safeApply
             val hasRemaining = when (val s = nonVoiceSuggestionUiState) {
-                is SuggestionUiState.WordCompletions -> s.words.size > 3
-                is SuggestionUiState.NextWordPredictions -> s.words.size > 3
-                is SuggestionUiState.EmailSuggestions -> s.chips.size > 3
+                is SuggestionUiState.WordCompletions -> s.words.size > SUGGESTION_STRIP_VISIBLE_LIMIT
+                is SuggestionUiState.NextWordPredictions -> s.words.size > SUGGESTION_STRIP_VISIBLE_LIMIT
+                is SuggestionUiState.EmailSuggestions -> s.chips.size > SUGGESTION_STRIP_VISIBLE_LIMIT
                 else -> false
             }
             if (!hasRemaining) return@safeApply

@@ -247,12 +247,7 @@ fun KeyboardScreen(
                         .wrapContentHeight()
                 ) {
                     val showExpanded = service.expandedSuggestionsVisible
-                    val expandedWords: List<String> = when (val s = service.suggestionUiState) {
-                        is com.addiyon.keyboard.ui.SuggestionUiState.WordCompletions -> if (s.words.size > 3) s.words.drop(3) else emptyList()
-                        is com.addiyon.keyboard.ui.SuggestionUiState.NextWordPredictions -> if (s.words.size > 3) s.words.drop(3) else emptyList()
-                        is com.addiyon.keyboard.ui.SuggestionUiState.EmailSuggestions -> if (s.chips.size > 3) s.chips.drop(3).map { it.commit } else emptyList()
-                        else -> emptyList()
-                    }
+                    val expandedWords = remainingSuggestions(service.suggestionUiState)
                     BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxWidth()

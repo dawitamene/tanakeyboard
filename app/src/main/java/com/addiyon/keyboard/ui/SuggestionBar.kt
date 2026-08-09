@@ -100,12 +100,7 @@ fun SuggestionArea(
     onDismissSuggestions: () -> Unit = {},
     onToggleExpanded: () -> Unit = {},
 ) {
-    val remainingWords: List<String> = when (state) {
-        is SuggestionUiState.WordCompletions -> if (state.words.size > 3) state.words.drop(3) else emptyList()
-        is SuggestionUiState.NextWordPredictions -> if (state.words.size > 3) state.words.drop(3) else emptyList()
-        is SuggestionUiState.EmailSuggestions -> if (state.chips.size > 3) state.chips.drop(3).map { it.commit } else emptyList()
-        else -> emptyList()
-    }
+    val remainingWords = remainingSuggestions(state)
     val hasRemaining = remainingWords.isNotEmpty()
     val isSuggestionState = state is SuggestionUiState.WordCompletions ||
         state is SuggestionUiState.NextWordPredictions ||
@@ -219,12 +214,15 @@ fun SuggestionArea(
                                 }
                                 if (isAmharic) {
                                     AmharicSuggestionStrip(
-                                        suggestions = state.words.take(3),
+                                        suggestions = state.words.take(SUGGESTION_STRIP_VISIBLE_LIMIT),
                                         isPredictions = false,
                                         onTap = scopedTap,
                                     )
                                 } else {
-                                    EnglishSuggestionStrip(state.words.take(3), scopedTap)
+                                    EnglishSuggestionStrip(
+                                        state.words.take(SUGGESTION_STRIP_VISIBLE_LIMIT),
+                                        scopedTap
+                                    )
                                 }
                             }
 
@@ -234,12 +232,15 @@ fun SuggestionArea(
                                 }
                                 if (isAmharic) {
                                     AmharicSuggestionStrip(
-                                        suggestions = state.words.take(3),
+                                        suggestions = state.words.take(SUGGESTION_STRIP_VISIBLE_LIMIT),
                                         isPredictions = true,
                                         onTap = scopedTap,
                                     )
                                 } else {
-                                    EnglishSuggestionStrip(state.words.take(3), scopedTap)
+                                    EnglishSuggestionStrip(
+                                        state.words.take(SUGGESTION_STRIP_VISIBLE_LIMIT),
+                                        scopedTap
+                                    )
                                 }
                             }
 
@@ -247,7 +248,10 @@ fun SuggestionArea(
                                 val scopedTap: (String) -> Unit = {
                                     onTap(SuggestionTap(it, state.actionGeneration))
                                 }
-                                EmailSuggestionStrip(state.chips.take(3), scopedTap)
+                                EmailSuggestionStrip(
+                                    state.chips.take(SUGGESTION_STRIP_VISIBLE_LIMIT),
+                                    scopedTap
+                                )
                             }
 
                             SuggestionUiState.Private,

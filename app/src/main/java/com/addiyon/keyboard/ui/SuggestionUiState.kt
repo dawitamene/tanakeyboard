@@ -4,6 +4,9 @@ import androidx.compose.runtime.Immutable
 import com.addiyon.keyboard.suggestion.EmailChip
 import com.addiyon.keyboard.voice.VoiceUiState
 
+internal const val SUGGESTION_STRIP_VISIBLE_LIMIT = 3
+internal const val SUGGESTION_LIST_LIMIT = 15
+
 @Immutable
 sealed interface SuggestionUiState {
     data object Toolbar : SuggestionUiState
@@ -72,3 +75,12 @@ data class SuggestionTap(
     val word: String,
     val actionGeneration: Long
 )
+
+internal fun remainingSuggestions(state: SuggestionUiState): List<String> = when (state) {
+    is SuggestionUiState.WordCompletions -> state.words.drop(SUGGESTION_STRIP_VISIBLE_LIMIT)
+    is SuggestionUiState.NextWordPredictions -> state.words.drop(SUGGESTION_STRIP_VISIBLE_LIMIT)
+    is SuggestionUiState.EmailSuggestions -> state.chips
+        .drop(SUGGESTION_STRIP_VISIBLE_LIMIT)
+        .map { it.commit }
+    else -> emptyList()
+}
