@@ -20,6 +20,15 @@ data class RevampResponse(
     val text: String,
     val tone: String,
     val strength: String? = null,
+    val truncated: Boolean? = null,
+    val variants: List<RevampVariantResponse>? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class RevampVariantResponse(
+    val text: String,
+    val tone: String? = null,
+    val strength: String,
     val truncated: Boolean? = null
 )
 

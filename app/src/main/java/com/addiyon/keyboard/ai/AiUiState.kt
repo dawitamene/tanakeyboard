@@ -12,8 +12,9 @@ data class AiUiState(
     val result: AiResult? = null,
     val alternatives: List<String> = emptyList(),
     val isLoading: Boolean = false,
+    val isQuotaLoading: Boolean = false,
     val error: AiError? = null,
-    val quota: AiQuota = AiQuota(0, 800, 800, todayIso()),
+    val quota: AiQuota = AiQuota(0, 50, 50, todayIso()),
     val isPrivateField: Boolean = false,
     val needsAuth: Boolean = false,
     val authEmail: String = "",
@@ -25,7 +26,7 @@ data class AiUiState(
 ) {
     val canRevamp: Boolean
         get() = selectedTab != null && !isPrivateField && !needsAuth &&
-            (input?.wordCount ?: 0) > 0 && quota.remaining > 0 && !isLoading
+            (input?.wordCount ?: 0) > 0 && quota.remaining > 0 && !isLoading && !isQuotaLoading
 
     val inputWordCount: Int get() = input?.wordCount ?: 0
     val hasInput: Boolean get() = input?.text?.isNotBlank() == true

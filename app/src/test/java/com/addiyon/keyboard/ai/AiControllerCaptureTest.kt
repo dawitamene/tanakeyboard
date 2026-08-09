@@ -47,7 +47,7 @@ class AiControllerCaptureTest {
         return AiController(
             editorGateway = gateway,
             repository = AiRepository(api),
-            quotaProvider = { AiQuota(0, 800, 800, "2026-08-08") },
+            quotaProvider = { AiQuota(0, 50, 50, "2026-08-08") },
             jwtProvider = { "token" },
             anonIdProvider = { "anonymous" },
             isPrivateFieldProvider = { false }

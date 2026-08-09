@@ -1,8 +1,6 @@
 package com.addiyon.keyboard.ai
 
 import com.addiyon.keyboard.EditorGateway
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 
 internal class AiController(
     private val editorGateway: EditorGateway,
@@ -53,7 +51,7 @@ internal class AiController(
         if (isPrivateFieldProvider()) return Result.failure(Exception(AiError.PrivateField.toString()))
         if (input.text.isBlank()) return Result.failure(Exception(AiError.NoText.toString()))
         val quota = quotaProvider()
-        if (quota.remaining <= 0 || input.wordCount > quota.remaining) {
+        if (quota.remaining <= 0) {
             return Result.failure(Exception(AiError.QuotaExceeded(quota.remaining).toString()))
         }
         val jwt = jwtProvider()
@@ -61,7 +59,7 @@ internal class AiController(
         return repository.revamp(input.text, tab, strength, jwt, anonId)
     }
 
-    suspend fun revampAll(input: AiInput, tab: AiToneTab): Map<AiStrength, Result<AiResult>> {
+    suspend fun revampVariants(input: AiInput, tab: AiToneTab): Map<AiStrength, Result<AiResult>> {
         if (isPrivateFieldProvider()) {
             val err = Result.failure<AiResult>(Exception(AiError.PrivateField.toString()))
             return AiStrength.entries.associateWith { err }
@@ -71,18 +69,24 @@ internal class AiController(
             return AiStrength.entries.associateWith { err }
         }
         val quota = quotaProvider()
-        if (quota.remaining <= 0 || input.wordCount > quota.remaining) {
+        if (quota.remaining <= 0) {
             val err = Result.failure<AiResult>(Exception(AiError.QuotaExceeded(quota.remaining).toString()))
             return AiStrength.entries.associateWith { err }
         }
         val jwt = jwtProvider()
         val anonId = anonIdProvider()
-        return coroutineScope {
-            val deferreds = AiStrength.entries.associateWith { strength ->
-                async { repository.revamp(input.text, tab, strength, jwt, anonId) }
+        return repository.revampVariants(input.text, tab, jwt, anonId).fold(
+            onSuccess = { variants ->
+                AiStrength.entries.associateWith { strength ->
+                    variants[strength]
+                        ?.let { Result.success(it) }
+                        ?: Result.failure(Exception(AiError.Unknown.toString()))
+                }
+            },
+            onFailure = { throwable ->
+                AiStrength.entries.associateWith { Result.failure(throwable) }
             }
-            deferreds.mapValues { it.value.await() }
-        }
+        )
     }
 
     fun isReplaceValid(snapshot: AiSnapshot?): Boolean {
@@ -101,6 +105,7 @@ internal class AiController(
             msg.contains("NeedsAuth") -> AiError.NeedsAuth
             msg.contains("QuotaExceeded") -> AiError.QuotaExceeded()
             msg.contains("Offline") -> AiError.Offline
+            msg.contains("Unknown") -> AiError.Unknown
             else -> repository.parseAiError(t)
         }
     }

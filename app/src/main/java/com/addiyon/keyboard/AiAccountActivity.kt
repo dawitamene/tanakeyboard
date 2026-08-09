@@ -63,7 +63,8 @@ class AiAccountActivity : ComponentActivity() {
                                             KeyboardPrefs.setAiJwt(this@AiAccountActivity, null)
                                             mode = MODE_AUTH
                                         },
-                                        onSwitchToAuth = { mode = MODE_AUTH }
+                                        onSwitchToAuth = { mode = MODE_AUTH },
+                                        quotaLoader = { jwt, anonId -> repo.quota(jwt, anonId) }
                                     )
                                 }
                                 else -> {

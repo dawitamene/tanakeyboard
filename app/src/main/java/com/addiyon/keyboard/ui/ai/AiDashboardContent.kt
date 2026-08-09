@@ -1,5 +1,6 @@
 package com.addiyon.keyboard.ui.ai
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,9 +41,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.addiyon.keyboard.ai.AiQuota
 import com.addiyon.keyboard.ai.todayIso
 import com.addiyon.keyboard.ui.AppPageTopBar
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 const val AI_DASHBOARD_USAGE_TAG = "ai.dashboard.usage"
 const val AI_DASHBOARD_ACCOUNT_TAG = "ai.dashboard.account"
@@ -50,18 +55,28 @@ const val AI_DASHBOARD_ACCOUNT_TAG = "ai.dashboard.account"
 fun AiDashboardContent(
     onBack: () -> Unit,
     onLogout: () -> Unit,
-    onSwitchToAuth: () -> Unit
+    onSwitchToAuth: () -> Unit,
+    quotaLoader: (suspend (String?, String) -> Result<AiQuota>)? = null
 ) {
     val context = LocalContext.current
     var jwt by remember { mutableStateOf(KeyboardPrefs.aiJwt(context)) }
+    var quota by remember { mutableStateOf(cachedAiQuota(context)) }
     val email = KeyboardPrefs.aiEmail(context)
     val isLoggedIn = !jwt.isNullOrBlank()
-    val today = todayIso()
-    val storedDay = KeyboardPrefs.aiQuotaDay(context)
-    val usedToday = if (storedDay == today) KeyboardPrefs.aiWordsUsedToday(context) else 0
-    val limit = KeyboardPrefs.aiDailyLimit(context)
-    val remaining = (limit - usedToday).coerceAtLeast(0)
+    val usedToday = quota.used
+    val limit = quota.limit
+    val remaining = quota.remaining
     val progress = if (limit > 0) (usedToday.toFloat() / limit.toFloat()).coerceIn(0f, 1f) else 0f
+
+    LaunchedEffect(jwt) {
+        val loader = quotaLoader ?: return@LaunchedEffect
+        val anonId = KeyboardPrefs.aiAnonId(context)
+        val result = withContext(Dispatchers.IO) { loader(jwt, anonId) }
+        result.onSuccess { freshQuota ->
+            cacheAiQuota(context, freshQuota)
+            quota = freshQuota
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -141,7 +156,7 @@ fun AiDashboardContent(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            "words remaining",
+                            "requests remaining",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 5.dp)
@@ -158,7 +173,7 @@ fun AiDashboardContent(
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                     Text(
-                        "$usedToday of $limit words used · resets daily",
+                        "$usedToday of $limit requests used · resets daily",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp)
@@ -220,4 +235,22 @@ fun AiDashboardContent(
             Spacer(Modifier.height(8.dp))
         }
     }
+}
+
+private fun cachedAiQuota(context: Context): AiQuota {
+    val today = todayIso()
+    val storedDay = KeyboardPrefs.aiQuotaDay(context)
+    val limit = KeyboardPrefs.aiDailyLimit(context)
+    val used = if (storedDay == today) {
+        KeyboardPrefs.aiWordsUsedToday(context).coerceIn(0, limit)
+    } else {
+        0
+    }
+    return AiQuota(used, limit, (limit - used).coerceAtLeast(0), today)
+}
+
+private fun cacheAiQuota(context: Context, quota: AiQuota) {
+    KeyboardPrefs.setAiQuotaDay(context, quota.day)
+    KeyboardPrefs.setAiDailyLimit(context, quota.limit)
+    KeyboardPrefs.setAiWordsUsedToday(context, quota.used)
 }

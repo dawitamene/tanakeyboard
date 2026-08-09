@@ -126,7 +126,7 @@ fun AiPanel(
                 }
 
                 else -> {
-                    if (state.isLoading) {
+                    if (state.isLoading || state.isQuotaLoading) {
                         SkeletonResults()
                     }
 

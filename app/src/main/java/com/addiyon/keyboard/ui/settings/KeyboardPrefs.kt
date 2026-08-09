@@ -189,10 +189,10 @@ object KeyboardPrefs {
         }
 
     fun aiDailyLimit(context: Context): Int =
-        readInt(context, KEY_AI_DAILY_LIMIT, 800, 50, 100000)
+        readInt(context, KEY_AI_DAILY_LIMIT, 50, 1, 100000)
 
     fun setAiDailyLimit(context: Context, value: Int) =
-        writeSafely(context) { putInt(KEY_AI_DAILY_LIMIT, value.coerceIn(50, 100000)) }
+        writeSafely(context) { putInt(KEY_AI_DAILY_LIMIT, value.coerceIn(1, 100000)) }
 
     private fun readBoolean(context: Context, key: String, default: Boolean): Boolean {
         val raw = rawValue(context, key)

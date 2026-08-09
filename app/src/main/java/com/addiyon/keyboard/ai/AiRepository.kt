@@ -35,6 +35,57 @@ class AiRepository(
         }
     }
 
+    suspend fun revampVariants(
+        text: String,
+        tab: AiToneTab,
+        jwt: String?,
+        anonId: String
+    ): Result<Map<AiStrength, AiResult>> {
+        val auth = jwt?.takeIf { it.isNotBlank() }?.let { "Bearer $it" }
+        val req = RevampRequest(
+            text = text,
+            tone = tab.tone,
+            instruction = tab.instruction
+        )
+        return try {
+            val res = api.revamp(req, auth, anonId)
+            val variants = res.variants.orEmpty().mapNotNull { variant ->
+                val strength = AiStrength.fromLabel(variant.strength) ?: return@mapNotNull null
+                val body = variant.text.trim()
+                if (body.isEmpty()) return@mapNotNull null
+                strength to AiResult(
+                    text = variant.text,
+                    tone = variant.tone ?: res.tone,
+                    strength = strength.label,
+                    truncated = variant.truncated ?: (res.truncated == true)
+                )
+            }.toMap()
+            if (variants.isNotEmpty()) {
+                Result.success(variants)
+            } else {
+                val body = res.text.trim()
+                if (body.isEmpty()) return Result.failure(Exception("empty response"))
+                val strength = AiStrength.fromLabel(res.strength) ?: AiStrength.Balanced
+                Result.success(
+                    mapOf(
+                        strength to AiResult(
+                            res.text,
+                            res.tone,
+                            strength.label,
+                            res.truncated == true
+                        )
+                    )
+                )
+            }
+        } catch (e: HttpException) {
+            Result.failure(mapHttp(e))
+        } catch (e: IOException) {
+            Result.failure(Exception(AiError.Offline.toString(), e))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun alternatives(
         text: String,
         tab: AiToneTab,

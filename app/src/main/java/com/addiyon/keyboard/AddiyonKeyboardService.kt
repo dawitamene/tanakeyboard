@@ -346,9 +346,15 @@ class AddiyonKeyboardService : InputMethodService(),
         return AiQuota(used, limit, (limit - used).coerceAtLeast(0), today)
     }
 
-    private fun consumeAiQuota(words: Int) {
+    private fun cacheAiQuota(quota: AiQuota) {
+        KeyboardPrefs.setAiQuotaDay(this, quota.day)
+        KeyboardPrefs.setAiDailyLimit(this, quota.limit)
+        KeyboardPrefs.setAiWordsUsedToday(this, quota.used)
+    }
+
+    private fun consumeAiQuotaRequest() {
         val quota = currentAiQuota()
-        val newUsed = (quota.used + words).coerceAtMost(quota.limit)
+        val newUsed = (quota.used + 1).coerceAtMost(quota.limit)
         KeyboardPrefs.setAiWordsUsedToday(this, newUsed)
         aiUiState = aiUiState.copy(quota = currentAiQuota())
     }
@@ -1942,6 +1948,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 return@safeApply
             }
             val quota = currentAiQuota()
+            val anonId = KeyboardPrefs.aiAnonId(this)
             val captured = if (isPrivateField) null else aiController.captureInput()
             aiRequestJob?.cancel()
             aiUiState = AiUiState(
@@ -1951,12 +1958,33 @@ class AddiyonKeyboardService : InputMethodService(),
                 result = null,
                 alternatives = emptyList(),
                 isLoading = false,
+                isQuotaLoading = true,
                 error = if (isPrivateField) AiError.PrivateField else null,
                 quota = quota,
                 isPrivateField = isPrivateField,
                 needsAuth = false,
                 authEmail = KeyboardPrefs.aiEmail(this) ?: aiUiState.authEmail
             )
+            aiRequestJob = aiScope.launch {
+                val quotaResult = withContext(Dispatchers.IO) { aiRepository.quota(jwt, anonId) }
+                safeApply {
+                    if (!aiUiState.isVisible || aiUiState.selectedTab != null) return@safeApply
+                    quotaResult.onSuccess { freshQuota ->
+                        cacheAiQuota(freshQuota)
+                        aiUiState = aiUiState.copy(
+                            quota = freshQuota,
+                            isQuotaLoading = false,
+                            error = if (isPrivateField) AiError.PrivateField else null
+                        )
+                    }.onFailure { t ->
+                        aiUiState = aiUiState.copy(
+                            isQuotaLoading = false,
+                            error = if (isPrivateField) AiError.PrivateField else aiController.parseError(t)
+                        )
+                    }
+                    aiRequestJob = null
+                }
+            }
         }
     }
 
@@ -1974,12 +2002,13 @@ class AddiyonKeyboardService : InputMethodService(),
         safeApply {
             aiRequestJob?.cancel()
             aiRequestJob = null
-            aiUiState = aiUiState.copy(isVisible = false, isLoading = false)
+            aiUiState = aiUiState.copy(isVisible = false, isLoading = false, isQuotaLoading = false)
         }
     }
 
     fun onAiTabSelected(tab: AiToneTab) {
         safeApply {
+            if (aiUiState.isQuotaLoading) return@safeApply
             aiRequestJob?.cancel()
             aiUiState = aiUiState.copy(
                 selectedTab = tab,
@@ -2003,13 +2032,13 @@ class AddiyonKeyboardService : InputMethodService(),
                 aiUiState = aiUiState.copy(error = AiError.NoText)
                 return@safeApply
             }
-            if (aiUiState.quota.remaining <= 0 || input.wordCount > aiUiState.quota.remaining) {
+            if (aiUiState.quota.remaining <= 0) {
                 aiUiState = aiUiState.copy(error = AiError.QuotaExceeded(aiUiState.quota.remaining))
                 return@safeApply
             }
             aiUiState = aiUiState.copy(isLoading = true, error = null)
             aiRequestJob = aiScope.launch {
-                val results = withContext(Dispatchers.IO) { aiController.revampAll(input, tab) }
+                val results = withContext(Dispatchers.IO) { aiController.revampVariants(input, tab) }
                 safeApply {
                     if (!aiUiState.isVisible || aiUiState.selectedTab != tab) return@safeApply
                     val successes = results.mapNotNull { (k, v) -> v.getOrNull()?.let { k to it } }.toMap()
@@ -2017,7 +2046,7 @@ class AddiyonKeyboardService : InputMethodService(),
                         v.exceptionOrNull()?.let { k to aiController.parseError(it) }
                     }.toMap()
                     if (successes.isNotEmpty()) {
-                        consumeAiQuota(input.wordCount)
+                        consumeAiQuotaRequest()
                         val first = successes.keys.firstOrNull()
                         aiUiState = aiUiState.copy(
                             variantResults = successes,
@@ -2164,7 +2193,10 @@ class AddiyonKeyboardService : InputMethodService(),
                     try {
                         val api = aiRepository
                         val anonId = KeyboardPrefs.aiAnonId(this@AddiyonKeyboardService)
-                        val quotaRes = api.quota(KeyboardPrefs.aiJwt(this@AddiyonKeyboardService), anonId)
+                        val quotaRes = api.quota(token, anonId)
+                        quotaRes.getOrNull()?.let { quota ->
+                            cacheAiQuota(quota)
+                        }
                         quotaRes.isSuccess
                     } catch (_: Throwable) { false }
                 }

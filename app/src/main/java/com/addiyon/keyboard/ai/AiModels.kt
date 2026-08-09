@@ -23,7 +23,12 @@ enum class AiToneTab(
 enum class AiStrength(val label: String) {
     Subtle("subtle"),
     Balanced("balanced"),
-    Strong("strong")
+    Strong("strong");
+
+    companion object {
+        fun fromLabel(label: String?): AiStrength? =
+            entries.firstOrNull { it.label.equals(label, ignoreCase = true) }
+    }
 }
 
 data class AiInput(

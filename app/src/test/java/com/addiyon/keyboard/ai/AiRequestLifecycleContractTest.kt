@@ -16,7 +16,7 @@ class AiRequestLifecycleContractTest {
         assertTrue(selection.contains("aiRequestJob?.cancel()"))
         assertTrue(selection.contains("val input = aiController.captureInput()"))
         assertTrue(selection.contains("isLoading = true"))
-        assertTrue(selection.contains("aiController.revampAll(input, tab)"))
+        assertTrue(selection.contains("aiController.revampVariants(input, tab)"))
         assertFalse(selection.contains("val input = aiUiState.input"))
     }
 
