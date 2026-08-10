@@ -3,6 +3,7 @@ package com.addiyon.keyboard.ui.settings
 import android.content.Context
 import android.content.SharedPreferences
 import com.addiyon.keyboard.review.ReviewPromptPolicy
+import com.addiyon.keyboard.language.SavedLanguageResolver
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_DEFAULT
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MAX
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MIN
@@ -21,6 +22,7 @@ object KeyboardPrefs {
     const val KEY_NUMBER_ROW = "number_row"
     const val KEY_KEYBOARD_HEIGHT_SCALE = "keyboard_height_scale"
     const val KEY_AMHARIC_MODE = "amharic_mode"
+    const val KEY_ACTIVE_LANGUAGE_ID = "active_language_id"
     const val KEY_RECENT_EMOJIS = "recent_emojis"
     const val KEY_EMOJI_SKIN_TONES = "emoji_skin_tones"
     const val KEY_FEATURE_TOUR_SEEN = "feature_tour_seen"
@@ -97,6 +99,35 @@ object KeyboardPrefs {
 
     fun setAmharicMode(context: Context, value: Boolean) =
         writeSafely(context) { putBoolean(KEY_AMHARIC_MODE, value) }
+
+    fun activeLanguageId(
+        context: Context,
+        installedIds: Set<String>,
+        defaultId: String
+    ): String {
+        val preferences = prefs(context)
+        val savedId = if (preferences.contains(KEY_ACTIVE_LANGUAGE_ID)) {
+            readString(context, KEY_ACTIVE_LANGUAGE_ID, null, 35)
+        } else {
+            null
+        }
+        val legacyMode = if (preferences.contains(KEY_AMHARIC_MODE)) {
+            readBoolean(context, KEY_AMHARIC_MODE, true)
+        } else {
+            null
+        }
+        val resolved = SavedLanguageResolver.resolve(
+            savedId,
+            legacyMode,
+            installedIds,
+            defaultId
+        )
+        setActiveLanguageId(context, resolved)
+        return resolved
+    }
+
+    fun setActiveLanguageId(context: Context, value: String) =
+        writeSafely(context) { putString(KEY_ACTIVE_LANGUAGE_ID, value.take(35)) }
 
     // The two emoji values are opaque encoded strings; their codecs live in
     // the pure-Kotlin stores (RecentEmojiStore / SkinToneStore), which take

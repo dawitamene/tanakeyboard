@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Regenerates app/src/main/assets/amharic_words.dat -- the Amharic suggestion
+Regenerates language/amharic/src/main/assets/amharic_words.dat -- the Amharic suggestion
 dictionary consumed by suggestion/WordDictionary.kt -> WordTrie.kt.
 
 Sources (three, playing two distinct roles):
@@ -76,7 +76,7 @@ import unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, ".."))
-OUT = os.path.join(REPO, "app", "src", "main", "assets", "amharic_words.dat")
+OUT = os.path.join(REPO, "language", "amharic", "src", "main", "assets", "amharic_words.dat")
 
 MIN_WORD_FREQ = 2
 MIN_ABBREV_FREQ = 50

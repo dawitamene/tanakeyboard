@@ -312,8 +312,14 @@ class EditorGatewayTest {
         actualSelection = 6
         assertTrue(gateway.contentIdentityMatches(identity, post))
 
+        gateway.noteSelection(6, 6)
+        assertFalse(gateway.isCurrent(post))
+        assertTrue(gateway.contentIdentityMatches(identity, post))
+
+        gateway.noteSelection(9, 9)
+        assertTrue(gateway.contentIdentityMatches(identity, post))
+
         document = "abide world"
-        assertTrue(gateway.isCurrent(post))
         assertFalse(gateway.contentIdentityMatches(identity, post))
     }
 

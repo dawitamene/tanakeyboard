@@ -8,6 +8,8 @@ import android.view.inputmethod.ExtractedText
 import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InputConnection
 import androidx.annotation.RequiresApi
+import com.addiyon.keyboard.editor.EditorOperations
+import com.addiyon.keyboard.editor.EditorReadValue
 
 internal data class EditorToken(
     val generation: Long,
@@ -25,9 +27,9 @@ internal data class EditorToken(
 }
 
 internal data class EditorRead<out T>(
-    val value: T,
+    override val value: T,
     val token: EditorToken
-)
+) : EditorReadValue<T>
 
 internal data class EditorSurroundingText(
     val text: String,
@@ -116,7 +118,7 @@ internal class EditorGateway(
     private val clockNanos: () -> Long = System::nanoTime,
     private val slowOptionalReadNanos: Long = 20_000_000L,
     private val connectionProvider: () -> InputConnection?
-) {
+) : EditorOperations {
     private var generation = 0L
     private var selectionGeneration = 0L
     private var selectionStart = UNKNOWN_SELECTION
@@ -260,23 +262,24 @@ internal class EditorGateway(
         return accepted && stillCurrent
     }
 
-    fun textBeforeCursor(maxChars: Int, optional: Boolean = true): EditorRead<String>? =
+    override fun textBeforeCursor(maxChars: Int, optional: Boolean): EditorRead<String>? =
         read(optional) { connection ->
             connection.getTextBeforeCursor(maxChars.coerceIn(1, MAX_READ_CHARS), 0)?.toString()
         }
 
-    fun textAfterCursor(maxChars: Int, optional: Boolean = true): EditorRead<String>? =
+    override fun textAfterCursor(maxChars: Int, optional: Boolean): EditorRead<String>? =
         read(optional) { connection ->
             connection.getTextAfterCursor(maxChars.coerceIn(1, MAX_READ_CHARS), 0)?.toString()
         }
 
-    fun selectedText(optional: Boolean = false): EditorRead<String>? =
+    override fun selectedText(optional: Boolean): EditorRead<String>? =
         read(optional) { connection -> connection.getSelectedText(0)?.toString() }
 
     fun surroundingText(
         beforeChars: Int,
         afterChars: Int,
-        optional: Boolean = true
+        optional: Boolean = true,
+        verifyReportedSelection: Boolean = true
     ): EditorRead<EditorSurroundingText>? {
         val before = beforeChars.coerceIn(0, MAX_READ_CHARS)
         val after = afterChars.coerceIn(0, MAX_READ_CHARS)
@@ -299,6 +302,7 @@ internal class EditorGateway(
         val token = result.token
         val value = result.value
         if (
+            verifyReportedSelection &&
             token.selectionStart >= 0 &&
             (
                 token.selectionStart != value.absoluteSelectionStart ||
@@ -421,13 +425,16 @@ internal class EditorGateway(
         identity: EditorContentIdentity,
         token: EditorToken
     ): Boolean {
-        if (!isCurrent(token)) return false
+        if (!isCurrentSession(token)) return false
         val read = surroundingText(
             beforeChars = identity.textBeforeSelection.length,
             afterChars = identity.textAfterSelection.length,
-            optional = false
+            optional = false,
+            verifyReportedSelection = false
         )
-        if (read != null) return read.token.sameEditorState(token) && identity.matches(read.value)
+        if (read != null) {
+            return identity.matches(read.value)
+        }
         val before = textBeforeCursor(identity.textBeforeSelection.length, optional = false) ?: return false
         val after = textAfterCursor(identity.textAfterSelection.length, optional = false)
             ?: return false
@@ -466,16 +473,28 @@ internal class EditorGateway(
         null
     }
 
-    fun setComposingText(text: CharSequence, token: EditorToken? = null): Boolean =
+    override fun setComposingText(text: CharSequence): Boolean =
+        setComposingText(text, null)
+
+    fun setComposingText(text: CharSequence, token: EditorToken?): Boolean =
         write(token) { it.setComposingText(text, 1) }
 
-    fun finishComposingText(token: EditorToken? = null): Boolean =
+    override fun finishComposingText(): Boolean =
+        finishComposingText(null)
+
+    fun finishComposingText(token: EditorToken?): Boolean =
         write(token) { it.finishComposingText() }
 
-    fun commitText(text: CharSequence, token: EditorToken? = null): Boolean =
+    override fun commitText(text: CharSequence): Boolean =
+        commitText(text, null)
+
+    fun commitText(text: CharSequence, token: EditorToken?): Boolean =
         write(token) { it.commitText(text, 1) }
 
-    fun deleteBeforeCursor(chars: Int, token: EditorToken? = null): Boolean =
+    override fun deleteBeforeCursor(chars: Int): Boolean =
+        deleteBeforeCursor(chars, null)
+
+    fun deleteBeforeCursor(chars: Int, token: EditorToken?): Boolean =
         write(token) { it.deleteSurroundingText(chars.coerceAtLeast(1), 0) }
 
     /**
@@ -488,7 +507,7 @@ internal class EditorGateway(
      * from that exact range, so the field's characters are unchanged — only the
      * composing span is new. See [com.addiyon.keyboard.composing.WordAdoption].
      */
-    fun recomposeBeforeCursor(chars: Int, text: CharSequence): Boolean {
+    override fun recomposeBeforeCursor(chars: Int, text: CharSequence): Boolean {
         if (chars <= 0) return false
         return write { connection ->
             connection.beginBatchEdit()

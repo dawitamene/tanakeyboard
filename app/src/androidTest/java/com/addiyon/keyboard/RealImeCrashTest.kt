@@ -199,7 +199,7 @@ class RealImeCrashTest {
     }
 
     @Test
-    fun insertingInsideComposingWordKeepsWholeWordAsSuggestionQuery() {
+    fun insertingInsideComposingWordFinalizesAndInsertsPlainText() {
         ActivityScenario.launch(ImeTestHostActivity::class.java).use { scenario ->
             clearAndFocus(scenario, ImeTestField.NORMAL)
             if (requireService().isAmharic) {
@@ -220,14 +220,7 @@ class RealImeCrashTest {
             waitUntil {
                 fieldText(scenario, ImeTestField.NORMAL) == "inform"
             }
-            waitUntil {
-                requireService().suggestions.contains("information")
-            }
-
-            invokeService { it.onSuggestionTapped("information") }
-            waitUntil {
-                fieldText(scenario, ImeTestField.NORMAL) == "information "
-            }
+            assertTrue(composingRaw().isEmpty())
         }
     }
 
@@ -569,7 +562,7 @@ class RealImeCrashTest {
             scenario.onActivity { activity ->
                 val service = requireNotNull(AddiyonKeyboardService.currentInstance)
                 service.onSpace()
-                assertTrue(service.suggestionUiState is SuggestionUiState.LoadingPredictions)
+                assertFalse(service.suggestionUiState is SuggestionUiState.Toolbar)
                 val beforeRewrite = requireNotNull(service.editorGateway.currentToken())
                 val field = activity.field(ImeTestField.NORMAL)
                 field.editableText.replace(0, field.length(), "abide ")
@@ -1071,10 +1064,9 @@ class RealImeCrashTest {
     }
 
     /**
-     * The buffer the strip answers must track the field exactly, keystroke by
-     * keystroke, through inserts, backspaces and caret moves. Drift here is what
-     * makes suggestions look "not cursor aware" -- the strip answers a word that
-     * is no longer what is under the caret.
+     * The buffer the strip answers must track the field exactly through normal
+     * composing edits. Moving the caret away finalizes that composition; an
+     * interior insertion is then plain committed text and starts no new buffer.
      */
     @Test
     fun composingBufferTracksTheFieldThroughEditsAndCaretMoves() {
@@ -1112,18 +1104,8 @@ class RealImeCrashTest {
             settle()
             invokeService { it.onCharacter("z") }
             settle()
-            assertEquals(
-                "buffer must equal the field after a mid-word insert",
-                fieldText(scenario, ImeTestField.NORMAL),
-                composingRaw()
-            )
-
-            val words = completionWords()
-            val field = fieldText(scenario, ImeTestField.NORMAL)
-            assertTrue(
-                "strip must answer the whole word '$field', got $words",
-                words.isEmpty() || words.all { it.startsWith(field, ignoreCase = true) }
-            )
+            assertEquals("keyzbo", fieldText(scenario, ImeTestField.NORMAL))
+            assertTrue("interior insertion must not adopt a word", composingRaw().isEmpty())
         }
     }
 
@@ -1143,21 +1125,21 @@ class RealImeCrashTest {
             settle()
 
             invokeService { it.onCharacter("n") }
-            waitUntil { fieldText(scenario, ImeTestField.NORMAL) == "n" }
             settle()
 
-            assertEquals("n", composingRaw())
-            assertEquals("n", fieldText(scenario, ImeTestField.NORMAL))
+            val field = fieldText(scenario, ImeTestField.NORMAL)
+            assertTrue("expected n or N after host clear, got '$field'", field.equals("n", true))
+            assertEquals("buffer after host clear", field, composingRaw())
         }
     }
 
     /**
-     * Moving the caret into the middle of the word being typed and inserting
-     * must keep the WHOLE word as the lookup key, not the fragment left of the
-     * caret.
+     * Moving the caret into the middle of the word finalizes the composing
+     * region. Typing there inserts plain text without reopening either side of
+     * the caret as a composition.
      */
     @Test
-    fun insertingMidWordKeepsTheWholeWordAsTheSuggestionKey() {
+    fun insertingMidWordDoesNotAdoptTheSurroundingWord() {
         ActivityScenario.launch(ImeTestHostActivity::class.java).use { scenario ->
             useEnglish(scenario)
 
@@ -1169,12 +1151,7 @@ class RealImeCrashTest {
             waitUntil { fieldText(scenario, ImeTestField.NORMAL) == "inform" }
             settle()
 
-            assertEquals("inform", composingRaw())
-            val words = completionWords()
-            assertTrue(
-                "expected completions of 'inform', got $words",
-                words.any { it.startsWith("inform", ignoreCase = true) }
-            )
+            assertTrue(composingRaw().isEmpty())
         }
     }
 

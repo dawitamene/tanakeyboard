@@ -46,7 +46,12 @@ class DictionaryDbSizeBudgetTest {
     }
 
     private fun dbFile(name: String): File? =
-        listOf("src/main/assets/$name", "app/src/main/assets/$name")
+        listOf(
+            "language/amharic/src/main/assets/$name",
+            "language/english/src/main/assets/$name",
+            "../language/amharic/src/main/assets/$name",
+            "../language/english/src/main/assets/$name"
+        )
             .map { File(it) }
             .firstOrNull { it.exists() }
 }

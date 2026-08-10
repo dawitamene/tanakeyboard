@@ -17,7 +17,7 @@ Android cannot perform a state-preserving update.
 
 ## `build_amharic_dict.py`
 
-Regenerates `app/src/main/assets/amharic_words.dat`, the Amharic suggestion
+Regenerates `language/amharic/src/main/assets/amharic_words.dat`, the Amharic suggestion
 dictionary loaded by `suggestion/WordDictionary.kt`, from a corpus
 term-frequency dump (one `frequency<TAB>token` line, single header line):
 
@@ -59,7 +59,7 @@ python3 tools/build_amharic_dict.py Term_Frequency.txt
 
 ## `build_ngrams.py`
 
-Regenerates `app/src/main/assets/amharic_ngrams.dat`, the Amharic bigram /
+Regenerates `language/amharic/src/main/assets/amharic_ngrams.dat`, the Amharic bigram /
 trigram next-word model loaded by `suggestion/NgramDictionary.kt` →
 `suggestion/NgramModel.kt`, from one or more raw corpora (counts summed;
 pre-tokenized like `CACO_TEXT.txt` and raw text like the abdulmunim corpus
@@ -139,12 +139,12 @@ python3 tools/build_ngrams.py --lang english \
   (0 as-is / 1 capitalize-first / 2 all-caps); the fix is **per-context**, so
   "United → States" and "New York → Times/City" capitalize while "of → the"
   stays lowercase. Coverage is limited to pairs the ~3k trigrams attest.
-- Output: `app/src/main/assets/english_ngrams.dat` (~240 KB), loaded by
+- Output: `language/english/src/main/assets/english_ngrams.dat` (~240 KB), loaded by
   `NgramDictionary` with the per-char lowercase fold.
 
 ## `build_english_dict.py`
 
-Regenerates `app/src/main/assets/english_words.dat`, the English suggestion
+Regenerates `language/english/src/main/assets/english_words.dat`, the English suggestion
 dictionary loaded by `suggestion/WordDictionary.kt`.
 
 ```sh

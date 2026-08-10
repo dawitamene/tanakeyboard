@@ -5,9 +5,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.Properties
+import java.util.zip.ZipFile
 import com.android.build.api.variant.BuildConfigField
-import com.addiyon.buildlogic.dictionary.GenerateDictionaryDatabase
-import com.addiyon.buildlogic.dictionary.LanguageDictionariesExtension
 import com.addiyon.buildlogic.versioning.GitCommitCountValueSource
 import org.gradle.api.tasks.testing.Test
 import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
@@ -17,7 +16,6 @@ import org.gradle.testing.jacoco.tasks.JacocoReport
 plugins {
     id("addiyon.android.application")
     id("addiyon.android.compose")
-    id("addiyon.language-dictionaries")
     alias(libs.plugins.baselineprofile)
     id("jacoco")
 }
@@ -123,17 +121,6 @@ if (keystoreProperties.isNotEmpty() && expectedReleaseCertificate.isNotEmpty()) 
 android {
     namespace = "com.addiyon.keyboard"
 
-    androidResources {
-        ignoreAssetsPatterns.addAll(
-            listOf(
-                "!amharic_words.dat",
-                "!amharic_ngrams.dat",
-                "!english_words.dat",
-                "!english_ngrams.dat",
-            )
-        )
-    }
-
     buildFeatures {
         buildConfig = true
     }
@@ -211,25 +198,16 @@ android {
     }
 }
 
-configure<LanguageDictionariesExtension> {
-    dictionaries.register("amharic") {
-        wordsDat.set(layout.projectDirectory.file("src/main/assets/amharic_words.dat"))
-        ngramsDat.set(layout.projectDirectory.file("src/main/assets/amharic_ngrams.dat"))
-        outputDb.set(layout.projectDirectory.file("src/main/assets/amharic.db"))
-        normalization.set(GenerateDictionaryDatabase.NORMALIZATION_ETHIOPIC)
-        maxPrefixLength.set(1)
-    }
-    dictionaries.register("english") {
-        wordsDat.set(layout.projectDirectory.file("src/main/assets/english_words.dat"))
-        ngramsDat.set(layout.projectDirectory.file("src/main/assets/english_ngrams.dat"))
-        outputDb.set(layout.projectDirectory.file("src/main/assets/english.db"))
-        normalization.set(GenerateDictionaryDatabase.NORMALIZATION_LATIN_LOWERCASE)
-        maxPrefixLength.set(2)
-    }
-}
-
 dependencies {
 
+    implementation(project(":keyboard:contracts"))
+    implementation(project(":keyboard:core"))
+    implementation(project(":suggestions:api"))
+    implementation(project(":suggestions:core"))
+    implementation(project(":suggestions:sqlite"))
+    implementation(project(":language:api"))
+    implementation(project(":language:english"))
+    implementation(project(":language:amharic"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -537,6 +515,41 @@ val verifyCoreDebugUnitTestCoverage = tasks.register<JacocoCoverageVerification>
 
 tasks.named("check") {
     dependsOn(verifyCoreDebugUnitTestCoverage)
+}
+
+val verifyDebugLanguagePackAssets = tasks.register("verifyDebugLanguagePackAssets") {
+    group = "verification"
+    description = "Verify the Addiyon APK contains both selected language packs."
+    dependsOn("assembleDebug")
+    doLast {
+        val apk = layout.buildDirectory.dir("outputs/apk/debug").get().asFile
+            .walkTopDown()
+            .filter(File::isFile)
+            .filter { it.extension == "apk" }
+            .single()
+        ZipFile(apk).use { zip ->
+            val entries = zip.entries().asSequence().map { it.name }.toSet()
+            listOf(
+                "assets/amharic.db",
+                "assets/amharic_words.dat",
+                "assets/amharic_ngrams.dat",
+                "assets/amharic_dictionary_manifest.properties",
+                "assets/english.db",
+                "assets/english_words.dat",
+                "assets/english_ngrams.dat",
+                "assets/english_dictionary_manifest.properties"
+            ).forEach { required ->
+                check(required in entries) { "Missing language-pack asset: $required" }
+            }
+            check("assets/dictionary_manifest.properties" !in entries) {
+                "Obsolete paired-language dictionary manifest is still packaged"
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(verifyDebugLanguagePackAssets)
 }
 
 val verifyProductionFirebaseConfig = tasks.register("verifyProductionFirebaseConfig") {

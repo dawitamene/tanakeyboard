@@ -2,7 +2,9 @@ package com.addiyon.keyboard.telemetry
 
 enum class TelemetryLanguage(internal val wireName: String) {
     AMHARIC("amharic"),
-    ENGLISH("english")
+    ENGLISH("english"),
+    OROMO("oromo"),
+    OTHER("other")
 }
 
 enum class TelemetryLayout(internal val wireName: String) {

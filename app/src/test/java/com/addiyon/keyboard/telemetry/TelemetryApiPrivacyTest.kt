@@ -94,11 +94,12 @@ class TelemetryApiPrivacyTest {
     @Test
     fun transliterationCompositionCursorAndEmailContentPathsContainNoTelemetryCalls() {
         val root = sourceRoot()
+        val project = projectRoot()
         val contentPathFiles = buildList {
-            addAll(kotlinFiles(File(root, "transliteration")))
-            addAll(kotlinFiles(File(root, "composing")))
+            addAll(kotlinFiles(File(project, "language/amharic/src/main/java/com/addiyon/keyboard/transliteration")))
+            addAll(kotlinFiles(File(project, "keyboard/core/src/main/kotlin/com/addiyon/keyboard/composing")))
             add(File(root, "EditorGateway.kt"))
-            add(File(root, "suggestion/EmailSuggestions.kt"))
+            add(File(project, "suggestions/core/src/main/kotlin/com/addiyon/keyboard/suggestion/EmailSuggestions.kt"))
         }
 
         contentPathFiles.forEach { file ->
@@ -228,4 +229,7 @@ class TelemetryApiPrivacyTest {
             File("src/main/java/com/addiyon/keyboard"),
             File("app/src/main/java/com/addiyon/keyboard")
         ).first(File::isDirectory)
+
+    private fun projectRoot(): File =
+        if (File("settings.gradle.kts").isFile) File(".") else File("..")
 }

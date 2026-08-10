@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Regenerates app/src/main/assets/english_words.dat -- the English suggestion
+Regenerates language/english/src/main/assets/english_words.dat -- the English suggestion
 dictionary consumed by suggestion/WordDictionary.kt -> WordTrie.kt.
 
 Output format:
@@ -39,7 +39,7 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, ".cache")
 REPO = os.path.abspath(os.path.join(HERE, ".."))
-OUT = os.path.join(REPO, "app", "src", "main", "assets", "english_words.dat")
+OUT = os.path.join(REPO, "language", "english", "src", "main", "assets", "english_words.dat")
 CURATED = os.path.join(HERE, "proper_nouns.txt")
 
 TARGET_WORDS = 250_000

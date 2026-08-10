@@ -42,7 +42,10 @@ class TelemetrySchemaTest {
 
     @Test
     fun typedEventsAndEnumWireValuesCoverTheReviewedSurface() {
-        assertEquals(listOf("amharic", "english"), TelemetryLanguage.entries.map { it.wireName })
+        assertEquals(
+            listOf("amharic", "english", "oromo", "other"),
+            TelemetryLanguage.entries.map { it.wireName }
+        )
         assertEquals(
             listOf("letters", "numbers", "symbols", "keypad", "emoji"),
             TelemetryLayout.entries.map { it.wireName }

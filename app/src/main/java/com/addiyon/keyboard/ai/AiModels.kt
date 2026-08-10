@@ -1,5 +1,10 @@
 package com.addiyon.keyboard.ai
 
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+
 enum class AiToneTab(
     val label: String,
     val tone: String,
@@ -78,7 +83,9 @@ fun countWords(text: String): Int {
     return trimmed.split(Regex("\\s+")).count { it.isNotEmpty() }
 }
 
-fun todayIso(): String = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString()
+fun todayIso(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+    timeZone = TimeZone.getTimeZone("UTC")
+}.format(Date())
 
 fun extractSentence(textBefore: String, maxChars: Int = 400): String {
     if (textBefore.isEmpty()) return ""

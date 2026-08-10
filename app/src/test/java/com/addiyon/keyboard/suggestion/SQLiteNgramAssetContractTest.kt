@@ -140,7 +140,10 @@ class SQLiteNgramAssetContractTest {
     private fun withDatabase(name: String, block: (Connection) -> Unit) {
         val database = listOf(
             File("src/main/assets/$name"),
-            File("app/src/main/assets/$name")
+            File("language/amharic/src/main/assets/$name"),
+            File("language/english/src/main/assets/$name"),
+            File("../language/amharic/src/main/assets/$name"),
+            File("../language/english/src/main/assets/$name")
         ).firstOrNull(File::isFile)
         assumeTrue("$name not built", database != null)
         DriverManager.getConnection("jdbc:sqlite:${database!!.absolutePath}").use(block)

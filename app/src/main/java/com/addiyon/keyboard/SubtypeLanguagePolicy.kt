@@ -27,6 +27,9 @@ internal object SubtypeLanguagePolicy {
      * present, matching the platform's own precedence.
      */
     fun selectsAmharic(languageTag: String?, locale: String?): Boolean? =
+        resolveLanguageId(languageTag, locale)?.let { it == "am-ET" }
+
+    fun resolveLanguageId(languageTag: String?, locale: String?): String? =
         fromLanguageCode(languageTag) ?: fromLanguageCode(locale)
 
     /**
@@ -35,15 +38,15 @@ internal object SubtypeLanguagePolicy {
      * language alone (not region), so "am", "am-ET" and "am_ET" all resolve --
      * a subtype for Amharic outside Ethiopia is still Amharic.
      */
-    private fun fromLanguageCode(value: String?): Boolean? {
+    private fun fromLanguageCode(value: String?): String? {
         if (value.isNullOrBlank()) return null
         val language = value.trim()
             .substringBefore('-')
             .substringBefore('_')
             .lowercase()
         return when (language) {
-            "am" -> true
-            "en" -> false
+            "am" -> "am-ET"
+            "en" -> "en-US"
             else -> null
         }
     }

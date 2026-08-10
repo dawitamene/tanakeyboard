@@ -13,5 +13,19 @@ plugins {
 tasks.register("checkKeyboardProducts") {
     group = "verification"
     description = "Run verification for every keyboard product and its benchmark assembly."
-    dependsOn(":app:check", ":benchmark:assembleBenchmarkRelease")
+    dependsOn(
+        ":keyboard:contracts:check",
+        ":keyboard:core:check",
+        ":language:api:check",
+        ":language:english:check",
+        ":language:amharic:check",
+        ":suggestions:api:check",
+        ":suggestions:core:check",
+        ":suggestions:sqlite:check",
+        ":app:testDebugUnitTest",
+        ":app:verifyCoreDebugUnitTestCoverage",
+        ":app:lintRelease",
+        ":app:verifyDebugLanguagePackAssets",
+        ":benchmark:assembleBenchmarkRelease"
+    )
 }

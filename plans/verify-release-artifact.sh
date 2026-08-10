@@ -76,7 +76,8 @@ entries="$(unzip -Z1 "$aab")"
 for entry in \
     base/assets/amharic.db \
     base/assets/english.db \
-    base/assets/dictionary_manifest.properties \
+    base/assets/amharic_dictionary_manifest.properties \
+    base/assets/english_dictionary_manifest.properties \
     base/assets/emoji.dat \
     BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map \
     BUNDLE-METADATA/com.android.tools.build.profiles/baseline.prof; do

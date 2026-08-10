@@ -50,32 +50,33 @@ import com.addiyon.keyboard.emoji.EmojiBackspace
 import com.addiyon.keyboard.emoji.EmojiRepository
 import com.addiyon.keyboard.emoji.RecentEmojiStore
 import com.addiyon.keyboard.emoji.SkinToneStore
-import com.addiyon.keyboard.suggestion.AmharicPrefixCompletion
-import com.addiyon.keyboard.suggestion.AmharicCommitPolicy
-import com.addiyon.keyboard.suggestion.CandidateRanker
 import com.addiyon.keyboard.suggestion.EmailChip
 import com.addiyon.keyboard.suggestion.EmailSuggestions
 import com.addiyon.keyboard.suggestion.PersonalDictionary
-import com.addiyon.keyboard.suggestion.NgramContext
 import com.addiyon.keyboard.suggestion.PerWordCache
 import com.addiyon.keyboard.suggestion.PredictionCache
-import com.addiyon.keyboard.suggestion.PredictionLanguage
-import com.addiyon.keyboard.suggestion.SQLiteDictionary
-import com.addiyon.keyboard.suggestion.SQLiteLanguageStore
-import com.addiyon.keyboard.suggestion.SQLiteNgramModel
-import com.addiyon.keyboard.suggestion.SubstitutionCost
-import com.addiyon.keyboard.suggestion.Suggestion
 import com.addiyon.keyboard.suggestion.SuggestionTrace
-import com.addiyon.keyboard.transliteration.AmharicTable
-import com.addiyon.keyboard.transliteration.EthiopicNormalizer
+import com.addiyon.keyboard.suggestion.CompletionQuery
+import com.addiyon.keyboard.suggestion.EngineSuggestion
+import com.addiyon.keyboard.suggestion.LanguageSuggestionEngine
+import com.addiyon.keyboard.suggestion.PersonalCompletionSource
+import com.addiyon.keyboard.language.LanguageId
+import com.addiyon.keyboard.language.LanguageContext
+import com.addiyon.keyboard.language.LanguagePack
+import com.addiyon.keyboard.language.LanguageRegistry
+import com.addiyon.keyboard.language.LanguageTelemetryCategory
+import com.addiyon.keyboard.language.amharic.AmharicLanguagePack
+import com.addiyon.keyboard.language.amharic.AmharicSuggestionEngine
+import com.addiyon.keyboard.language.english.EnglishLanguagePack
+import com.addiyon.keyboard.language.english.EnglishSuggestionEngine
 import com.addiyon.keyboard.suggestion.matchCase
 import com.addiyon.keyboard.telemetry.Telemetry
 import com.addiyon.keyboard.telemetry.TelemetryLanguage
+import com.addiyon.keyboard.telemetry.NonFatalCategory
 import com.addiyon.keyboard.telemetry.TelemetryLayout
 import com.addiyon.keyboard.telemetry.TelemetrySuggestionKind
 import com.addiyon.keyboard.telemetry.TelemetryVoiceError
 import com.addiyon.keyboard.telemetry.TelemetryVoiceResult
-import com.addiyon.keyboard.transliteration.Transliterator
 import com.addiyon.keyboard.util.MemoryProbe
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_DEFAULT
 import com.addiyon.keyboard.ai.AiController
@@ -104,7 +105,6 @@ import com.addiyon.keyboard.voice.VoiceInputController
 import com.addiyon.keyboard.voice.VoiceUiState
 import com.addiyon.keyboard.voice.isVoiceMode
 import java.util.concurrent.ArrayBlockingQueue
-import java.util.Collections
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -137,46 +137,13 @@ private const val NEXT_WORD_LIMIT = SUGGESTION_LIST_LIMIT
  */
 private const val PREDICTION_FALLBACK_ENGLISH_LIMIT = SUGGESTION_LIST_LIMIT
 
-/**
- * English suggestion-list capacity: exact-prefix completions first, then up
- * to [ENGLISH_FUZZY_LIMIT] typo corrections appended when fewer exact matches
- * are available.
- */
-private const val ENGLISH_SUGGESTION_LIMIT = SUGGESTION_LIST_LIMIT
-private const val ENGLISH_EXACT_LIMIT = ENGLISH_SUGGESTION_LIMIT
-private const val ENGLISH_FUZZY_LIMIT = 2
 private const val LOW_RAM_IDLE_RELEASE_MS = 20_000L
 private const val PREDICTION_CACHE_SIZE = 64
 private const val PREDICTION_IDENTITY_BEFORE = 256
 private const val PREDICTION_IDENTITY_AFTER = 128
 
-/**
- * Candidate pool pulled from the trie for the English completion strip: the
- * top [ENGLISH_COMPLETION_POOL] prefix matches by frequency, from which the
- * n-gram context reorder ([CandidateRanker.rankByContext]) picks the
- * [ENGLISH_EXACT_LIMIT] shown. Larger than the visible strip count so a
- * context-predicted continuation ranked below the top few by raw frequency can
- * still surface; the trie's best-first search keeps this cheap.
- */
-private const val ENGLISH_COMPLETION_POOL = 24
-
-/**
- * Next-word successors pulled from the English model when building the
- * per-word context boost map -- enough to cover the model's stored per-context
- * fan-out (bigram cap 8), so any predicted continuation that is also a valid
- * completion of what's typed can collect its boost.
- */
 private const val ENGLISH_NGRAM_CONTEXT_LIMIT = 10
 
-/**
- * Per-char lowercase fold for English n-gram keys. Mirrors [WordDictionary]'s
- * default `Char::lowercaseChar` keying and `tools/build_english_dict.py`'s
- * sort, so a context/candidate word folds to the exact key the model's vocab
- * and the boost map are keyed by (whole-string `lowercase()` can diverge for a
- * few special-cased code points).
- */
-private fun englishFold(word: String): String =
-    buildString(word.length) { for (c in word) append(c.lowercaseChar()) }
 
 /**
  * Text-field variations where English sentence auto-capitalization is
@@ -199,59 +166,6 @@ private val NO_AUTOCAP_VARIATIONS = setOf(
  *  past any realistic run of trailing spaces to the terminator. See
  *  [SentenceCase]. */
 private const val SENTENCE_LOOKBEHIND = 16
-
-/**
- * English fuzzy corrections below this raw dictionary frequency are dropped so
- * a typo maps to a reasonably common word, not an obscure 1-edit neighbour.
- * The English asset carries real OpenSubtitles counts (up to ~28M); ~500 keeps
- * roughly the top 10% of words, a good "is this a real correction" cutoff.
- *
- * The Amharic asset has NO real frequencies (a shorter-word-ranks-higher
- * heuristic, all values <= 950), so an absolute gate is meaningless there --
- * its noise is instead controlled by the strict fidel cost model (only a
- * same-family vowel substitution is in budget), so it uses no gate.
- */
-private const val ENGLISH_FUZZY_MIN_FREQUENCY = 500
-
-/**
- * Max fidel reading length for fuzzy suggestions. Beyond this the Damerau-
- * Levenshtein trie walk is expensive and the results are less useful (long
- * words are less likely to need typo correction). Exact-prefix completions
- * still run at any length.
- */
-private const val MAX_FUZZY_READING_LENGTH = 12
-
-/**
- * How many candidate readings get a fuzzy pass when the strip underfills.
- * Readings are rank-ordered (greedy/most-plausible first) and each fuzzy
- * call is a bounded-edit-distance trie walk -- running it for all ~48
- * readings took >150ms per keystroke on a desktop JVM (visibly worse on a
- * phone) exactly in the type-then-clear scenario the strip underfills in.
- * The top few readings carry virtually all real correction value.
- */
-private const val MAX_FUZZY_READINGS = 6
-
-/** LRU capacity for per-word suggestion memoization -- see [amharicSuggestionCache]. */
-private const val SUGGESTION_CACHE_SIZE = 64
-
-/**
- * Length-scaled edit budget for fuzzy matching: none for buffers too short to
- * disambiguate, one edit for typical words, two for long ones (where a double
- * typo is plausible without exploding false positives).
- */
-private fun fuzzyEditBudget(length: Int): Int = when {
-    length <= 2 -> 0
-    length <= 6 -> 1
-    else -> 2
-}
-
-/**
- * Script-aware substitution cost for the Amharic fuzzy pass: a wrong vowel on
- * the right consonant (ይ↔ያ) is a cheap edit, a wrong consonant is expensive --
- * see [AmharicTable.fidelSubstitutionCost].
- */
-private val AMHARIC_FIDEL_COST =
-    SubstitutionCost(AmharicTable::fidelSubstitutionCost)
 
 private fun VoiceErrorKind.telemetryCategory(): TelemetryVoiceError = when (this) {
     VoiceErrorKind.PERMISSION -> TelemetryVoiceError.PERMISSION
@@ -294,8 +208,16 @@ class AddiyonKeyboardService : InputMethodService(),
     // KEYBOARD STATE
     // ----------------------------
 
-    var isAmharic by mutableStateOf(true)
+    private lateinit var languageRegistry: LanguageRegistry
+
+    var activeLanguageId by mutableStateOf(LanguageId.of(AmharicSuggestionEngine.ID))
         private set
+
+    val activePack: LanguagePack
+        get() = languageRegistry.activePack
+
+    val isAmharic: Boolean
+        get() = activeLanguageId == LanguageId.of(AmharicSuggestionEngine.ID)
 
     var numbersMode by mutableStateOf(NumbersMode.OFF)
         private set
@@ -471,7 +393,7 @@ class AddiyonKeyboardService : InputMethodService(),
         val editorToken: EditorToken,
         val caretWord: String?,
         val predictionIdentity: EditorContentIdentity?,
-        val amharic: Boolean,
+        val languageId: LanguageId,
         val emailField: Boolean,
         val privateField: Boolean,
         val numberMode: Boolean
@@ -566,13 +488,15 @@ class AddiyonKeyboardService : InputMethodService(),
 
     private fun rememberWord(word: String) {
         if (!::personalDictionary.isInitialized || isPrivateField || isNumberMode) return
-        personalDictionary.learn(word)
+        personalDictionary.learn(activeLanguageId.value, word)
         try {
             val before = editorGateway.textBeforeCursor(ResumableWord.LOOKBEHIND, optional = true)?.value
             val after = editorGateway.textAfterCursor(1, optional = true)?.value ?: ""
             if (before != null) {
                 val email = ResumableWord.emailWordEndingAtCursor(before, after)
-                if (email != null && email != word && '@' in email) personalDictionary.learn(email)
+                if (email != null && email != word && '@' in email) {
+                    personalDictionary.learnEmail(email)
+                }
             }
         } catch (_: Throwable) {
         }
@@ -596,29 +520,24 @@ class AddiyonKeyboardService : InputMethodService(),
             isWordCharacter = ::isEmailWordCharacter,
             wordEndingAtCursor = ResumableWord::emailWordEndingAtCursor
         )
-        isAmharic -> TypingProfile(
-            isWordCharacter = ::isComposingWordCharacter,
-            commitTransform = { raw -> topAmharicCandidate(raw) },
-            transformStandalone = { raw -> Transliterator.transliterate(raw) },
-            wordEndingAtCursor = ResumableWord::amharicWordEndingAtCursor,
-            remembersRawLatin = true
-        )
-        else -> TypingProfile(
-            isWordCharacter = ::isComposingWordCharacter,
-            wordEndingAtCursor = ResumableWord::latinWordEndingAtCursor
-        )
+        else -> activePack.typingProfile
     }
 
-    private fun telemetryLanguage(): TelemetryLanguage =
-        if (isAmharic) TelemetryLanguage.AMHARIC else TelemetryLanguage.ENGLISH
+    private fun telemetryLanguage(): TelemetryLanguage = when (activePack.telemetryCategory) {
+        LanguageTelemetryCategory.AMHARIC -> TelemetryLanguage.AMHARIC
+        LanguageTelemetryCategory.ENGLISH -> TelemetryLanguage.ENGLISH
+        LanguageTelemetryCategory.OROMO -> TelemetryLanguage.OROMO
+        LanguageTelemetryCategory.OTHER -> TelemetryLanguage.OTHER
+    }
 
     /**
      * The committed word the caret sits at the end of, if any -- the word the
      * suggestion strip answers when nothing is being composed, and the word a
-     * completion chip tap re-opens and replaces (see WordAdoption). Latin
-     * pipelines only: Amharic's buffer is SERA Latin while its field text is
-     * fidel, so a committed fidel word is never a suggestion lookup key
-     * (mirrors the old allowsCommittedWordResume rule).
+     * completion chip tap re-opens and replaces (see WordAdoption). A language
+     * engine may accept its committed script as a lookup key even when its live
+     * composing buffer uses another representation. Continuing to type still
+     * follows the profile's adoption rules; this read does not reverse-convert
+     * or reopen the word by itself.
      *
      * Read lazily at each use (never cached): two short cursor-relative reads,
      * no absolute offsets involved. Optional, so an editor whose reads turn
@@ -627,7 +546,6 @@ class AddiyonKeyboardService : InputMethodService(),
     private data class CaretWord(val word: String, val token: EditorToken)
 
     private fun currentCaretWord(): CaretWord? {
-        if (isAmharic && !isEmailField) return null
         if (typingController.isComposing) return null
         val profile = typingProfile()
         val before = editorGateway.textBeforeCursor(ResumableWord.LOOKBEHIND, optional = true)
@@ -642,12 +560,8 @@ class AddiyonKeyboardService : InputMethodService(),
     // isn't safely usable (applicationContext etc.) until attachBaseContext
     // has run, which happens after this class's own construction but
     // before onCreate().
-    private lateinit var amharicDictionary: SQLiteDictionary
-    private lateinit var englishDictionary: SQLiteDictionary
-    private lateinit var amharicNgrams: SQLiteNgramModel
-    private lateinit var englishNgrams: SQLiteNgramModel
-    private lateinit var amharicStore: SQLiteLanguageStore
-    private lateinit var englishStore: SQLiteLanguageStore
+    private val activeSuggestionEngine: LanguageSuggestionEngine
+        get() = activePack.suggestionEngine
     lateinit var emojiRepository: EmojiRepository
         private set
     private lateinit var recentEmojiStore: RecentEmojiStore
@@ -674,7 +588,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 publishSuggestionState(SuggestionUiState.Private)
                 return@safeApply
             }
-            if (!::amharicDictionary.isInitialized || isNumberMode || isEmergencyMode) {
+            if (!::languageRegistry.isInitialized || isNumberMode || isEmergencyMode) {
                 pendingPredictionBoundary = null
                 invalidateSuggestionWork()
                 publishSuggestionState(SuggestionUiState.Toolbar)
@@ -695,6 +609,8 @@ class AddiyonKeyboardService : InputMethodService(),
             }
 
             val amharic = isAmharic
+            val requestLanguageId = activeLanguageId
+            val engine = activeSuggestionEngine
             val composing = typingController.isComposing
             val caret = if (composing) null else currentCaretWord()
             val typed = when {
@@ -702,18 +618,15 @@ class AddiyonKeyboardService : InputMethodService(),
                 caret != null -> caret.word
                 else -> ""
             }
-            val contextReader =
-                if (amharic) NgramContext.AMHARIC else NgramContext.ENGLISH
-            val capturedContext = currentBoundaryContext(amharic)
+            val contextReader = activePack.contextReader
+            val capturedContext = currentBoundaryContext(requestLanguageId)
                 ?: if (composing) {
-                    composingContextForWord(amharic, contextReader)
+                    composingContextForWord(requestLanguageId, contextReader)
                 } else {
                     captureNgramContext(contextReader)
                 }
-            val context = capturedContext?.context ?: NgramContext.EMPTY
-            val store = if (amharic) amharicStore else englishStore
-
-            if (store.isLoading) {
+            val context = capturedContext?.context ?: LanguageContext(null, null)
+            if (engine.isLoading) {
                 invalidateSuggestionWork()
                 publishSuggestionState(SuggestionUiState.LoadingLanguage)
                 return@safeApply
@@ -722,8 +635,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 activeCompletionKey = null
                 clearComposingContextCache()
                 if (amharic) {
-                    amharicSuggestionCache.clear()
-                    amharicCommitCandidateCache.clear()
+                    engine.clearCaches()
                 }
                 invalidateCompletionWork()
                 if (context.prev1 == null) {
@@ -731,14 +643,13 @@ class AddiyonKeyboardService : InputMethodService(),
                     publishSuggestionState(SuggestionUiState.Toolbar)
                     return@safeApply
                 }
-                val ngrams = ngramModelFor(amharic)
-                if (ngrams == null || !ngrams.isReady) {
+                if (!engine.isReady) {
                     invalidatePredictionWork()
                     publishSuggestionState(SuggestionUiState.Toolbar)
                     return@safeApply
                 }
                 val request = PredictionRequestKey(
-                    amharic = amharic,
+                    languageId = requestLanguageId,
                     prev2 = context.prev2,
                     prev1 = context.prev1,
                     limit = if (isLowRam) SUGGESTION_STRIP_VISIBLE_LIMIT else NEXT_WORD_LIMIT
@@ -757,16 +668,27 @@ class AddiyonKeyboardService : InputMethodService(),
                 ) {
                     return@safeApply
                 }
-                val language = if (amharic) PredictionLanguage.AMHARIC else PredictionLanguage.ENGLISH
-                val cached = predictionCache.get(language, context.prev2, context.prev1, request.limit)
+                val previous1 = context.prev1 ?: return@safeApply
+                val cached = predictionCache.get(
+                    requestLanguageId.value,
+                    context.prev2,
+                    previous1,
+                    request.limit
+                )
                 if (cached != null && cached.isNotEmpty()) {
                     val merged = cached.map { it.word }.let { words ->
                         if (!::personalDictionary.isInitialized) words
                         else if (amharic) {
-                            val personal = personalDictionary.ranked(limit = request.limit).filter { w -> w.any { it in 'ሀ'..'፿' } }
+                            val personal = personalDictionary.ranked(
+                                requestLanguageId.value,
+                                limit = request.limit
+                            ).filter { w -> w.any { it in 'ሀ'..'፿' } }
                             (words + personal).distinct().take(request.limit)
                         } else {
-                            val personal = personalDictionary.ranked(limit = request.limit).filter { '@' !in it }
+                            val personal = personalDictionary.ranked(
+                                requestLanguageId.value,
+                                limit = request.limit
+                            ).filter { '@' !in it }
                             (words + personal).distinct().take(request.limit)
                         }
                     }
@@ -787,7 +709,7 @@ class AddiyonKeyboardService : InputMethodService(),
                     ?: nonVoiceSuggestionUiState as? SuggestionUiState.NextWordPredictions
                 publishSuggestionState(carried ?: SuggestionUiState.LoadingPredictions)
                 schedulePredictionComputation(
-                    amharic = amharic,
+                    languageId = requestLanguageId,
                     capturedContext = capturedContext,
                     limit = request.limit
                 )
@@ -798,7 +720,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 // same buffer after every keystroke; without this guard each
                 // echo cancelled the in-flight lookup and restarted it,
                 // doubling the time to chips for no reason.
-                val completionKey = CompletionRequestKey(typed, amharic)
+                val completionKey = CompletionRequestKey(typed, requestLanguageId)
                 if (completionKey == activeCompletionKey) return@safeApply
                 // Don't drop to the toolbar while the new completions compute.
                 // Publishing Toolbar here made the strip flash its icons between
@@ -814,7 +736,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 publishSuggestionState(carried ?: SuggestionUiState.LoadingCompletions)
                 scheduleSuggestionComputation(
                     raw = typed,
-                    amharic = amharic,
+                    languageId = requestLanguageId,
                     context = context,
                     observedCaretWord = caret?.word
                 )
@@ -823,20 +745,20 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     private data class CapturedNgramContext(
-        val context: NgramContext.Context,
+        val context: LanguageContext,
         val editorToken: EditorToken,
         val contentIdentity: EditorContentIdentity
     )
 
     private data class PredictionBoundary(
-        val context: NgramContext.Context,
-        val amharic: Boolean,
+        val context: LanguageContext,
+        val languageId: LanguageId,
         val sourceToken: EditorToken,
         val contentIdentity: EditorContentIdentity
     )
 
     private data class PredictionRequestKey(
-        val amharic: Boolean,
+        val languageId: LanguageId,
         val prev2: String?,
         val prev1: String?,
         val limit: Int
@@ -848,7 +770,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * lifetime of a word (cached in [composingNgramBoost]), so the raw buffer
      * fully determines what a re-schedule would compute.
      */
-    private data class CompletionRequestKey(val raw: String, val amharic: Boolean)
+    private data class CompletionRequestKey(val raw: String, val languageId: LanguageId)
 
     private var activeCompletionKey: CompletionRequestKey? = null
 
@@ -860,8 +782,15 @@ class AddiyonKeyboardService : InputMethodService(),
 
     private var pendingPredictionBoundary: PredictionBoundary? = null
     private var activePredictionRequest: PredictionRequest? = null
-    private val predictionCache =
-        PredictionCache<List<SQLiteNgramModel.Prediction>>(PREDICTION_CACHE_SIZE)
+    private val predictionCache = PredictionCache<List<EngineSuggestion>>(
+        PREDICTION_CACHE_SIZE
+    ) { languageId, word ->
+        languageRegistry.installedPacks
+            .firstOrNull { it.id.value == languageId }
+            ?.suggestionEngine
+            ?.normalize(word)
+            ?: word
+    }
     private val suggestionMainHandler = Handler(Looper.getMainLooper())
     private val idleReleaseHandler = Handler(Looper.getMainLooper())
     private val idleRelease = Runnable {
@@ -871,11 +800,7 @@ class AddiyonKeyboardService : InputMethodService(),
         publishSuggestionState(SuggestionUiState.Toolbar)
         predictionCache.clear()
         pendingPredictionBoundary = null
-        if (isAmharic && ::amharicStore.isInitialized) {
-            amharicStore.release()
-        } else if (::englishStore.isInitialized) {
-            englishStore.release()
-        }
+        if (::languageRegistry.isInitialized) activeSuggestionEngine.release()
     }
     private val suggestionExecutor = ThreadPoolExecutor(
         1,
@@ -900,9 +825,9 @@ class AddiyonKeyboardService : InputMethodService(),
     private var predictionGeneration = 0L
     private var predictionBoundaryMutationDepth = 0
 
-    private fun currentBoundaryContext(amharic: Boolean): CapturedNgramContext? {
+    private fun currentBoundaryContext(languageId: LanguageId): CapturedNgramContext? {
         val boundary = pendingPredictionBoundary ?: return null
-        if (boundary.amharic != amharic || !editorGateway.isCurrent(boundary.sourceToken)) {
+        if (boundary.languageId != languageId || !editorGateway.isCurrent(boundary.sourceToken)) {
             pendingPredictionBoundary = null
             return null
         }
@@ -925,7 +850,7 @@ class AddiyonKeyboardService : InputMethodService(),
     private fun predictionBoundaryAfterAcceptedReplacement(
         snapshot: EditorReplacementSnapshot?,
         replacement: String,
-        context: NgramContext.Context,
+        context: LanguageContext,
         allowedIntermediateSelectionStart: Int? = null,
         allowedIntermediateSelectionEnd: Int? = null
     ): PredictionBoundary? {
@@ -957,17 +882,17 @@ class AddiyonKeyboardService : InputMethodService(),
         }
         return PredictionBoundary(
             context = context,
-            amharic = isAmharic,
+            languageId = activeLanguageId,
             sourceToken = postToken,
             contentIdentity = identity
         )
     }
 
     private fun predictionContextAfterAcceptedWord(
-        priorContext: NgramContext.Context,
+        priorContext: LanguageContext,
         word: String
-    ): NgramContext.Context =
-        NgramContext.Context(
+    ): LanguageContext =
+        LanguageContext(
             prev2 = priorContext.prev1,
             prev1 = word
         )
@@ -1039,25 +964,29 @@ class AddiyonKeyboardService : InputMethodService(),
             emojiSearchField = null
             clearComposingContextCache()
             predictionCache.clear()
-            amharicSuggestionCache.clear()
-            amharicCommitCandidateCache.clear()
+            if (::languageRegistry.isInitialized) {
+                languageRegistry.installedPacks.forEach { it.suggestionEngine.clearCaches() }
+            }
             if (::emojiRepository.isInitialized) emojiRepository.release()
-            if (::amharicStore.isInitialized) amharicStore.release()
-            if (::englishStore.isInitialized) englishStore.release()
+            if (::languageRegistry.isInitialized) {
+                languageRegistry.installedPacks.forEach { it.suggestionEngine.release() }
+            }
         }
     }
 
     private fun scheduleSuggestionComputation(
         raw: String,
-        amharic: Boolean,
-        context: NgramContext.Context,
+        languageId: LanguageId,
+        context: LanguageContext,
         observedCaretWord: String? = null
     ) {
-        activeCompletionKey = CompletionRequestKey(raw, amharic)
+        activeCompletionKey = CompletionRequestKey(raw, languageId)
         val generation = ++suggestionGeneration
         val contextGeneration = composingContextGeneration
         val lowRam = isLowRam
-        val ngramModel = ngramModelFor(amharic)
+        val pack = languageRegistry.installedPacks.firstOrNull { it.id == languageId } ?: return
+        val engine = pack.suggestionEngine
+        val amharic = pack.telemetryCategory == LanguageTelemetryCategory.AMHARIC
         suggestionExecutor.queue.clear()
         suggestionExecutor.execute {
             // Deliberately NOT lowered to THREAD_PRIORITY_BACKGROUND. That moves a
@@ -1079,16 +1008,16 @@ class AddiyonKeyboardService : InputMethodService(),
                 cachedBoost to cachedCasing
             } else {
                 val predictions = try {
-                    ngramModel?.let { predictionsFor(it, context, predictionLimit) }.orEmpty()
+                    predictionsFor(engine, languageId, context, predictionLimit)
                 } catch (_: RuntimeException) {
                     emptyList()
                 }
                 val ngramNext = predictions.associate {
                     (
                         if (amharic) {
-                            EthiopicNormalizer.normalize(it.word)
+                            engine.normalize(it.word)
                         } else {
-                            englishFold(it.word)
+                            engine.normalize(it.word)
                         }
                         ) to it.weight
                 }
@@ -1097,7 +1026,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 } else {
                     predictions
                         .filter { it.word != it.word.lowercase() }
-                        .associate { englishFold(it.word) to it.word }
+                        .associate { engine.normalize(it.word) to it.word }
                 }
                 if (contextGeneration == composingContextGeneration) {
                     composingNgramBoost = ngramNext
@@ -1106,18 +1035,29 @@ class AddiyonKeyboardService : InputMethodService(),
                 ngramNext to predictionCasing
             }
             val computed = try {
-                if (amharic) {
-                    amharicSuggestions(raw, pair.first, lowRam)
-                } else {
-                    englishSuggestions(raw, pair.first, pair.second, lowRam)
-                }
+                engine.complete(
+                    CompletionQuery(
+                        raw = raw,
+                        contextWeights = pair.first,
+                        contextCasing = pair.second,
+                        personalCompletions = PersonalCompletionSource { prefix, limit ->
+                            if (!::personalDictionary.isInitialized) emptyList()
+                            else personalDictionary.completions(
+                                languageId.value,
+                                prefix,
+                                limit
+                            )
+                        },
+                        lowMemory = lowRam
+                    )
+                )
             } catch (_: RuntimeException) {
                 emptyList()
             }
             suggestionMainHandler.post {
                 if (generation != suggestionGeneration) return@post
                 if (
-                    isAmharic != amharic ||
+                    activeLanguageId != languageId ||
                     isEmailField ||
                     isPrivateField ||
                     isNumberMode
@@ -1149,12 +1089,12 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     private fun schedulePredictionComputation(
-        amharic: Boolean,
+        languageId: LanguageId,
         capturedContext: CapturedNgramContext,
         limit: Int,
     ) {
         val context = capturedContext.context
-        val request = PredictionRequestKey(amharic, context.prev2, context.prev1, limit)
+        val request = PredictionRequestKey(languageId, context.prev2, context.prev1, limit)
         val ticket = PredictionRequest(
             key = request,
             editorToken = capturedContext.editorToken,
@@ -1171,7 +1111,9 @@ class AddiyonKeyboardService : InputMethodService(),
         invalidateCompletionWork()
         val generation = ++predictionGeneration
         activePredictionRequest = ticket
-        val ngramModel = ngramModelFor(amharic)
+        val pack = languageRegistry.installedPacks.firstOrNull { it.id == languageId } ?: return
+        val engine = pack.suggestionEngine
+        val amharic = pack.telemetryCategory == LanguageTelemetryCategory.AMHARIC
         val executor = predictionExecutor
         executor.queue.clear()
         val cookie = generation.toInt()
@@ -1181,30 +1123,34 @@ class AddiyonKeyboardService : InputMethodService(),
             executor.execute {
                 SuggestionTrace.endAsync("prediction_queue", cookie)
                 val predictions = try {
-                    val model = ngramModel
-                    val ngramPredictions = model?.let { predictionsFor(it, context, limit) }
-                        .orEmpty()
+                    val ngramPredictions = predictionsFor(engine, languageId, context, limit)
                     if (ngramPredictions.isEmpty()) {
                         // No trigram or bigram successor for this context: fall
                         // back to the most frequent dictionary words so the strip
                         // still offers next-word candidates instead of going blank.
-                        model?.topFrequentWords(
+                        engine.topFrequentWords(
                             if (amharic) {
                                 AMHARIC_SUGGESTION_LIMIT
                             } else {
                                 PREDICTION_FALLBACK_ENGLISH_LIMIT
                             }
-                        ).orEmpty()
+                        )
                     } else {
                         ngramPredictions
                     }.map { it.word }
                     .let { words ->
                         if (!::personalDictionary.isInitialized) words
                         else if (amharic) {
-                            val personal = personalDictionary.ranked(limit = limit).filter { w -> w.any { it in 'ሀ'..'፿' } }
+                            val personal = personalDictionary.ranked(
+                                languageId.value,
+                                limit = limit
+                            ).filter { w -> w.any { it in 'ሀ'..'፿' } }
                             (words + personal).distinct().take(limit)
                         } else {
-                            val personal = personalDictionary.ranked(limit = limit).filter { '@' !in it }
+                            val personal = personalDictionary.ranked(
+                                languageId.value,
+                                limit = limit
+                            ).filter { '@' !in it }
                             (words + personal).distinct().take(limit)
                         }
                     }
@@ -1216,7 +1162,7 @@ class AddiyonKeyboardService : InputMethodService(),
                     try {
                         if (generation != predictionGeneration) return@post
                         if (
-                            isAmharic != amharic ||
+                            activeLanguageId != languageId ||
                             isEmailField ||
                             isPrivateField ||
                             isNumberMode ||
@@ -1256,13 +1202,6 @@ class AddiyonKeyboardService : InputMethodService(),
         }
     }
 
-    private fun ngramModelFor(amharic: Boolean): SQLiteNgramModel? =
-        if (amharic) {
-            if (::amharicNgrams.isInitialized) amharicNgrams else null
-        } else {
-            if (::englishNgrams.isInitialized) englishNgrams else null
-        }
-
     /**
      * Per-word caches. While a word is composing, the committed text before
      * the composing region cannot change (any outside edit moves the cursor,
@@ -1295,7 +1234,7 @@ class AddiyonKeyboardService : InputMethodService(),
 
     private data class ComposingContextKey(
         val sessionGeneration: Long,
-        val amharic: Boolean
+        val languageId: LanguageId
     )
 
     private val composingContextCache =
@@ -1309,30 +1248,17 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     private fun composingContextForWord(
-        amharic: Boolean,
-        contextReader: NgramContext
+        languageId: LanguageId,
+        contextReader: (CharSequence?) -> LanguageContext
     ): CapturedNgramContext? {
         val key = ComposingContextKey(
             sessionGeneration = editorGateway.sessionGeneration,
-            amharic = amharic
+            languageId = languageId
         )
         return composingContextCache.getOrCapture(key) {
             captureNgramContext(contextReader)
         }
     }
-    private val amharicSuggestionCache = Collections.synchronizedMap(
-        object : LinkedHashMap<String, List<String>>(SUGGESTION_CACHE_SIZE, 0.75f, true) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<String>>) =
-                size > SUGGESTION_CACHE_SIZE
-        }
-    )
-    private val amharicCommitCandidateCache = Collections.synchronizedMap(
-        object : LinkedHashMap<String, String>(SUGGESTION_CACHE_SIZE, 0.75f, true) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>) =
-                size > SUGGESTION_CACHE_SIZE
-        }
-    )
-
     /**
      * Bigram/trigram next-word predictions for the words preceding the cursor,
      * read from the field via [contextReader] and looked up in [ngrams]; empty
@@ -1342,7 +1268,7 @@ class AddiyonKeyboardService : InputMethodService(),
      * caret is always at the composing end, so the whole buffer is the prefix.
      */
     private fun captureNgramContext(
-        contextReader: NgramContext,
+        contextReader: (CharSequence?) -> LanguageContext,
     ): CapturedNgramContext? {
         return safeRun(null) {
             val composingPrefix = if (typingController.isComposing) {
@@ -1354,7 +1280,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 .surroundingText(
                     beforeChars = maxOf(
                         PREDICTION_IDENTITY_BEFORE,
-                        NgramContext.WINDOW + composingPrefix.length
+                        ResumableWord.LOOKBEHIND + composingPrefix.length
                     ),
                     afterChars = PREDICTION_IDENTITY_AFTER,
                     optional = true
@@ -1372,7 +1298,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 before
             }
             CapturedNgramContext(
-                context = contextReader.extract(field),
+                context = contextReader(field),
                 editorToken = read.token,
                 contentIdentity = predictionIdentityFrom(surrounding)
                     ?: return@safeRun null
@@ -1381,11 +1307,11 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     private fun captureNgramContextFromCursor(
-        contextReader: NgramContext,
+        contextReader: (CharSequence?) -> LanguageContext,
         composingPrefix: String
     ): CapturedNgramContext? {
         val beforeRead = editorGateway.textBeforeCursor(
-            maxOf(PREDICTION_IDENTITY_BEFORE, NgramContext.WINDOW + composingPrefix.length),
+            maxOf(PREDICTION_IDENTITY_BEFORE, ResumableWord.LOOKBEHIND + composingPrefix.length),
             optional = false
         ) ?: return null
         val afterRead = editorGateway.textAfterCursor(PREDICTION_IDENTITY_AFTER, optional = false)
@@ -1399,7 +1325,7 @@ class AddiyonKeyboardService : InputMethodService(),
         val selection = beforeRead.token.selectionStart
         if (selection < 0) return null
         return CapturedNgramContext(
-            context = contextReader.extract(field),
+            context = contextReader(field),
             editorToken = beforeRead.token,
             contentIdentity = EditorContentIdentity(
                 selectionStart = selection,
@@ -1411,36 +1337,21 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     private fun predictionsFor(
-        ngrams: SQLiteNgramModel,
-        context: NgramContext.Context,
+        engine: LanguageSuggestionEngine,
+        languageId: LanguageId,
+        context: LanguageContext,
         limit: Int,
-    ): List<SQLiteNgramModel.Prediction> {
+    ): List<EngineSuggestion> {
         val prev1 = context.prev1 ?: return emptyList()
-        val language = if (ngrams === amharicNgrams) {
-            PredictionLanguage.AMHARIC
-        } else {
-            PredictionLanguage.ENGLISH
-        }
-        predictionCache.get(language, context.prev2, prev1, limit)?.let { return it }
-        if (!ngrams.isReady) return emptyList()
+        predictionCache.get(languageId.value, context.prev2, prev1, limit)?.let { return it }
+        if (!engine.isReady) return emptyList()
         val predictions = safeRun(emptyList()) {
             SuggestionTrace.section("ngram_query") {
-                ngrams.predict(context.prev2, prev1, limit)
+                engine.predict(context.prev2, prev1, limit)
             }
         }
-        predictionCache.put(language, context.prev2, prev1, limit, predictions)
+        predictionCache.put(languageId.value, context.prev2, prev1, limit, predictions)
         return predictions
-    }
-
-    /**
-     * The reading that lands in the field when the current Amharic word is
-     * committed: the best exact dictionary reading if one exists, else the
-     * structurally greedy reading. Longer completions remain tap-only.
-     */
-    private fun topAmharicCandidate(raw: String): String {
-        return safeRun(Transliterator.transliterate(raw)) {
-            AmharicCommitPolicy.resolve(raw, amharicCommitCandidateCache[raw])
-        }
     }
 
     private fun publishSuggestions(value: List<String>, arePredictions: Boolean = false) {
@@ -1561,8 +1472,21 @@ class AddiyonKeyboardService : InputMethodService(),
         // previous completions forward during an in-flight lookup (the anti-flicker
         // path) republishes constantly, so this was the common case, not the rare
         // one. A tap is still scoped correctly: an unchanged strip is the same
-        // strip, so the same generation is the honest answer.
+        // strip, so the same generation is the honest answer. Its editor
+        // identity still has to be refreshed: two contexts can legitimately
+        // produce the same words, and the chips must target the newer caret
+        // boundary even though their visible content did not change.
         if (sameVisibleChips(nonVoiceSuggestionUiState, state)) {
+            val generation = when (val current = nonVoiceSuggestionUiState) {
+                is SuggestionUiState.WordCompletions -> current.actionGeneration
+                is SuggestionUiState.NextWordPredictions -> current.actionGeneration
+                is SuggestionUiState.EmailSuggestions -> current.actionGeneration
+                else -> return nonVoiceSuggestionUiState
+            }
+            publishedSuggestionAction = publishedSuggestionActionFor(
+                state = nonVoiceSuggestionUiState,
+                generation = generation
+            )
             return nonVoiceSuggestionUiState
         }
         val generation = ++suggestionActionGeneration
@@ -1575,295 +1499,38 @@ class AddiyonKeyboardService : InputMethodService(),
                 state.copy(actionGeneration = generation)
             else -> state
         }
-        val token = editorGateway.currentToken()
-        publishedSuggestionAction = if (
-            token != null &&
-            (
-                scoped is SuggestionUiState.WordCompletions ||
-                    scoped is SuggestionUiState.NextWordPredictions ||
-                    scoped is SuggestionUiState.EmailSuggestions
-                )
-        ) {
-            PublishedSuggestionAction(
-                generation = generation,
-                editorToken = token,
-                caretWord = currentCaretWord()?.word,
-                predictionIdentity = if (
-                    scoped is SuggestionUiState.NextWordPredictions
-                ) {
-                    activePredictionRequest?.contentIdentity
-                } else {
-                    null
-                },
-                amharic = isAmharic,
-                emailField = isEmailField,
-                privateField = isPrivateField,
-                numberMode = isNumberMode
-            )
-        } else {
-            null
-        }
+        publishedSuggestionAction = publishedSuggestionActionFor(scoped, generation)
         return scoped
     }
 
-    /**
-     * English suggestions: exact-prefix completions first, then typo/near-miss
-     * corrections ([WordTrie.fuzzySuggestions]) appended below and gated by
-     * [ENGLISH_FUZZY_MIN_FREQUENCY], so "informtion" still surfaces "information"
-     * without an empty strip. Corrections are display-only -- space still
-     * commits the literal buffer -- and the user's typed case is restored on
-     * the way out via [matchCase].
-     *
-     * The exact completions are reordered by an n-gram context nudge
-     * ([CandidateRanker.rankByContext]): a completion the model predicts to
-     * follow the previous word(s) rises within the frequency-ranked pool, so
-     * after "I " typing "lo" biases "love"/"look" over an equally common but
-     * unpredicted "lot". Computed once per composing word via
-     * [composingNgramBoost].
-     */
-    private fun englishSuggestions(
-        typed: String,
-        ngramNext: Map<String, Int>,
-        casing: Map<String, String>,
-        lowRam: Boolean,
-    ): List<String> {
-        return safeRun(emptyList()) {
-            if (typed.isEmpty()) return@safeRun emptyList()
-
-            val key = typed.lowercase()
-
-            val pool = englishDictionary.suggestionEntries(key, ENGLISH_COMPLETION_POOL)
-                .map { CandidateRanker.DictionaryWord(it.word, it.frequency) }
-            val merged = ArrayList<String>(ENGLISH_SUGGESTION_LIMIT)
-            for (word in CandidateRanker.rankByContext(pool, ngramNext, ::englishFold, ENGLISH_EXACT_LIMIT)) {
-                val cased = casing[englishFold(word)] ?: word
-                if (cased !in merged && merged.size < ENGLISH_SUGGESTION_LIMIT) merged.add(cased)
-            }
-
-            if (merged.size < ENGLISH_EXACT_LIMIT && !lowRam) {
-                val fuzzy = englishDictionary.fuzzySuggestions(
-                    key,
-                    fuzzyEditBudget(key.length),
-                    ENGLISH_FUZZY_LIMIT
-                )
-                for (match in fuzzy) {
-                    if (match.frequency >= ENGLISH_FUZZY_MIN_FREQUENCY && match.word !in merged) {
-                        merged.add(match.word)
-                        if (merged.size >= ENGLISH_SUGGESTION_LIMIT) break
-                    }
-                }
-            }
-            if (::personalDictionary.isInitialized && merged.size < ENGLISH_SUGGESTION_LIMIT) {
-                val personalRaw = personalDictionary.completions(typed, ENGLISH_COMPLETION_POOL)
-                val emailFirst = personalRaw.filter { '@' in it }
-                val nonEmail = personalRaw.filter { '@' !in it }
-                for (word in emailFirst) {
-                    if (merged.size >= ENGLISH_SUGGESTION_LIMIT) break
-                    val cased = matchCase(typed, word)
-                    if (cased !in merged) merged.add(cased)
-                }
-                for (word in nonEmail) {
-                    if (merged.size >= ENGLISH_SUGGESTION_LIMIT) break
-                    val cased = matchCase(typed, word)
-                    if (cased !in merged) merged.add(cased)
-                }
-            }
-
-            merged.map { matchCase(typed, it) }
+    private fun publishedSuggestionActionFor(
+        state: SuggestionUiState,
+        generation: Long
+    ): PublishedSuggestionAction? {
+        val token = editorGateway.currentToken() ?: return null
+        if (
+            state !is SuggestionUiState.WordCompletions &&
+            state !is SuggestionUiState.NextWordPredictions &&
+            state !is SuggestionUiState.EmailSuggestions
+        ) {
+            return null
         }
+        return PublishedSuggestionAction(
+            generation = generation,
+            editorToken = token,
+            caretWord = currentCaretWord()?.word,
+            predictionIdentity = if (state is SuggestionUiState.NextWordPredictions) {
+                activePredictionRequest?.contentIdentity
+            } else {
+                null
+            },
+            languageId = activeLanguageId,
+            emailField = isEmailField,
+            privateField = isPrivateField,
+            numberMode = isNumberMode
+        )
     }
 
-    /**
-     * Amharic suggestions are scored from exact dictionary readings,
-     * prefix completions, the current literal fallback, and fuzzy matches.
-     */
-    private fun amharicSuggestions(
-        latin: String,
-        ngramNext: Map<String, Int>,
-        lowRam: Boolean,
-    ): List<String> {
-        return safeRun(emptyList()) {
-            if (latin.isEmpty()) return@safeRun emptyList()
-            if (amharicDictionary.isReady) {
-                amharicSuggestionCache[latin]?.let { return@safeRun it }
-            }
-
-            val candidateReadings = Transliterator.candidateReadings(latin)
-            val readings = candidateReadings.map { it.text }
-            val readingFrequencies = amharicDictionary.frequenciesOf(readings)
-            val visibleReadings = readings
-            val quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet()
-            val personalAmharic = if (!::personalDictionary.isInitialized) emptyList() else {
-                val seen = HashSet<String>()
-                val out = ArrayList<String>(AMHARIC_SUGGESTION_LIMIT)
-                for (reading in readings.distinct()) {
-                    for (w in personalDictionary.completions(reading, AMHARIC_SUGGESTION_LIMIT)) {
-                        if (w !in seen) {
-                            seen.add(w)
-                            out.add(w)
-                            if (out.size >= AMHARIC_SUGGESTION_LIMIT) break
-                        }
-                    }
-                    if (out.size >= AMHARIC_SUGGESTION_LIMIT) break
-                }
-                out
-            }
-            val commitCandidate = CandidateRanker.bestCommitCandidate(
-                readings,
-                readingFrequencies::get,
-                quirkReadings = quirkReadings,
-                preferGreedy = Transliterator.hasExplicitFamilySelection(latin),
-            ) ?: Transliterator.transliterate(latin)
-            amharicCommitCandidateCache[latin] = commitCandidate
-            val directCompletions = amharicDictionary.suggestionEntriesForPrefixes(
-                readings.distinct(),
-                AMHARIC_SUGGESTION_LIMIT,
-            )
-            // The preferred vowel alternate is offered as a secondary chip -- but
-            // only when it is a MULTI-character dictionary word (ቤት for "bet").
-            // Pinning it on every second keystroke is pure noise otherwise: ሌ for
-            // "le" / ቤ for "be" tell the user nothing (and single fidels sneak
-            // into the dictionary as corpus tokenizer artifacts, so the word
-            // check alone doesn't catch them; bare-vowel alternates like ኣ even
-            // fold to the same word as the greedy አ). A suppressed alternate is
-            // still a candidate reading, so its completions (ሌላ, ቤቶች, ...)
-            // surface through the completion tier as before -- the pin is all
-            // that's dropped. While the dictionary is still loading there is no
-            // word signal; keep the old always-pin behavior for that brief window.
-            val preferredAlternate = (
-                Transliterator.vowelAlternateReading(latin)
-                    ?: Transliterator.bareVowelAlternateReading(latin)
-                )?.takeIf {
-                    it.length > 1 && (!amharicDictionary.isReady || readingFrequencies.containsKey(it))
-                }
-            val completionCache = HashMap<String, List<CandidateRanker.DictionaryWord>>()
-            for ((prefix, entries) in directCompletions) {
-                completionCache[prefix] = entries.map {
-                    CandidateRanker.DictionaryWord(it.word, it.frequency)
-                }
-            }
-            val dictionaryLookup = { prefix: String, limit: Int ->
-                amharicDictionary.suggestionEntries(prefix, limit).map {
-                    CandidateRanker.DictionaryWord(it.word, it.frequency)
-                }
-            }
-            // Direct dictionary completions first; when they don't fill the strip,
-            // synthesize the rest by stripping a productive prefix (የ-, በ-, ...)
-            // and completing the remainder from stems -- see
-            // [AmharicPrefixCompletion] for why synthesized forms are discounted.
-            val completionsForPrefix = { prefix: String, limit: Int ->
-                completionCache.getOrPut(prefix) {
-                    val direct = dictionaryLookup(prefix, limit)
-                    if (direct.size >= limit) direct
-                    else direct + AmharicPrefixCompletion.complete(
-                        prefix, limit - direct.size, direct, dictionaryLookup
-                    )
-                }
-            }
-
-            // Context-aware nudge: candidates the n-gram model predicts to
-            // follow the previous words get a small within-tier boost. Computed
-            // once per composing word -- see [composingNgramBoost].
-            val ranked = CandidateRanker.rankAmharic(
-                readings = readings,
-                limit = AMHARIC_SUGGESTION_LIMIT,
-                frequencyOf = readingFrequencies::get,
-                completionsForPrefix = completionsForPrefix,
-                visibleReadings = visibleReadings,
-                quirkReadings = quirkReadings,
-                ngramNext = ngramNext,
-                preferGreedy = Transliterator.hasExplicitFamilySelection(latin)
-            )
-            val rankedWithPersonal = if (personalAmharic.isEmpty()) ranked else (ranked + personalAmharic).distinct().take(AMHARIC_SUGGESTION_LIMIT)
-            if (rankedWithPersonal.size >= AMHARIC_SUGGESTION_LIMIT ||
-                readings.none { it.length <= MAX_FUZZY_READING_LENGTH }
-            ) {
-                return@safeRun pinPreferredAlternate(rankedWithPersonal, preferredAlternate).also {
-                    if (amharicDictionary.isReady) amharicSuggestionCache[latin] = it
-                }
-            }
-
-            // Fuzzy pass, bounded three ways to keep the worst keystroke cheap:
-            // only the top [MAX_FUZZY_READINGS] readings (rank order -- the rest
-            // are deep alternates that almost never contribute a correction),
-            // the full 2-edit budget only for the TOP reading (an alternate
-            // reading is already a variation; giving all of them 2 edits is
-            // what made long non-word buffers freeze), and stop as soon as the
-            // strip's worth of matches is gathered. On [isLowRam] devices we
-            // skip the fuzzy pass entirely -- typo correction is a "nice to
-            // have" that doesn't justify an in-Kotlin DP over a bounded SQL
-            // candidate set on every keystroke at 1 GB.
-            if (lowRam) {
-                return@safeRun pinPreferredAlternate(rankedWithPersonal, preferredAlternate).also {
-                    if (amharicDictionary.isReady) amharicSuggestionCache[latin] = it
-                }
-            }
-            val fuzzy = ArrayList<CandidateRanker.FuzzyWord>(AMHARIC_SUGGESTION_LIMIT)
-            var fuzzyReadings = 0
-            for (reading in readings) {
-                if (reading.length > MAX_FUZZY_READING_LENGTH) continue
-                if (fuzzyReadings >= MAX_FUZZY_READINGS || fuzzy.size >= AMHARIC_SUGGESTION_LIMIT) break
-                val budget = fuzzyEditBudget(reading.length)
-                    .coerceAtMost(if (fuzzyReadings == 0) 2 else 1)
-                fuzzyReadings++
-                for (match in amharicDictionary.fuzzySuggestions(
-                    reading,
-                    budget,
-                    AMHARIC_SUGGESTION_LIMIT,
-                    AMHARIC_FIDEL_COST,
-                    insertCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
-                    deleteCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
-                )) {
-                    fuzzy += CandidateRanker.FuzzyWord(match.word, match.frequency, match.editDistance)
-                }
-            }
-
-            val rankedFuzzy = CandidateRanker.rankAmharic(
-                    readings = readings,
-                    limit = AMHARIC_SUGGESTION_LIMIT,
-                    frequencyOf = readingFrequencies::get,
-                    completionsForPrefix = completionsForPrefix,
-                    visibleReadings = visibleReadings,
-                    fuzzyWords = fuzzy,
-                    quirkReadings = quirkReadings,
-                    ngramNext = ngramNext,
-                    preferGreedy = Transliterator.hasExplicitFamilySelection(latin)
-                )
-            val rankedFuzzyWithPersonal = if (personalAmharic.isEmpty()) rankedFuzzy else (rankedFuzzy + personalAmharic).distinct().take(AMHARIC_SUGGESTION_LIMIT)
-            pinPreferredAlternate(
-                rankedFuzzyWithPersonal,
-                preferredAlternate
-            ).also {
-                if (amharicDictionary.isReady) amharicSuggestionCache[latin] = it
-            }
-        }
-    }
-
-    /**
-     * Force the preferred alternate to sit directly behind the default reading.
-     * Left in place when it is already the default, and a no-op when there is no
-     * alternate. Result is re-capped to the limit.
-     */
-    private fun pinPreferredAlternate(
-        ranked: List<String>,
-        preferredAlternate: String?
-    ): List<String> {
-        return safeRun(ranked) {
-            if (preferredAlternate == null || ranked.firstOrNull() == preferredAlternate) return@safeRun ranked
-            val pinned = ArrayList<String>(ranked.size + 1)
-            pinned.addAll(ranked)
-            pinned.remove(preferredAlternate)
-            pinned.add(minOf(1, pinned.size), preferredAlternate)
-            pinned.take(AMHARIC_SUGGESTION_LIMIT)
-        }
-    }
-
-    /**
-     * Re-derives [isDarkTheme] from the system night flag and [palette] from
-     * the saved preference, then refreshes navigation icon appearance. Light/
-     * dark follows the system; only the color palette is user-selectable, and
-     * it themes just the keyboard.
-     */
     private fun refreshTheme(configuration: Configuration) {
         safeApply {
             palette = KeyboardPrefs.palette(this)
@@ -2293,7 +1960,7 @@ class AddiyonKeyboardService : InputMethodService(),
             // synchronously through onVoiceFatalError, which must win.
             publishVoiceUiState(VoiceUiState.Listening)
             Telemetry.voiceStarted(telemetryLanguage(), isPrivateField)
-            voiceController().start(if (isAmharic) "am-ET" else "en-US")
+            voiceController().start(activePack.voiceLocaleTag ?: "en-US")
         }
     }
 
@@ -2550,55 +2217,51 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     fun toggleLanguage() {
-        setLanguage(!isAmharic)
+        if (!::languageRegistry.isInitialized || languageRegistry.installedPacks.size < 2) return
+        val currentIndex = languageRegistry.installedPacks.indexOfFirst { it.id == activeLanguageId }
+        val next = languageRegistry.installedPacks[
+            (currentIndex + 1).mod(languageRegistry.installedPacks.size)
+        ]
+        setLanguage(next.id)
     }
 
-    /**
-     * Switches the active language to [amharic], or does nothing if that
-     * language is already active. Everything that flips the language funnels
-     * through here -- the globe key via [toggleLanguage] and the system
-     * language switcher via [onCurrentInputMethodSubtypeChanged] -- so both
-     * paths get the same composer commit and dictionary swap.
-     */
     fun setLanguage(amharic: Boolean) {
-        if (amharic == isAmharic) return
+        setLanguage(
+            LanguageId.of(
+                if (amharic) AmharicSuggestionEngine.ID else EnglishSuggestionEngine.ID
+            )
+        )
+    }
+
+    fun setLanguage(languageId: LanguageId) {
+        if (!::languageRegistry.isInitialized || languageId == activeLanguageId) return
         safeApply {
+            val outgoing = activePack
             leaveVoiceModeForKeyboardInput()
             closeEmojiPanel()
-            // The half-typed word belongs to the outgoing language's pipeline:
-            // commit it BEFORE isAmharic flips, so the profile (and its
-            // commitTransform) is still the outgoing language's.
             typingController.onLanguageChange()
-            // Flush per-word caches BEFORE flipping -- the cache key folds
-            // per-language, and the ranked results would otherwise leak across
-            // a toggle (English prefix "th" ranked with Amharic boosts, etc.).
-            amharicSuggestionCache.clear()
-            amharicCommitCandidateCache.clear()
             clearComposingContextCache()
-            // Release the previously-active dictionary+ngram and load the
-            // new one. On a low-RAM device this is the point where the OS
-            // would have killed us under the old in-memory trie design; the
-            // page-cached SQLite approach makes the swap cheap.
-            val priorActive = if (isAmharic) amharicDictionary else englishDictionary
-            isAmharic = amharic
-            KeyboardPrefs.setAmharicMode(this, isAmharic)
+            val changed = languageRegistry.activate(languageId)
+            if (!changed) return@safeApply
+            activeLanguageId = languageRegistry.activeLanguageId
+            KeyboardPrefs.setActiveLanguageId(this, activeLanguageId.value)
             Telemetry.languageSwitched(
                 destination = telemetryLanguage(),
                 privateField = isPrivateField
             )
-            if (!isAmharic && numbersMode == NumbersMode.GEEZ_NUMBERS) {
+            if (!activePack.capabilities.supportsGeezNumbers &&
+                numbersMode == NumbersMode.GEEZ_NUMBERS
+            ) {
                 numbersMode = NumbersMode.NUMBERS
             }
-            val priorStore = if (amharic) englishStore else amharicStore
-            priorStore.release()
-            priorActive.clearCache()
+            outgoing.suggestionEngine.release()
             predictionCache.clear()
             pendingPredictionBoundary = null
             ensureActiveLanguageStoreLoaded("after_toggle_language")
             updateSuggestions()
-            if (isAmharic && autoShiftArmed) {
+            if (!activePack.capabilities.hasLetterCase && autoShiftArmed) {
                 resetShift()
-            } else if (!isAmharic) {
+            } else if (activePack.capabilities.supportsAutoCapitalization) {
                 maybeAutoCapitalize()
             }
             MemoryProbe.snapshot("after_toggle_language_sync")
@@ -2606,19 +2269,17 @@ class AddiyonKeyboardService : InputMethodService(),
     }
 
     private fun ensureActiveLanguageStoreLoaded(snapshotPrefix: String) {
-        if (!::amharicDictionary.isInitialized) return
-        if (isEmergencyMode) return
-        val dictionary = if (isAmharic) amharicDictionary else englishDictionary
-        val ngrams = if (isAmharic) amharicNgrams else englishNgrams
-        val store = if (isAmharic) amharicStore else englishStore
-        if (dictionary.isReady && ngrams.isReady) {
-            return
-        }
-        val targetAmharic = isAmharic
+        if (!::languageRegistry.isInitialized || isEmergencyMode) return
+        val engine = activeSuggestionEngine
+        if (engine.isReady) return
+        val targetLanguageId = activeLanguageId
         val loadGeneration = ++languageLoadGeneration
         publishSuggestionState(SuggestionUiState.LoadingLanguage)
-        store.loadAsync storeReady@{
-            if (loadGeneration != languageLoadGeneration || targetAmharic != isAmharic) {
+        engine.loadAsync storeReady@{
+            if (
+                loadGeneration != languageLoadGeneration ||
+                targetLanguageId != activeLanguageId
+            ) {
                 return@storeReady
             }
             MemoryProbe.snapshot("${snapshotPrefix}_store")
@@ -2627,6 +2288,7 @@ class AddiyonKeyboardService : InputMethodService(),
             updateSuggestions()
         }
     }
+
 
     /**
      * Toggles between the letter layout (Amharic or English, whichever is
@@ -3034,12 +2696,8 @@ class AddiyonKeyboardService : InputMethodService(),
             }
             val beforeSpace = boundarySnapshot?.surrounding?.textBeforeSelection
             val boundaryContext = beforeSpace?.let { before ->
-                val contextReader = if (isAmharic) {
-                    NgramContext.AMHARIC
-                } else {
-                    NgramContext.ENGLISH
-                }
-                contextReader.extract("$before ")
+                val contextReader = activePack.contextReader
+                contextReader("$before ")
             }
             pendingPredictionBoundary = null
             val inserted = duringPredictionBoundaryMutation {
@@ -3141,10 +2799,10 @@ class AddiyonKeyboardService : InputMethodService(),
             } else {
                 TelemetrySuggestionKind.COMPLETION
             }
-            val contextReader = if (isAmharic) NgramContext.AMHARIC else NgramContext.ENGLISH
-            val priorContext = currentBoundaryContext(isAmharic)
+            val contextReader = activePack.contextReader
+            val priorContext = currentBoundaryContext(activeLanguageId)
                 ?: captureNgramContext(contextReader)
-            val priorContextValue = priorContext?.context ?: NgramContext.EMPTY
+            val priorContextValue = priorContext?.context ?: LanguageContext(null, null)
             val addTrailingSpace = !isEmailField && '@' !in word
             val replacement = if (addTrailingSpace) "$word " else word
             val nextContext = predictionContextAfterAcceptedWord(
@@ -3222,7 +2880,7 @@ class AddiyonKeyboardService : InputMethodService(),
         val state = suggestionUiState
         if (
             tap.actionGeneration != action.generation ||
-            action.amharic != isAmharic ||
+            action.languageId != activeLanguageId ||
             action.emailField != isEmailField ||
             action.privateField != isPrivateField ||
             action.numberMode != isNumberMode ||
@@ -3323,11 +2981,14 @@ class AddiyonKeyboardService : InputMethodService(),
     override fun onCurrentInputMethodSubtypeChanged(newSubtype: InputMethodSubtype?) {
         safeApply {
             super.onCurrentInputMethodSubtypeChanged(newSubtype)
-            val amharic = SubtypeLanguagePolicy.selectsAmharic(
+            val languageId = SubtypeLanguagePolicy.resolveLanguageId(
                 languageTag = safeRun(null) { newSubtype?.languageTag },
                 locale = safeRun(null) { @Suppress("DEPRECATION") newSubtype?.locale },
             ) ?: return@safeApply
-            setLanguage(amharic)
+            val resolved = runCatching { LanguageId.of(languageId) }.getOrNull()
+                ?.takeIf { languageRegistry.contains(it) }
+                ?: return@safeApply
+            setLanguage(resolved)
         }
     }
 
@@ -3366,35 +3027,42 @@ class AddiyonKeyboardService : InputMethodService(),
             refreshNumberRow()
             refreshKeyboardHeightScale()
             refreshFeedbackPrefs()
-            // Restore the last-used language BEFORE the dictionary loads below:
-            // the active language's dictionary is deliberately loaded first.
-            isAmharic = KeyboardPrefs.amharicMode(this)
+            val engineFailureReporter = { throwable: Throwable, operation: String ->
+                SafeLog.e(throwable, operation, NonFatalCategory.DATABASE)
+            }
+            val amharicPack = AmharicLanguagePack(
+                AmharicSuggestionEngine(
+                    context = this,
+                    isLowMemoryDevice = isLowRam,
+                    onOutOfMemory = this::enterEmergencyMode,
+                    onFailure = engineFailureReporter,
+                    onWarning = SafeLog::w
+                )
+            )
+            val englishPack = EnglishLanguagePack(
+                EnglishSuggestionEngine(
+                    context = this,
+                    isLowMemoryDevice = isLowRam,
+                    onOutOfMemory = this::enterEmergencyMode,
+                    onFailure = engineFailureReporter,
+                    onWarning = SafeLog::w
+                )
+            )
+            val packsById = listOf(amharicPack, englishPack).associateBy { it.id.value }
+            languageRegistry = LanguageRegistry(
+                packs = AddiyonKeyboardProduct.orderedInputLanguageIds.map(packsById::getValue),
+                defaultLanguageId = LanguageId.of(
+                    AddiyonKeyboardProduct.defaultInputLanguageId
+                )
+            )
+            val installedIds = languageRegistry.installedPacks.map { it.id.value }.toSet()
+            val savedLanguageId = KeyboardPrefs.activeLanguageId(
+                this,
+                installedIds,
+                amharicPack.id.value
+            )
+            activeLanguageId = languageRegistry.restore(savedLanguageId)
             KeyboardPrefs.prefs(this).registerOnSharedPreferenceChangeListener(prefsListener)
-
-            amharicStore = SQLiteLanguageStore(
-                this,
-                "amharic.db",
-                isLowRam,
-                this::enterEmergencyMode,
-            )
-            englishStore = SQLiteLanguageStore(
-                this,
-                "english.db",
-                isLowRam,
-                this::enterEmergencyMode,
-            )
-            amharicDictionary = SQLiteDictionary(
-                amharicStore,
-                precomputedPrefixLength = 1,
-                normalize = EthiopicNormalizer::normalize,
-            )
-            englishDictionary = SQLiteDictionary(
-                englishStore,
-                precomputedPrefixLength = 2,
-                normalize = ::englishFold,
-            )
-            amharicNgrams = SQLiteNgramModel(amharicStore, EthiopicNormalizer::normalize)
-            englishNgrams = SQLiteNgramModel(englishStore, ::englishFold)
             personalDictionary = PersonalDictionary.decode(KeyboardPrefs.personalDictionary(this))
             emojiRepository = EmojiRepository(this, onOutOfMemory = this::enterEmergencyMode)
             // Both stores decode lazily on first use, and the prefs file is
@@ -3580,7 +3248,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 editorGateway.noteSelection(newSelStart, newSelEnd)
             }
             if (pendingPredictionBoundary != null) {
-                currentBoundaryContext(isAmharic)
+                currentBoundaryContext(activeLanguageId)
             }
 
             // Voice dictation in flight: a deliberate cursor move finalizes the
@@ -3654,12 +3322,13 @@ class AddiyonKeyboardService : InputMethodService(),
         safeApply {
             super.onTrimMemory(level)
             if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
-                amharicSuggestionCache.clear()
-                amharicCommitCandidateCache.clear()
+                if (::languageRegistry.isInitialized) {
+                    languageRegistry.installedPacks.forEach {
+                        it.suggestionEngine.clearCaches()
+                    }
+                }
                 clearComposingContextCache()
                 predictionCache.trimToSize(if (isLowRam) 8 else 24)
-                if (::amharicDictionary.isInitialized) amharicDictionary.clearCache()
-                if (::englishDictionary.isInitialized) englishDictionary.clearCache()
                 if (::emojiRepository.isInitialized && !showEmojiPanel) {
                     emojiRepository.release()
                 }
@@ -3670,11 +3339,7 @@ class AddiyonKeyboardService : InputMethodService(),
                 invalidateSuggestionWork()
                 predictionCache.clear()
                 publishSuggestionState(SuggestionUiState.Toolbar)
-                if (isAmharic && ::amharicStore.isInitialized) {
-                    amharicStore.release()
-                } else if (::englishStore.isInitialized) {
-                    englishStore.release()
-                }
+                if (::languageRegistry.isInitialized) activeSuggestionEngine.release()
             }
         }
     }
@@ -3699,8 +3364,9 @@ class AddiyonKeyboardService : InputMethodService(),
             predictionCache.clear()
             idleReleaseHandler.removeCallbacks(idleRelease)
             languageLoadGeneration += 1
-            if (::amharicStore.isInitialized) amharicStore.release()
-            if (::englishStore.isInitialized) englishStore.release()
+            if (::languageRegistry.isInitialized) {
+                languageRegistry.installedPacks.forEach { it.suggestionEngine.release() }
+            }
             if (::emojiRepository.isInitialized) emojiRepository.release()
             if (lifecycleRegistry.currentState != Lifecycle.State.DESTROYED) {
                 lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)

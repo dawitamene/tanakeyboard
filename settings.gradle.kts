@@ -26,3 +26,11 @@ dependencyResolutionManagement {
 rootProject.name = "Addiyon Keyboard"
 include(":app")
 include(":benchmark")
+include(":keyboard:contracts")
+include(":keyboard:core")
+include(":language:api")
+include(":language:english")
+include(":language:amharic")
+include(":suggestions:api")
+include(":suggestions:core")
+include(":suggestions:sqlite")
