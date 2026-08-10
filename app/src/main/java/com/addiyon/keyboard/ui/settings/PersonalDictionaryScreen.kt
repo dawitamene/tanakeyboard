@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.suggestion.PersonalDictionary
 import com.addiyon.keyboard.ui.AppPageTopBar
+import com.addiyon.keyboard.ui.design.AddiyonContentSection
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 
 @Composable
@@ -77,7 +78,11 @@ fun PersonalDictionaryScreen(
         ) {
             Spacer(Modifier.height(16.dp))
             if (words.isEmpty()) {
-                GroupCard(modifier = Modifier.widthIn(max = 720.dp)) {
+                AddiyonContentSection(
+                    modifier = Modifier
+                        .widthIn(max = 720.dp)
+                        .fillMaxWidth()
+                ) {
                     Text(
                         text = strings.personalDictionaryEmpty,
                         style = MaterialTheme.typography.bodyMedium,
@@ -108,7 +113,11 @@ fun PersonalDictionaryScreen(
                         Text(text = strings.personalDictionaryClearAll)
                     }
                 }
-                GroupCard(modifier = Modifier.widthIn(max = 720.dp)) {
+                AddiyonContentSection(
+                    modifier = Modifier
+                        .widthIn(max = 720.dp)
+                        .fillMaxWidth()
+                ) {
                     words.forEachIndexed { index, word ->
                         Row(
                             modifier = Modifier

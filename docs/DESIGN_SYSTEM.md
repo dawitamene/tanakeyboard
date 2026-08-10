@@ -44,7 +44,7 @@ Addiyon has two related but deliberately separate surfaces:
 Settings, onboarding, home, manual, feedback, account, and other Activity
 screens use `AddiyonBrandTheme`. This surface uses the fixed Addiyon brand
 palette, paper background treatment, Poppins typography, and the Playpen Sans
-brand face where a logo treatment calls for it. Brand vermillion is reserved
+brand face where a logo treatment calls for it. Brand teal is reserved
 for primary actions and meaningful emphasis.
 
 ### User-themed IME
@@ -61,13 +61,20 @@ scrolling full-panel container to solve overflow.
 
 ## Brand and logo primitives
 
-The source exports are in `new_design/exports` and
-`new_design/exports-1`. Treat those vector exports as the source artwork; do
-not redraw the mark with arbitrary text, emoji, or a new icon. Keep the mark's
-clear space, proportions, and contrast intact. `PlaypenSansBrand` is the
-brand-display face; `PoppinsFamily` is the product UI face. Brand color names
-describe intent (vermillion, sand, ink, paper, stone), not permission to use a
-hex value in a screen.
+The current logo source is the vector `keyboard.svg` at the repository root;
+`keyboard.png` is its transparent raster fallback. It is a teal Ethiopic mark
+intended for a white icon background. Generated Android and web assets keep the
+visible mark near 65% of the white tile and compensate
+the adaptive foreground for Android's mask zoom; do not crop, stretch, recolor,
+or redraw it with arbitrary text or emoji. The files in
+`new_design/exports`, `new_design/exports-1`, and the root `logo_*.svg` set are
+retained as legacy artwork, not as the current logo source. `PlaypenSansBrand`
+is the brand-display face;
+`PoppinsFamily` is the product UI face. The canonical brand primary is
+`#009099`; it is declared once as `@color/addiyon_brand_primary`, loaded by
+`rememberAddiyonBrand`, and used to derive the branded light and dark roles.
+Brand color names describe intent, not permission to use a hex value in a
+screen.
 
 ## Semantic color
 
@@ -81,6 +88,11 @@ Use `MaterialTheme.colorScheme` roles for all app and keyboard UI colors:
   secondary containers.
 - `outline` / `outlineVariant`: borders and dividers.
 - `background` / `onBackground`: page or keyboard backdrop.
+
+On branded app screens, content on a primary-colored background is always
+white. The light app backdrop is a subtle neutral gray, while `surface` stays
+white for cards and `surfaceVariant` provides the light neutral fill used by
+muted controls.
 
 Status meaning uses the extended `MaterialTheme.addiyonColors` roles:
 `success`, `onSuccess`, `successContainer`, and `onSuccessContainer`. A
@@ -98,8 +110,10 @@ a raw color. `AddiyonBrandTheme` provides the fixed brand scheme and semantic
 colors. `CustomKeyboardTheme` provides the selected keyboard scheme while
 keeping the same semantic contract.
 
-Raw hex values and named raw colors belong only in `Theme.kt` and
-`ui/design/AddiyonDesignTokens.kt`, where they are named and tested. The
+The canonical brand hex belongs only in `res/values/colors.xml`; Compose loads
+that resource and derives its roles in `ui/design/AddiyonDesignTokens.kt`.
+Other raw hex values and named raw colors belong only in `Theme.kt` and the
+design-token implementation, where they are named and tested. The
 keyboard palette declarations are an intentional exception because they are
 the user-facing palette data. A vector path placeholder tint (for example the
 black path inside `ui/icons/ShiftIcon.kt`) is also allowed because `Icon()`
@@ -129,7 +143,7 @@ Use the public tokens in `ui/design/AddiyonDesignTokens.kt`:
 | --- | --- | --- |
 | `AddiyonSpacing` | 4, 8, 12, 16, 20, 24, 32 dp | gaps, insets, and page rhythm |
 | `AddiyonRadii` | 8, 12, 16, 20, 28 dp, pill | controls, cards, groups, chips |
-| `AddiyonSizes` | 40 compact, 44 keyboard action, 48 minimum touch, 64 app header; 16/24/32/44 icon sizes | controls, bars, icons |
+| `AddiyonSizes` | 40 compact, 44 keyboard action, 48 minimum touch, 56 form control, 64 app header; 16/24/32/44 icon sizes | controls, bars, icons |
 | `AddiyonElevation` | none, low, raised, overlay | surfaces and overlays |
 | `AddiyonMotion` | 150, 250, 400, 500 ms | feedback, standard transitions, emphasis |
 
@@ -140,13 +154,22 @@ justified and added to the token set when it will be reused.
 ## Layout and responsiveness
 
 App pages use `AddiyonScreenColumn` for a 24 dp horizontal gutter and standard
-vertical rhythm. Use `AddiyonGroupSurface` for a 28 dp grouped section and
-`AddiyonSectionCard` for a 20 dp standalone card. Keep the existing call-site
-API when migrating a shared component. Respect system bars, font scaling,
-landscape widths, and content that grows when translated into Amharic. Prefer
-constraint-aware layout (`BoxWithConstraints`, weights, and measured rows) to
-screen-width guesses. Do not use fixed heights for app content unless the
-component contract explicitly requires one.
+vertical rhythm. Use `AddiyonContentSection` for every white, rounded grouping,
+including settings groups, guide cards, language selection,
+feedback destinations, and other section-like app content. Compatibility
+aliases may remain while old call sites migrate, but they must delegate to this
+single renderer. AI authentication and account screens intentionally use a flat
+layout without content-section containers. Respect system bars, font scaling, landscape widths, and
+content that grows when translated into Amharic. Prefer constraint-aware layout
+(`BoxWithConstraints`, weights, and measured rows) to screen-width guesses. Do
+not use fixed heights for app content unless the component contract explicitly
+requires one.
+
+The compact language selector uses `AddiyonContentSection` for its trigger and
+`AddiyonDropdownMenu` for its popup so it receives the same `surface` color,
+group radius, and zero tonal elevation instead of Material's default tinted
+container. The signed-in profile icon is a direct navigation control: it opens
+the AI account screen without an intermediate logout menu.
 
 IME surfaces are the exception: keyboard rows, suggestion strips, and AI/emoji
 panels have a measured fixed-height contract. Keep their row count and height
@@ -170,8 +193,11 @@ rather than a spinner or status sentence.
 
 Keep the shared layer small and composable:
 
-- `AddiyonGroupSurface`: full-width 28 dp grouped surface for related rows.
-- `AddiyonSectionCard`: full-width 20 dp card for a self-contained section.
+- `AddiyonContentSection`: the single white, 28 dp rounded renderer for all
+  section-like branded app content.
+- `AddiyonInputField`: the single borderless, muted-gray, rounded input used by
+  ordinary branded app email, password, search, and freeform text fields.
+- `AddiyonDropdownMenu`: the white rounded popup used by branded app menus.
 - `AddiyonScreenColumn`: app-page column with the standard 24 dp gutter.
 
 Use Material 3 components for buttons, fields, dialogs, lists, and navigation.
@@ -179,6 +205,19 @@ Set content colors through `ButtonDefaults`, `TextFieldDefaults`, or theme
 roles. A new component needs a repeated product pattern, a stable API, and a
 test or contract entry; do not create a wrapper for one screen's cosmetic
 preference.
+
+Buttons and text fields presented together in an app form use
+`AddiyonSizes.formControl` as their minimum height and a shared radius. The
+minimum-height contract preserves alignment at normal font sizes while allowing
+controls to grow when accessibility text scaling requires more room.
+Authentication form buttons and single-line fields use the pill radius.
+`AddiyonInputField` uses a medium-light `surfaceVariant` fill without an
+outline; multiline fields use the shared section radius. The authentication
+primary action has an additional 8 dp separation from the last input. The
+AI account sign-out action remains an outlined button on the themed page
+background and uses the small radius for a sharper silhouette. The
+special six-cell OTP entry and fields inside the user-themed IME remain custom
+because they have different behavior and palette ownership.
 
 ## States and interaction
 
@@ -246,7 +285,10 @@ new exception in this file and in the contract test before merging.
 
 ```kotlin
 AddiyonScreenColumn {
-    AddiyonSectionCard {
+    AddiyonContentSection(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(AddiyonSpacing.lg)
+    ) {
         Text(text = strings.title, style = MaterialTheme.typography.titleMedium)
         Button(onClick = onConfirm) {
             Text(text = strings.confirm)
@@ -265,7 +307,7 @@ Icon(
 
 For keyboard UI, read `MaterialTheme.colorScheme.surface`,
 `onSurface`, `primary`, and the selected palette's roles. Do not import the
-fixed app vermillion into an IME key or suggestion chip.
+fixed app teal into an IME key or suggestion chip.
 
 ## Change and governance process
 

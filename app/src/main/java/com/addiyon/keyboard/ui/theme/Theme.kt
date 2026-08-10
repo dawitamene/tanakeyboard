@@ -27,9 +27,11 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.draw.drawWithCache
 import kotlin.math.sin
 import kotlin.random.Random
-import com.addiyon.keyboard.ui.design.AddiyonDarkColors
-import com.addiyon.keyboard.ui.design.AddiyonLightColors
+import com.addiyon.keyboard.ui.design.AddiyonBrand
 import com.addiyon.keyboard.ui.design.LocalAddiyonColors
+import com.addiyon.keyboard.ui.design.addiyonDarkColors
+import com.addiyon.keyboard.ui.design.addiyonLightColors
+import com.addiyon.keyboard.ui.design.rememberAddiyonBrand
 
 val PlaypenSansBrand = FontFamily(Font(R.font.playpen_sans_extrabold))
 
@@ -312,78 +314,57 @@ private fun full(
 ): PaletteColors =
     PaletteColors(Color(tray), Color(key), Color(special), Color(accent), Color(onText), Color(onAccent))
 
-// ---------------------------------------------------------------------------
-// Addiyon brand palette (the app's own settings/onboarding UI, NOT the keyboard).
-//
-// Source colors from branding ("Stencil Solid" — see new_design/exports):
-//   Vermillion   #EE4D2D  primary
-//   Vermillion dark #C63A1E  pressed / secondary
-//   Warm white   #FFF6F0  on-primary
-//   Ink          #17150F  text
-//   Stone        #8A8578  secondary text
-//   Sand         #E4DFD3  divider / outline
-//   Paper        #F4F1EA  surface / background
-// The keyboard palettes above are user-selectable and deliberately untouched;
-// this is the fixed brand identity for the app chrome (buttons, fields, cards).
-// The "Tana" keyboard palette (Lake Tana / LakeRipple background, above) is a
-// nature-themed color option users can pick, unrelated to this app-brand
-// identity -- it keeps its name.
-// ---------------------------------------------------------------------------
-
-/** Vermillion tint highlight — the English-mode cue / accent chip color. Same in both modes. */
-val AddiyonSand: Color = Color(0xFFF0B49E)
-
-private val AddiyonLightScheme: ColorScheme = lightColorScheme(
-    primary = Color(0xFFEE4D2D),            // Vermillion
-    onPrimary = Color(0xFFFFF6F0),          // Warm white
-    primaryContainer = Color(0xFFFBDDD3),   // Vermillion tint
-    onPrimaryContainer = Color(0xFFC63A1E),
-    secondary = Color(0xFFC63A1E),          // Vermillion dark
-    onSecondary = Color(0xFFFFF6F0),
-    secondaryContainer = Color(0xFFFBDDD3),
-    onSecondaryContainer = Color(0xFF7A2312),
-    tertiary = Color(0xFF8A8578),           // Stone
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFE4DFD3),
-    onTertiaryContainer = Color(0xFF2A2620),
+private fun addiyonLightScheme(brand: AddiyonBrand): ColorScheme = lightColorScheme(
+    primary = brand.primary,
+    onPrimary = brand.onPrimary,
+    primaryContainer = brand.primaryContainerLight,
+    onPrimaryContainer = brand.primaryDark,
+    secondary = brand.primaryDark,
+    onSecondary = brand.onPrimary,
+    secondaryContainer = brand.primaryContainerLight,
+    onSecondaryContainer = brand.primaryDarker,
+    tertiary = brand.primaryLight,
+    onTertiary = brand.onPrimaryDark,
+    tertiaryContainer = brand.surfaceVariant,
+    onTertiaryContainer = brand.ink,
     background = Color.Transparent,
-    onBackground = Color(0xFF17150F),       // Ink
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF17150F),          // Ink
-    surfaceVariant = Color(0xFFE4DFD3),     // Sand
-    onSurfaceVariant = Color(0xFF57534A),
-    outline = Color(0xFF8A8578),            // Stone
-    outlineVariant = Color(0xFFE4DFD3)      // Sand
+    onBackground = brand.ink,
+    surface = brand.surface,
+    onSurface = brand.ink,
+    surfaceVariant = brand.surfaceVariant,
+    onSurfaceVariant = brand.mutedInk,
+    outline = brand.outline,
+    outlineVariant = brand.surfaceVariant
 )
 
-private val AddiyonDarkScheme: ColorScheme = darkColorScheme(
-    primary = Color(0xFFFF8464),            // lightened vermillion for contrast on dark
-    onPrimary = Color(0xFF3A1408),
-    primaryContainer = Color(0xFFC63A1E),   // Vermillion dark
-    onPrimaryContainer = Color(0xFFFBDDD3),
-    secondary = Color(0xFFF0A084),
-    onSecondary = Color(0xFF3A1408),
-    secondaryContainer = Color(0xFF7A2312),
-    onSecondaryContainer = Color(0xFFFBDDD3),
-    tertiary = Color(0xFFB8B2A2),           // lightened Stone
-    onTertiary = Color(0xFF201E18),
-    tertiaryContainer = Color(0xFF43413A),
-    onTertiaryContainer = Color(0xFFE4DFD3),
+private fun addiyonDarkScheme(brand: AddiyonBrand): ColorScheme = darkColorScheme(
+    primary = brand.primaryLight,
+    onPrimary = brand.onPrimaryDark,
+    primaryContainer = brand.primaryContainerDark,
+    onPrimaryContainer = brand.primaryContainerLight,
+    secondary = brand.primaryLighter,
+    onSecondary = brand.onPrimaryDark,
+    secondaryContainer = brand.primaryDarker,
+    onSecondaryContainer = brand.primaryContainerLight,
+    tertiary = brand.primaryLight,
+    onTertiary = brand.onPrimaryDark,
+    tertiaryContainer = brand.darkSurfaceVariant,
+    onTertiaryContainer = brand.primaryContainerLight,
     background = Color.Transparent,
-    onBackground = Color(0xFFF4F1EA),       // Paper
-    surface = Color(0xFF2A2620),            // Charcoal
-    onSurface = Color(0xFFF4F1EA),
-    surfaceVariant = Color(0xFF43413A),
-    onSurfaceVariant = Color(0xFFCAC5B8),
-    outline = Color(0xFF8A8578),            // Stone
-    outlineVariant = Color(0xFF43413A)
+    onBackground = brand.darkInk,
+    surface = brand.darkSurface,
+    onSurface = brand.darkInk,
+    surfaceVariant = brand.darkSurfaceVariant,
+    onSurfaceVariant = brand.darkMutedInk,
+    outline = brand.darkOutline,
+    outlineVariant = brand.darkSurfaceVariant
 )
 
 @Composable
-private fun PaperBackground(isDark: Boolean) {
-    val topColor = if (isDark) Color(0xFF201E18) else Color(0xFFFAF8F4)
-    val deepColor = if (isDark) Color(0xFF17150F) else Color(0xFFF4F1EA)
-    val wave = if (isDark) Color(0xFFC63A1E).copy(alpha = 0.10f) else Color(0xFFEE4D2D).copy(alpha = 0.06f)
+private fun PaperBackground(isDark: Boolean, brand: AddiyonBrand) {
+    val topColor = if (isDark) brand.darkSurface else brand.paperTop
+    val deepColor = if (isDark) brand.primaryDarker else brand.paper
+    val wave = brand.primary.copy(alpha = if (isDark) 0.10f else 0.06f)
 
     val seeds = remember { List(2) { Random(it.hashCode()).nextFloat() } }
 
@@ -480,15 +461,22 @@ fun AddiyonBrandTheme(
     isDarkTheme: Boolean,
     content: @Composable () -> Unit
 ) {
+    val brand = rememberAddiyonBrand()
+    val addiyonColors = remember(brand, isDarkTheme) {
+        if (isDarkTheme) addiyonDarkColors(brand) else addiyonLightColors(brand)
+    }
+    val colorScheme = remember(brand, isDarkTheme) {
+        if (isDarkTheme) addiyonDarkScheme(brand) else addiyonLightScheme(brand)
+    }
     CompositionLocalProvider(
-        LocalAddiyonColors provides if (isDarkTheme) AddiyonDarkColors else AddiyonLightColors
+        LocalAddiyonColors provides addiyonColors
     ) {
         MaterialTheme(
-            colorScheme = if (isDarkTheme) AddiyonDarkScheme else AddiyonLightScheme,
+            colorScheme = colorScheme,
             typography = AddiyonTypography,
             content = {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    PaperBackground(isDark = isDarkTheme)
+                    PaperBackground(isDark = isDarkTheme, brand = brand)
                     content()
                 }
             }
@@ -515,9 +503,13 @@ fun CustomKeyboardTheme(
     isLowRam: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val brand = rememberAddiyonBrand()
+    val addiyonColors = remember(brand, isDarkTheme) {
+        if (isDarkTheme) addiyonDarkColors(brand) else addiyonLightColors(brand)
+    }
     CompositionLocalProvider(
         LocalLowRamKeyboard provides isLowRam,
-        LocalAddiyonColors provides if (isDarkTheme) AddiyonDarkColors else AddiyonLightColors
+        LocalAddiyonColors provides addiyonColors
     ) {
         MaterialTheme(
             colorScheme = palette.scheme(isDarkTheme),

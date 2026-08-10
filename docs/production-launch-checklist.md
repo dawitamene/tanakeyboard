@@ -27,7 +27,7 @@ Fixed in the 2026-07-28 pass, listed so nothing here gets re-litigated:
   still the stock Android Studio green robot, untouched since the initial commit — only
   `mipmap-anydpi-v26/` had ever been rebranded, so every Android 7.0/7.1 device
   (`minSdk = 24`) showed the default mascot. Regenerated all ten from
-  `logo_play_store_fullbleed.svg`, the same source as the 512px Play icon.
+  the same artwork as the 512px Play icon.
 - [x] **IME subtypes declared.** `res/xml/method.xml` was a bare `<input-method/>` with no
   subtypes — the app never told Android it typed Amharic, and declared nothing
   ASCII-capable. Now declares `am-ET` and `en-US`, with `isAsciiCapable` on English.
@@ -103,8 +103,8 @@ Copy is drafted and character-counted in
 
 ## 3. Store assets
 
-- [ ] App icon 512×512 — `play_store_icon_512.png` exists and shares a source with the
-  in-app icon. Confirm it is the one uploaded.
+- [ ] App icon 512×512 — `play_store_icon_512.png` is generated from the current
+  `keyboard.png` logo source and matches the in-app icon. Confirm it is the one uploaded.
 - [ ] Phone screenshots ×4–6, portrait, ≥1080×1920, clean status bar.
 - [ ] Feature graphic 1024×500.
 - [ ] *(Optional)* 7-inch and 10-inch tablet screenshots. Without them Play flags the app

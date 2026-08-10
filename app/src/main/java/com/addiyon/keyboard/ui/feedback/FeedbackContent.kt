@@ -24,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.ExternalActions
 import com.addiyon.keyboard.R
+import com.addiyon.keyboard.ui.design.AddiyonContentSection
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 
 /** Feedback destinations, shared by every place that offers "Send feedback". */
@@ -83,49 +84,50 @@ fun openFeedbackTelegram(context: Context, extraFlags: Int = 0) {
 @Composable
 fun FeedbackOptions(
     onTelegram: () -> Unit,
-    onEmail: () -> Unit
+    onEmail: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val strings = LocalAppStrings.current
-    // Telegram first, with the real Telegram logo (rendered in its own brand
-    // colors via Image, not tinted like a monochrome Material icon).
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(FeedbackTestTags.TELEGRAM)
-            .clickable(onClick = onTelegram)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Image(
-            painter = painterResource(R.drawable.ic_telegram),
-            contentDescription = null,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(Modifier.width(20.dp))
-        Text(
-            text = strings.telegram,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(FeedbackTestTags.EMAIL)
-            .clickable(onClick = onEmail)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Email,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.width(20.dp))
-        Text(
-            text = strings.email,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+    AddiyonContentSection(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(FeedbackTestTags.TELEGRAM)
+                .clickable(onClick = onTelegram)
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_telegram),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.width(20.dp))
+            Text(
+                text = strings.telegram,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(FeedbackTestTags.EMAIL)
+                .clickable(onClick = onEmail)
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Email,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.width(20.dp))
+            Text(
+                text = strings.email,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }

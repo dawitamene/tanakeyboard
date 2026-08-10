@@ -3,10 +3,10 @@ package com.addiyon.keyboard.ui.i18n
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.addiyon.keyboard.ui.design.AddiyonContentSection
+import com.addiyon.keyboard.ui.design.AddiyonDropdownMenu
 
 /**
  * Wraps app UI so every screen beneath it reads its text from the selected
@@ -76,30 +78,30 @@ fun LanguageToggle(modifier: Modifier = Modifier, compact: Boolean = false) {
     }
     val controller = LocalAppLanguage.current
     val textStyle = MaterialTheme.typography.labelLarge
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(percent = 50))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(3.dp)
+    AddiyonContentSection(
+        modifier = modifier,
+        contentPadding = PaddingValues(3.dp)
     ) {
-        AppLanguage.entries.forEach { lang ->
-            val selected = controller.current == lang
-            Text(
-                text = lang.label,
-                style = textStyle,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier = Modifier
-                    .clip(RoundedCornerShape(percent = 50))
-                    .background(
-                        if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
-                    )
-                    .clickable { controller.set(lang) }
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
-            )
+        Row {
+            AppLanguage.entries.forEach { lang ->
+                val selected = controller.current == lang
+                Text(
+                    text = lang.label,
+                    style = textStyle,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(
+                            if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+                        )
+                        .clickable { controller.set(lang) }
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                )
+            }
         }
     }
 }
@@ -112,26 +114,29 @@ fun CompactLanguageMenu(modifier: Modifier = Modifier) {
         AppLanguage.ENGLISH -> "EN"
         AppLanguage.AMHARIC -> "አማ"
     }
-    Box(modifier = modifier) {
-        Text(
-            text = currentLabel,
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .clip(RoundedCornerShape(percent = 50))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable { expanded = true }
-                .padding(horizontal = 14.dp, vertical = 7.dp)
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            AppLanguage.entries.forEach { lang ->
-                DropdownMenuItem(
-                    text = { Text(lang.label) },
-                    onClick = {
-                        controller.set(lang)
-                        expanded = false
-                    }
-                )
+    AddiyonContentSection(modifier = modifier) {
+        Box {
+            Text(
+                text = currentLabel,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clickable { expanded = true }
+                    .padding(horizontal = 14.dp, vertical = 7.dp)
+            )
+            AddiyonDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                AppLanguage.entries.forEach { lang ->
+                    DropdownMenuItem(
+                        text = { Text(lang.label) },
+                        onClick = {
+                            controller.set(lang)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }

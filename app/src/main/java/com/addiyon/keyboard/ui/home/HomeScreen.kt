@@ -4,13 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +18,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.KeyboardStatusSnapshot
 import com.addiyon.keyboard.ExternalActions
+import com.addiyon.keyboard.ui.design.AddiyonContentSection
+import com.addiyon.keyboard.ui.design.AddiyonInputField
 
 @Composable
 fun HomeScreen(
@@ -37,7 +36,7 @@ fun HomeScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Card(modifier = Modifier.fillMaxWidth()) {
+        AddiyonContentSection(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = if (status.isDefault) {
@@ -87,11 +86,11 @@ fun HomeScreen(
 
         Text("Try it out", style = MaterialTheme.typography.titleMedium)
 
-        OutlinedTextField(
+        AddiyonInputField(
             value = text,
             onValueChange = setText,
-            shape = RoundedCornerShape(12.dp),
-            placeholder = { Text("Type \"selam\" → ሰላም") },
+            placeholder = "Type \"selam\" → ሰላም",
+            singleLine = false,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),

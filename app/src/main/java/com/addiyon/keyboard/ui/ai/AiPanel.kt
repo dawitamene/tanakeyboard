@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,6 +40,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,6 +52,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.addiyon.keyboard.ai.AiError
 import com.addiyon.keyboard.ai.AiStrength
@@ -69,6 +72,7 @@ fun aiPanelVariantTag(strength: AiStrength): String = "ai.panel.variant.${streng
 fun aiPanelCopyTag(strength: AiStrength): String = "ai.panel.copy.${strength.name.lowercase()}"
 fun aiPanelReplaceTag(strength: AiStrength): String = "ai.panel.replace.${strength.name.lowercase()}"
 const val AI_PANEL_SKELETON_TAG = "ai.panel.skeleton"
+const val AI_PANEL_EMPTY_ACTION_TAG = "ai.panel.empty.action"
 private const val AI_RESULT_VARIANT_COUNT = 3
 
 @Composable
@@ -95,61 +99,137 @@ fun AiPanel(
         )
 
         val hasResult = state.variantResults.isNotEmpty() || state.result != null
-        Column(
-            modifier = Modifier
-                .weight(1f, fill = true)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = AddiyonSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm)
-        ) {
-            when {
-                state.isPrivateField -> {
-                    AiPanelNotice(
-                        icon = Icons.Filled.Lock,
-                        title = strings.aiPrivateTitle,
-                        message = strings.aiPrivateMessage,
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        iconContainerColor = MaterialTheme.colorScheme.onErrorContainer,
-                        iconContentColor = MaterialTheme.colorScheme.errorContainer,
-                        modifier = Modifier.padding(top = AddiyonSpacing.sm)
-                    )
-                }
-
-                state.needsAuth -> {
-                    AiPanelAuthCard(
-                        state = state,
-                        onSendLink = onSendLink,
-                        strings = strings,
-                        modifier = Modifier.padding(top = AddiyonSpacing.sm)
-                    )
-                }
-
-                else -> {
-                    if (state.isLoading || state.isQuotaLoading) {
-                        SkeletonResults()
-                    }
-
-                    state.error?.let { error ->
-                        ErrorCard(
-                            error = error,
-                            quotaRemaining = state.quota.remaining,
-                            strings = strings
+        val contentModifier = Modifier
+            .weight(1f, fill = true)
+            .padding(horizontal = AddiyonSpacing.sm)
+        if (!state.isPrivateField && !state.needsAuth && !state.hasInput) {
+            AiPanelEmptyState(
+                onContinueTyping = onDismiss,
+                strings = strings,
+                modifier = contentModifier
+            )
+        } else if (!state.isPrivateField && !state.needsAuth && state.selectedTab == null) {
+            AiPanelSelectToneState(
+                message = strings.aiSelectToneMessage,
+                modifier = contentModifier
+            )
+        } else {
+            Column(
+                modifier = contentModifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm)
+            ) {
+                when {
+                    state.isPrivateField -> {
+                        AiPanelNotice(
+                            icon = Icons.Filled.Lock,
+                            title = strings.aiPrivateTitle,
+                            message = strings.aiPrivateMessage,
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            iconContainerColor = MaterialTheme.colorScheme.onErrorContainer,
+                            iconContentColor = MaterialTheme.colorScheme.errorContainer,
+                            modifier = Modifier.padding(top = AddiyonSpacing.sm)
                         )
                     }
 
-                    if (hasResult || state.variantErrors.isNotEmpty()) {
-                        ResultContent(
+                    state.needsAuth -> {
+                        AiPanelAuthCard(
                             state = state,
+                            onSendLink = onSendLink,
                             strings = strings,
-                            onCopyVariant = onCopyVariant,
-                            onReplaceVariant = onReplaceVariant
+                            modifier = Modifier.padding(top = AddiyonSpacing.sm)
                         )
                     }
+
+                    else -> {
+                        if (state.isLoading || state.isQuotaLoading) {
+                            SkeletonResults()
+                        }
+
+                        state.error?.let { error ->
+                            ErrorCard(
+                                error = error,
+                                quotaRemaining = state.quota.remaining,
+                                strings = strings
+                            )
+                        }
+
+                        if (hasResult || state.variantErrors.isNotEmpty()) {
+                            ResultContent(
+                                state = state,
+                                strings = strings,
+                                onCopyVariant = onCopyVariant,
+                                onReplaceVariant = onReplaceVariant
+                            )
+                        }
+                    }
                 }
+                Spacer(Modifier.height(AddiyonSpacing.xs))
             }
-            Spacer(Modifier.height(AddiyonSpacing.xs))
         }
+    }
+}
+
+@Composable
+private fun AiPanelEmptyState(
+    onContinueTyping: () -> Unit,
+    strings: AppStrings,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        IconBubble(
+            icon = Icons.Filled.TextFields,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+        Text(
+            text = strings.aiEmptyTitle,
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(top = AddiyonSpacing.sm),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = strings.aiEmptyMessage,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = AddiyonSpacing.xxs),
+            textAlign = TextAlign.Center
+        )
+        OutlinedButton(
+            onClick = onContinueTyping,
+            modifier = Modifier
+                .padding(top = AddiyonSpacing.md)
+                .height(AddiyonSizes.keyboardAction)
+                .testTag(AI_PANEL_EMPTY_ACTION_TAG),
+            shape = RoundedCornerShape(AddiyonRadii.medium)
+        ) {
+            Text(text = strings.aiEmptyAction)
+        }
+    }
+}
+
+@Composable
+private fun AiPanelSelectToneState(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
     }
 }
 

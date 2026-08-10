@@ -340,7 +340,7 @@ private fun StepPage(
 /**
  * The circular hero glyph at the top of each setup step and tour page: a soft
  * neutral (Sand) disc with a muted stone icon. Deliberately NOT the brand
- * vermillion -- the single filled call-to-action button is meant to be the one
+ * teal -- the single filled call-to-action button is meant to be the one
  * accent on the screen, so the icon stays calm instead of competing with it.
  */
 @Composable

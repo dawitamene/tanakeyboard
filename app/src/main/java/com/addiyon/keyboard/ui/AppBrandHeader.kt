@@ -1,8 +1,8 @@
 // ui/AppBrandHeader.kt
 package com.addiyon.keyboard.ui
 
+import android.content.Intent
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,9 +16,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,10 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -38,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+import com.addiyon.keyboard.AiAccountActivity
 import com.addiyon.keyboard.R
 import com.addiyon.keyboard.ui.i18n.LanguageToggle
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
@@ -56,7 +50,6 @@ fun AppBrandHeader(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val strings = LocalAppStrings.current
     val isLoggedIn = !KeyboardPrefs.aiJwt(context).isNullOrBlank()
-    var showUserMenu by remember { mutableStateOf(false) }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -81,26 +74,20 @@ fun AppBrandHeader(modifier: Modifier = Modifier) {
         LanguageToggle(compact = true)
         if (isLoggedIn) {
             Spacer(Modifier.width(8.dp))
-            Box {
-                IconButton(onClick = { showUserMenu = true }) {
-                    Icon(
-                        imageVector = Icons.Filled.AccountCircle,
-                        contentDescription = "Account",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                DropdownMenu(expanded = showUserMenu, onDismissRequest = { showUserMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text(strings.logout) },
-                        onClick = {
-                            KeyboardPrefs.setAiJwt(context, null)
-                            showUserMenu = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Filled.Logout, contentDescription = null)
+            IconButton(
+                onClick = {
+                    context.startActivity(
+                        Intent(context, AiAccountActivity::class.java).apply {
+                            putExtra(AiAccountActivity.EXTRA_MODE, AiAccountActivity.MODE_DASHBOARD)
                         }
                     )
                 }
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.AccountCircle,
+                    contentDescription = strings.aiAccountTitle,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

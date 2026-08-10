@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -55,6 +56,7 @@ import com.addiyon.keyboard.model.KeyData
 import com.addiyon.keyboard.model.ShiftState
 import com.addiyon.keyboard.transliteration.Transliterator
 import com.addiyon.keyboard.ui.AppPageTopBar
+import com.addiyon.keyboard.ui.design.AddiyonContentSection
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_DEFAULT
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MAX
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MIN
@@ -141,10 +143,11 @@ fun KeyboardHeightScreen(
                 // height off the bottom.
                 .padding(top = innerPadding.calculateTopPadding())
         ) {
-            Column(
+            AddiyonContentSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 20.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {

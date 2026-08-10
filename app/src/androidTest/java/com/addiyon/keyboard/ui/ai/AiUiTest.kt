@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -29,6 +30,7 @@ import com.addiyon.keyboard.ai.AiSource
 import com.addiyon.keyboard.ai.AiStrength
 import com.addiyon.keyboard.ai.AiToneTab
 import com.addiyon.keyboard.ai.AiUiState
+import com.addiyon.keyboard.ai.todayIso
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 import com.addiyon.keyboard.ui.i18n.AmharicStrings
 import com.addiyon.keyboard.ui.i18n.EnglishStrings
@@ -73,6 +75,8 @@ class AiUiTest {
 
         compose.onNodeWithText(EnglishStrings.aiToneHumanize).assertIsNotSelected()
         compose.onNodeWithText(EnglishStrings.aiToneProfessional).assertIsNotSelected()
+        compose.onNodeWithText(EnglishStrings.aiSelectToneMessage).assertIsDisplayed()
+        compose.onNodeWithTag(AI_PANEL_SKELETON_TAG).assertDoesNotExist()
         compose.mainClock.autoAdvance = false
         compose.onNodeWithText(EnglishStrings.aiToneProfessional).performClick()
         compose.mainClock.advanceTimeByFrame()
@@ -139,14 +143,15 @@ class AiUiTest {
     }
 
     @Test
-    fun amharicStringsRenderInPanelWithoutNetwork() {
+    fun emptyStateExplainsHowToContinueAndReturnsToKeyboard() {
+        var dismissed = false
         compose.setContent {
             CompositionLocalProvider(LocalAppStrings provides AmharicStrings) {
                 TestKeyboardHost {
                     Box(Modifier.fillMaxWidth().height(300.dp)) {
                         AiPanel(
                             state = AiUiState(isVisible = true),
-                            onDismiss = {},
+                            onDismiss = { dismissed = true },
                             onTabSelected = {},
                             onCopyVariant = {},
                             onReplaceVariant = {},
@@ -162,8 +167,13 @@ class AiUiTest {
         compose.onNodeWithText(AmharicStrings.aiToneLabel).assertDoesNotExist()
         compose.onNodeWithContentDescription(AmharicStrings.back).assertIsDisplayed()
         compose.onNodeWithContentDescription(AmharicStrings.aiCloseDescription).assertDoesNotExist()
-        compose.onNodeWithText(AmharicStrings.aiEmptyTitle).assertDoesNotExist()
-        compose.onNodeWithText(AmharicStrings.aiEmptyMessage).assertDoesNotExist()
+        compose.onNodeWithText(AmharicStrings.aiEmptyTitle).assertIsDisplayed()
+        compose.onNodeWithText(AmharicStrings.aiEmptyMessage).assertIsDisplayed()
+        compose.onNodeWithText(AmharicStrings.aiEmptyAction).assertIsDisplayed()
+        compose.onNodeWithTag(AI_PANEL_EMPTY_ACTION_TAG).performClick()
+        compose.runOnIdle {
+            assertEquals(true, dismissed)
+        }
     }
 
     @Test
@@ -179,6 +189,36 @@ class AiUiTest {
         compose.onNodeWithText("AI account").assertIsDisplayed()
         compose.onNodeWithText("Your AI workspace").assertIsDisplayed()
         compose.onNodeWithText("Sign in to Addiyon AI").assertIsDisplayed()
+    }
+
+    @Test
+    fun signedInDashboardShowsRemainingPercentageAndSignsOutWithoutStatusCopy() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        KeyboardPrefs.setAiJwt(context, "test-token")
+        KeyboardPrefs.setAiEmail(context, "test@addiyon.com")
+        KeyboardPrefs.setAiQuotaDay(context, todayIso())
+        KeyboardPrefs.setAiDailyLimit(context, 50)
+        KeyboardPrefs.setAiWordsUsedToday(context, 10)
+        var loggedOut = false
+
+        compose.setContent {
+            TestAppHost {
+                AiDashboardContent(
+                    onBack = {},
+                    onLogout = { loggedOut = true },
+                    onSwitchToAuth = {}
+                )
+            }
+        }
+
+        compose.onNodeWithText("80%").assertIsDisplayed()
+        compose.onNodeWithText("40 of 50 requests remaining").assertIsDisplayed()
+        compose.onNodeWithText("Signed in").assertDoesNotExist()
+        compose.onNodeWithText(EnglishStrings.aiSignOut).performClick()
+        compose.runOnIdle {
+            assertEquals(true, loggedOut)
+            assertEquals(null, KeyboardPrefs.aiJwt(context))
+        }
     }
 
     @Test
@@ -210,5 +250,8 @@ class AiUiTest {
         }
         compose.onNodeWithText("Sign in to AI").assertIsDisplayed()
         compose.onNodeWithText("Make every message sound like you").assertIsDisplayed()
+        compose.onNodeWithTag(AI_AUTH_GOOGLE_ACTION_TAG).assertHeightIsEqualTo(56.dp)
+        compose.onNodeWithTag(AI_AUTH_EMAIL_FIELD_TAG).assertHeightIsEqualTo(56.dp)
+        compose.onNodeWithTag(AI_AUTH_PRIMARY_ACTION_TAG).assertHeightIsEqualTo(56.dp)
     }
 }

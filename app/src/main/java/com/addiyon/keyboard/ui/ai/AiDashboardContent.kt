@@ -1,7 +1,6 @@
 package com.addiyon.keyboard.ui.ai
 
 import android.content.Context
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,11 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +41,13 @@ import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.ai.AiQuota
 import com.addiyon.keyboard.ai.todayIso
 import com.addiyon.keyboard.ui.AppPageTopBar
+import com.addiyon.keyboard.ui.design.AddiyonRadii
+import com.addiyon.keyboard.ui.design.AddiyonSizes
+import com.addiyon.keyboard.ui.i18n.LocalAppLanguage
+import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
+import java.util.Locale
+import java.util.TimeZone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -59,14 +62,23 @@ fun AiDashboardContent(
     quotaLoader: (suspend (String?, String) -> Result<AiQuota>)? = null
 ) {
     val context = LocalContext.current
+    val strings = LocalAppStrings.current
+    val language = LocalAppLanguage.current.current
+    val locale = Locale.forLanguageTag(language.code)
     var jwt by remember { mutableStateOf(KeyboardPrefs.aiJwt(context)) }
     var quota by remember { mutableStateOf(cachedAiQuota(context)) }
     val email = KeyboardPrefs.aiEmail(context)
     val isLoggedIn = !jwt.isNullOrBlank()
-    val usedToday = quota.used
     val limit = quota.limit
     val remaining = quota.remaining
-    val progress = if (limit > 0) (usedToday.toFloat() / limit.toFloat()).coerceIn(0f, 1f) else 0f
+    val remainingPercent = aiRemainingPercentage(quota)
+    val progress = remainingPercent / 100f
+    val resetDescription = formatAiUsageReset(
+        nowMillis = System.currentTimeMillis(),
+        timeZone = TimeZone.getDefault(),
+        locale = locale,
+        strings = strings
+    )
 
     LaunchedEffect(jwt) {
         val loader = quotaLoader ?: return@LaunchedEffect
@@ -82,9 +94,9 @@ fun AiDashboardContent(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             AppPageTopBar(
-                title = "AI account",
+                title = strings.aiAccountTitle,
                 onBack = onBack,
-                backContentDescription = "Back"
+                backContentDescription = strings.back
             )
         }
     ) { innerPadding ->
@@ -96,109 +108,121 @@ fun AiDashboardContent(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-            ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Filled.AutoAwesome,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(Modifier.width(14.dp))
-                    Column {
-                        Text(
-                            "Your AI workspace",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            if (isLoggedIn) "Rephrase with your Addiyon account." else "Sign in to keep your AI access across devices.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f),
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
-            }
-
-            Card(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag(AI_DASHBOARD_USAGE_TAG),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(Modifier.padding(20.dp)) {
+                Icon(
+                    Icons.Filled.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(Modifier.width(14.dp))
+                Column {
                     Text(
-                        "Today's usage",
-                        style = MaterialTheme.typography.titleMedium,
+                        strings.aiWorkspaceTitle,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 14.dp),
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            "$remaining",
-                            style = MaterialTheme.typography.displaySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "requests remaining",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 5.dp)
-                        )
-                    }
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp)
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
                     Text(
-                        "$usedToday of $limit requests used · resets daily",
-                        style = MaterialTheme.typography.labelMedium,
+                        if (isLoggedIn) {
+                            strings.aiWorkspaceConnectedDescription
+                        } else {
+                            strings.aiWorkspaceDisconnectedDescription
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
 
-            Card(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag(AI_DASHBOARD_ACCOUNT_TAG),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    .testTag(AI_DASHBOARD_USAGE_TAG)
+                    .padding(vertical = 8.dp)
             ) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Account", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    strings.aiUsageTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
-                        text = if (isLoggedIn) email ?: "Signed-in account" else "Anonymous access",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        "$remainingPercent%",
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = if (isLoggedIn) "Signed in" else "Sign in for a connected experience",
+                        strings.aiUsageRemaining,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 5.dp)
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+                Text(
+                    String.format(
+                        locale,
+                        strings.aiUsageRequestsRemainingFormat,
+                        remaining,
+                        limit
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+                Text(
+                    resetDescription,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AI_DASHBOARD_ACCOUNT_TAG)
+                    .padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    strings.aiAccountSectionTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = if (isLoggedIn) email ?: strings.aiAccountFallback else strings.aiAnonymousAccess,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (!isLoggedIn) {
+                    Text(
+                        text = strings.aiAccountDisconnectedDescription,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -214,12 +238,16 @@ fun AiDashboardContent(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(14.dp)
+                        .height(AddiyonSizes.minimumTouchTarget),
+                    shape = RoundedCornerShape(AddiyonRadii.small)
                 ) {
-                    Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(Modifier.width(8.dp))
-                    Text("Sign out")
+                    Text(strings.aiSignOut)
                 }
             } else {
                 Button(
@@ -229,7 +257,7 @@ fun AiDashboardContent(
                         .height(48.dp),
                     shape = RoundedCornerShape(14.dp)
                 ) {
-                    Text("Sign in to Addiyon AI")
+                    Text(strings.aiSignInAction)
                 }
             }
             Spacer(Modifier.height(8.dp))

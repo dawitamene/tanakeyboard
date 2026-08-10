@@ -34,6 +34,7 @@ import com.addiyon.keyboard.telemetry.Telemetry
 import com.addiyon.keyboard.telemetry.TelemetrySetting
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.AppPageTopBar
+import com.addiyon.keyboard.ui.design.AddiyonContentSection
 
 /**
  * Sound & vibration settings: two independent keypress toggles, persisted
@@ -72,7 +73,11 @@ fun SoundVibrationScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            GroupCard(modifier = Modifier.widthIn(max = 720.dp)) {
+            AddiyonContentSection(
+                modifier = Modifier
+                    .widthIn(max = 720.dp)
+                    .fillMaxWidth()
+            ) {
                 NavRow(
                     label = strings.keyboardHeight,
                     onClick = onOpenKeyboardHeight

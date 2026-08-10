@@ -1,5 +1,20 @@
 # tools
 
+## `install_debug_preserving_state.sh`
+
+Builds and installs the debug APK as an in-place update, preserving app data
+such as the AI login session. It also keeps the virtual keyboard visible when
+the emulator's hardware-keyboard integration is active, enables Addiyon, and
+selects it as the default IME:
+
+```sh
+/Users/dev/code/addiyon-keyboard/tools/install_debug_preserving_state.sh
+```
+
+Pass an ADB serial as the first argument when more than one device is connected.
+The script deliberately fails instead of uninstalling the existing package if
+Android cannot perform a state-preserving update.
+
 ## `build_amharic_dict.py`
 
 Regenerates `app/src/main/assets/amharic_words.dat`, the Amharic suggestion

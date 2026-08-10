@@ -24,11 +24,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.addiyon.keyboard.transliteration.Transliterator
 import com.addiyon.keyboard.ui.AppPageTopBar
+import com.addiyon.keyboard.ui.design.AddiyonContentSection
+import com.addiyon.keyboard.ui.design.AddiyonInputField
 import com.addiyon.keyboard.ui.i18n.AppStrings
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
@@ -116,16 +114,11 @@ fun ManualScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            OutlinedTextField(
+            AddiyonInputField(
                 value = query,
                 onValueChange = { query = it },
                 singleLine = true,
-                shape = RoundedCornerShape(percent = 50),
-                placeholder = { Text(strings.searchPlaceholder) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                ),
+                placeholder = strings.searchPlaceholder,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -139,7 +132,7 @@ fun ManualScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (!searching) {
-                        item(key = "hero") { HeroCard(strings, accent) }
+                        item(key = "hero") { HeroCard(strings) }
                     }
                     items(visibleRows, key = { it.cells.first().fidel.code }) { row ->
                         FamilyCard(
@@ -180,7 +173,7 @@ fun ManualScreen(
  * loop, so nothing shifts or flickers as the texts grow and reset.
  */
 @Composable
-private fun HeroCard(strings: AppStrings, accent: Color) {
+private fun HeroCard(strings: AppStrings) {
     val demo = "selam"
     // The widest fidel the demo ever shows -- the intermediate readings are
     // prefixes-in-width of it -- held invisibly to pin the output slot's size.
@@ -197,11 +190,7 @@ private fun HeroCard(strings: AppStrings, accent: Color) {
     }
     val typed = demo.take(typedLength)
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.12f))
-    ) {
+    AddiyonContentSection(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(14.dp)) {
             Text(
                 text = strings.guideHowItWorks,
@@ -259,13 +248,7 @@ private fun FamilyCard(
     accent: Color,
     highlightQuery: String
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
+    AddiyonContentSection(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(

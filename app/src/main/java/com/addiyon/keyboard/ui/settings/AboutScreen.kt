@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.AppPageTopBar
+import com.addiyon.keyboard.ui.design.AddiyonContentSection
 import com.addiyon.keyboard.ui.theme.PoppinsFamily
 
 /** testTag so instrumented tests can find the privacy-policy link. */
@@ -89,7 +90,7 @@ fun AboutScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            GroupCard {
+            AddiyonContentSection(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

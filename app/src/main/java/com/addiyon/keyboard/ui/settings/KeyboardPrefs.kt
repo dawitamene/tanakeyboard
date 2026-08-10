@@ -154,7 +154,7 @@ object KeyboardPrefs {
         readString(context, KEY_AI_JWT, null, 4096)
 
     fun setAiJwt(context: Context, value: String?) =
-        writeSafely(context) {
+        writeImmediately(context) {
             if (value == null) remove(KEY_AI_JWT) else putString(KEY_AI_JWT, value.take(4096))
         }
 
@@ -280,6 +280,16 @@ object KeyboardPrefs {
     ) {
         try {
             prefs(context).edit().apply(update).apply()
+        } catch (_: Throwable) {
+        }
+    }
+
+    private fun writeImmediately(
+        context: Context,
+        update: SharedPreferences.Editor.() -> Unit
+    ) {
+        try {
+            prefs(context).edit().apply(update).commit()
         } catch (_: Throwable) {
         }
     }

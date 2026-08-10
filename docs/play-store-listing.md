@@ -164,16 +164,16 @@ Required, and currently missing. Drafts to work from: `plans/feature-image-promp
 `plans/feature-image2.md`.
 
 Play crops and overlays this differently across surfaces, so keep all text well inside the
-middle ~80% and do not place the app name near the edges. On the Addiyon vermillion
-(`#EE4D2D`), the strongest composition is the `selam → ሰላም` transformation itself, large,
+middle ~80% and do not place the app name near the edges. On the Addiyon teal
+(`#009099`), the strongest composition is the `selam → ሰላም` transformation itself, large,
 with the mark small in a corner. Avoid embedding screenshots or device frames — both read
 as cluttered at the size this is actually displayed.
 
 ## App icon — 512 × 512
 
-`play_store_icon_512.png` at the repo root. It shares its source
-(`logo_play_store_fullbleed.svg`) with the in-app launcher icon, so the store icon and the
-installed icon match — which is what Play expects and what users use to find the app.
+`play_store_icon_512.png` at the repo root. It is generated from the current
+`keyboard.png` logo source and matches the in-app launcher icon, so the store and
+installed icons remain visually consistent.
 
 ---
 

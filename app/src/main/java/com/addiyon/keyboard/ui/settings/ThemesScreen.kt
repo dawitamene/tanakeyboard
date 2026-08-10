@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,6 +41,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.AppPageTopBar
+import com.addiyon.keyboard.ui.design.AddiyonContentSection
+import com.addiyon.keyboard.ui.design.AddiyonRadii
 import com.addiyon.keyboard.ui.theme.CustomKeyboardTheme
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 import com.addiyon.keyboard.ui.theme.PaletteCategory
@@ -140,13 +143,12 @@ private fun ThemeCard(
         if (selected) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.outlineVariant
 
-    Column(
+    AddiyonContentSection(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
             .border(
                 width = if (selected) 2.dp else 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(AddiyonRadii.group)
             )
             .semantics(mergeDescendants = true) {
                 contentDescription = palette.displayName
@@ -155,8 +157,8 @@ private fun ThemeCard(
                 selected = selected,
                 onClick = onClick,
                 role = Role.RadioButton
-            )
-            .padding(8.dp),
+            ),
+        contentPadding = PaddingValues(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {

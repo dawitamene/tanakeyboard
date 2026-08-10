@@ -59,6 +59,8 @@ import com.addiyon.keyboard.ui.AppBrandHeader
 import com.addiyon.keyboard.ui.feedback.FeedbackOptions
 import com.addiyon.keyboard.ui.feedback.openFeedbackTelegram
 import com.addiyon.keyboard.ui.feedback.sendFeedbackEmail
+import com.addiyon.keyboard.ui.design.AddiyonContentSection
+import com.addiyon.keyboard.ui.design.AddiyonRadii
 import com.addiyon.keyboard.ui.i18n.LocalAppStrings
 import com.addiyon.keyboard.ui.settings.KeyboardPrefs
 
@@ -147,7 +149,7 @@ fun SettingsScreen(
         ) {
             val landscape = maxWidth > maxHeight
             val firstGroup: @Composable () -> Unit = {
-                GroupCard {
+                AddiyonContentSection(modifier = Modifier.fillMaxWidth()) {
                     SettingsItem(Icons.Default.Palette, strings.themes, onClick = onOpenThemes)
                     SettingsItem(Icons.Default.MenuBook, strings.typingGuide, onClick = onOpenManual)
                     SettingsItem(Icons.Default.Tune, strings.preferences, onClick = onOpenSoundVibration)
@@ -170,12 +172,12 @@ fun SettingsScreen(
                 }
             }
             val secondaryGroups: @Composable () -> Unit = {
-                GroupCard {
+                AddiyonContentSection(modifier = Modifier.fillMaxWidth()) {
                     SettingsItem(Icons.Default.Share, strings.shareApp) { shareApp() }
                     SettingsItem(Icons.Default.StarRate, strings.rateApp) { rateApp() }
                 }
                 Spacer(Modifier.height(if (landscape) 16.dp else 24.dp))
-                GroupCard {
+                AddiyonContentSection(modifier = Modifier.fillMaxWidth()) {
                     SettingsItem(Icons.Default.Feedback, strings.feedback) { showFeedback = true }
                     SettingsItem(Icons.Default.Info, strings.about, onClick = onOpenAbout)
                 }
@@ -223,7 +225,8 @@ fun SettingsScreen(
                 onEmail = {
                     showFeedback = false
                     sendFeedbackEmail(context, strings.feedbackEmailSubject)
-                }
+                },
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(Modifier.height(16.dp))
         }
@@ -284,7 +287,7 @@ private fun SettingsItemWithBadge(
         Badge(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.clip(RoundedCornerShape(12.dp))
+            modifier = Modifier.clip(RoundedCornerShape(AddiyonRadii.pill))
         ) {
             Text(
                 text = badgeText,

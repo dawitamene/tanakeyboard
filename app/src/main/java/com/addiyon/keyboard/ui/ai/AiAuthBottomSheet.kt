@@ -9,11 +9,13 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,8 +34,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +45,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +57,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.addiyon.keyboard.R
 import com.addiyon.keyboard.ui.AppPageTopBar
+import com.addiyon.keyboard.ui.design.AddiyonInputField
+import com.addiyon.keyboard.ui.design.AddiyonRadii
+import com.addiyon.keyboard.ui.design.AddiyonSizes
+import com.addiyon.keyboard.ui.design.AddiyonSpacing
+
+internal const val AI_AUTH_GOOGLE_ACTION_TAG = "ai.auth.google.action"
+internal const val AI_AUTH_EMAIL_FIELD_TAG = "ai.auth.email.field"
+internal const val AI_AUTH_PRIMARY_ACTION_TAG = "ai.auth.primary.action"
 
 enum class AuthStep { Email, Password, Otp, Register }
 
@@ -140,8 +149,8 @@ fun AiAuthBottomSheet(
                     onClick = onBackToEmail,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp),
-                    shape = RoundedCornerShape(12.dp)
+                        .heightIn(min = AddiyonSizes.formControl),
+                    shape = RoundedCornerShape(AddiyonRadii.pill)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(17.dp))
                     Spacer(Modifier.width(7.dp))
@@ -205,10 +214,11 @@ private fun EmailStep(
         enabled = !sending,
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp),
-        shape = RoundedCornerShape(14.dp),
+            .heightIn(min = AddiyonSizes.formControl)
+            .testTag(AI_AUTH_GOOGLE_ACTION_TAG),
+        shape = RoundedCornerShape(AddiyonRadii.pill),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
         Icon(
             painter = painterResource(id = R.drawable.ic_google_g),
@@ -230,18 +240,20 @@ private fun EmailStep(
         HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
     }
     AuthFieldLabel("Email")
-    OutlinedTextField(
+    AddiyonInputField(
         value = email,
         onValueChange = onEmailChanged,
-        placeholder = { Text("Enter your email address") },
+        placeholder = "Enter your email address",
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = authFieldColors()
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(AI_AUTH_EMAIL_FIELD_TAG)
     )
     MessageText(message)
-    AuthActionButton(text = "Continue", sending = sending, onClick = onContinueEmail)
+    Box(modifier = Modifier.padding(top = AddiyonSpacing.xs)) {
+        AuthActionButton(text = "Continue", sending = sending, onClick = onContinueEmail)
+    }
 }
 
 @Composable
@@ -261,16 +273,14 @@ private fun PasswordStep(
         overflow = TextOverflow.Ellipsis
     )
     AuthFieldLabel("Password")
-    OutlinedTextField(
+    AddiyonInputField(
         value = password,
         onValueChange = onPasswordChanged,
-        placeholder = { Text("Password") },
+        placeholder = "Password",
         singleLine = true,
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = authFieldColors()
+        modifier = Modifier.fillMaxWidth()
     )
     MessageText(message)
     AuthActionButton(text = "Log in", sending = sending, onClick = onLogin)
@@ -329,10 +339,14 @@ private fun OtpStep(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(52.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                                .heightIn(min = AddiyonSizes.formControl)
+                                .clip(RoundedCornerShape(AddiyonRadii.card))
                                 .background(MaterialTheme.colorScheme.surface)
-                                .border(1.5.dp, borderColor, RoundedCornerShape(12.dp)),
+                                .border(
+                                    1.5.dp,
+                                    borderColor,
+                                    RoundedCornerShape(AddiyonRadii.card)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -362,8 +376,8 @@ private fun OtpStep(
         enabled = !sending,
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp),
-        shape = RoundedCornerShape(12.dp)
+            .heightIn(min = AddiyonSizes.formControl),
+        shape = RoundedCornerShape(AddiyonRadii.pill)
     ) { Text("Resend code") }
 }
 
@@ -386,26 +400,22 @@ private fun RegisterStep(
         overflow = TextOverflow.Ellipsis
     )
     AuthFieldLabel("Full name")
-    OutlinedTextField(
+    AddiyonInputField(
         value = name,
         onValueChange = onNameChanged,
-        placeholder = { Text("Full name") },
+        placeholder = "Full name",
         singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = authFieldColors()
+        modifier = Modifier.fillMaxWidth()
     )
     AuthFieldLabel("Password")
-    OutlinedTextField(
+    AddiyonInputField(
         value = password,
         onValueChange = onPasswordChanged,
-        placeholder = { Text("At least 8 characters") },
+        placeholder = "At least 8 characters",
         singleLine = true,
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = authFieldColors()
+        modifier = Modifier.fillMaxWidth()
     )
     MessageText(message)
     AuthActionButton(text = "Create account", sending = sending, onClick = onRegister)
@@ -442,8 +452,9 @@ private fun AuthActionButton(text: String, sending: Boolean, onClick: () -> Unit
         enabled = !sending,
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp),
-        shape = RoundedCornerShape(14.dp)
+            .heightIn(min = AddiyonSizes.formControl)
+            .testTag(AI_AUTH_PRIMARY_ACTION_TAG),
+        shape = RoundedCornerShape(AddiyonRadii.pill)
     ) {
         if (sending) {
             CircularProgressIndicator(
@@ -456,16 +467,3 @@ private fun AuthActionButton(text: String, sending: Boolean, onClick: () -> Unit
         }
     }
 }
-
-@Composable
-private fun authFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MaterialTheme.colorScheme.primary,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-    focusedContainerColor = MaterialTheme.colorScheme.surface,
-    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-    cursorColor = MaterialTheme.colorScheme.primary,
-    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
-)

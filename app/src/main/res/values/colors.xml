@@ -8,18 +8,8 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Addiyon brand palette (Stencil Solid, vermillion) -->
-    <color name="addiyon_vermillion">#FFEE4D2D</color>      <!-- Vermillion (primary) -->
-    <color name="addiyon_vermillion_dark">#FFC63A1E</color> <!-- Vermillion, pressed/dark -->
-    <color name="addiyon_vermillion_tint">#FFFBDDD3</color> <!-- Vermillion tint (containers) -->
-    <color name="addiyon_warm_white">#FFFFF6F0</color>      <!-- Warm white (on-primary) -->
-    <color name="addiyon_ink">#FF17150F</color>             <!-- Ink        (text)       -->
-    <color name="addiyon_charcoal">#FF2A2620</color>        <!-- Charcoal   (dark surface) -->
-    <color name="addiyon_stone">#FF8A8578</color>           <!-- Stone      (secondary text) -->
-    <color name="addiyon_sand">#FFE4DFD3</color>            <!-- Sand       (divider/outline) -->
-    <color name="addiyon_paper">#FFF4F1EA</color>           <!-- Paper      (surface/background) -->
+    <color name="addiyon_brand_primary">#FF009099</color>
 
-    <!-- Splash / launch background (overridden in values-night). -->
-    <color name="splash_background">#FFF4F1EA</color>
-    <color name="splash_status_bar">#FFEE4D2D</color>
+    <color name="splash_background">@color/white</color>
+    <color name="splash_status_bar">@color/addiyon_brand_primary</color>
 </resources>
