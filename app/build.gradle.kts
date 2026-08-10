@@ -6,14 +6,18 @@ import java.util.Date
 import java.util.Locale
 import java.util.Properties
 import com.android.build.api.variant.BuildConfigField
+import com.addiyon.buildlogic.dictionary.GenerateDictionaryDatabase
+import com.addiyon.buildlogic.dictionary.LanguageDictionariesExtension
+import com.addiyon.buildlogic.versioning.GitCommitCountValueSource
 import org.gradle.api.tasks.testing.Test
 import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.compose.compiler)
+    id("addiyon.android.application")
+    id("addiyon.android.compose")
+    id("addiyon.language-dictionaries")
     alias(libs.plugins.baselineprofile)
     id("jacoco")
 }
@@ -80,18 +84,13 @@ val expectedProductionFirebaseProjectId = versionProps
     .getProperty("firebaseProductionProjectId", "")
     .trim()
 
-val autoVersionCode: Int by lazy {
-    val gitCount = try {
-        val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
-            .directory(rootProject.projectDir)
-            .redirectErrorStream(true)
-            .start()
-        process.inputStream.bufferedReader().use { it.readText().trim().toInt() }
-    } catch (_: Exception) {
-        versionCodeFloor
+val gitCommitCount = providers.of(GitCommitCountValueSource::class) {
+    parameters {
+        workingDirectory.set(rootProject.layout.projectDirectory)
+        fallback.set(versionCodeFloor)
     }
-    maxOf(versionCodeFloor, gitCount)
 }
+val autoVersionCode = gitCommitCount.map { maxOf(versionCodeFloor, it) }
 
 // Release signing is driven by a gitignored keystore.properties in the module
 // root (never committed). When it's absent -- e.g. a fresh checkout or CI
@@ -123,11 +122,6 @@ if (keystoreProperties.isNotEmpty() && expectedReleaseCertificate.isNotEmpty()) 
 
 android {
     namespace = "com.addiyon.keyboard"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
 
     androidResources {
         ignoreAssetsPatterns.addAll(
@@ -141,35 +135,12 @@ android {
     }
 
     buildFeatures {
-        compose = true
         buildConfig = true
     }
 
-    val generateDictionaryDbs = tasks.register<DictionaryDbGenerator>("generateDictionaryDbs") {
-        group = "build"
-        description = "Generate SQLite dictionaries from gzipped .dat assets."
-        amharicWordsDat.set(file("src/main/assets/amharic_words.dat"))
-        amharicNgramsDat.set(file("src/main/assets/amharic_ngrams.dat"))
-        englishWordsDat.set(file("src/main/assets/english_words.dat"))
-        englishNgramsDat.set(file("src/main/assets/english_ngrams.dat"))
-        amharicDb.set(file("src/main/assets/amharic.db"))
-        englishDb.set(file("src/main/assets/english.db"))
-        manifestFile.set(file("src/main/assets/dictionary_manifest.properties"))
-    }
-
-    afterEvaluate {
-        tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
-            .configureEach { dependsOn(generateDictionaryDbs) }
-        tasks.matching { it.name.contains("Lint", ignoreCase = true) }
-            .configureEach { dependsOn(generateDictionaryDbs) }
-    }
-
-
     defaultConfig {
         applicationId = "com.addiyon.keyboard"
-        minSdk = 24
-        targetSdk = 36
-        versionCode = autoVersionCode
+        versionCode = autoVersionCode.get()
         versionName = releaseVersionName
 
         testInstrumentationRunner = "com.addiyon.keyboard.TelemetryTestRunner"
@@ -238,9 +209,22 @@ android {
             manifest.srcFile(benchmarkSupportManifest)
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+}
+
+configure<LanguageDictionariesExtension> {
+    dictionaries.register("amharic") {
+        wordsDat.set(layout.projectDirectory.file("src/main/assets/amharic_words.dat"))
+        ngramsDat.set(layout.projectDirectory.file("src/main/assets/amharic_ngrams.dat"))
+        outputDb.set(layout.projectDirectory.file("src/main/assets/amharic.db"))
+        normalization.set(GenerateDictionaryDatabase.NORMALIZATION_ETHIOPIC)
+        maxPrefixLength.set(1)
+    }
+    dictionaries.register("english") {
+        wordsDat.set(layout.projectDirectory.file("src/main/assets/english_words.dat"))
+        ngramsDat.set(layout.projectDirectory.file("src/main/assets/english_ngrams.dat"))
+        outputDb.set(layout.projectDirectory.file("src/main/assets/english.db"))
+        normalization.set(GenerateDictionaryDatabase.NORMALIZATION_LATIN_LOWERCASE)
+        maxPrefixLength.set(2)
     }
 }
 
@@ -250,7 +234,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     testImplementation(libs.junit)
-    testImplementation("org.xerial:sqlite-jdbc:3.45.3.0")
+    testImplementation(libs.sqlite.jdbc)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(platform(libs.androidx.compose.bom))

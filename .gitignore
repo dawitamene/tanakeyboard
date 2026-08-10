@@ -9,7 +9,7 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
-/buildSrc/build
+/build-logic/build
 /captures
 /tools/.cache
 # Raw Amharic corpus source data (17MB/249MB/81MB, for

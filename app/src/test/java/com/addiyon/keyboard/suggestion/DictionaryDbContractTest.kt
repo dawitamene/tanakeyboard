@@ -12,7 +12,7 @@ import java.sql.DriverManager
 
 /**
  * Asset<->DB contract guard. The Gradle task `generateDictionaryDbs`
- * (buildSrc/DictionaryDbGenerator.kt) reads the `.dat` assets, applies
+ * (`build-logic`'s language-dictionary convention) reads the `.dat` assets, applies
  * [EthiopicNormalizer.normalize] for Amharic / per-char lowercase for
  * English, and writes the folded form to a `key` column. The runtime
  * (SQLiteDictionary, SQLiteNgramModel) folds the lookup word the same way
