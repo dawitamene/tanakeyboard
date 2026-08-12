@@ -26,6 +26,7 @@ import com.addiyon.keyboard.textRevampAppShellConfig
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_DEFAULT
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MAX
 import com.addiyon.keyboard.ui.KEYBOARD_HEIGHT_SCALE_MIN
+import com.addiyon.keyboard.ui.KeyboardTestTags
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -127,11 +128,13 @@ class SettingsScreensUiTest {
                         done = "Done",
                         previewLanguageName = "English"
                     ),
-                    onBack = {}
+                    onBack = {},
+                    showLanguageSwitchKey = false
                 )
             }
         }
 
+        compose.onNodeWithTag(KeyboardTestTags.KEY_LANGUAGE_TOGGLE).assertDoesNotExist()
         compose.onNodeWithTag(KEYBOARD_HEIGHT_HANDLE_TAG).performTouchInput { swipeUp() }
         compose.runOnIdle {
             val stored = KeyboardPrefs.keyboardHeightScale(context)

@@ -126,6 +126,7 @@ fun KeyboardScreen(
         languageKeyPresentation = service.languageKeyPresentation,
         characterPresentation = service::characterKeyPresentation,
         showLanguagePresentation = true,
+        showLanguageSwitchKey = service.showLanguageSwitchKey,
         isNumberMode = isNumberMode,
         isEmailField = service.isEmailField,
         isPrivateField = service.isPrivateField,
@@ -185,7 +186,11 @@ fun KeyboardScreen(
                             computeKeyboardMetrics(rows = rows, availableWidth = maxWidth - 4.dp, columns = layout.columns, heightScale = heightScale, isLandscape = isLandscape)
                         }
                         val targetRowCount = remember(service.showNumberRow) { keyboardRowCount(service.showNumberRow) }
-                        val panelHeight = 40.dp + keyboardRowsHeight(keyHeight = metrics.keyHeight, rowCount = targetRowCount, rowSpacing = standardRowSpacing) + KEY_ROWS_VERTICAL_PADDING * 2
+                        val basePanelHeight = 40.dp + keyboardRowsHeight(keyHeight = metrics.keyHeight, rowCount = targetRowCount, rowSpacing = standardRowSpacing) + KEY_ROWS_VERTICAL_PADDING * 2
+                        val panelHeight = scaledKeyboardPanelHeight(
+                            baseHeight = basePanelHeight,
+                            scale = optionalUi.panelHeightScale
+                        )
                         Box(modifier = Modifier.height(panelHeight)) {
                             optionalUi.panel(panelHeight)
                         }

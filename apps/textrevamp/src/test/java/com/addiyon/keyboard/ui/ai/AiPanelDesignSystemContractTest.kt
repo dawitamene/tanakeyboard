@@ -1,5 +1,6 @@
 package com.addiyon.keyboard.ui.ai
 
+import com.addiyon.keyboard.ai.AiToneTab
 import java.io.File
 import java.nio.file.Paths
 import org.junit.Assert.assertFalse
@@ -15,6 +16,7 @@ class AiPanelDesignSystemContractTest {
             "AddiyonSpacing",
             "AddiyonRadii",
             "AddiyonSizes",
+            "AddiyonBorders",
             "AddiyonElevation",
             "AiUiStrings",
             "MaterialTheme.colorScheme",
@@ -30,16 +32,18 @@ class AiPanelDesignSystemContractTest {
             panel.contains("AddiyonSizes.compact")
         )
         assertTrue(
-            "The selected tone must use the Addiyon design-system primary colors.",
-            panel.contains("MaterialTheme.addiyonColors.brandPrimary") &&
-                panel.contains("MaterialTheme.addiyonColors.onBrandPrimary")
-        )
-        assertTrue(
-            "Tone controls must be compact, pill-shaped, borderless, and separated by the standard gap.",
+            "Tone controls must keep one background and use an animated icon-color selection border.",
                 panel.contains("horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm)") &&
+                panel.contains("horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.xxs)") &&
                 panel.contains("shape = RoundedCornerShape(AddiyonRadii.pill)") &&
                 panel.contains("selected = selected") &&
-                panel.contains(".padding(horizontal = AddiyonSpacing.xs)")
+                panel.contains("color = MaterialTheme.colorScheme.surface") &&
+                panel.contains("border = toneSelectionBorder(iconColor, selected, isLoading)") &&
+                panel.contains(".padding(horizontal = AddiyonSpacing.xs)") &&
+                panel.contains("imageVector = toneIcon(tab)") &&
+                panel.contains("tint = iconColor") &&
+                panel.contains(".size(AddiyonSizes.iconSmall)") &&
+                panel.contains(".testTag(aiPanelToneIconTag(tab))")
         )
         assertTrue(
             "The toolbar must use compact top and bottom spacing.",
@@ -52,19 +56,43 @@ class AiPanelDesignSystemContractTest {
                 panel.contains("strings.aiToneLabel")
         )
         assertTrue(
-            "The AI toolbar must reuse the suggestion bar's localized chevron control.",
+            "The AI toolbar must use a minimum-touch white circular back action with a small arrow.",
             panel.contains("SuggestionChevronLeftButton(") &&
                 panel.contains("contentDescription = strings.back") &&
+                panel.contains("testTag = AI_PANEL_BACK_ACTION_TAG") &&
+                panel.contains("buttonSize = AddiyonSizes.minimumTouchTarget") &&
+                panel.contains("iconSize = AddiyonSizes.iconSmall") &&
+                panel.contains("containerColor = MaterialTheme.addiyonColors.resultSurface") &&
+                panel.contains("iconTint = MaterialTheme.addiyonColors.onResultSurface") &&
                 !panel.contains("Icons.Filled.AutoAwesome") &&
                 !panel.contains("Icons.Filled.Close")
         )
-        assertFalse(
-            "The compact toolbar must not render quota usage.",
-            panel.contains("strings.aiQuotaFormat")
+        val toolbar = panel.substringAfter("private fun AiPanelToolbar")
+            .substringBefore("private fun AiToneRow")
+        assertTrue(
+            "Tone controls must be rendered directly beside the back action.",
+            toolbar.indexOf("SuggestionChevronLeftButton(") in 0 until toolbar.indexOf("AiToneRow(") &&
+                toolbar.contains("modifier = Modifier.weight(1f)")
         )
         assertFalse(
-            "AiPanel must not introduce a private stroke; use semantic surfaces and elevation instead.",
-            panel.contains(".border(")
+            "The compact toolbar must not render a title or usage control.",
+            panel.contains("strings.aiPanelTitle") ||
+                panel.contains("AI_PANEL_USAGE_ACTION_TAG") ||
+                panel.contains("AI_PANEL_USAGE_PROGRESS_TAG") ||
+                panel.contains("strings.aiUsageBadgeFormat") ||
+                panel.contains("strings.aiUsageOpenDescriptionFormat") ||
+                panel.contains("strings.aiQuotaFormat")
+        )
+        val selectionBorder = panel.substringAfter("private fun toneSelectionBorder")
+            .substringBefore("private fun AiPanelAuthCard")
+        assertTrue(
+            "The selected tone border must be static when idle and animate a same-hue sweep only while loading.",
+            selectionBorder.contains("AddiyonBorders.selectedTone") &&
+                selectionBorder.contains("if (!isLoading)") &&
+                selectionBorder.contains("color = color") &&
+                selectionBorder.contains("Brush.sweepGradient(colors)") &&
+                selectionBorder.contains("rememberInfiniteTransition") &&
+                selectionBorder.contains("color.copy(alpha =")
         )
     }
 
@@ -91,6 +119,22 @@ class AiPanelDesignSystemContractTest {
         assertTrue(
             "AiPanel must map tone enums to localized AppStrings fields.",
             panel.contains("toneLabel")
+        )
+        assertTrue(
+            "AiPanel must map every tone enum to a supporting icon.",
+            panel.contains("toneIcon") && AiToneTab.entries.all { tab ->
+                panel.contains("AiToneTab.${tab.name} -> Icons.")
+            }
+        )
+        val iconColors = panel.substringAfter("private fun toneIconColor")
+            .substringBefore("private fun toneLabel")
+        assertTrue(
+            "Tone icons must use dedicated theme accents in every selection state.",
+            iconColors.contains("MaterialTheme.addiyonColors.aiToneIcons") &&
+                AiToneTab.entries.all { tab ->
+                    val property = tab.name.replaceFirstChar { it.lowercase() }
+                    iconColors.contains("AiToneTab.${tab.name} -> colors.$property")
+                }
         )
     }
 

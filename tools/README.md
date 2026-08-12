@@ -27,9 +27,11 @@ python3 /Users/dev/code/addiyon-keyboard/tools/build_amharic_dict.py
 - `amharic_lexemes.dat` contains 18,867 unique source records, including the
   HornMorpho verb roots and grammatical classes needed by the next morphology
   phase.
-- `amharic_words.dat` contains 18,067 displayable base lemmas. Internal slash
+- `amharic_words.dat` contains 18,251 displayable base lemmas. Internal slash
   notation is removed, spelling-equivalent keys are folded, and ranking uses
-  HornMorpho's own `root.frq` statistics.
+  HornMorpho's own `root.frq` statistics. The runtime noun morphology layer
+  generates productive prefixed, plural, definite/possessive, and accusative
+  forms from these lexemes without storing expanded surface forms.
 - `amharic_ngrams.dat` is intentionally empty. It prevents the prediction
   model tied to the discarded surface dictionary from leaking those forms
   back into the new database.

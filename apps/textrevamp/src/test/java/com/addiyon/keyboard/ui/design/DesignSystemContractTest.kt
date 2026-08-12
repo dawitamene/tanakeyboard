@@ -107,13 +107,17 @@ class DesignSystemContractTest {
             "object AddiyonRadii",
             "object AddiyonSizes",
             "val formControl = 56.dp",
+            "object AddiyonBorders",
+            "val selectedTone = 3.dp",
             "object AddiyonMotion",
             "data class AddiyonBrand",
             "fun rememberAddiyonBrand",
             "colorResource(R.color.addiyon_brand_primary)",
             "data class AddiyonColors",
+            "data class AddiyonAiToneColors",
             "brandPrimary",
             "onBrandPrimary",
+            "aiToneIcons",
             "resultSurface",
             "onResultSurface",
             "successContainer",
@@ -146,6 +150,45 @@ class DesignSystemContractTest {
             assertTrue(
                 "Theme.kt is missing $required. Both themes must use the shared design-system wiring.",
                 theme.contains(required)
+            )
+        }
+    }
+
+    @Test
+    fun aiToneIconAccentsAreDistinctInLightAndDarkAppearances() {
+        val tokens = projectRoot().resolve(
+            "keyboard/ui/src/main/java/com/addiyon/keyboard/ui/design/AddiyonDesignTokens.kt"
+        ).readText()
+        val properties = listOf(
+            "humanize",
+            "professional",
+            "casual",
+            "formal",
+            "friendly",
+            "fixGrammar",
+            "shorten",
+            "summarize"
+        )
+        val appearances = listOf(
+            tokens.substringAfter("fun addiyonLightColors").substringBefore("fun addiyonDarkColors"),
+            tokens.substringAfter("fun addiyonDarkColors").substringBefore("val LocalAddiyonColors")
+        )
+
+        appearances.forEach { appearance ->
+            val assignments = properties.map { property ->
+                Regex("""\b$property = ([^,\n]+)""")
+                    .find(appearance)
+                    ?.groupValues
+                    ?.get(1)
+            }
+            assertTrue(
+                "Each appearance must define every AI tone icon accent.",
+                assignments.none { it == null }
+            )
+            assertEquals(
+                "Each AI tone icon must have a visually distinct accent within an appearance.",
+                properties.size,
+                assignments.toSet().size
             )
         }
     }

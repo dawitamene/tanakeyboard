@@ -32,6 +32,7 @@ import com.addiyon.keyboard.ui.keys.LanguageKeyPresentation
 import com.addiyon.keyboard.ui.theme.CustomKeyboardTheme
 import com.addiyon.keyboard.ui.theme.KeyboardPalette
 import org.junit.Rule
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -145,6 +146,21 @@ class KeyboardScreenUiTest {
         compose.runOnIdle { showKeyboard.value = false }
         compose.waitForIdle()
     }
+
+    @Test
+    fun hiddenLanguageKeyGivesItsSpaceToTheSpacebar() {
+        val controller = controller()
+        setKeyboard(controller)
+        val originalWidth = compose.onNodeWithTag(KeyboardTestTags.KEY_SPACE)
+            .fetchSemanticsNode().boundsInRoot.width
+
+        compose.runOnIdle { controller.showLanguageSwitchKey = false }
+
+        compose.onNodeWithTag(KeyboardTestTags.KEY_LANGUAGE_TOGGLE).assertDoesNotExist()
+        val expandedWidth = compose.onNodeWithTag(KeyboardTestTags.KEY_SPACE)
+            .fetchSemanticsNode().boundsInRoot.width
+        assertTrue(expandedWidth > originalWidth)
+    }
 }
 
 private class AmharicKeyboardUiController(context: Context) : KeyboardController {
@@ -174,6 +190,7 @@ private class AmharicKeyboardUiController(context: Context) : KeyboardController
     override val isNumberMode: Boolean
         get() = numbersMode != NumbersMode.OFF
     override val keyboardHeightScale = 1f
+    override var showLanguageSwitchKey by mutableStateOf(true)
     override val showNumberRow = false
     override val vibrateOnKeypress = false
     override val soundOnKeypress = false

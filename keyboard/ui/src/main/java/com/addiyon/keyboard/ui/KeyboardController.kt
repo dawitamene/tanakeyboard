@@ -26,6 +26,7 @@ interface KeyboardController : EmojiUiController {
     val isShiftEnabled: Boolean
     val isNumberMode: Boolean
     val keyboardHeightScale: Float
+    val showLanguageSwitchKey: Boolean
     val showNumberRow: Boolean
     val vibrateOnKeypress: Boolean
     val soundOnKeypress: Boolean
@@ -65,8 +66,13 @@ interface KeyboardController : EmojiUiController {
 data class OptionalKeyboardUi(
     val toolbarAction: KeyboardToolbarAction? = null,
     val panelVisible: Boolean = false,
+    val panelHeightScale: Float = 1f,
     val panel: @Composable (Dp) -> Unit = {}
-)
+) {
+    init {
+        require(panelHeightScale > 0f)
+    }
+}
 
 data class KeyboardToolbarAction(
     val icon: ImageVector,

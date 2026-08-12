@@ -24,6 +24,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+internal const val AI_PANEL_HEIGHT_SCALE = 1.4f
+
 class AiKeyboardFeature internal constructor(
     private val controller: AiController,
     private val store: AiAccountStore,
@@ -54,6 +56,7 @@ class AiKeyboardFeature internal constructor(
             onClick = ::onToolbarAction
         ),
         panelVisible = uiState.isVisible,
+        panelHeightScale = AI_PANEL_HEIGHT_SCALE,
         panel = {
             AiPanel(
                 state = uiState,
@@ -62,7 +65,7 @@ class AiKeyboardFeature internal constructor(
                 onTabSelected = ::onTabSelected,
                 onCopyVariant = ::onCopyVariant,
                 onReplaceVariant = ::onReplaceVariant,
-                onSendLink = openDashboard
+                onOpenDashboard = openDashboard
             )
         }
     )

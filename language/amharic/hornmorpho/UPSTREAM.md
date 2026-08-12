@@ -28,7 +28,7 @@ inputs:
 
 - `amharic_lexemes.dat`: 18,867 unique HornMorpho lexical records, including
   1,832 verb-root records retained for the morphology generator
-- `amharic_words.dat`: 18,067 displayable, homoglyph-folded base lemmas used by
+- `amharic_words.dat`: 18,251 displayable, homoglyph-folded base lemmas used by
   the current completion runtime
 - `amharic_ngrams.dat`: an intentionally empty model until a clean prediction
   corpus is rebuilt against the new lexeme set

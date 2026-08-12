@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -35,6 +36,7 @@ import com.addiyon.keyboard.ai.AiUiState
 import com.addiyon.keyboard.ai.todayIso
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -66,7 +68,7 @@ class AiUiTest {
                         },
                         onCopyVariant = {},
                         onReplaceVariant = {},
-                        onSendLink = {}
+                        onOpenDashboard = {}
                     )
                 }
             }
@@ -74,6 +76,25 @@ class AiUiTest {
 
         compose.onNodeWithText(EnglishTextRevampStrings.aiToneHumanize).assertIsNotSelected()
         compose.onNodeWithText(EnglishTextRevampStrings.aiToneProfessional).assertIsNotSelected()
+        compose.onNodeWithText("TextRevamp AI").assertDoesNotExist()
+        compose.onNodeWithTag(AI_PANEL_BACK_ACTION_TAG)
+            .assertHeightIsEqualTo(48.dp)
+            .assertWidthIsEqualTo(48.dp)
+        AiToneTab.DefaultTabs.forEach { tone ->
+            compose.onNodeWithTag(
+                aiPanelToneIconTag(tone),
+                useUnmergedTree = true
+            ).fetchSemanticsNode()
+        }
+        val backBounds = compose.onNodeWithTag(AI_PANEL_BACK_ACTION_TAG)
+            .fetchSemanticsNode().boundsInRoot
+        val toneBounds = compose.onNodeWithTag(
+            aiPanelToneIconTag(AiToneTab.Humanize),
+            useUnmergedTree = true
+        )
+            .fetchSemanticsNode().boundsInRoot
+        assertTrue(toneBounds.left >= backBounds.right)
+        assertTrue(toneBounds.center.y in backBounds.top..backBounds.bottom)
         compose.onNodeWithText(EnglishTextRevampStrings.aiSelectToneMessage).assertIsDisplayed()
         compose.onNodeWithTag(AI_PANEL_SKELETON_TAG).assertDoesNotExist()
         compose.mainClock.autoAdvance = false
@@ -117,7 +138,7 @@ class AiUiTest {
                         onTabSelected = {},
                         onCopyVariant = { copied = it },
                         onReplaceVariant = { replaced = it },
-                        onSendLink = {}
+                        onOpenDashboard = {}
                     )
                 }
             }
@@ -155,7 +176,7 @@ class AiUiTest {
                         onTabSelected = {},
                         onCopyVariant = {},
                         onReplaceVariant = {},
-                        onSendLink = {}
+                        onOpenDashboard = {}
                     )
                 }
             }

@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -28,11 +29,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ShortText
+import androidx.compose.material.icons.automirrored.outlined.Subject
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.Face
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.SentimentSatisfied
+import androidx.compose.material.icons.outlined.Spellcheck
+import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,16 +68,20 @@ import com.addiyon.keyboard.ai.AiStrength
 import com.addiyon.keyboard.ai.AiToneTab
 import com.addiyon.keyboard.ai.AiUiState
 import com.addiyon.keyboard.ui.SuggestionChevronLeftButton
+import com.addiyon.keyboard.ui.design.AddiyonBorders
 import com.addiyon.keyboard.ui.design.AddiyonElevation
 import com.addiyon.keyboard.ui.design.AddiyonMotion
 import com.addiyon.keyboard.ui.design.AddiyonRadii
 import com.addiyon.keyboard.ui.design.AddiyonSizes
 import com.addiyon.keyboard.ui.design.AddiyonSpacing
 import com.addiyon.keyboard.ui.design.addiyonColors
+import kotlin.math.abs
 
 fun aiPanelVariantTag(strength: AiStrength): String = "ai.panel.variant.${strength.name.lowercase()}"
 fun aiPanelCopyTag(strength: AiStrength): String = "ai.panel.copy.${strength.name.lowercase()}"
 fun aiPanelReplaceTag(strength: AiStrength): String = "ai.panel.replace.${strength.name.lowercase()}"
+fun aiPanelToneIconTag(tab: AiToneTab): String = "ai.panel.tone.icon.${tab.name.lowercase()}"
+const val AI_PANEL_BACK_ACTION_TAG = "ai.panel.back.action"
 const val AI_PANEL_SKELETON_TAG = "ai.panel.skeleton"
 const val AI_PANEL_EMPTY_ACTION_TAG = "ai.panel.empty.action"
 private const val AI_RESULT_VARIANT_COUNT = 3
@@ -81,7 +94,7 @@ fun AiPanel(
     onTabSelected: (AiToneTab) -> Unit,
     onCopyVariant: (AiStrength) -> Unit,
     onReplaceVariant: (AiStrength) -> Unit,
-    onSendLink: () -> Unit
+    onOpenDashboard: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -133,7 +146,7 @@ fun AiPanel(
                     state.needsAuth -> {
                         AiPanelAuthCard(
                             state = state,
-                            onSendLink = onSendLink,
+                            onOpenDashboard = onOpenDashboard,
                             strings = strings,
                             modifier = Modifier.padding(top = AddiyonSpacing.sm)
                         )
@@ -238,82 +251,130 @@ private fun AiPanelToolbar(
     onTabSelected: (AiToneTab) -> Unit,
     strings: AiUiStrings
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(
+                start = AddiyonSpacing.xxs,
+                end = AddiyonSpacing.sm,
                 top = AddiyonSpacing.xs,
                 bottom = AddiyonSpacing.sm
-            )
+            ),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(AddiyonSizes.minimumTouchTarget)
-                .padding(
-                    start = AddiyonSpacing.xxs,
-                    end = AddiyonSpacing.sm
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SuggestionChevronLeftButton(
-                onClick = onDismiss,
-                contentDescription = strings.back
+        SuggestionChevronLeftButton(
+            onClick = onDismiss,
+            contentDescription = strings.back,
+            testTag = AI_PANEL_BACK_ACTION_TAG,
+            buttonSize = AddiyonSizes.minimumTouchTarget,
+            iconSize = AddiyonSizes.iconSmall,
+            containerColor = MaterialTheme.addiyonColors.resultSurface,
+            iconTint = MaterialTheme.addiyonColors.onResultSurface
+        )
+        if (!state.isPrivateField && !state.needsAuth) {
+            AiToneRow(
+                selectedTab = state.selectedTab,
+                isLoading = state.isLoading,
+                onTabSelected = onTabSelected,
+                strings = strings,
+                modifier = Modifier.weight(1f)
             )
-            if (!state.isPrivateField && !state.needsAuth) {
+        }
+    }
+}
+
+@Composable
+private fun AiToneRow(
+    selectedTab: AiToneTab?,
+    isLoading: Boolean,
+    onTabSelected: (AiToneTab) -> Unit,
+    strings: AiUiStrings,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .horizontalScroll(rememberScrollState())
+            .padding(start = AddiyonSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm)
+    ) {
+        AiToneTab.DefaultTabs.forEach { tab ->
+            val selected = selectedTab == tab
+            val iconColor = toneIconColor(tab)
+            Surface(
+                selected = selected,
+                onClick = { onTabSelected(tab) },
+                shape = RoundedCornerShape(AddiyonRadii.pill),
+                color = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                border = toneSelectionBorder(iconColor, selected, isLoading)
+            ) {
                 Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm)
+                        .height(AddiyonSizes.compact)
+                        .padding(horizontal = AddiyonSpacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.xxs),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AiToneTab.DefaultTabs.forEach { tab ->
-                        val selected = state.selectedTab == tab
-                        val containerColor = if (selected) {
-                            MaterialTheme.addiyonColors.brandPrimary
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        }
-                        val contentColor = if (selected) {
-                            MaterialTheme.addiyonColors.onBrandPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                        Surface(
-                            selected = selected,
-                            onClick = { onTabSelected(tab) },
-                            shape = RoundedCornerShape(AddiyonRadii.pill),
-                            color = containerColor,
-                            contentColor = contentColor
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .height(AddiyonSizes.compact)
-                                    .padding(horizontal = AddiyonSpacing.xs),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = toneLabel(tab, strings),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = contentColor,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                    }
+                    Icon(
+                        imageVector = toneIcon(tab),
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier
+                            .size(AddiyonSizes.iconSmall)
+                            .testTag(aiPanelToneIconTag(tab))
+                    )
+                    Text(
+                        text = toneLabel(tab, strings),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
-            } else {
-                Spacer(Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
+private fun toneSelectionBorder(
+    color: Color,
+    selected: Boolean,
+    isLoading: Boolean
+): BorderStroke? {
+    if (!selected) return null
+    if (!isLoading) {
+        return BorderStroke(
+            width = AddiyonBorders.selectedTone,
+            color = color
+        )
+    }
+    val transition = rememberInfiniteTransition(label = "toneBorderShimmer")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = AddiyonMotion.gentle * 2),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "toneBorderShimmerPhase"
+    )
+    val colors = List(12) { index ->
+        val position = index / 11f
+        val directDistance = abs(position - phase)
+        val distance = minOf(directDistance, 1f - directDistance)
+        color.copy(alpha = (1f - distance * 4f).coerceIn(0.35f, 1f))
+    }
+    return BorderStroke(
+        width = AddiyonBorders.selectedTone,
+        brush = Brush.sweepGradient(colors)
+    )
+}
+
+@Composable
 private fun AiPanelAuthCard(
     state: AiUiState,
-    onSendLink: () -> Unit,
+    onOpenDashboard: () -> Unit,
     strings: AiUiStrings,
     modifier: Modifier = Modifier
 ) {
@@ -362,7 +423,7 @@ private fun AiPanelAuthCard(
                 )
             }
             Button(
-                onClick = onSendLink,
+                onClick = onOpenDashboard,
                 enabled = !state.authSending,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -640,6 +701,32 @@ private fun ResultContent(
                 modifier = Modifier.padding(horizontal = AddiyonSpacing.xxs)
             )
         }
+    }
+}
+
+private fun toneIcon(tab: AiToneTab): ImageVector = when (tab) {
+    AiToneTab.Humanize -> Icons.Outlined.Face
+    AiToneTab.Professional -> Icons.Outlined.WorkOutline
+    AiToneTab.Casual -> Icons.Outlined.SentimentSatisfied
+    AiToneTab.Formal -> Icons.Outlined.AccountBalance
+    AiToneTab.Friendly -> Icons.Outlined.FavoriteBorder
+    AiToneTab.FixGrammar -> Icons.Outlined.Spellcheck
+    AiToneTab.Shorten -> Icons.AutoMirrored.Outlined.ShortText
+    AiToneTab.Summarize -> Icons.AutoMirrored.Outlined.Subject
+}
+
+@Composable
+private fun toneIconColor(tab: AiToneTab): Color {
+    val colors = MaterialTheme.addiyonColors.aiToneIcons
+    return when (tab) {
+        AiToneTab.Humanize -> colors.humanize
+        AiToneTab.Professional -> colors.professional
+        AiToneTab.Casual -> colors.casual
+        AiToneTab.Formal -> colors.formal
+        AiToneTab.Friendly -> colors.friendly
+        AiToneTab.FixGrammar -> colors.fixGrammar
+        AiToneTab.Shorten -> colors.shorten
+        AiToneTab.Summarize -> colors.summarize
     }
 }
 

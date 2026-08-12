@@ -71,6 +71,7 @@ class ModularKeyboardProductsContractTest {
         ).readText()
         assertTrue(product.contains("TextRevampLanguagePackProviders"))
         assertTrue(product.contains("EnglishLanguagePackProvider"))
+        assertTrue(product.contains("showsLanguageSwitchKey = false"))
         assertTrue(product.contains("STANDARD_KEYBOARD_FEATURE_IDS - TYPING_GUIDE_FEATURE_ID"))
         assertTrue(product.contains("+ \"ai\""))
     }

@@ -113,6 +113,7 @@ private const val PREVIEW_ALPHA = 0.6f
 fun KeyboardHeightScreen(
     copy: KeyboardHeightCopy,
     onBack: () -> Unit,
+    showLanguageSwitchKey: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -262,7 +263,8 @@ fun KeyboardHeightScreen(
                                             row = row,
                                             metrics = metrics,
                                             isAmharic = isAmharic,
-                                            previewLanguageName = copy.previewLanguageName
+                                            previewLanguageName = copy.previewLanguageName,
+                                            showLanguageSwitchKey = showLanguageSwitchKey
                                         )
                                     }
                                 }
@@ -348,7 +350,8 @@ private fun PreviewKeyRow(
     row: List<KeyData>,
     metrics: KeyboardMetrics,
     isAmharic: Boolean,
-    previewLanguageName: String
+    previewLanguageName: String,
+    showLanguageSwitchKey: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -356,6 +359,9 @@ private fun PreviewKeyRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         row.forEach { key ->
+            if (key == KeyData.LanguageToggle && !showLanguageSwitchKey) {
+                return@forEach
+            }
             when (key) {
                 is KeyData.Character ->
                     PreviewCharacterKey(key, isAmharic, metrics.keyWidth, metrics.keyHeight)

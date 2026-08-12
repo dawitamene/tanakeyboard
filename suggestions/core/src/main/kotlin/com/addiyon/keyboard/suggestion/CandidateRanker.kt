@@ -83,17 +83,16 @@ object CandidateRanker {
         if (readings.isEmpty() || limit <= 0) return emptyList()
 
         val scored = ArrayList<ScoredSuggestion>()
-        var hasExactReading = false
         var greedyIsExactWord = false
 
         for ((index, reading) in readings.withIndex()) {
             // Structural SPLIT (quirk) readings never win the promoted "exact
             // word" default -- otherwise a dictionary hit on the re-segmented
             // ም+እ would suppress the greedy መ for "me". They still surface as
-            // completion prefixes below and as quirk chips via visibleReadings.
+            // completion prefixes below and as dictionary-backed quirk chips
+            // via visibleReadings.
             if (reading in quirkReadings) continue
             val frequency = frequencyOf(reading) ?: continue
-            hasExactReading = true
             if (index == 0) greedyIsExactWord = true
             scored.add(
                 ScoredSuggestion(
@@ -124,27 +123,21 @@ object CandidateRanker {
             )
         }
 
-        if (!hasExactReading) {
-            // Deeper structural alternates (non-greedy, non-word) only clutter
-            // the strip once a real dictionary word exists, so they stay gated
-            // on the no-exact-word case -- unlike the greedy literal above.
-            for ((index, reading) in visibleReadings.withIndex()) {
-                if (reading == readings.first()) continue
-                scored.add(
-                    ScoredSuggestion(
-                        reading,
-                        visibleReadingScore(index + 1),
-                        sourceRank = 1,
-                        structuralIndex = index + 1
-                    )
+        for ((index, reading) in visibleReadings.withIndex()) {
+            if (reading == readings.first() || frequencyOf(reading) == null) continue
+            scored.add(
+                ScoredSuggestion(
+                    reading,
+                    visibleReadingScore(index + 1),
+                    sourceRank = 1,
+                    structuralIndex = index + 1
                 )
-            }
+            )
         }
 
         for ((index, reading) in readings.withIndex()) {
             val completions = completionsForPrefix(reading, limit)
             for (completion in completions) {
-                if (completion.word == reading) continue
                 scored.add(
                     ScoredSuggestion(
                         completion.word,

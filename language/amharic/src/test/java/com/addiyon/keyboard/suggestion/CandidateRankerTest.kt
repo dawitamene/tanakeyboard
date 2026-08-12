@@ -162,24 +162,100 @@ class CandidateRankerTest {
     }
 
     @Test
-    fun visibleQuirkReadingsAppearWhenThereIsNoExactWord() {
-        val ranked = rankAmharic(
-            readings = listOf("ባ", "ብአ"),
-            dict = dict(),
-            visibleReadings = listOf("ብአ")
-        )
-        assertEquals(listOf("ባ", "ብአ"), ranked)
+    fun consonantVowelSplitsAreHiddenWithoutDictionaryBacking() {
+        mapOf(
+            "la" to "ላ",
+            "le" to "ለ",
+            "li" to "ሊ",
+            "lo" to "ሎ",
+            "lu" to "ሉ"
+        ).forEach { (latin, greedy) ->
+            val candidates = Transliterator.candidateReadings(latin)
+            val readings = candidates.map { it.text }
+            val quirks = candidates.filter { it.isQuirk }.mapTo(mutableSetOf()) { it.text }
+            assertEquals(
+                latin,
+                listOf(greedy),
+                rankAmharic(
+                    readings = readings,
+                    dict = dict(),
+                    visibleReadings = readings,
+                    quirkReadings = quirks
+                )
+            )
+        }
     }
 
     @Test
-    fun allStructuralReadingsCanAppearWhenTheDictionaryHasNoMatch() {
+    fun nonDictionaryStructuralReadingsDoNotContaminateSuggestions() {
         val readings = listOf("አለካሽን", "አለቃሽን")
         val ranked = rankAmharic(
             readings = readings,
             dict = dict(),
             visibleReadings = readings
         )
-        assertEquals(readings, ranked)
+        assertEquals(listOf(readings.first()), ranked)
+    }
+
+    @Test
+    fun generatedLexicalConstructCanSurfaceAnExactAlternateReading() {
+        val ranked = CandidateRanker.rankAmharic(
+            readings = listOf("ሰወን", "ሰውን"),
+            limit = 10,
+            frequencyOf = { null },
+            completionsForPrefix = { reading, _ ->
+                if (reading == "ሰውን") {
+                    listOf(CandidateRanker.DictionaryWord("ሰውን", 100))
+                } else {
+                    emptyList()
+                }
+            },
+        )
+
+        assertEquals(listOf("ሰወን", "ሰውን"), ranked)
+    }
+
+    @Test
+    fun orderFiveEAlternateRequiresAnExactDictionaryMatch() {
+        val readings = Transliterator.candidates("le")
+        assertEquals(
+            listOf("ለ"),
+            rankAmharic(readings, dict(), visibleReadings = readings)
+        )
+        assertEquals(
+            listOf("ሌ", "ለ"),
+            rankAmharic(readings, dict("ሌ" to 500), visibleReadings = readings)
+        )
+    }
+
+    @Test
+    fun splitVowelReadingAppearsOnlyForARealLexeme() {
+        val candidates = Transliterator.candidateReadings("rEs")
+        val readings = candidates.map { it.text }
+        val quirks = candidates.filter { it.isQuirk }.mapTo(mutableSetOf()) { it.text }
+        val ranked = rankAmharic(
+            readings = readings,
+            dict = dict("ርዕስ" to 900),
+            visibleReadings = readings,
+            quirkReadings = quirks
+        )
+        assertEquals(listOf("ረስ", "ርዕስ"), ranked)
+        assertFalse("ርእስ" in ranked)
+    }
+
+    @Test
+    fun splitVowelPrefixCanStillProduceARealDictionaryCompletion() {
+        val candidates = Transliterator.candidateReadings("rE")
+        val readings = candidates.map { it.text }
+        val quirks = candidates.filter { it.isQuirk }.mapTo(mutableSetOf()) { it.text }
+        val ranked = rankAmharic(
+            readings = readings,
+            dict = dict("ርዕስ" to 900),
+            visibleReadings = readings,
+            quirkReadings = quirks
+        )
+        assertEquals(listOf("ረ", "ርዕስ"), ranked)
+        assertFalse("ርዕ" in ranked)
     }
 
     @Test

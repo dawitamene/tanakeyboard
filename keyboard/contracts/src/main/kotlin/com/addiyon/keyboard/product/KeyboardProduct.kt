@@ -26,6 +26,7 @@ data class KeyboardProduct(
     val defaultInputLanguageId: String,
     val orderedInputLanguageIds: List<String>,
     val languageKeyBehavior: LanguageKeyBehavior,
+    val showsLanguageSwitchKey: Boolean = true,
     val featureIds: Set<String> = STANDARD_KEYBOARD_FEATURE_IDS
 ) {
     init {

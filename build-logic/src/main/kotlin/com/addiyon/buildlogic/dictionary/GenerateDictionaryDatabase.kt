@@ -99,6 +99,7 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
                         kind     INTEGER NOT NULL,
                         form     TEXT NOT NULL,
                         features TEXT NOT NULL,
+                        key      TEXT,
                         PRIMARY KEY(kind, form, features)
                     ) WITHOUT ROWID
                     """.trimIndent()
@@ -150,11 +151,15 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
             }
             connection.autoCommit = false
             loadWords(connection, wordsDat, mode)
-            lexemesDat?.let { loadLexemes(connection, it) }
+            lexemesDat?.let { loadLexemes(connection, it, mode) }
             populatePrefixTop(connection, prefixLength)
             populateFuzzyTop(connection)
             loadNgrams(connection, ngramsDat, mode)
             connection.createStatement().use { statement ->
+                statement.execute(
+                    "CREATE INDEX idx_morph_lexemes_key ON morph_lexemes(key) " +
+                        "WHERE key IS NOT NULL"
+                )
                 statement.execute(
                     "CREATE UNIQUE INDEX idx_words_ngram_id ON words(ngram_id) " +
                         "WHERE ngram_id IS NOT NULL"
@@ -263,8 +268,9 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
         }
     }
 
-    private fun loadLexemes(connection: Connection, lexemesDat: File) {
-        val sql = "INSERT INTO morph_lexemes(kind, form, features) VALUES (?, ?, ?)"
+    private fun loadLexemes(connection: Connection, lexemesDat: File, mode: String) {
+        val sql =
+            "INSERT INTO morph_lexemes(kind, form, features, key) VALUES (?, ?, ?, ?)"
         val data = GZIPInputStream(lexemesDat.inputStream().buffered())
         val reader = BufferedReader(data.reader(Charsets.UTF_8))
         var count = 0
@@ -278,6 +284,12 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
                     statement.setInt(1, kind)
                     statement.setString(2, fields[1])
                     statement.setString(3, fields[2])
+                    val surface = if (kind in 0..3) cleanLexemeSurface(fields[1]) else null
+                    if (surface == null) {
+                        statement.setNull(4, java.sql.Types.VARCHAR)
+                    } else {
+                        statement.setString(4, normalize(surface, mode))
+                    }
                     statement.addBatch()
                     count++
                     if (count % 10000 == 0) statement.executeBatch()
@@ -286,6 +298,21 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
             statement.executeBatch()
         }
     }
+
+    private fun cleanLexemeSurface(form: String): String? {
+        val surface = buildString(form.length) {
+            for (character in form) {
+                if (character != '/' && character !in '\u135D'..'\u135F') append(character)
+            }
+        }
+        return surface.takeIf { it.isNotEmpty() && it.all(::isEthiopicWordCharacter) }
+    }
+
+    private fun isEthiopicWordCharacter(character: Char): Boolean =
+        character in '\u1200'..'\u137A' ||
+            character in '\u1380'..'\u139F' ||
+            character in '\u2D80'..'\u2DDE' ||
+            character in '\uAB01'..'\uAB2E'
 
     private fun loadNgrams(connection: Connection, ngramsDat: File, mode: String) {
         val data = DataInputStream(

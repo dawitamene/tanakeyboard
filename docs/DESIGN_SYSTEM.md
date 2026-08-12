@@ -100,6 +100,10 @@ success color is not a general green accent. Error, warning, and info states
 must use the corresponding Material roles or a future documented extension.
 `brandPrimary` and `onBrandPrimary` expose the fixed Addiyon primary pair for
 the selected AI tone and other explicitly documented brand-identity moments.
+`aiToneIcons` exposes distinct light/dark accent roles for the Humanize,
+Professional, Casual, Formal, Friendly, Fix grammar, Shorten, and Summarize
+icons. These accents identify tone categories and must not be substituted with
+error, success, or other status roles.
 `resultSurface` and `onResultSurface` provide a flat white reading canvas and
 fixed ink text; this pair intentionally remains light in
 both appearances so generated versions have one quiet, shadow-free treatment.
@@ -145,6 +149,7 @@ Use the public tokens in `ui/design/AddiyonDesignTokens.kt`:
 | `AddiyonSpacing` | 4, 8, 12, 16, 20, 24, 32 dp | gaps, insets, and page rhythm |
 | `AddiyonRadii` | 8, 12, 16, 20, 28 dp, pill | controls, cards, groups, chips |
 | `AddiyonSizes` | 40 compact, 44 keyboard action, 48 minimum touch, 56 form control, 64 app header; 16/24/32/44 icon sizes | controls, bars, icons |
+| `AddiyonBorders` | 3 dp selected tone | emphasized selection outlines |
 | `AddiyonElevation` | none, low, raised, overlay | surfaces and overlays |
 | `AddiyonMotion` | 150, 250, 400, 500 ms | feedback, standard transitions, emphasis |
 
@@ -184,15 +189,17 @@ The signed-in profile icon is a direct navigation control: it opens
 the AI account screen without an intermediate logout menu.
 
 IME surfaces are the exception: keyboard rows, suggestion strips, and AI/emoji
-panels have a measured fixed-height contract. Keep their row count and height
-stable during state changes. The root panel must not scroll. A bounded inner
-content region may scroll when persistent header and primary actions remain
-visible and the overall IME height does not change.
+panels have a measured-height contract. Keep keyboard rows and emoji-panel
+height stable during state changes. The TextRevamp AI panel is intentionally
+40% taller than the configured keyboard height while it is open. The root panel
+must not scroll. A bounded inner content region may scroll when persistent
+header and primary actions remain visible.
 
-The canonical AI assistant panel keeps the suggestion bar's chevron-left control
-and compact pill-shaped tones in one persistent toolbar with compact 8 dp top
-and 12 dp bottom insets,
-omits quota text from that toolbar,
+The canonical AI assistant panel keeps a 48 dp, truly circular version of the
+suggestion bar's chevron-left control with a small arrow and fixed white surface.
+It does not show a toolbar title or usage control. Compact pill-shaped
+tones with leading semantic icons sit directly beside the back action in the
+same persistent row. The toolbar uses compact 8 dp top and 12 dp bottom insets,
 gives the state and result region the bounded scroll, omits a duplicate input
 preview, and stacks the three generated versions vertically. It does not show
 the AI mark, a close icon, a separate “Tone” label, strength selectors, or pinned
@@ -200,6 +207,12 @@ global actions. Generated versions use rounded `resultSurface` surfaces without
 card elevation and provide compact per-result Copy and Replace controls. Loading
 uses three rounded result-shaped placeholders with an animated directional shimmer
 rather than a spinner or status sentence.
+Tone icons use distinct semantic theme accents to make the actions easier to
+scan. Selection does not change the chip background. Instead, the selected tone
+uses a 3 dp border derived entirely from its icon color. The border is static
+while idle and becomes an animated sweep shine only while the AI request is
+loading; varying alpha creates the moving shine while the text label keeps
+selection independent of color alone.
 
 ## Component patterns
 

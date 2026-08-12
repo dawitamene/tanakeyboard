@@ -183,7 +183,11 @@ class DictionaryDbContractTest {
         DriverManager.getConnection("jdbc:sqlite:${db!!.absolutePath}").use { conn ->
             assertEquals(18_867, scalar(conn, "SELECT count(*) FROM morph_lexemes"))
             assertEquals(1_832, scalar(conn, "SELECT count(*) FROM morph_lexemes WHERE kind = 4"))
-            assertEquals(18_067, scalar(conn, "SELECT count(*) FROM words"))
+            assertEquals(18_251, scalar(conn, "SELECT count(*) FROM words"))
+            assertEquals(
+                17_035,
+                scalar(conn, "SELECT count(*) FROM morph_lexemes WHERE key IS NOT NULL")
+            )
             assertNotNull(loadKey(conn, "ሰው"))
             assertNull(loadKey(conn, "የሰው"))
             assertNull(loadKey(conn, "ሰውን"))

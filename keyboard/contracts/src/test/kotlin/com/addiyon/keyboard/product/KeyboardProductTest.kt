@@ -15,6 +15,7 @@ class KeyboardProductTest {
 
         assertEquals("am-ET", product.defaultInputLanguageId)
         assertEquals(listOf("am-ET", "en-US"), product.orderedInputLanguageIds)
+        assertEquals(true, product.showsLanguageSwitchKey)
         assertEquals(STANDARD_KEYBOARD_FEATURE_IDS, product.featureIds)
     }
 }

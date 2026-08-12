@@ -375,6 +375,27 @@ object AmharicTable {
         register(velarH)
     }
 
+    private val familyByFidel: Map<Char, Family> = buildMap {
+        fun register(family: Family) {
+            for (form in family.forms) putIfAbsent(form, family)
+            family.ua?.let { putIfAbsent(it, family) }
+        }
+        for (family in families.values) register(family)
+        register(velarH)
+    }
+
+    fun formInSameFamily(fidel: Char, orderIndex: Int): Char? =
+        familyByFidel[fidel]?.forms?.getOrNull(orderIndex)
+
+    fun orderIndexOfFidel(fidel: Char): Int? =
+        familyByFidel[fidel]?.forms?.indexOf(fidel)?.takeIf { it >= 0 }
+
+    fun bareFormOfFidel(fidel: Char): Char? =
+        familyByFidel[fidel]?.bare
+
+    fun labializedFormOfFidel(fidel: Char): Char? =
+        familyByFidel[fidel]?.ua
+
     /**
      * Substitution cost for the Amharic fuzzy pass: 0 for identical fidel,
      * [SAME_FAMILY_SUBSTITUTION_COST] when both are forms of the same consonant

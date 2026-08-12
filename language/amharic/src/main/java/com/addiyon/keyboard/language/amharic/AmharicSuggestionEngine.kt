@@ -2,13 +2,14 @@ package com.addiyon.keyboard.language.amharic
 
 import android.content.Context
 import com.addiyon.keyboard.suggestion.AmharicCommitPolicy
-import com.addiyon.keyboard.suggestion.AmharicPrefixCompletion
+import com.addiyon.keyboard.suggestion.AmharicNounMorphology
 import com.addiyon.keyboard.suggestion.CandidateRanker
 import com.addiyon.keyboard.suggestion.CompletionQuery
 import com.addiyon.keyboard.suggestion.EngineSuggestion
 import com.addiyon.keyboard.suggestion.LanguageSuggestionEngine
 import com.addiyon.keyboard.suggestion.SQLiteDictionary
 import com.addiyon.keyboard.suggestion.SQLiteLanguageStore
+import com.addiyon.keyboard.suggestion.SQLiteMorphLexicon
 import com.addiyon.keyboard.suggestion.SQLiteNgramModel
 import com.addiyon.keyboard.suggestion.SubstitutionCost
 import com.addiyon.keyboard.transliteration.AmharicTable
@@ -35,6 +36,7 @@ class AmharicSuggestionEngine(
     )
     private val dictionary = SQLiteDictionary(store, 1, EthiopicNormalizer::normalize)
     private val ngrams = SQLiteNgramModel(store, EthiopicNormalizer::normalize)
+    private val morphLexicon = SQLiteMorphLexicon(store, EthiopicNormalizer::normalize)
     private val suggestionCache = Collections.synchronizedMap(
         object : LinkedHashMap<String, List<String>>(CACHE_SIZE, 0.75f, true) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<String>>) =
@@ -83,11 +85,13 @@ class AmharicSuggestionEngine(
             Transliterator.vowelAlternateReading(latin)
                 ?: Transliterator.bareVowelAlternateReading(latin)
             )?.takeIf {
-            it.length > 1 && (!dictionary.isReady || readingFrequencies.containsKey(it))
+            it.length > 1 && dictionary.isReady && readingFrequencies.containsKey(it)
         }
-        val completionCache = directCompletions.mapValuesTo(HashMap()) { (_, entries) ->
+        val directCompletionCache = directCompletions.mapValuesTo(HashMap()) { (_, entries) ->
             entries.map { CandidateRanker.DictionaryWord(it.word, it.frequency) }
         }
+        val completionCache = HashMap<String, List<CandidateRanker.DictionaryWord>>()
+        val morphologyCache = HashMap<String, List<CandidateRanker.DictionaryWord>>()
         val dictionaryLookup = { prefix: String, limit: Int ->
             dictionary.suggestionEntries(prefix, limit).map {
                 CandidateRanker.DictionaryWord(it.word, it.frequency)
@@ -95,13 +99,11 @@ class AmharicSuggestionEngine(
         }
         val completionsForPrefix = { prefix: String, limit: Int ->
             completionCache.getOrPut(prefix) {
-                val direct = dictionaryLookup(prefix, limit)
-                if (direct.size >= limit) direct else direct + AmharicPrefixCompletion.complete(
-                    prefix,
-                    limit - direct.size,
-                    direct,
-                    dictionaryLookup
-                )
+                val direct = directCompletionCache[prefix] ?: dictionaryLookup(prefix, limit)
+                val generated = morphologyCache.getOrPut(prefix) {
+                    morphologyCompletions(prefix, limit, direct)
+                }
+                direct + generated
             }
         }
         val ranked = CandidateRanker.rankAmharic(
@@ -187,6 +189,27 @@ class AmharicSuggestionEngine(
         return suggestions
     }
 
+    private fun morphologyCompletions(
+        typed: String,
+        limit: Int,
+        alreadyFound: List<CandidateRanker.DictionaryWord>,
+    ): List<CandidateRanker.DictionaryWord> {
+        val query = AmharicNounMorphology.query(typed)
+        val lexemes = morphLexicon.nounEntries(
+            exactSurfaces = query.exactStemSurfaces,
+            completionPrefix = query.completionStemPrefix,
+            limit = MORPH_LEXEME_LIMIT,
+        ).map {
+            AmharicNounMorphology.Lexeme(
+                kind = it.kind,
+                surface = it.surface,
+                features = it.features,
+                frequency = it.frequency,
+            )
+        }
+        return AmharicNounMorphology.complete(typed, lexemes, limit, alreadyFound)
+    }
+
     private fun pinPreferredAlternate(
         ranked: List<String>,
         preferredAlternate: String?
@@ -204,6 +227,7 @@ class AmharicSuggestionEngine(
         private const val CACHE_SIZE = 64
         private const val MAX_FUZZY_READING_LENGTH = 12
         private const val MAX_FUZZY_READINGS = 6
+        private const val MORPH_LEXEME_LIMIT = 48
         private val FIDEL_COST = SubstitutionCost(AmharicTable::fidelSubstitutionCost)
 
         private fun fuzzyEditBudget(length: Int): Int = when {

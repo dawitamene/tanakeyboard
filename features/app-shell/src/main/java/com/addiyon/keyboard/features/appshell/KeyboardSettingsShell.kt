@@ -185,7 +185,8 @@ private fun standardKeyboardAppShellConfig(
         ) { scope ->
             KeyboardHeightScreen(
                 copy = copy.heightCopy,
-                onBack = scope.onBack
+                onBack = scope.onBack,
+                showLanguageSwitchKey = product.showsLanguageSwitchKey
             )
         },
         KeyboardShellDestination(KeyboardShellDestinations.TEST_KEYBOARD) { scope ->

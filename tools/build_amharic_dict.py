@@ -72,8 +72,8 @@ def surface_lexemes():
                     continue
                 if line[0].isspace():
                     continue
-                fields = line.rstrip("\n").split("\t", 1)
-                raw = fields[0].strip()
+                fields = line.strip().split(maxsplit=1)
+                raw = fields[0]
                 features = " ".join(fields[1].split()) if len(fields) == 2 else ""
                 yield kind, raw, features, clean_surface(raw)
 

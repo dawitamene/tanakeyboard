@@ -54,6 +54,9 @@ fun KeyRow(
     val showsCharacterPreview = !state.isPrivateField && !LocalLowRamKeyboard.current
     KeyboardRow {
         row.forEach { key ->
+            if (key == KeyData.LanguageToggle && !state.showLanguageSwitchKey) {
+                return@forEach
+            }
             when (key) {
 
                 is KeyData.Character -> {

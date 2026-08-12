@@ -31,6 +31,19 @@ class AiRequestLifecycleContractTest {
     }
 
     @Test
+    fun `optional AI panel is forty percent taller than the keyboard`() {
+        val feature = featureSource()
+        val keyboardScreen = projectRoot()
+            .resolve("keyboard/ui/src/main/java/com/addiyon/keyboard/ui/KeyboardScreen.kt")
+            .readText()
+
+        assertTrue(feature.contains("AI_PANEL_HEIGHT_SCALE = 1.4f"))
+        assertTrue(feature.contains("panelHeightScale = AI_PANEL_HEIGHT_SCALE"))
+        assertTrue(keyboardScreen.contains("scaledKeyboardPanelHeight("))
+        assertTrue(keyboardScreen.contains("scale = optionalUi.panelHeightScale"))
+    }
+
+    @Test
     fun `product service delegates optional AI without owning controller state`() {
         val service = serviceSource()
 

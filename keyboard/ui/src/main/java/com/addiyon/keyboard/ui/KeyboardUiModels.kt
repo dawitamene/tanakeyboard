@@ -15,6 +15,7 @@ data class KeyboardUiState(
     val languageKeyPresentation: LanguageKeyPresentation,
     val characterPresentation: (String) -> CharacterKeyPresentation,
     val showLanguagePresentation: Boolean,
+    val showLanguageSwitchKey: Boolean,
     val isNumberMode: Boolean,
     val isEmailField: Boolean,
     val isPrivateField: Boolean,

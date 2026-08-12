@@ -43,6 +43,10 @@ object AddiyonSizes {
     val iconHero = 44.dp
 }
 
+object AddiyonBorders {
+    val selectedTone = 3.dp
+}
+
 object AddiyonElevation {
     val none = 0.dp
     val low = 1.dp
@@ -90,9 +94,22 @@ fun rememberAddiyonBrand(): AddiyonBrand {
 }
 
 @Immutable
+data class AddiyonAiToneColors(
+    val humanize: Color,
+    val professional: Color,
+    val casual: Color,
+    val formal: Color,
+    val friendly: Color,
+    val fixGrammar: Color,
+    val shorten: Color,
+    val summarize: Color
+)
+
+@Immutable
 data class AddiyonColors(
     val brandPrimary: Color,
     val onBrandPrimary: Color,
+    val aiToneIcons: AddiyonAiToneColors,
     val resultSurface: Color,
     val onResultSurface: Color,
     val success: Color,
@@ -104,6 +121,16 @@ data class AddiyonColors(
 fun addiyonLightColors(brand: AddiyonBrand) = AddiyonColors(
     brandPrimary = brand.primary,
     onBrandPrimary = brand.onPrimary,
+    aiToneIcons = AddiyonAiToneColors(
+        humanize = brand.primary,
+        professional = Color(0xFF3F51B5),
+        casual = Color(0xFFEF6C00),
+        formal = Color(0xFF6A1B9A),
+        friendly = Color(0xFF2E7D32),
+        fixGrammar = Color(0xFF7B1FA2),
+        shorten = Color(0xFFD84315),
+        summarize = Color(0xFF0277BD)
+    ),
     resultSurface = brand.surface,
     onResultSurface = brand.ink,
     success = Color(0xFF2E7D32),
@@ -115,6 +142,16 @@ fun addiyonLightColors(brand: AddiyonBrand) = AddiyonColors(
 fun addiyonDarkColors(brand: AddiyonBrand) = AddiyonColors(
     brandPrimary = brand.primaryLight,
     onBrandPrimary = brand.onPrimaryDark,
+    aiToneIcons = AddiyonAiToneColors(
+        humanize = brand.primaryLight,
+        professional = Color(0xFF9FA8DA),
+        casual = Color(0xFFFFB74D),
+        formal = Color(0xFFCE93D8),
+        friendly = Color(0xFF81C784),
+        fixGrammar = Color(0xFFB39DDB),
+        shorten = Color(0xFFFF8A65),
+        summarize = Color(0xFF4FC3F7)
+    ),
     resultSurface = brand.surface,
     onResultSurface = brand.ink,
     success = Color(0xFF81C784),

@@ -171,6 +171,9 @@ abstract class PackKeyboardService : BaseKeyboardService(),
     final override val showTypingGuide: Boolean
         get() = TYPING_GUIDE_FEATURE_ID in keyboardProduct.featureIds
 
+    final override val showLanguageSwitchKey: Boolean
+        get() = keyboardProduct.showsLanguageSwitchKey
+
     private fun onLanguageEngineOutOfMemory() = enterEmergencyMode()
 
     private fun onLanguageEngineFailure(throwable: Throwable, operation: String) {

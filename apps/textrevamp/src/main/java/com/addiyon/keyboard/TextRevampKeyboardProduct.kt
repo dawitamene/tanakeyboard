@@ -17,5 +17,6 @@ internal val TextRevampKeyboardProduct = KeyboardProduct(
     defaultInputLanguageId = EnglishLanguagePackProvider.languageId.value,
     orderedInputLanguageIds = TextRevampLanguagePackProviders.map { it.languageId.value },
     languageKeyBehavior = LanguageKeyBehavior.SWITCH_TO_NEXT_INPUT_METHOD,
+    showsLanguageSwitchKey = false,
     featureIds = (STANDARD_KEYBOARD_FEATURE_IDS - TYPING_GUIDE_FEATURE_ID) + "ai"
 )

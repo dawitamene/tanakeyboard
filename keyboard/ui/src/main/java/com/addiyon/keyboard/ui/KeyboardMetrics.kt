@@ -32,6 +32,11 @@ fun keyboardRowsHeight(keyHeight: Dp, rowCount: Int, rowSpacing: Dp = 6.dp): Dp 
 fun keyboardRowCount(numberRowEnabled: Boolean): Int =
     if (numberRowEnabled) 5 else 4
 
+internal fun scaledKeyboardPanelHeight(baseHeight: Dp, scale: Float): Dp {
+    require(scale > 0f)
+    return baseHeight * scale
+}
+
 fun expandedKeyHeight(
     baseKeyHeight: Dp,
     targetRowCount: Int,
