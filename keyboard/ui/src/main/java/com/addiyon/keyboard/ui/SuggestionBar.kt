@@ -433,6 +433,7 @@ fun SuggestionChevronLeftButton(
     contentDescription: String,
     testTag: String? = null,
     buttonSize: Dp? = null,
+    containerSize: Dp? = null,
     iconSize: Dp = 22.dp,
     containerColor: Color = Color.Transparent,
     iconTint: Color? = null
@@ -440,15 +441,20 @@ fun SuggestionChevronLeftButton(
     BarButton(
         onClick = onClick,
         testTag = testTag,
-        buttonSize = buttonSize,
-        modifier = Modifier.background(containerColor, CircleShape)
+        buttonSize = buttonSize
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = contentDescription,
-            tint = iconTint ?: MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-            modifier = Modifier.size(iconSize)
-        )
+        Box(
+            modifier = (containerSize?.let { Modifier.size(it) } ?: Modifier.fillMaxSize())
+                .background(containerColor, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = contentDescription,
+                tint = iconTint ?: MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                modifier = Modifier.size(iconSize)
+            )
+        }
     }
 }
 

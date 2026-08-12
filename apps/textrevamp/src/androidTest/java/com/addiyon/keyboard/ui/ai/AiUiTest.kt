@@ -224,7 +224,7 @@ class AiUiTest {
         val preferences = AiPreferences(context)
         preferences.setJwt("test-token")
         preferences.setEmail("test@addiyon.com")
-        preferences.saveQuota(AiQuota(10, 50, 40, todayIso()))
+        preferences.saveQuota(AiQuota(10_000, 50_000, 40_000, todayIso()))
         var loggedOut = false
 
         compose.setContent {
@@ -240,7 +240,7 @@ class AiUiTest {
         }
 
         compose.onNodeWithText("80%").assertIsDisplayed()
-        compose.onNodeWithText("40 of 50 requests remaining").assertIsDisplayed()
+        compose.onNodeWithText("40,000 of 50,000 tokens remaining").assertIsDisplayed()
         compose.onNodeWithText("Signed in").assertDoesNotExist()
         compose.onNodeWithText(EnglishTextRevampStrings.aiSignOut).performClick()
         compose.runOnIdle {

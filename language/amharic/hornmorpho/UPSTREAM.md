@@ -22,6 +22,19 @@ packages the license in the Amharic Android language module.
 - `lex/n_place.lex`: place names
 - `lex/vroot.lex`: verb roots and root classes
 - `stat/root.frq`: HornMorpho's lemma/root frequency statistics
+- `a.lg`: language definition, feature inventory, and nominal boundary symbol sets
+- `a.um`: HornMorpho-to-UniMorph/UD feature mappings
+- `cas/n.cas` and `cas/nM.cas`: nominal cascade composition order
+- `fst/n.mtx` and `fst/nM.mtx`: nominal morphotactics
+- `fst/n_aff_bound.fst` and `fst/n_aff_boundM.fst`: nominal boundary rewrites
+- `fst/misc.fst` and `fst/miscM.fst`: nominal-cascade normalization
+
+Every control file above is an unmodified copy from commit
+`7e3d93af760e27ea6dbc3b7a078d2d9c3335f618`. The cascade files establish
+that nominal analysis composes `misc`, `n_aff_bound`, and `n.mtx` in that
+order, with the corresponding `M` files used for multiword analysis. The
+boundary string sets are defined in `a.lg`; no rule is inferred from a newer
+upstream branch.
 
 `tools/build_amharic_dict.py` transforms this snapshot into three deterministic
 inputs:
@@ -36,3 +49,19 @@ inputs:
 The transformation removes HornMorpho's internal slash notation only for the
 displayable completion list. The original notation and grammatical features
 remain in `amharic_lexemes.dat` and in these source files.
+
+## Reproducible nominal oracle
+
+The build-time oracle under `tools/hornmorpho/` uses the upstream 5.3.6 wheel
+and Amharic artifact from the same commit. Their pinned SHA-256 digests are:
+
+- `hornmorpho-5.3.6-py3-none-any.whl`:
+  `e1b0e4ed616d6640e57a440ce63051366c2aba4b29149893bf450fb6b5576fa7`
+- `src/hm/languages/a.tgz`:
+  `3274f71da10263acf2bcea54023e4d1088760ea07fedeb7309291d0e2c11e95c`
+
+`bootstrap_oracle.py` verifies the archive before extracting it into an
+isolated environment. `generate_nominal_oracle.py` retains HornMorpho's
+original surface and analysis and adds a normalized key only for comparison.
+`generate_nominal_golden.py` rebuilds the JVM fixture and accepts a positive
+case only when HornMorpho returns a matching nominal analysis.

@@ -56,12 +56,13 @@ class AiPanelDesignSystemContractTest {
                 panel.contains("strings.aiToneLabel")
         )
         assertTrue(
-            "The AI toolbar must use a minimum-touch white circular back action with a small arrow.",
+            "The AI toolbar back action must use a 44 dp white circle with 6 dp around its arrow.",
             panel.contains("SuggestionChevronLeftButton(") &&
                 panel.contains("contentDescription = strings.back") &&
                 panel.contains("testTag = AI_PANEL_BACK_ACTION_TAG") &&
-                panel.contains("buttonSize = AddiyonSizes.minimumTouchTarget") &&
-                panel.contains("iconSize = AddiyonSizes.iconSmall") &&
+                panel.contains("buttonSize = AddiyonSizes.keyboardAction") &&
+                panel.contains("containerSize = AddiyonSizes.keyboardAction") &&
+                panel.contains("iconSize = AddiyonSizes.iconLarge") &&
                 panel.contains("containerColor = MaterialTheme.addiyonColors.resultSurface") &&
                 panel.contains("iconTint = MaterialTheme.addiyonColors.onResultSurface") &&
                 !panel.contains("Icons.Filled.AutoAwesome") &&
@@ -135,6 +136,28 @@ class AiPanelDesignSystemContractTest {
                     val property = tab.name.replaceFirstChar { it.lowercase() }
                     iconColors.contains("AiToneTab.${tab.name} -> colors.$property")
                 }
+        )
+    }
+
+    @Test
+    fun emptyStateUsesBrandedHeroIconAndPillAction() {
+        val emptyState = panelSource()
+            .substringAfter("private fun AiPanelEmptyState")
+            .substringBefore("private fun AiPanelSelectToneState")
+
+        assertTrue(
+            "The empty-state icon must be large and use the fixed Addiyon brand colors.",
+            emptyState.contains("containerColor = MaterialTheme.addiyonColors.brandPrimary") &&
+                emptyState.contains("contentColor = MaterialTheme.addiyonColors.onBrandPrimary") &&
+                emptyState.contains("containerSize = AddiyonSizes.minimumTouchTarget") &&
+                emptyState.contains("iconSize = AddiyonSizes.iconLarge")
+        )
+        assertTrue(
+            "The Continue typing action must use a pill shape and a brand-primary outline.",
+            emptyState.contains("shape = RoundedCornerShape(AddiyonRadii.pill)") &&
+                emptyState.contains("contentColor = MaterialTheme.addiyonColors.brandPrimary") &&
+                emptyState.contains("ButtonDefaults.outlinedButtonBorder().width") &&
+                emptyState.contains("color = MaterialTheme.addiyonColors.brandPrimary")
         )
     }
 

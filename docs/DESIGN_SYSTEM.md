@@ -195,8 +195,9 @@ height stable during state changes. The TextRevamp AI panel is intentionally
 must not scroll. A bounded inner content region may scroll when persistent
 header and primary actions remain visible.
 
-The canonical AI assistant panel keeps a 48 dp, truly circular version of the
-suggestion bar's chevron-left control with a small arrow and fixed white surface.
+The canonical AI assistant panel keeps a 44 dp tap area for the suggestion
+bar's chevron-left control with a 32 dp arrow. Its fixed white, truly circular
+surface also fills the 44 dp area, leaving exactly 6 dp around the arrow.
 It does not show a toolbar title or usage control. Compact pill-shaped
 tones with leading semantic icons sit directly beside the back action in the
 same persistent row. The toolbar uses compact 8 dp top and 12 dp bottom insets,

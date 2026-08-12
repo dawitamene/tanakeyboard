@@ -259,7 +259,7 @@ raw slash/gemination notation in the source record for reproducibility.
 
 | Phase | Objective | Primary output | Safe stopping point |
 |---:|---|---|---|
-| 3 | Harden and prove the current noun MVP | Oracle corpus, typed features, integration tests | Ship conservative noun generation |
+| 3 — complete | Harden and prove the current noun MVP | Oracle corpus, typed features, integration tests | Ship conservative noun generation |
 | 4 | Reach practical HornMorpho noun/adjective parity | Compact symmetric nominal analyzer/generator | Robust nominal suggestions |
 | 5 | Make ranking provenance-aware | Explicit source tiers and sparse surface statistics | Correct ranking without wordlist bloat |
 | 6 | Restore clean Amharic next-word prediction | Morphology-gated corpus and n-grams | Useful predictions with no garbage leakage |
@@ -271,7 +271,7 @@ Phases should be delivered sequentially. Phase 6 may be developed alongside
 Phase 5 after the validity API is stable. Do not begin Phase 8 before Phase 7
 has a measured architecture decision.
 
-## 6. Phase 3 — harden and prove the noun MVP
+## 6. Phase 3 — complete: harden and prove the noun MVP
 
 ### Goal
 
@@ -1297,6 +1297,7 @@ Append entries here instead of rewriting the historical snapshot.
 |---|---:|---|---|---|
 | 2026-08-12 | 1 | `fc0b927` plus captured uncommitted follow-up | Lexeme baseline | 18,867 lexemes; 18,251 base display lemmas |
 | 2026-08-12 | 2 | Uncommitted at handoff | Noun MVP implemented and tested | Both APKs assembled; install unavailable because no device was connected |
+| 2026-08-12 | 3 | Uncommitted | Noun MVP hardened and oracle-verified | Typed feature parser; pinned HornMorpho oracle; deterministic 442-case golden corpus across 42 lexemes; real-SQLite engine tests; obsolete blind prefix synthesis removed; 1,972 KiB DB; Addiyon installed and connected smoke passed on two Android 16 devices; both APKs assembled. `checkKeyboardProducts` reports the two known unrelated architecture-contract failures in section 2.3. |
 
 ## 19. Primary references
 
@@ -1312,4 +1313,3 @@ Append entries here instead of rewriting the historical snapshot.
   `language/amharic/hornmorpho/UPSTREAM.md`
 - Local dictionary tool documentation: `tools/README.md`
 - SQLite architecture background: `plans/sqlite-dictionaries.md`
-

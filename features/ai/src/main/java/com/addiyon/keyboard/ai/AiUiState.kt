@@ -14,7 +14,7 @@ data class AiUiState(
     val isLoading: Boolean = false,
     val isQuotaLoading: Boolean = false,
     val error: AiError? = null,
-    val quota: AiQuota = AiQuota(0, 50, 50, todayIso()),
+    val quota: AiQuota = AiQuota(0, 50_000, 50_000, todayIso()),
     val isPrivateField: Boolean = false,
     val needsAuth: Boolean = false,
     val authEmail: String = "",

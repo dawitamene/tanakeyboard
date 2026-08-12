@@ -1,0 +1,443 @@
+id	source	kind	raw_form	lemma	source_features	requested_features	typed	surface	normalized_key	should_suggest	oracle_recognized	oracle_analysis_count	reason
+p00-00	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	SG	ሰው	ሰው	ሰው	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p00-01	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	SG;ACC	ሰውን	ሰውን	ሰውን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p00-02	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	SG;PSS1S	ሰዌ	ሰዌ	ሰዌ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p00-03	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	SG;PSS1S;ACC	ሰዌን	ሰዌን	ሰዌን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p00-04	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	SG;PSS2SM	ሰውህ	ሰውህ	ሰውህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p00-05	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	SG;PSS2SM;ACC	ሰውህን	ሰውህን	ሰውህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p00-06	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	SG;PSS2SF	ሰውሽ	ሰውሽ	ሰውሽ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p00-07	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	SG;PSS2SF;ACC	ሰውሽን	ሰውሽን	ሰውሽን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p01-00	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	SG	ቤት	ቤት	ቤት	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p01-01	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	SG;ACC	ቤትን	ቤትን	ቤትን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p01-02	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	SG;DEF	ቤቱ	ቤቱ	ቤቱ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p01-03	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	SG;DEF;ACC	ቤቱን	ቤቱን	ቤቱን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p01-04	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	SG;PSS1S	ቤቴ	ቤቴ	ቤቴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p01-05	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	SG;PSS1S;ACC	ቤቴን	ቤቴን	ቤቴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p01-06	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	SG;PSS2SM	ቤትህ	ቤትህ	ቤትህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p01-07	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	SG;PSS2SM;ACC	ቤትህን	ቤትህን	ቤትህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p02-00	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	SG	ቦታ	ቦታ	ቦታ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p02-01	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	SG;ACC	ቦታን	ቦታን	ቦታን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p02-02	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	SG;DEF	ቦታው	ቦታው	ቦታው	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p02-03	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	SG;DEF;ACC	ቦታውን	ቦታውን	ቦታውን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p02-04	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	SG;PSS1S	ቦታዬ	ቦታዬ	ቦታዬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p02-05	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	SG;PSS1S;ACC	ቦታዬን	ቦታዬን	ቦታዬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p02-06	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	SG;PSS2SM	ቦታህ	ቦታህ	ቦታህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p02-07	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	SG;PSS2SM;ACC	ቦታህን	ቦታህን	ቦታህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p03-00	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	SG	ሀገር	ሀገር	ሀገር	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p03-01	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	SG;ACC	ሀገርን	ሀገርን	ሀገርን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p03-02	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	SG;DEF	ሀገሩ	ሀገሩ	ሀገሩ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p03-03	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	SG;DEF;ACC	ሀገሩን	ሀገሩን	ሀገሩን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p03-04	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	SG;PSS1S	ሀገሬ	ሀገሬ	ሀገሬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p03-05	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	SG;PSS1S;ACC	ሀገሬን	ሀገሬን	ሀገሬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p03-06	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	SG;PSS2SM	ሀገርህ	ሀገርህ	ሀገርህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p03-07	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	SG;PSS2SM;ACC	ሀገርህን	ሀገርህን	ሀገርህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p04-00	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	SG	ልጅ	ልጅ	ልጅ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p04-01	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	SG;ACC	ልጅን	ልጅን	ልጅን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p04-02	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	SG;DEF	ልጁ	ልጁ	ልጁ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p04-03	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	SG;DEF;ACC	ልጁን	ልጁን	ልጁን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p04-04	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	SG;PSS1S	ልጄ	ልጄ	ልጄ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p04-05	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	SG;PSS1S;ACC	ልጄን	ልጄን	ልጄን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p04-06	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	SG;PSS2SM	ልጅህ	ልጅህ	ልጅህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p04-07	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	SG;PSS2SM;ACC	ልጅህን	ልጅህን	ልጅህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p05-00	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	SG	መኪና	መኪና	መኪና	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p05-01	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	SG;ACC	መኪናን	መኪናን	መኪናን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p05-02	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	SG;DEF	መኪናው	መኪናው	መኪናው	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p05-03	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	SG;DEF;ACC	መኪናውን	መኪናውን	መኪናውን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p05-04	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	SG;PSS1S	መኪናዬ	መኪናዬ	መኪናዬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p05-05	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	SG;PSS1S;ACC	መኪናዬን	መኪናዬን	መኪናዬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p05-06	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	SG;PSS2SM	መኪናህ	መኪናህ	መኪናህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p05-07	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	SG;PSS2SM;ACC	መኪናህን	መኪናህን	መኪናህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p06-00	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	SG	ስራ	ስራ	ስራ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p06-01	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	SG;ACC	ስራን	ስራን	ስራን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p06-02	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	SG;DEF	ስራው	ስራው	ስራው	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p06-03	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	SG;DEF;ACC	ስራውን	ስራውን	ስራውን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p06-04	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	SG;PSS1S	ስራዬ	ስራዬ	ስራዬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p06-05	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	SG;PSS1S;ACC	ስራዬን	ስራዬን	ስራዬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p06-06	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	SG;PSS2SM	ስራህ	ስራህ	ስራህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p06-07	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	SG;PSS2SM;ACC	ስራህን	ስራህን	ስራህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p07-00	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	SG	ሴት	ሴት	ሴት	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p07-01	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	SG;ACC	ሴትን	ሴትን	ሴትን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p07-02	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	SG;DEF	ሴቷ	ሴቷ	ሴቷ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p07-03	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	SG;DEF;ACC	ሴቷን	ሴቷን	ሴቷን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p07-04	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	SG;PSS1S	ሴቴ	ሴቴ	ሴቴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p07-05	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	SG;PSS1S;ACC	ሴቴን	ሴቴን	ሴቴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p07-06	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	SG;PSS2SM	ሴትህ	ሴትህ	ሴትህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p07-07	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	SG;PSS2SM;ACC	ሴትህን	ሴትህን	ሴትህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p08-00	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	SG	ቀን	ቀን	ቀን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p08-01	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	SG;ACC	ቀንን	ቀንን	ቀንን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p08-02	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	SG;DEF	ቀኑ	ቀኑ	ቀኑ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p08-03	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	SG;DEF;ACC	ቀኑን	ቀኑን	ቀኑን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p08-04	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	SG;PSS1S	ቀኔ	ቀኔ	ቀኔ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p08-05	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	SG;PSS1S;ACC	ቀኔን	ቀኔን	ቀኔን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p08-06	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	SG;PSS2SM	ቀንህ	ቀንህ	ቀንህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p08-07	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	SG;PSS2SM;ACC	ቀንህን	ቀንህን	ቀንህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p09-00	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	SG	ትምህርት	ትምህርት	ትምህርት	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p09-01	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	SG;ACC	ትምህርትን	ትምህርትን	ትምህርትን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p09-02	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	SG;DEF	ትምህርቱ	ትምህርቱ	ትምህርቱ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p09-03	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	SG;DEF;ACC	ትምህርቱን	ትምህርቱን	ትምህርቱን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p09-04	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	SG;PSS1S	ትምህርቴ	ትምህርቴ	ትምህርቴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p09-05	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	SG;PSS1S;ACC	ትምህርቴን	ትምህርቴን	ትምህርቴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p09-06	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	SG;PSS2SM	ትምህርትህ	ትምህርትህ	ትምህርትህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p09-07	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	SG;PSS2SM;ACC	ትምህርትህን	ትምህርትህን	ትምህርትህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p10-00	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	SG	ወንበር	ወንበር	ወንበር	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p10-01	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	SG;ACC	ወንበርን	ወንበርን	ወንበርን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p10-02	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	SG;DEF	ወንበሩ	ወንበሩ	ወንበሩ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p10-03	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	SG;DEF;ACC	ወንበሩን	ወንበሩን	ወንበሩን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p10-04	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	SG;PSS1S	ወንበሬ	ወንበሬ	ወንበሬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p10-05	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	SG;PSS1S;ACC	ወንበሬን	ወንበሬን	ወንበሬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p10-06	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	SG;PSS2SM	ወንበርህ	ወንበርህ	ወንበርህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p10-07	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	SG;PSS2SM;ACC	ወንበርህን	ወንበርህን	ወንበርህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p11-00	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	SG	አበባ	አበባ	አበባ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p11-01	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	SG;ACC	አበባን	አበባን	አበባን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p11-02	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	SG;DEF	አበባው	አበባው	አበባው	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p11-03	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	SG;DEF;ACC	አበባውን	አበባውን	አበባውን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p11-04	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	SG;PSS1S	አበባዬ	አበባዬ	አበባዬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p11-05	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	SG;PSS1S;ACC	አበባዬን	አበባዬን	አበባዬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p11-06	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	SG;PSS2SM	አበባህ	አበባህ	አበባህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p11-07	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	SG;PSS2SM;ACC	አበባህን	አበባህን	አበባህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p12-00	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	SG	ወንድ	ወንድ	ወንድ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p12-01	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	SG;ACC	ወንድን	ወንድን	ወንድን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p12-02	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	SG;DEF	ወንዱ	ወንዱ	ወንዱ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p12-03	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	SG;DEF;ACC	ወንዱን	ወንዱን	ወንዱን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p12-04	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	SG;PSS1S	ወንዴ	ወንዴ	ወንዴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p12-05	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	SG;PSS1S;ACC	ወንዴን	ወንዴን	ወንዴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p12-06	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	SG;PSS2SM	ወንድህ	ወንድህ	ወንድህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p12-07	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	SG;PSS2SM;ACC	ወንድህን	ወንድህን	ወንድህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p13-00	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	SG	አመት	አመት	አመት	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p13-01	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	SG;ACC	አመትን	አመትን	አመትን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p13-02	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	SG;DEF	አመቱ	አመቱ	አመቱ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p13-03	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	SG;DEF;ACC	አመቱን	አመቱን	አመቱን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p13-04	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	SG;PSS1S	አመቴ	አመቴ	አመቴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p13-05	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	SG;PSS1S;ACC	አመቴን	አመቴን	አመቴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p13-06	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	SG;PSS2SM	አመትህ	አመትህ	አመትህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p13-07	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	SG;PSS2SM;ACC	አመትህን	አመትህን	አመትህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p14-00	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	SG	መጽሀፍ	መጽሀፍ	መጽሀፍ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p14-01	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	SG;ACC	መጽሀፍን	መጽሀፍን	መጽሀፍን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p14-02	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	SG;DEF	መጽሀፉ	መጽሀፉ	መጽሀፉ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p14-03	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	SG;DEF;ACC	መጽሀፉን	መጽሀፉን	መጽሀፉን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p14-04	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	SG;PSS1S	መጽሀፌ	መጽሀፌ	መጽሀፌ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p14-05	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	SG;PSS1S;ACC	መጽሀፌን	መጽሀፌን	መጽሀፌን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p14-06	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	SG;PSS2SM	መጽሀፍህ	መጽሀፍህ	መጽሀፍህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p14-07	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	SG;PSS2SM;ACC	መጽሀፍህን	መጽሀፍህን	መጽሀፍህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p15-00	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	SG	ላም	ላም	ላም	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p15-01	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	SG;ACC	ላምን	ላምን	ላምን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p15-02	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	SG;DEF	ላሟ	ላሟ	ላሟ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p15-03	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	SG;DEF;ACC	ላሟን	ላሟን	ላሟን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p15-04	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	SG;PSS1S	ላሜ	ላሜ	ላሜ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p15-05	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	SG;PSS1S;ACC	ላሜን	ላሜን	ላሜን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p15-06	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	SG;PSS2SM	ላምህ	ላምህ	ላምህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p15-07	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	SG;PSS2SM;ACC	ላምህን	ላምህን	ላምህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p16-00	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	SG	ሚስት	ሚስት	ሚስት	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p16-01	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	SG;ACC	ሚስትን	ሚስትን	ሚስትን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p16-02	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	SG;DEF	ሚስቷ	ሚስቷ	ሚስቷ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p16-03	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	SG;DEF;ACC	ሚስቷን	ሚስቷን	ሚስቷን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p16-04	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	SG;PSS1S	ሚስቴ	ሚስቴ	ሚስቴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p16-05	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	SG;PSS1S;ACC	ሚስቴን	ሚስቴን	ሚስቴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p16-06	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	SG;PSS2SM	ሚስትህ	ሚስትህ	ሚስትህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p16-07	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	SG;PSS2SM;ACC	ሚስትህን	ሚስትህን	ሚስትህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p17-00	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	SG	እህት	እህት	እህት	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p17-01	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	SG;ACC	እህትን	እህትን	እህትን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p17-02	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	SG;DEF	እህቷ	እህቷ	እህቷ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p17-03	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	SG;DEF;ACC	እህቷን	እህቷን	እህቷን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p17-04	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	SG;PSS1S	እህቴ	እህቴ	እህቴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p17-05	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	SG;PSS1S;ACC	እህቴን	እህቴን	እህቴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p17-06	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	SG;PSS2SM	እህትህ	እህትህ	እህትህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p17-07	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	SG;PSS2SM;ACC	እህትህን	እህትህን	እህትህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p18-00	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	SG	እናት	እናት	እናት	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p18-01	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	SG;ACC	እናትን	እናትን	እናትን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p18-02	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	SG;DEF	እናቷ	እናቷ	እናቷ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p18-03	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	SG;DEF;ACC	እናቷን	እናቷን	እናቷን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p18-04	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	SG;PSS1S	እናቴ	እናቴ	እናቴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p18-05	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	SG;PSS1S;ACC	እናቴን	እናቴን	እናቴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p18-06	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	SG;PSS2SM	እናትህ	እናትህ	እናትህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p18-07	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	SG;PSS2SM;ACC	እናትህን	እናትህን	እናትህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p19-00	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	SG	ጨረቃ	ጨረቃ	ጨረቃ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p19-01	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	SG;ACC	ጨረቃን	ጨረቃን	ጨረቃን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p19-02	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	SG;DEF	ጨረቃዋ	ጨረቃዋ	ጨረቃዋ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p19-03	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	SG;DEF;ACC	ጨረቃዋን	ጨረቃዋን	ጨረቃዋን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p19-04	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	SG;PSS1S	ጨረቃዬ	ጨረቃዬ	ጨረቃዬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p19-05	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	SG;PSS1S;ACC	ጨረቃዬን	ጨረቃዬን	ጨረቃዬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p19-06	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	SG;PSS2SM	ጨረቃህ	ጨረቃህ	ጨረቃህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p19-07	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	SG;PSS2SM;ACC	ጨረቃህን	ጨረቃህን	ጨረቃህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p20-00	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	SG	ጸሀይ	ጸሀይ	ጸሀይ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p20-01	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	SG;ACC	ጸሀይን	ጸሀይን	ጸሀይን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p20-02	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	SG;DEF	ጸሀይዋ	ጸሀይዋ	ጸሀይዋ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p20-03	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	SG;DEF;ACC	ጸሀይዋን	ጸሀይዋን	ጸሀይዋን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p20-04	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	SG;PSS1S	ጸሀዬ	ጸሀዬ	ጸሀዬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p20-05	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	SG;PSS1S;ACC	ጸሀዬን	ጸሀዬን	ጸሀዬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p20-06	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	SG;PSS2SM	ጸሀይህ	ጸሀይህ	ጸሀይህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p20-07	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	SG;PSS2SM;ACC	ጸሀይህን	ጸሀይህን	ጸሀይህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p21-00	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	SG	ራስ	ራስ	ራስ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p21-01	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	SG;ACC	ራስን	ራስን	ራስን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p21-02	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	SG;DEF	ራሱ	ራሱ	ራሱ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p21-03	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	SG;DEF;ACC	ራሱን	ራሱን	ራሱን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p21-04	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	SG;PSS1S	ራሴ	ራሴ	ራሴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p21-05	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	SG;PSS1S;ACC	ራሴን	ራሴን	ራሴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p21-06	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	SG;PSS2SM	ራስህ	ራስህ	ራስህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p21-07	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	SG;PSS2SM;ACC	ራስህን	ራስህን	ራስህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p22-00	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	SG	ውነት	ውነት	ውነት	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p22-01	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	SG;ACC	ውነትን	ውነትን	ውነትን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p22-02	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	SG;DEF	ውነቱ	ውነቱ	ውነቱ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p22-03	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	SG;DEF;ACC	ውነቱን	ውነቱን	ውነቱን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p22-04	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	SG;PSS1S	ውነቴ	ውነቴ	ውነቴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p22-05	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	SG;PSS1S;ACC	ውነቴን	ውነቴን	ውነቴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p22-06	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	SG;PSS2SM	ውነትህ	ውነትህ	ውነትህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p22-07	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	SG;PSS2SM;ACC	ውነትህን	ውነትህን	ውነትህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p23-00	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ADP=ለ;SG	ለገዛ	ለገዛ	ለገዛ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p23-01	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ADP=ለ;SG;ACC	ለገዛን	ለገዛን	ለገዛን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p23-02	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ADP=ለ;SG;DEF	ለገዛው	ለገዛው	ለገዛው	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p23-03	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ADP=ለ;SG;DEF;ACC	ለገዛውን	ለገዛውን	ለገዛውን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p23-04	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ADP=ለ;SG;PSS1S	ለገዛዬ	ለገዛዬ	ለገዛዬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p23-05	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ADP=ለ;SG;PSS1S;ACC	ለገዛዬን	ለገዛዬን	ለገዛዬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p23-06	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ADP=ለ;SG;PSS2SM	ለገዛህ	ለገዛህ	ለገዛህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p23-07	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ADP=ለ;SG;PSS2SM;ACC	ለገዛህን	ለገዛህን	ለገዛህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p24-00	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	SG	ጥር	ጥር	ጥር	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p24-01	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	SG;ACC	ጥርን	ጥርን	ጥርን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p24-02	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	PL	ጥሮች	ጥሮች	ጥሮች	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p24-03	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	PL;ACC	ጥሮችን	ጥሮችን	ጥሮችን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p24-04	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ADP=የ;SG	የጥር	የጥር	የጥር	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p24-05	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ADP=የ;SG;ACC	የጥርን	የጥርን	የጥርን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p24-06	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ADP=የ;PL	የጥሮች	የጥሮች	የጥሮች	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p24-07	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ADP=የ;PL;ACC	የጥሮችን	የጥሮችን	የጥሮችን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p25-00	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	SG	ወይዘሪት	ወይዘሪት	ወይዘሪት	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p25-01	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	SG;ACC	ወይዘሪትን	ወይዘሪትን	ወይዘሪትን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p25-02	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	SG;DEF	ወይዘሪቷ	ወይዘሪቷ	ወይዘሪቷ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p25-03	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	SG;DEF;ACC	ወይዘሪቷን	ወይዘሪቷን	ወይዘሪቷን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p25-04	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	SG;PSS1S	ወይዘሪቴ	ወይዘሪቴ	ወይዘሪቴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p25-05	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	SG;PSS1S;ACC	ወይዘሪቴን	ወይዘሪቴን	ወይዘሪቴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p25-06	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	SG;PSS2SM	ወይዘሪትህ	ወይዘሪትህ	ወይዘሪትህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p25-07	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	SG;PSS2SM;ACC	ወይዘሪትህን	ወይዘሪትህን	ወይዘሪትህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p26-00	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	SG	ራቁት	ራቁት	ራቁት	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p26-01	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	SG;ACC	ራቁትን	ራቁትን	ራቁትን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p26-02	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	SG;PSS1S	ራቁቴ	ራቁቴ	ራቁቴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p26-03	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	SG;PSS1S;ACC	ራቁቴን	ራቁቴን	ራቁቴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p26-04	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	SG;PSS2SM	ራቁትህ	ራቁትህ	ራቁትህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p26-05	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	SG;PSS2SM;ACC	ራቁትህን	ራቁትህን	ራቁትህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p26-06	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	SG;PSS2SF	ራቁትሽ	ራቁትሽ	ራቁትሽ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p26-07	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	SG;PSS2SF;ACC	ራቁትሽን	ራቁትሽን	ራቁትሽን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p27-00	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	SG	እራስ	እራስ	እራስ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p27-01	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	SG;ACC	እራስን	እራስን	እራስን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p27-02	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	SG;DEF	እራሱ	እራሱ	እራሱ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p27-03	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	SG;DEF;ACC	እራሱን	እራሱን	እራሱን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p27-04	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	SG;PSS1S	እራሴ	እራሴ	እራሴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p27-05	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	SG;PSS1S;ACC	እራሴን	እራሴን	እራሴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p27-06	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	SG;PSS2SM	እራስህ	እራስህ	እራስህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p27-07	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	SG;PSS2SM;ACC	እራስህን	እራስህን	እራስህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p28-00	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	SG	ምሳሌ	ምሳሌ	ምሳሌ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p28-01	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	SG;ACC	ምሳሌን	ምሳሌን	ምሳሌን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p28-02	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	SG;DEF	ምሳሌው	ምሳሌው	ምሳሌው	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p28-03	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	SG;DEF;ACC	ምሳሌውን	ምሳሌውን	ምሳሌውን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p28-04	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	SG;PSS1S	ምሳሌዬ	ምሳሌዬ	ምሳሌዬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p28-05	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	SG;PSS1S;ACC	ምሳሌዬን	ምሳሌዬን	ምሳሌዬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p28-06	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	SG;PSS2SM	ምሳሌህ	ምሳሌህ	ምሳሌህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p28-07	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	SG;PSS2SM;ACC	ምሳሌህን	ምሳሌህን	ምሳሌህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p29-00	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	SG	መምህር	መምህር	መምህር	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p29-01	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	SG;ACC	መምህርን	መምህርን	መምህርን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p29-02	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	SG;DEF	መምህሩ	መምህሩ	መምህሩ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p29-03	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	SG;DEF;ACC	መምህሩን	መምህሩን	መምህሩን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p29-04	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	SG;PSS1S	መምህሬ	መምህሬ	መምህሬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p29-05	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	SG;PSS1S;ACC	መምህሬን	መምህሬን	መምህሬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p29-06	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	SG;PSS2SM	መምህርህ	መምህርህ	መምህርህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p29-07	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	SG;PSS2SM;ACC	መምህርህን	መምህርህን	መምህርህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p30-00	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	SG	ክቡር	ክቡር	ክቡር	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p30-01	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	SG;ACC	ክቡርን	ክቡርን	ክቡርን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p30-02	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	SG;DEF	ክቡሩ	ክቡሩ	ክቡሩ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p30-03	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	SG;DEF;ACC	ክቡሩን	ክቡሩን	ክቡሩን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p30-04	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	SG;PSS1S	ክቡሬ	ክቡሬ	ክቡሬ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p30-05	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	SG;PSS1S;ACC	ክቡሬን	ክቡሬን	ክቡሬን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p30-06	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	SG;PSS2SM	ክቡርህ	ክቡርህ	ክቡርህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p30-07	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	SG;PSS2SM;ACC	ክቡርህን	ክቡርህን	ክቡርህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p31-00	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	SG	ደራሲ	ደራሲ	ደራሲ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p31-01	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	SG;ACC	ደራሲን	ደራሲን	ደራሲን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p31-02	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	SG;DEF	ደራሲው	ደራሲው	ደራሲው	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p31-03	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	SG;DEF;ACC	ደራሲውን	ደራሲውን	ደራሲውን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p31-04	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	SG;PSS1S	ደራሲዬ	ደራሲዬ	ደራሲዬ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p31-05	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	SG;PSS1S;ACC	ደራሲዬን	ደራሲዬን	ደራሲዬን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p31-06	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	SG;PSS2SM	ደራሲህ	ደራሲህ	ደራሲህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p31-07	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	SG;PSS2SM;ACC	ደራሲህን	ደራሲህን	ደራሲህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p32-00	hornmorpho	1	ምሁር	ምሁር	'' [pos=N]	SG	ምሁር	ምሁር	ምሁር	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p32-01	hornmorpho	1	ምሁር	ምሁር	'' [pos=N]	SG;ACC	ምሁርን	ምሁርን	ምሁርን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p32-02	hornmorpho	1	ምሁር	ምሁር	'' [pos=N]	SG;DEF	ምሁሩ	ምሁሩ	ምሁሩ	true	true	4	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p32-03	hornmorpho	1	ምሁር	ምሁር	'' [pos=N]	SG;DEF;ACC	ምሁሩን	ምሁሩን	ምሁሩን	true	true	4	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p32-04	hornmorpho	1	ምሁር	ምሁር	'' [pos=N]	SG;PSS1S	ምሁሬ	ምሁሬ	ምሁሬ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p32-05	hornmorpho	1	ምሁር	ምሁር	'' [pos=N]	SG;PSS1S;ACC	ምሁሬን	ምሁሬን	ምሁሬን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p32-06	hornmorpho	1	ምሁር	ምሁር	'' [pos=N]	SG;PSS2SM	ምሁርህ	ምሁርህ	ምሁርህ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p32-07	hornmorpho	1	ምሁር	ምሁር	'' [pos=N]	SG;PSS2SM;ACC	ምሁርህን	ምሁርህን	ምሁርህን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p33-00	hornmorpho	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	SG	ቅዱስ	ቅዱስ	ቅዱስ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p33-01	hornmorpho	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	SG;ACC	ቅዱስን	ቅዱስን	ቅዱስን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p33-02	hornmorpho	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	SG;DEF	ቅዱሱ	ቅዱሱ	ቅዱሱ	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p33-03	hornmorpho	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	SG;DEF;ACC	ቅዱሱን	ቅዱሱን	ቅዱሱን	true	true	2	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p33-04	hornmorpho	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	SG;PSS1S	ቅዱሴ	ቅዱሴ	ቅዱሴ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p33-05	hornmorpho	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	SG;PSS1S;ACC	ቅዱሴን	ቅዱሴን	ቅዱሴን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p33-06	hornmorpho	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	SG;PSS2SM	ቅዱስህ	ቅዱስህ	ቅዱስህ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p33-07	hornmorpho	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	SG;PSS2SM;ACC	ቅዱስህን	ቅዱስህን	ቅዱስህን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p34-00	hornmorpho	2	አ/በበ	አበበ		SG	አበበ	አበበ	አበበ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p34-01	hornmorpho	2	አ/በበ	አበበ		SG;ACC	አበበን	አበበን	አበበን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p34-02	hornmorpho	2	አ/በበ	አበበ		ADP=የ;SG	የአበበ	የአበበ	የአበበ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p34-03	hornmorpho	2	አ/በበ	አበበ		ADP=የ;SG;ACC	የአበበን	የአበበን	የአበበን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p34-04	hornmorpho	2	አ/በበ	አበበ		ADP=ለ;SG	ለአበበ	ለአበበ	ለአበበ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p34-05	hornmorpho	2	አ/በበ	አበበ		ADP=ለ;SG;ACC	ለአበበን	ለአበበን	ለአበበን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p35-00	hornmorpho	2	ሳራ	ሳራ		SG	ሳራ	ሳራ	ሳራ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p35-01	hornmorpho	2	ሳራ	ሳራ		SG;ACC	ሳራን	ሳራን	ሳራን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p35-02	hornmorpho	2	ሳራ	ሳራ		ADP=የ;SG	የሳራ	የሳራ	የሳራ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p35-03	hornmorpho	2	ሳራ	ሳራ		ADP=የ;SG;ACC	የሳራን	የሳራን	የሳራን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p35-04	hornmorpho	2	ሳራ	ሳራ		ADP=ለ;SG	ለሳራ	ለሳራ	ለሳራ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p35-05	hornmorpho	2	ሳራ	ሳራ		ADP=ለ;SG;ACC	ለሳራን	ለሳራን	ለሳራን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p36-00	hornmorpho	2	ሀና	ሀና		SG	ሀና	ሀና	ሀና	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p36-01	hornmorpho	2	ሀና	ሀና		SG;ACC	ሀናን	ሀናን	ሀናን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p36-02	hornmorpho	2	ሀና	ሀና		ADP=የ;SG	የሀና	የሀና	የሀና	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p36-03	hornmorpho	2	ሀና	ሀና		ADP=የ;SG;ACC	የሀናን	የሀናን	የሀናን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p36-04	hornmorpho	2	ሀና	ሀና		ADP=ለ;SG	ለሀና	ለሀና	ለሀና	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p36-05	hornmorpho	2	ሀና	ሀና		ADP=ለ;SG;ACC	ለሀናን	ለሀናን	ለሀናን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p37-00	hornmorpho	2	ማርታ	ማርታ		SG	ማርታ	ማርታ	ማርታ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p37-01	hornmorpho	2	ማርታ	ማርታ		SG;ACC	ማርታን	ማርታን	ማርታን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p37-02	hornmorpho	2	ማርታ	ማርታ		ADP=የ;SG	የማርታ	የማርታ	የማርታ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p37-03	hornmorpho	2	ማርታ	ማርታ		ADP=የ;SG;ACC	የማርታን	የማርታን	የማርታን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p37-04	hornmorpho	2	ማርታ	ማርታ		ADP=ለ;SG	ለማርታ	ለማርታ	ለማርታ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p37-05	hornmorpho	2	ማርታ	ማርታ		ADP=ለ;SG;ACC	ለማርታን	ለማርታን	ለማርታን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p38-00	hornmorpho	3	አዳማ	አዳማ		SG	አዳማ	አዳማ	አዳማ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p38-01	hornmorpho	3	አዳማ	አዳማ		SG;ACC	አዳማን	አዳማን	አዳማን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p38-02	hornmorpho	3	አዳማ	አዳማ		ADP=የ;SG	የአዳማ	የአዳማ	የአዳማ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p38-03	hornmorpho	3	አዳማ	አዳማ		ADP=የ;SG;ACC	የአዳማን	የአዳማን	የአዳማን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p38-04	hornmorpho	3	አዳማ	አዳማ		ADP=ለ;SG	ለአዳማ	ለአዳማ	ለአዳማ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p38-05	hornmorpho	3	አዳማ	አዳማ		ADP=ለ;SG;ACC	ለአዳማን	ለአዳማን	ለአዳማን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p39-00	hornmorpho	3	ኢትዮጵያ	ኢትዮጵያ		SG	ኢትዮጵያ	ኢትዮጵያ	ኢትዮጵያ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p39-01	hornmorpho	3	ኢትዮጵያ	ኢትዮጵያ		SG;ACC	ኢትዮጵያን	ኢትዮጵያን	ኢትዮጵያን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p39-02	hornmorpho	3	ኢትዮጵያ	ኢትዮጵያ		ADP=የ;SG	የኢትዮጵያ	የኢትዮጵያ	የኢትዮጵያ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p39-03	hornmorpho	3	ኢትዮጵያ	ኢትዮጵያ		ADP=የ;SG;ACC	የኢትዮጵያን	የኢትዮጵያን	የኢትዮጵያን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p39-04	hornmorpho	3	ኢትዮጵያ	ኢትዮጵያ		ADP=ለ;SG	ለኢትዮጵያ	ለኢትዮጵያ	ለኢትዮጵያ	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p39-05	hornmorpho	3	ኢትዮጵያ	ኢትዮጵያ		ADP=ለ;SG;ACC	ለኢትዮጵያን	ለኢትዮጵያን	ለኢትዮጵያን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p40-00	hornmorpho	3	ጎንደር	ጎንደር		SG	ጎንደር	ጎንደር	ጎንደር	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p40-01	hornmorpho	3	ጎንደር	ጎንደር		SG;ACC	ጎንደርን	ጎንደርን	ጎንደርን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p40-02	hornmorpho	3	ጎንደር	ጎንደር		ADP=የ;SG	የጎንደር	የጎንደር	የጎንደር	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p40-03	hornmorpho	3	ጎንደር	ጎንደር		ADP=የ;SG;ACC	የጎንደርን	የጎንደርን	የጎንደርን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p40-04	hornmorpho	3	ጎንደር	ጎንደር		ADP=ለ;SG	ለጎንደር	ለጎንደር	ለጎንደር	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p40-05	hornmorpho	3	ጎንደር	ጎንደር		ADP=ለ;SG;ACC	ለጎንደርን	ለጎንደርን	ለጎንደርን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p41-00	hornmorpho	3	ሀና	ሀና		SG	ሀና	ሀና	ሀና	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p41-01	hornmorpho	3	ሀና	ሀና		SG;ACC	ሀናን	ሀናን	ሀናን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p41-02	hornmorpho	3	ሀና	ሀና		ADP=የ;SG	የሀና	የሀና	የሀና	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p41-03	hornmorpho	3	ሀና	ሀና		ADP=የ;SG;ACC	የሀናን	የሀናን	የሀናን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p41-04	hornmorpho	3	ሀና	ሀና		ADP=ለ;SG	ለሀና	ለሀና	ለሀና	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+p41-05	hornmorpho	3	ሀና	ሀና		ADP=ለ;SG;ACC	ለሀናን	ለሀናን	ለሀናን	true	true	1	HornMorpho 5.3.6 nominal analysis matches the source lemma
+n00-000	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	INVALID	ሰውንው	ሰውንው	ሰውንው	false	false	0	invalid suffix order ACC then DEF
+n00-001	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	INVALID	ሰውዎችው	ሰውዎችው	ሰውዎችው	false	false	0	invalid plural boundary then determiner
+n00-002	hornmorpho	0	ሰው	ሰው	'' [g=m,pos=N]	INVALID	ሰውንን	ሰውንን	ሰውንን	false	false	0	duplicated accusative suffix
+n01-003	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	INVALID	ቤትንው	ቤትንው	ቤትንው	false	false	0	invalid suffix order ACC then DEF
+n01-004	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	INVALID	ቤትዎችው	ቤትዎችው	ቤትዎችው	false	false	0	invalid plural boundary then determiner
+n01-005	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	INVALID	ቤትየ	ቤትየ	ቤትየ	false	false	0	invalid trailing genitive marker
+n01-006	hornmorpho	0	ቤት	ቤት	'' [pos=N,-h]	INVALID	ቤትንን	ቤትንን	ቤትንን	false	false	0	duplicated accusative suffix
+n02-007	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	INVALID	ቦታንው	ቦታንው	ቦታንው	false	false	0	invalid suffix order ACC then DEF
+n02-008	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	INVALID	ቦታዎችው	ቦታዎችው	ቦታዎችው	false	false	0	invalid plural boundary then determiner
+n02-009	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	INVALID	ቦታየ	ቦታየ	ቦታየ	false	false	0	invalid trailing genitive marker
+n02-010	hornmorpho	0	ቦታ	ቦታ	'' [pos=N,-h]	INVALID	ቦታንን	ቦታንን	ቦታንን	false	false	0	duplicated accusative suffix
+n03-011	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	INVALID	ሀገርንው	ሀገርንው	ሀገርንው	false	false	0	invalid suffix order ACC then DEF
+n03-012	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	INVALID	ሀገርዎችው	ሀገርዎችው	ሀገርዎችው	false	false	0	invalid plural boundary then determiner
+n03-013	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	INVALID	ሀገርየ	ሀገርየ	ሀገርየ	false	false	0	invalid trailing genitive marker
+n03-014	hornmorpho	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	INVALID	ሀገርንን	ሀገርንን	ሀገርንን	false	false	0	duplicated accusative suffix
+n04-015	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	INVALID	ልጅንው	ልጅንው	ልጅንው	false	false	0	invalid suffix order ACC then DEF
+n04-016	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	INVALID	ልጅዎችው	ልጅዎችው	ልጅዎችው	false	false	0	invalid plural boundary then determiner
+n04-017	hornmorpho	0	ልጅ	ልጅ	'' [pos=N]	INVALID	ልጅንን	ልጅንን	ልጅንን	false	false	0	duplicated accusative suffix
+n05-018	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	INVALID	መኪናንው	መኪናንው	መኪናንው	false	false	0	invalid suffix order ACC then DEF
+n05-019	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	INVALID	መኪናዎችው	መኪናዎችው	መኪናዎችው	false	false	0	invalid plural boundary then determiner
+n05-020	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	INVALID	መኪናየ	መኪናየ	መኪናየ	false	false	0	invalid trailing genitive marker
+n05-021	hornmorpho	0	መኪና	መኪና	'' [pos=N,-h]	INVALID	መኪናንን	መኪናንን	መኪናንን	false	false	0	duplicated accusative suffix
+n06-022	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	INVALID	ስራንው	ስራንው	ስራንው	false	false	0	invalid suffix order ACC then DEF
+n06-023	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	INVALID	ስራዎችው	ስራዎችው	ስራዎችው	false	false	0	invalid plural boundary then determiner
+n06-024	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	INVALID	ስራየ	ስራየ	ስራየ	false	false	0	invalid trailing genitive marker
+n06-025	hornmorpho	0	ስራ	ስራ	'' [pos=N,-h]	INVALID	ስራንን	ስራንን	ስራንን	false	false	0	duplicated accusative suffix
+n07-026	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	INVALID	ሴትንው	ሴትንው	ሴትንው	false	false	0	invalid suffix order ACC then DEF
+n07-027	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	INVALID	ሴትዎችው	ሴትዎችው	ሴትዎችው	false	false	0	invalid plural boundary then determiner
+n07-028	hornmorpho	0	ሴት	ሴት	'' [g=f,pos=N]	INVALID	ሴትንን	ሴትንን	ሴትንን	false	false	0	duplicated accusative suffix
+n08-029	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	INVALID	ቀንንው	ቀንንው	ቀንንው	false	false	0	invalid suffix order ACC then DEF
+n08-030	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	INVALID	ቀንዎችው	ቀንዎችው	ቀንዎችው	false	false	0	invalid plural boundary then determiner
+n08-031	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	INVALID	ቀንየ	ቀንየ	ቀንየ	false	false	0	invalid trailing genitive marker
+n08-032	hornmorpho	0	ቀን	ቀን	'' [pos=N,-h]	INVALID	ቀንንን	ቀንንን	ቀንንን	false	false	0	duplicated accusative suffix
+n09-033	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	INVALID	ትምህርትንው	ትምህርትንው	ትምህርትንው	false	false	0	invalid suffix order ACC then DEF
+n09-034	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	INVALID	ትምህርትዎችው	ትምህርትዎችው	ትምህርትዎችው	false	false	0	invalid plural boundary then determiner
+n09-035	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	INVALID	ትምህርትየ	ትምህርትየ	ትምህርትየ	false	false	0	invalid trailing genitive marker
+n09-036	hornmorpho	0	ትምህርት	ትምህርት	'' [pos=N,-h]	INVALID	ትምህርትንን	ትምህርትንን	ትምህርትንን	false	false	0	duplicated accusative suffix
+n10-037	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	INVALID	ወንበርንው	ወንበርንው	ወንበርንው	false	false	0	invalid suffix order ACC then DEF
+n10-038	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	INVALID	ወንበርዎችው	ወንበርዎችው	ወንበርዎችው	false	false	0	invalid plural boundary then determiner
+n10-039	hornmorpho	0	ወንበር	ወንበር	'' [pos=N]	INVALID	ወንበርንን	ወንበርንን	ወንበርንን	false	false	0	duplicated accusative suffix
+n11-040	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	INVALID	አበባንው	አበባንው	አበባንው	false	false	0	invalid suffix order ACC then DEF
+n11-041	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	INVALID	አበባዎችው	አበባዎችው	አበባዎችው	false	false	0	invalid plural boundary then determiner
+n11-042	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	INVALID	አበባየ	አበባየ	አበባየ	false	false	0	invalid trailing genitive marker
+n11-043	hornmorpho	0	አበባ	አበባ	'' [pos=N,-h]	INVALID	አበባንን	አበባንን	አበባንን	false	false	0	duplicated accusative suffix
+n12-044	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	INVALID	ወንድንው	ወንድንው	ወንድንው	false	false	0	invalid suffix order ACC then DEF
+n12-045	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	INVALID	ወንድዎችው	ወንድዎችው	ወንድዎችው	false	false	0	invalid plural boundary then determiner
+n12-046	hornmorpho	0	ወንድ	ወንድ	'' [g=m,pos=N]	INVALID	ወንድንን	ወንድንን	ወንድንን	false	false	0	duplicated accusative suffix
+n13-047	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	INVALID	አመትንው	አመትንው	አመትንው	false	false	0	invalid suffix order ACC then DEF
+n13-048	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	INVALID	አመትዎችው	አመትዎችው	አመትዎችው	false	false	0	invalid plural boundary then determiner
+n13-049	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	INVALID	አመትየ	አመትየ	አመትየ	false	false	0	invalid trailing genitive marker
+n13-050	hornmorpho	0	አመት	አመት	'' [pos=N,-h]	INVALID	አመትንን	አመትንን	አመትንን	false	false	0	duplicated accusative suffix
+n14-051	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	INVALID	መጽሀፍንው	መጽሀፍንው	መጽሀፍንው	false	false	0	invalid suffix order ACC then DEF
+n14-052	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	INVALID	መጽሀፍዎችው	መጽሀፍዎችው	መጽሀፍዎችው	false	false	0	invalid plural boundary then determiner
+n14-053	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	INVALID	መጽሀፍየ	መጽሀፍየ	መጽሀፍየ	false	false	0	invalid trailing genitive marker
+n14-054	hornmorpho	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	INVALID	መጽሀፍንን	መጽሀፍንን	መጽሀፍንን	false	false	0	duplicated accusative suffix
+n15-055	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	INVALID	ላምንው	ላምንው	ላምንው	false	false	0	invalid suffix order ACC then DEF
+n15-056	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	INVALID	ላምዎችው	ላምዎችው	ላምዎችው	false	false	0	invalid plural boundary then determiner
+n15-057	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	INVALID	ላምየ	ላምየ	ላምየ	false	false	0	invalid trailing genitive marker
+n15-058	hornmorpho	0	ላም	ላም	'' [g=f,pos=N,-h]	INVALID	ላምንን	ላምንን	ላምንን	false	false	0	duplicated accusative suffix
+n16-059	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	INVALID	ሚስትንው	ሚስትንው	ሚስትንው	false	false	0	invalid suffix order ACC then DEF
+n16-060	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	INVALID	ሚስትዎችው	ሚስትዎችው	ሚስትዎችው	false	false	0	invalid plural boundary then determiner
+n16-061	hornmorpho	0	ሚስት	ሚስት	'' [g=f,pos=N]	INVALID	ሚስትንን	ሚስትንን	ሚስትንን	false	false	0	duplicated accusative suffix
+n17-062	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	INVALID	እህትንው	እህትንው	እህትንው	false	false	0	invalid suffix order ACC then DEF
+n17-063	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	INVALID	እህትዎችው	እህትዎችው	እህትዎችው	false	false	0	invalid plural boundary then determiner
+n17-064	hornmorpho	0	እህት	እህት	'' [g=f,pos=N]	INVALID	እህትንን	እህትንን	እህትንን	false	false	0	duplicated accusative suffix
+n18-065	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	INVALID	እናትንው	እናትንው	እናትንው	false	false	0	invalid suffix order ACC then DEF
+n18-066	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	INVALID	እናትዎችው	እናትዎችው	እናትዎችው	false	false	0	invalid plural boundary then determiner
+n18-067	hornmorpho	0	እ/ናት	እናት	'' [g=f,pos=N]	INVALID	እናትንን	እናትንን	እናትንን	false	false	0	duplicated accusative suffix
+n19-068	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	INVALID	ጨረቃንው	ጨረቃንው	ጨረቃንው	false	false	0	invalid suffix order ACC then DEF
+n19-069	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	INVALID	ጨረቃዎችው	ጨረቃዎችው	ጨረቃዎችው	false	false	0	invalid plural boundary then determiner
+n19-070	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	INVALID	ጨረቃየ	ጨረቃየ	ጨረቃየ	false	false	0	invalid trailing genitive marker
+n19-071	hornmorpho	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	INVALID	ጨረቃንን	ጨረቃንን	ጨረቃንን	false	false	0	duplicated accusative suffix
+n20-072	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	INVALID	ጸሀይንው	ጸሀይንው	ጸሀይንው	false	false	0	invalid suffix order ACC then DEF
+n20-073	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	INVALID	ጸሀይዎችው	ጸሀይዎችው	ጸሀይዎችው	false	false	0	invalid plural boundary then determiner
+n20-074	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	INVALID	ጸሀይየ	ጸሀይየ	ጸሀይየ	false	false	0	invalid trailing genitive marker
+n20-075	hornmorpho	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	INVALID	ጸሀይንን	ጸሀይንን	ጸሀይንን	false	false	0	duplicated accusative suffix
+n21-076	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	INVALID	ራስንው	ራስንው	ራስንው	false	false	0	invalid suffix order ACC then DEF
+n21-077	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	INVALID	ራስዎችው	ራስዎችው	ራስዎችው	false	false	0	invalid plural boundary then determiner
+n21-078	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	INVALID	ራስየ	ራስየ	ራስየ	false	false	0	invalid trailing genitive marker
+n21-079	hornmorpho	0	ራስ	ራስ	'' [pos=N,-h]	INVALID	ራስንን	ራስንን	ራስንን	false	false	0	duplicated accusative suffix
+n22-080	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	INVALID	ውነትንው	ውነትንው	ውነትንው	false	false	0	invalid suffix order ACC then DEF
+n22-081	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	INVALID	ውነትዎችው	ውነትዎችው	ውነትዎችው	false	false	0	invalid plural boundary then determiner
+n22-082	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	INVALID	ውነትየ	ውነትየ	ውነትየ	false	false	0	invalid trailing genitive marker
+n22-083	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	INVALID	የየውነት	የየውነት	የየውነት	false	false	0	duplicated genitive prefix
+n22-084	hornmorpho	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	INVALID	ውነትንን	ውነትንን	ውነትንን	false	false	0	duplicated accusative suffix
+n23-085	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	INVALID	ገዛንው	ገዛንው	ገዛንው	false	false	0	invalid suffix order ACC then DEF
+n23-086	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	INVALID	ገዛዎችው	ገዛዎችው	ገዛዎችው	false	false	0	invalid plural boundary then determiner
+n23-087	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	INVALID	ገዛየ	ገዛየ	ገዛየ	false	false	0	invalid trailing genitive marker
+n23-088	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	INVALID	የየገዛ	የየገዛ	የየገዛ	false	false	0	duplicated genitive prefix
+n23-089	hornmorpho	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	INVALID	ገዛንን	ገዛንን	ገዛንን	false	false	0	duplicated accusative suffix
+n24-090	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	INVALID	ጥርንው	ጥርንው	ጥርንው	false	false	0	invalid suffix order ACC then DEF
+n24-091	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	INVALID	ጥርዎችው	ጥርዎችው	ጥርዎችው	false	false	0	invalid plural boundary then determiner
+n24-092	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	INVALID	ጥርየ	ጥርየ	ጥርየ	false	false	0	invalid trailing genitive marker
+n24-093	hornmorpho	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	INVALID	ጥርንን	ጥርንን	ጥርንን	false	false	0	duplicated accusative suffix
+n25-094	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	INVALID	ወይዘሪትንው	ወይዘሪትንው	ወይዘሪትንው	false	false	0	invalid suffix order ACC then DEF
+n25-095	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	INVALID	ወይዘሪትዎችው	ወይዘሪትዎችው	ወይዘሪትዎችው	false	false	0	invalid plural boundary then determiner
+n25-096	hornmorpho	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	INVALID	ወይዘሪትንን	ወይዘሪትንን	ወይዘሪትንን	false	false	0	duplicated accusative suffix
+n26-097	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	INVALID	ራቁትንው	ራቁትንው	ራቁትንው	false	false	0	invalid suffix order ACC then DEF
+n26-098	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	INVALID	ራቁትዎችው	ራቁትዎችው	ራቁትዎችው	false	false	0	invalid plural boundary then determiner
+n26-099	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	INVALID	ራቁትየ	ራቁትየ	ራቁትየ	false	false	0	invalid trailing genitive marker
+n26-100	hornmorpho	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	INVALID	ራቁትንን	ራቁትንን	ራቁትንን	false	false	0	duplicated accusative suffix
+n27-101	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	INVALID	እራስንው	እራስንው	እራስንው	false	false	0	invalid suffix order ACC then DEF
+n27-102	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	INVALID	እራስዎችው	እራስዎችው	እራስዎችው	false	false	0	invalid plural boundary then determiner
+n27-103	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	INVALID	እራስየ	እራስየ	እራስየ	false	false	0	invalid trailing genitive marker
+n27-104	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	INVALID	የየእራስ	የየእራስ	የየእራስ	false	false	0	duplicated genitive prefix
+n27-105	hornmorpho	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	INVALID	እራስንን	እራስንን	እራስንን	false	false	0	duplicated accusative suffix
+n28-106	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	INVALID	ምሳሌንው	ምሳሌንው	ምሳሌንው	false	false	0	invalid suffix order ACC then DEF
+n28-107	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	INVALID	ምሳሌዎችው	ምሳሌዎችው	ምሳሌዎችው	false	false	0	invalid plural boundary then determiner
+n28-108	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	INVALID	ምሳሌየ	ምሳሌየ	ምሳሌየ	false	false	0	invalid trailing genitive marker
+n28-109	hornmorpho	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	INVALID	ምሳሌንን	ምሳሌንን	ምሳሌንን	false	false	0	duplicated accusative suffix
+n29-110	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	INVALID	መምህርንው	መምህርንው	መምህርንው	false	false	0	invalid suffix order ACC then DEF
+n29-111	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	INVALID	መምህርዎችው	መምህርዎችው	መምህርዎችው	false	false	0	invalid plural boundary then determiner
+n29-112	hornmorpho	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	INVALID	መምህርንን	መምህርንን	መምህርንን	false	false	0	duplicated accusative suffix
+n30-113	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	INVALID	ክቡርንው	ክቡርንው	ክቡርንው	false	false	0	invalid suffix order ACC then DEF
+n30-114	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	INVALID	ክቡርዎችው	ክቡርዎችው	ክቡርዎችው	false	false	0	invalid plural boundary then determiner
+n30-115	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	INVALID	ክቡርየ	ክቡርየ	ክቡርየ	false	false	0	invalid trailing genitive marker
+n30-116	hornmorpho	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	INVALID	ክቡርንን	ክቡርንን	ክቡርንን	false	false	0	duplicated accusative suffix
+n31-117	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	INVALID	ደራሲንው	ደራሲንው	ደራሲንው	false	false	0	invalid suffix order ACC then DEF
+n31-118	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	INVALID	ደራሲዎችው	ደራሲዎችው	ደራሲዎችው	false	false	0	invalid plural boundary then determiner
+n31-119	hornmorpho	1	ደራሲ	ደራሲ	'' [pos=N]	INVALID	ደራሲንን	ደራሲንን	ደራሲንን	false	false	0	duplicated accusative suffix
+normalization-homoglyph	normalization_probe	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	SG	ሃገር	ሀገር	ሀገር	true	true	1	Homoglyph lookup is normalized while the HornMorpho display lemma is retained
+normalization-gemination-mark	normalization_probe	0	ቤ፟ት	ቤት	'' [pos=N,-h]	SG	ቤት	ቤት	ቤት	true	true	1	HornMorpho gemination marks are retained in provenance and removed from the display lemma

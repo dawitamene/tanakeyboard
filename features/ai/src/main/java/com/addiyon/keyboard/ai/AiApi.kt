@@ -112,8 +112,13 @@ data class GoogleTokenRequest(
 data class QuotaResponse(
     val count: Int? = null,
     val used: Int? = null,
+    val inputTokens: Int? = null,
+    val outputTokens: Int? = null,
+    val totalTokens: Int? = null,
+    val reservedTokens: Int? = null,
     val limit: Int,
-    val remaining: Int? = null
+    val remaining: Int? = null,
+    val unit: String? = null
 )
 
 interface AiApi {

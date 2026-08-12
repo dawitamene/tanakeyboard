@@ -186,7 +186,8 @@ class AiRepository(private val api: AiApi) {
         val auth = jwt?.takeIf { it.isNotBlank() }?.let { "Bearer $it" }
         return try {
             val res = api.quotaStatus(auth, anonId)
-            val used = res.used ?: res.count ?: 0
+            val used = res.totalTokens ?: res.used ?: res.count ?:
+                ((res.inputTokens ?: 0) + (res.outputTokens ?: 0))
             val remaining = res.remaining ?: (res.limit - used).coerceAtLeast(0)
             Result.success(AiQuota(used, res.limit, remaining, todayIso()))
         } catch (e: HttpException) {

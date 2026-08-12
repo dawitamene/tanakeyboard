@@ -35,6 +35,7 @@ SYLLABLE = r"ሀ-ፚᎀ-ᎏⶀ-ⷞꬁ-ꬮ"
 WORD_RE = re.compile(rf"^[{SYLLABLE}]+$")
 GEMINATION_RE = re.compile(r"[፝-፟]")
 VERB_ROOT_RE = re.compile(r"^<([^>]+)>\s*(.*)$")
+FEATURE_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 FOLD = {}
 
@@ -64,10 +65,104 @@ def clean_surface(raw):
     return value if WORD_RE.fullmatch(value) else None
 
 
+def split_top_level(value):
+    tokens = []
+    start = 0
+    depth = 0
+    quote = None
+    escaped = False
+    for index, character in enumerate(value):
+        if escaped:
+            escaped = False
+            continue
+        if character == "\\" and quote is not None:
+            escaped = True
+            continue
+        if character in {"'", '"'}:
+            if quote is None:
+                quote = character
+            elif quote == character:
+                quote = None
+            continue
+        if quote is not None:
+            continue
+        if character == "[":
+            depth += 1
+        elif character == "]":
+            depth -= 1
+            if depth < 0:
+                raise ValueError("unbalanced nested feature bracket")
+        elif character == "," and depth == 0:
+            tokens.append(value[start:index].strip())
+            start = index + 1
+    if quote is not None or depth != 0:
+        raise ValueError("unterminated nested feature value")
+    tokens.append(value[start:].strip())
+    return tokens
+
+
+def validate_feature_syntax(features, source):
+    remainder = features
+    found = False
+    while "[" in remainder:
+        start = remainder.find("[")
+        found = True
+        depth = 0
+        quote = None
+        escaped = False
+        end = None
+        for index in range(start, len(remainder)):
+            character = remainder[index]
+            if escaped:
+                escaped = False
+                continue
+            if character == "\\" and quote is not None:
+                escaped = True
+                continue
+            if character in {"'", '"'}:
+                if quote is None:
+                    quote = character
+                elif quote == character:
+                    quote = None
+                continue
+            if quote is not None:
+                continue
+            if character == "[":
+                depth += 1
+            elif character == "]":
+                depth -= 1
+                if depth == 0:
+                    end = index
+                    break
+                if depth < 0:
+                    break
+        if end is None:
+            raise ValueError(f"{source}: malformed feature block: {features}")
+        for token in split_top_level(remainder[start + 1:end]):
+            if not token:
+                continue
+            if token[0] in "+-" and FEATURE_NAME_RE.fullmatch(token[1:]):
+                continue
+            if "=" in token:
+                name, value = token.split("=", 1)
+                if FEATURE_NAME_RE.fullmatch(name.strip()) and value.strip():
+                    continue
+            raise ValueError(f"{source}: malformed feature token: {token}")
+        remainder = remainder[end + 1:].strip()
+        if remainder:
+            if not remainder.startswith(";"):
+                raise ValueError(f"{source}: malformed feature block: {features}")
+            remainder = remainder[1:].strip()
+            if not remainder.startswith("["):
+                raise ValueError(f"{source}: malformed feature block: {features}")
+    if not found or remainder:
+        raise ValueError(f"{source}: missing or malformed feature block: {features}")
+
+
 def surface_lexemes():
     for kind, path in SURFACE_SOURCES:
         with open(path, encoding="utf-8") as source:
-            for line in source:
+            for line_number, line in enumerate(source, start=1):
                 if not line.strip() or line.lstrip().startswith("#"):
                     continue
                 if line[0].isspace():
@@ -75,6 +170,8 @@ def surface_lexemes():
                 fields = line.strip().split(maxsplit=1)
                 raw = fields[0]
                 features = " ".join(fields[1].split()) if len(fields) == 2 else ""
+                if kind <= 1:
+                    validate_feature_syntax(features, f"{path}:{line_number}")
                 yield kind, raw, features, clean_surface(raw)
 
 

@@ -169,9 +169,13 @@ class AiKeyboardFeature internal constructor(
                 result.exceptionOrNull()?.let { strength to controller.parseError(it) }
             }.toMap()
             if (successes.isNotEmpty()) {
+                val refreshedQuota = withContext(Dispatchers.IO) {
+                    controller.loadQuota().getOrNull()
+                }
+                refreshedQuota?.let(store::saveQuota)
                 val selected = successes.keys.firstOrNull()
                 uiState = uiState.copy(
-                    quota = store.consumeRequest(),
+                    quota = refreshedQuota ?: uiState.quota,
                     variantResults = successes,
                     variantErrors = failures,
                     selectedVariant = selected,
@@ -181,8 +185,14 @@ class AiKeyboardFeature internal constructor(
                 )
             } else {
                 val firstError = failures.values.firstOrNull()
+                val refreshedQuota = if (firstError is AiError.QuotaExceeded) {
+                    withContext(Dispatchers.IO) { controller.loadQuota().getOrNull() }
+                } else {
+                    null
+                }
+                refreshedQuota?.let(store::saveQuota)
                 uiState = uiState.copy(
-                    quota = if (firstError is AiError.QuotaExceeded) store.quota() else uiState.quota,
+                    quota = refreshedQuota ?: uiState.quota,
                     variantResults = emptyMap(),
                     variantErrors = failures,
                     isLoading = false,

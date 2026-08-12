@@ -1,0 +1,86 @@
+$ prep
+  በ		[adp=በ,-gen]
+  ለ		[adp=ለ,-gen]
+  ከ		[adp=ከ,-gen]
+  የ		[adp=የ,+gen]
+  እ		[adp=እ,-gen]
+  እንደ	[adp=እንደ,-gen]
+  ስለ		[adp=ስለ,-gen]
+  ወደ		[adp=ወደ,-gen]
+  እስከ	[adp=እስከ,-gen]
+  --		[adp=0,-gen]
+
+$ prep_bound
+  -
+
+$ distrib
+  እ/የ	[+dis,-col]
+  እ/ነ	[-dis,+pl,+col]
+  --		[-dis,-col]
+
+$ distrib_bound
+  -
+
+$ stem
+  # dependent token comes before the stem boundary <
+  +n_stemM+		[-irr]
+  +n_placeM+	[-irr,-pl,p=0]
+  +n_light+		[-irr,-pl,pos=N,mwe=[+hdfin,-hdaff,deppos=compound]]
+
+$ poststem
+  >
+
+$ plural
+  ኦ/ች	[+pl,pos=N|ADJ,-col,-irr,ps=oc]
+  ኣን		[+pl,pos=N|ADJ,-col,-irr,ps=an]
+  --		[-pl];[+pl,+col];[+pl,+irr]
+
+$ plur_bound
+  -
+
+$ human
+  # +-hum: the presence or absence of this suffix
+  # +-h: whether the noun is human (add to lexicon later)
+  እ/የ			[+hum,+h,-pl,-col,-dis,pos=N]
+  እ/ዬ	<እየ>	[+hum,+h,-pl,-col,-dis,pos=N]
+  እ/ዮ	<እየ>	[+hum,+h,+fem,-pl,-col,-dis,pos=N]
+  --				[-hum]
+
+$ human_bound
+  -
+
+$ poss_det
+  ኤ		[p=s1,plemma=እኔ,spos=PRON,ptype=prs]
+  ኣ/ችን	[p=p1,plemma=እኛ,spos=PRON,ptype=prs]
+  ህ		[p=sm2,plemma=አንተ,spos=PRON,ptype=prs]
+  ሽ		[p=sf2,plemma=አንቺ,spos=PRON,ptype=prs]
+  ኣ/ችሁ	[p=p2,plemma=እናንተ,spos=PRON,ptype=prs]
+  ዎ		[p=F2,plemma=እርስዎ,spos=PRON,ptype=prs]
+  ዎን		[p=F2,plemma=እርስዎ,spos=PRON,ptype=prs]
+  # possessive or determiner
+  #{
+  ኡ		[p=sm3,plemma=እሱ,spos=PRON,ptype=prs];[p=0,+def,g=m,pos=N|ADJ|PRON,spos=DET]
+  ዋ		[p=sf3,plemma=እሷ,spos=PRON,ptype=prs];[p=0,+def,g=f,d=0,pos=N|ADJ|PRON,spos=DET]
+  ኢቱ		[+def,g=f,p=0,-pl,-col,-dis,d=0,pos=N,spos=DET]
+  #}
+  ኣ/ቸው	[p=p3,plemma=እነሱ,spos=PRON,ptype=prs]
+  --		[p=0,-def]
+
+$ poss_bound
+  -
+
+$ acc
+  ን		[+acc]
+  --		[-acc]
+
+$ acc_bound
+  -
+
+$ conj
+  /ም		[cconj=ም]
+  /ስ		[cconj=ስ]
+  /ማ		[cconj=ማ]
+  /ሳ		[cconj=ሳ]
+  /ና		[cconj=ና]
+  /ኮ		[cconj=ኮ]
+  --		[cconj=0]

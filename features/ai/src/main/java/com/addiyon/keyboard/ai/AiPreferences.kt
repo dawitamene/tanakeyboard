@@ -70,16 +70,6 @@ class AiPreferences(context: Context) : AiAccountStore {
         }
     }
 
-    override fun consumeRequest(): AiQuota {
-        val current = quota()
-        val updated = current.copy(
-            used = (current.used + 1).coerceAtMost(current.limit),
-            remaining = (current.remaining - 1).coerceAtLeast(0)
-        )
-        saveQuota(updated)
-        return updated
-    }
-
     override fun clearJwt() = setJwt(null)
 
     private fun string(key: String, maximumLength: Int): String? = runCatching {
@@ -95,8 +85,8 @@ class AiPreferences(context: Context) : AiAccountStore {
     }
 
     private companion object {
-        const val DEFAULT_DAILY_LIMIT = 50
-        const val MAX_QUOTA = 100_000
+        const val DEFAULT_DAILY_LIMIT = 50_000
+        const val MAX_QUOTA = 10_000_000
         const val MAX_JWT_LENGTH = 4_096
         const val MAX_EMAIL_LENGTH = 320
         const val MAX_ANONYMOUS_ID_LENGTH = 64
@@ -109,9 +99,9 @@ internal const val LEGACY_KEYBOARD_PREFERENCES_FILE = "addiyon_keyboard_prefs"
 internal const val KEY_JWT = "ai_jwt"
 internal const val KEY_EMAIL = "ai_email"
 internal const val KEY_ANONYMOUS_ID = "ai_anon_id"
-internal const val KEY_USED_TODAY = "ai_words_used_today"
+internal const val KEY_USED_TODAY = "ai_tokens_used_today"
 internal const val KEY_QUOTA_DAY = "ai_quota_day"
-internal const val KEY_DAILY_LIMIT = "ai_daily_limit"
+internal const val KEY_DAILY_LIMIT = "ai_daily_token_limit"
 internal const val KEY_LEGACY_MIGRATION_COMPLETE = "legacy_ai_preferences_migrated_v1"
 
 internal val AI_STRING_PREFERENCE_KEYS = setOf(

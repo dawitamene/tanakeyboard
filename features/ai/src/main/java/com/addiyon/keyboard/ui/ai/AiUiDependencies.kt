@@ -47,7 +47,7 @@ interface AiUiStrings {
     val aiToneSummarize: String
     val aiTruncated: String
     val aiUsageRemaining: String
-    val aiUsageRequestsRemainingFormat: String
+    val aiUsageTokensRemainingFormat: String
     val aiUsageResetDateFormat: String
     val aiUsageResetTodayFormat: String
     val aiUsageResetTomorrowFormat: String
@@ -72,6 +72,5 @@ interface AiAccountStore {
     fun anonymousId(): String
     fun quota(): AiQuota
     fun saveQuota(quota: AiQuota)
-    fun consumeRequest(): AiQuota
     fun clearJwt()
 }

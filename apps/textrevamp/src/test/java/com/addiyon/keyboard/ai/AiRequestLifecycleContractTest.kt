@@ -17,6 +17,8 @@ class AiRequestLifecycleContractTest {
         assertTrue(selection.contains("val input = controller.captureInput()"))
         assertTrue(selection.contains("isLoading = true"))
         assertTrue(selection.contains("controller.revampVariants(input, tab)"))
+        assertTrue(selection.contains("controller.loadQuota().getOrNull()"))
+        assertFalse(selection.contains("consumeRequest"))
         assertFalse(selection.contains("if (uiState.isQuotaLoading) return"))
         assertFalse(selection.contains("val input = uiState.input"))
     }

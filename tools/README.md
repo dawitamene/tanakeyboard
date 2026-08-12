@@ -40,6 +40,13 @@ python3 /Users/dev/code/addiyon-keyboard/tools/build_amharic_dict.py
 - Full source and licensing details are in
   `language/amharic/hornmorpho/UPSTREAM.md`.
 
+## `hornmorpho/`
+
+Contains the isolated HornMorpho 5.3.6 nominal oracle, pinned environment,
+golden-corpus generator, and runtime comparison tool. This path is for
+developer/build-time verification and is never packaged in the Android
+runtime. See `tools/hornmorpho/README.md` for reproducible commands.
+
 ## `build_ngrams.py`
 
 Rebuilds `language/amharic/src/dictionary/amharic_ngrams.dat` from a clean

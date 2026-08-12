@@ -16,9 +16,9 @@ class AiPreferencesMigrationTest {
                 KEY_JWT to "jwt",
                 KEY_EMAIL to "person@example.com",
                 KEY_ANONYMOUS_ID to "anonymous",
-                KEY_USED_TODAY to 7,
+                KEY_USED_TODAY to 7_000,
                 KEY_QUOTA_DAY to "2026-08-10",
-                KEY_DAILY_LIMIT to 50,
+                KEY_DAILY_LIMIT to 50_000,
                 "palette" to "MIDNIGHT",
                 "vibrate_on_keypress" to true
             )
@@ -29,9 +29,9 @@ class AiPreferencesMigrationTest {
         assertEquals("jwt", destination.value(KEY_JWT))
         assertEquals("person@example.com", destination.value(KEY_EMAIL))
         assertEquals("anonymous", destination.value(KEY_ANONYMOUS_ID))
-        assertEquals(7, destination.value(KEY_USED_TODAY))
+        assertEquals(7_000, destination.value(KEY_USED_TODAY))
         assertEquals("2026-08-10", destination.value(KEY_QUOTA_DAY))
-        assertEquals(50, destination.value(KEY_DAILY_LIMIT))
+        assertEquals(50_000, destination.value(KEY_DAILY_LIMIT))
         assertEquals(true, destination.value(KEY_LEGACY_MIGRATION_COMPLETE))
         assertNull(destination.value("palette"))
         assertNull(destination.value("vibrate_on_keypress"))

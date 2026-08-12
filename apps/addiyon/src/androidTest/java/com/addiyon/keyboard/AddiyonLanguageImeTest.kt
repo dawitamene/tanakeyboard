@@ -93,6 +93,36 @@ class AddiyonLanguageImeTest {
         }
     }
 
+    @Test
+    fun showsOracleHardenedNominalSuggestions() {
+        ActivityScenario.launch(AddiyonImeHostActivity::class.java).use { scenario ->
+            waitUntil { PackKeyboardService.currentInstance != null }
+            moveToLanguage("am-ET")
+            val positiveCases = mapOf(
+                "sew" to "ሰው",
+                "sewn" to "ሰውን",
+                "yesewn" to "የሰውን",
+                "betoch" to "ቤቶች",
+                "bietu" to "ቤቱ",
+            )
+            positiveCases.forEach { (raw, expected) ->
+                scenario.clearAndFocus()
+                typeWord(raw)
+                waitUntil { expected in requireService().suggestions }
+            }
+
+            scenario.clearAndFocus()
+            typeWord("le")
+            waitUntil { requireService().suggestionUiState is SuggestionUiState.WordCompletions }
+            assertTrue("ሌ" !in requireService().suggestions)
+
+            scenario.clearAndFocus()
+            typeWord("rE")
+            waitUntil { requireService().suggestionUiState is SuggestionUiState.WordCompletions }
+            assertTrue("ርዕ" !in requireService().suggestions)
+        }
+    }
+
     private fun moveToLanguage(target: String) {
         repeat(4) {
             if (currentLanguageId() == target) return

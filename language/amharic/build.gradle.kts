@@ -33,3 +33,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.sqlite.jdbc)
 }
+
+tasks.configureEach {
+    if (name == "testDebugUnitTest") {
+        dependsOn("generateAmharicDictionaryDb")
+    }
+}

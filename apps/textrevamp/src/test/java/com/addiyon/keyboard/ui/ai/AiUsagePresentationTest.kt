@@ -12,8 +12,8 @@ import org.junit.Test
 class AiUsagePresentationTest {
     @Test
     fun remainingPercentageUsesRemainingQuota() {
-        assertEquals(86, aiRemainingPercentage(AiQuota(7, 50, 43, "2026-08-09")))
-        assertEquals(33, aiRemainingPercentage(AiQuota(2, 3, 1, "2026-08-09")))
+        assertEquals(86, aiRemainingPercentage(AiQuota(7_000, 50_000, 43_000, "2026-08-09")))
+        assertEquals(33, aiRemainingPercentage(AiQuota(20_000, 30_000, 10_000, "2026-08-09")))
         assertEquals(0, aiRemainingPercentage(AiQuota(0, 0, 0, "2026-08-09")))
     }
 

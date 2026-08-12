@@ -178,7 +178,7 @@ fun AiDashboardContent(
                 Text(
                     String.format(
                         locale,
-                        strings.aiUsageRequestsRemainingFormat,
+                        strings.aiUsageTokensRemainingFormat,
                         remaining,
                         limit
                     ),

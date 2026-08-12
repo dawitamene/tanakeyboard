@@ -60,10 +60,10 @@ class AmharicSuggestionEngine(
         val latin = query.raw
         if (latin.isEmpty()) return emptyList()
         if (dictionary.isReady) suggestionCache[latin]?.let { return it }
-        val candidateReadings = Transliterator.candidateReadings(latin)
-        val readings = candidateReadings.map { it.text }
+        val pipeline = AmharicSuggestionPipeline.prepare(latin)
+        val readings = pipeline.readings
         val readingFrequencies = dictionary.frequenciesOf(readings)
-        val quirkReadings = candidateReadings.filter { it.isQuirk }.map { it.text }.toSet()
+        val quirkReadings = pipeline.quirkReadings
         val personal = buildList {
             readings.distinct().forEach { reading ->
                 query.personalCompletions.completions(reading, SUGGESTION_LIMIT).forEach { word ->
@@ -75,8 +75,8 @@ class AmharicSuggestionEngine(
             readings,
             readingFrequencies::get,
             quirkReadings,
-            Transliterator.hasExplicitFamilySelection(latin)
-        ) ?: Transliterator.transliterate(latin)
+            pipeline.preferGreedy
+        ) ?: readings.first()
         val directCompletions = dictionary.suggestionEntriesForPrefixes(
             readings.distinct(),
             SUGGESTION_LIMIT
@@ -106,16 +106,12 @@ class AmharicSuggestionEngine(
                 direct + generated
             }
         }
-        val ranked = CandidateRanker.rankAmharic(
-            readings = readings,
+        val ranked = AmharicSuggestionPipeline.rank(
+            context = pipeline,
             limit = SUGGESTION_LIMIT,
             frequencyOf = readingFrequencies::get,
             completionsForPrefix = completionsForPrefix,
-            visibleReadings = readings,
-            quirkReadings = quirkReadings,
             ngramNext = query.contextWeights,
-            preferGreedy = Transliterator.hasExplicitFamilySelection(latin),
-            normalize = EthiopicNormalizer::normalize
         )
         val rankedWithPersonal = (ranked + personal).distinct().take(SUGGESTION_LIMIT)
         if (
@@ -144,17 +140,13 @@ class AmharicSuggestionEngine(
                 fuzzy += CandidateRanker.FuzzyWord(match.word, match.frequency, match.editDistance)
             }
         }
-        val rankedFuzzy = CandidateRanker.rankAmharic(
-            readings = readings,
+        val rankedFuzzy = AmharicSuggestionPipeline.rank(
+            context = pipeline,
             limit = SUGGESTION_LIMIT,
             frequencyOf = readingFrequencies::get,
             completionsForPrefix = completionsForPrefix,
-            visibleReadings = readings,
             fuzzyWords = fuzzy,
-            quirkReadings = quirkReadings,
             ngramNext = query.contextWeights,
-            preferGreedy = Transliterator.hasExplicitFamilySelection(latin),
-            normalize = EthiopicNormalizer::normalize
         )
         return cache(
             latin,

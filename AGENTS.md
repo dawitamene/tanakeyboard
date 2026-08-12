@@ -37,7 +37,7 @@ design-system document and contract test in the same change.
 - Each product's `MainActivity` is a thin launcher for the shared app shell.
 
 ### Transliteration pipeline (pure Kotlin, JVM-testable)
-`transliteration/AmharicTable.kt` → `transliteration/Transliterator.kt` → suggestions consumed via `candidateRanker` + `AmharicPrefixCompletion`.
+`transliteration/AmharicTable.kt` → `transliteration/Transliterator.kt` → exact lexeme lookup + `AmharicNounMorphology` → `CandidateRanker`.
 
 - **`AmharicTable`**: sole source of transliteration data. `Family` per consonant (7 syllabic forms + optional labialized "ua"). `bareVowels` is a *separate* index table from `vowels` — do not conflate them. "a" alone → አ (glottal order 1), "a" after consonant → order 4.
 - **`Transliterator`**: stateless, whole-buffer retransliteration on every keystroke (not incremental). Matching: longest consonant (case-sensitive first) → longest vowel → longest bare vowel → passthrough. Case-sensitive-first matters only for h/H, t/T, ch/C (the three families with distinct uppercase consonants); other letters fall through to case-insensitive.

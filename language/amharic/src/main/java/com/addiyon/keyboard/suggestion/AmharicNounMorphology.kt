@@ -58,9 +58,10 @@ object AmharicNounMorphology {
         val candidates = ArrayList<Pair<GeneratedForm, Lexeme>>()
 
         for (lexeme in lexemes) {
-            if (!isProductiveNoun(lexeme)) continue
-            if (!allowsPrefix(lexeme.features, query.prefix)) continue
-            for (form in inflectedForms(lexeme, query.prefix)) {
+            val features = NominalFeatureParser.parse(lexeme.features, lexeme.kind)
+            if (!isProductiveNoun(lexeme, features)) continue
+            if (!allowsPrefix(features, query.prefix)) continue
+            for (form in inflectedForms(lexeme, query.prefix, features)) {
                 if (EthiopicNormalizer.normalize(form.word).startsWith(normalizedTyped)) {
                     candidates += form to lexeme
                 }
@@ -89,37 +90,37 @@ object AmharicNounMorphology {
         val query = query(surface)
         val normalized = EthiopicNormalizer.normalize(surface)
         return lexemes.filter { lexeme ->
-            isProductiveNoun(lexeme) &&
-                allowsPrefix(lexeme.features, query.prefix) &&
-                inflectedForms(lexeme, query.prefix).any {
+            val features = NominalFeatureParser.parse(lexeme.features, lexeme.kind)
+            isProductiveNoun(lexeme, features) &&
+                allowsPrefix(features, query.prefix) &&
+                inflectedForms(lexeme, query.prefix, features).any {
                     EthiopicNormalizer.normalize(it.word) == normalized
                 }
         }
     }
 
-    private fun isProductiveNoun(lexeme: Lexeme): Boolean {
+    private fun isProductiveNoun(lexeme: Lexeme, features: NominalFeatures): Boolean {
+        if (features.malformed) return false
         if (lexeme.kind in 2..3) return true
         if (lexeme.kind !in 0..1) return false
-        val positions = Regex("(?:^|[,\\[])pos=([^,\\]\\s]+)")
-            .find(lexeme.features)
-            ?.groupValues
-            ?.get(1)
-            ?.split('|')
-            .orEmpty()
-        if (positions.none { it == "N" || it == "ADJ" }) return false
-        if (hasFeature(lexeme.features, "+def") || hasFeature(lexeme.features, "+acc")) return false
-        val person = Regex("(?:^|[,\\[\\s])p=([^,\\]\\s]+)")
-            .find(lexeme.features)
-            ?.groupValues
-            ?.get(1)
-        return person == null || person == "0"
+        if (features.partsOfSpeech.none { it == PartOfSpeech.NOUN || it == PartOfSpeech.ADJECTIVE }) {
+            return false
+        }
+        if (features.definite == FeatureState.POSITIVE || features.accusative == FeatureState.POSITIVE) {
+            return false
+        }
+        return features.person !is PersonFeature.Values
     }
 
-    private fun inflectedForms(lexeme: Lexeme, prefix: String): List<GeneratedForm> {
+    private fun inflectedForms(
+        lexeme: Lexeme,
+        prefix: String,
+        features: NominalFeatures,
+    ): List<GeneratedForm> {
         val singular = lexeme.surface
         val numbers = buildList {
             add(singular)
-            pluralOf(lexeme)?.let(::add)
+            pluralOf(lexeme, features)?.let(::add)
         }
         val forms = LinkedHashMap<String, Int>()
         for ((numberIndex, number) in numbers.withIndex()) {
@@ -132,22 +133,22 @@ object AmharicNounMorphology {
             }
 
             add(number, numberCost)
-            if (lexeme.kind !in 2..3 && !hasFeature(lexeme.features, "-def")) {
-                definiteOf(number, feminine = hasFeature(lexeme.features, "g=f"), plural = plural)
+            if (lexeme.kind !in 2..3 && features.definite != FeatureState.NEGATIVE) {
+                definiteOf(number, feminine = features.gender == Gender.FEMININE, plural = plural)
                     ?.let { add(it, numberCost + 1) }
             }
-            if (!hasFeature(lexeme.features, "p=0") && lexeme.kind !in 2..3) {
+            if (features.person != PersonFeature.None && lexeme.kind !in 2..3) {
                 possessiveForms(number, plural).forEach { add(it, numberCost + 2) }
             }
         }
         return forms.map { GeneratedForm(it.key, it.value) }
     }
 
-    private fun pluralOf(lexeme: Lexeme): String? {
-        if (lexeme.kind in 2..3 || hasFeature(lexeme.features, "-pl")) return null
+    private fun pluralOf(lexeme: Lexeme, features: NominalFeatures): String? {
+        if (lexeme.kind in 2..3 || features.plural == FeatureState.NEGATIVE) return null
         val stem = lexeme.surface
         if (stem.isEmpty()) return null
-        if (lexeme.kind == 1) {
+        if (features.stemClass == StemClass.ALTERNATE_AN) {
             if (stem.endsWith("ዊ")) return stem.dropLast(1) + "ውያን"
             return if (AmharicTable.orderIndexOfFidel(stem.last()) == AmharicTable.BARE_FORM_INDEX) {
                 replaceLastWithOrder(stem, 3)?.plus("ን")
@@ -280,14 +281,13 @@ object AmharicNounMorphology {
         return surface.dropLast(1) + bare
     }
 
-    private fun allowsPrefix(features: String, prefix: String): Boolean {
+    private fun allowsPrefix(features: NominalFeatures, prefix: String): Boolean {
         if (prefix.isEmpty()) return true
-        if (hasFeature(features, "adp=0")) return false
-        if (prefix.endsWith("የ") && hasFeature(features, "-gen")) return false
-        if (prefix in distributivePrefixes && hasFeature(features, "-dis")) return false
+        if (!features.allowsAdposition) return false
+        val adposition = if (prefix in distributivePrefixes) prefix.dropLast(1) else prefix
+        if (features.allowedAdpositions != null && adposition !in features.allowedAdpositions) return false
+        if (prefix.endsWith("የ") && !features.allowsGenitive) return false
+        if (prefix in distributivePrefixes && !features.allowsDistributive) return false
         return true
     }
-
-    private fun hasFeature(features: String, feature: String): Boolean =
-        Regex("(?:^|[,\\[\\s])${Regex.escape(feature)}(?=[,\\]\\s]|$)").containsMatchIn(features)
 }

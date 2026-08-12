@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.SentimentSatisfied
 import androidx.compose.material.icons.outlined.Spellcheck
 import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -63,6 +64,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import com.addiyon.keyboard.ai.AiError
 import com.addiyon.keyboard.ai.AiStrength
 import com.addiyon.keyboard.ai.AiToneTab
@@ -194,8 +196,10 @@ private fun AiPanelEmptyState(
     ) {
         IconBubble(
             icon = Icons.Filled.TextFields,
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            containerColor = MaterialTheme.addiyonColors.brandPrimary,
+            contentColor = MaterialTheme.addiyonColors.onBrandPrimary,
+            containerSize = AddiyonSizes.minimumTouchTarget,
+            iconSize = AddiyonSizes.iconLarge
         )
         Text(
             text = strings.aiEmptyTitle,
@@ -218,7 +222,14 @@ private fun AiPanelEmptyState(
                 .padding(top = AddiyonSpacing.md)
                 .height(AddiyonSizes.keyboardAction)
                 .testTag(AI_PANEL_EMPTY_ACTION_TAG),
-            shape = RoundedCornerShape(AddiyonRadii.medium)
+            shape = RoundedCornerShape(AddiyonRadii.pill),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.addiyonColors.brandPrimary
+            ),
+            border = BorderStroke(
+                width = ButtonDefaults.outlinedButtonBorder().width,
+                color = MaterialTheme.addiyonColors.brandPrimary
+            )
         ) {
             Text(text = strings.aiEmptyAction)
         }
@@ -266,8 +277,9 @@ private fun AiPanelToolbar(
             onClick = onDismiss,
             contentDescription = strings.back,
             testTag = AI_PANEL_BACK_ACTION_TAG,
-            buttonSize = AddiyonSizes.minimumTouchTarget,
-            iconSize = AddiyonSizes.iconSmall,
+            buttonSize = AddiyonSizes.keyboardAction,
+            containerSize = AddiyonSizes.keyboardAction,
+            iconSize = AddiyonSizes.iconLarge,
             containerColor = MaterialTheme.addiyonColors.resultSurface,
             iconTint = MaterialTheme.addiyonColors.onResultSurface
         )
@@ -493,11 +505,13 @@ private fun AiPanelNotice(
 private fun IconBubble(
     icon: ImageVector,
     containerColor: Color,
-    contentColor: Color
+    contentColor: Color,
+    containerSize: Dp = AddiyonSizes.iconLarge,
+    iconSize: Dp = AddiyonSizes.iconSmall
 ) {
     Box(
         modifier = Modifier
-            .size(AddiyonSizes.iconLarge)
+            .size(containerSize)
             .background(containerColor, CircleShape),
         contentAlignment = Alignment.Center
     ) {
@@ -505,7 +519,7 @@ private fun IconBubble(
             imageVector = icon,
             contentDescription = null,
             tint = contentColor,
-            modifier = Modifier.size(AddiyonSizes.iconSmall)
+            modifier = Modifier.size(iconSize)
         )
     }
 }
