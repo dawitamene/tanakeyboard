@@ -14,8 +14,6 @@ package com.addiyon.keyboard.suggestion
  * text for the current composing region -- here that region is the full email
  * token, so a chip tap ends up rewriting the whole token plus a trailing space.
  */
-data class EmailChip(val display: String, val commit: String)
-
 /**
  * Computes the three email-domain chips to show above the keys while the
  * user is typing in an email field. Pure: takes the currently-composing

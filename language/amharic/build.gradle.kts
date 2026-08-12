@@ -11,11 +11,14 @@ android {
 }
 
 configure<LanguageDictionariesExtension> {
-    manifestFile.set(layout.projectDirectory.file("src/main/assets/amharic_dictionary_manifest.properties"))
+    manifestFile.set(
+        layout.buildDirectory.file("intermediates/dictionaryAssets/amharic_dictionary_manifest.properties")
+    )
     dictionaries.register("amharic") {
-        wordsDat.set(layout.projectDirectory.file("src/main/assets/amharic_words.dat"))
-        ngramsDat.set(layout.projectDirectory.file("src/main/assets/amharic_ngrams.dat"))
-        outputDb.set(layout.projectDirectory.file("src/main/assets/amharic.db"))
+        wordsDat.set(layout.projectDirectory.file("src/dictionary/amharic_words.dat"))
+        lexemesDat.set(layout.projectDirectory.file("src/dictionary/amharic_lexemes.dat"))
+        ngramsDat.set(layout.projectDirectory.file("src/dictionary/amharic_ngrams.dat"))
+        outputDb.set(layout.buildDirectory.file("intermediates/dictionaryAssets/amharic.db"))
         normalization.set(GenerateDictionaryDatabase.NORMALIZATION_ETHIOPIC)
         maxPrefixLength.set(1)
     }
@@ -23,6 +26,7 @@ configure<LanguageDictionariesExtension> {
 
 dependencies {
     api(project(":language:api"))
+    api(project(":language:android-api"))
     implementation(project(":keyboard:core"))
     implementation(project(":suggestions:core"))
     implementation(project(":suggestions:sqlite"))

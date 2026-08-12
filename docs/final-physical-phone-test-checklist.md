@@ -230,28 +230,6 @@ Run this checklist on the exact release build intended for production. Test only
 - [ ] **Go action** — In a URL/navigation field, Go performs the field action once.
 - [ ] **Multiline override** — In a multiline editor, Enter inserts a newline even when the host app has other actions.
 - [ ] **Read-only/no editor** — Tap a non-editable area; Addiyon does not appear or crash.
-- [ ] **Fresh diagnostics defaults** — Clear app data and open Addiyon; Analytics and
-  Crash diagnostics are independently shown and both start off.
-- [ ] **Diagnostics persistence** — Enable each option separately, recreate the activity
-  and process, and confirm only the selected choices persist on this device.
-- [ ] **Consent is not restored** — Restore/transfer app settings to another device;
-  diagnostics choices return to off while ordinary keyboard settings may restore.
-- [ ] **Analytics privacy** — With Analytics enabled and Firebase DebugView open, type,
-  Delete, press Space/Enter, move/select text, use email suggestions, dictate, and repeat
-  in a password field; no content-bearing or private-field custom event appears.
-- [ ] **Analytics revocation** — Turn Analytics off; future safe actions produce no
-  events and local Analytics state resets.
-- [ ] **Sanitized non-fatal** — With Crash diagnostics enabled, run the debug-only
-  non-fatal command; Firebase shows only the fixed category/coarse class and sanitized
-  Addiyon/framework frames, with no original message, cause, or suppressed exceptions.
-- [ ] **Crash revocation** — Queue a report, turn Crash diagnostics off, relaunch, and
-  confirm the queued report was deleted and no future report uploads.
-- [ ] **Minified fatal deobfuscation** — On an internal minified build, run the
-  debug/internal controlled fatal command, relaunch, and confirm the source file and line
-  are deobfuscated with no typed/editor data.
-- [ ] **Release telemetry surface** — Inspect the merged release manifest/AAB: production
-  Firebase resources are present; `AD_ID`, AdServices permissions, debug receivers, and
-  controlled crash commands are absent.
 
 ## 14. Cross-app compatibility
 
@@ -273,9 +251,6 @@ Run this checklist on the exact release build intended for production. Test only
   time-to-usable keyboard, with typing never blocked by preparation.
 - [ ] **Prediction latency** — On the recorded reference phone run both English and
   Amharic prediction benchmarks; each warm request-to-publication p95 is below 80 ms.
-- [ ] **Firebase startup delta** — On the same phone compare cold app/keyboard and
-  first-key p50/p95 before and after the production Firebase config is enabled; record
-  the delta and reject a material regression.
 - [ ] **Rapid key stress** — Tap alternating keys as fast as possible for 30 seconds; no freeze, ANR, or missing burst occurs.
 - [ ] **Language stress** — Switch language 20 times while typing; no crash, stale layout, or wrong-language suggestion remains.
 - [ ] **Mode stress** — Cycle letters, numbers, symbols, keypad, emoji, and back 20 times; layout remains correct.

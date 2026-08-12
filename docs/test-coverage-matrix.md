@@ -15,26 +15,20 @@ not release evidence until its `Last release` cell names the exact build that pa
 - Change `Pending 2.0.0` only after the exact release artifact passes the linked
   automation and any listed manual residual.
 
-## Measured core coverage gate
+## Module-owned verification
 
-- Run `./gradlew verifyCoreDebugUnitTestCoverage` to enforce the gate, or
-  `./gradlew jacocoCoreDebugUnitTestReport` to regenerate the XML and HTML reports.
-- The 30 July 2026 baseline covers 1,344 of 1,376 lines (97.67%) and 944 of 1,052
-  branches (89.73%).
-- The enforced minimum is 90% line and 85% branch coverage independently for every
-  included package, not only for the aggregate bundle. These values may only move
-  upward; changing the measured class or package scope requires an explicit review in
-  this file.
-- The scope includes all transliteration, composing, and model classes plus the
-  JVM-testable suggestion, telemetry-policy, and preference-sanitizer classes listed in
-  `app/build.gradle.kts`.
-- Android framework adapters, Compose UI, the IME service, generated classes, and
-  SQLite-backed runtime facades remain outside this JVM metric. Their behavior is
-  covered by the instrumented, real-IME, SQLite contract, benchmark, and manual rows
-  below rather than being hidden behind JVM exclusions.
-- XML:
-  `app/build/reports/jacoco/coreDebugUnitTest/coreDebugUnitTest.xml`. HTML:
-  `app/build/reports/jacoco/coreDebugUnitTest/html/index.html`.
+- Run `/Users/dev/code/addiyon-keyboard/gradlew checkKeyboardProducts` for the complete
+  product and owner-module verification gate.
+- The former TextRevamp-app JaCoCo gate was retired when the measured classes moved to
+  shared modules. It inspected only the app's class, source, and execution-data paths,
+  so a clean modular build produced an empty class set and a dirty build could measure
+  stale monolith outputs.
+- Do not recreate a numeric coverage gate in either product app. Any future coverage
+  threshold must be a true multi-module aggregate that consumes each owner module's
+  class directories, sources, and test execution data.
+- Behavioral assertions remain the release evidence. Android adapters, Compose UI,
+  the IME service, SQLite facades, and product composition are covered by the focused
+  JVM, instrumented, real-IME, packaging, benchmark, and manual rows below.
 
 ## Automated evidence catalog
 
@@ -48,12 +42,11 @@ not release evidence until its `Last release` cell names the exact build that pa
 | `J-Emoji` | JVM | `emoji/EmojiDataTest`, `EmojiSearchTest`, `EmojiBackspaceTest`, `RecentEmojiStoreTest`, `SkinToneStoreTest` |
 | `J-Voice` | JVM | `voice/VoiceComposerTest`, `VoiceRecoveryPolicyTest`, `VoiceSessionOwnershipTest`, `VoiceInputControllerTest` fake-recognizer/timer race coverage |
 | `J-Prefs` | JVM | `ui/settings/PreferenceValueSanitizerTest`, `review/ReviewPromptPolicyTest`, `ui/theme/KeyboardPaletteTest` |
-| `J-I18n` | JVM | `ui/i18n/AppStringsContractTest`, `ImeMetadataContractTest`, `SubtypeLanguagePolicyTest` |
+| `J-I18n` | JVM | `ui/i18n/AppStringsContractTest`, `ImeMetadataContractTest` |
 | `J-External` | JVM | `ExternalActionRunnerTest`, `ui/feedback/FeedbackDestinationsTest`, update/review policy tests, `ReviewPromptControllerTest`, `UpdateLifecycleControllerTest` |
-| `J-Privacy` | JVM | `InputTypePolicyTest` and telemetry API, schema, policy, consent, sanitization, manifest-contract, and forbidden content-path call-site tests |
+| `J-Privacy` | JVM | `InputTypePolicyTest` private/password field classification |
 | `I-Onboard` | Instrumented Compose | `ui/onboarding/OnboardingScreenUiTest` |
-| `I-Settings` | Instrumented Compose | `ui/settings/SettingsScreensUiTest`, including independent diagnostics controls, persistence-failure disclosure, Amharic diagnostics copy, and policy-link dispatch |
-| `I-Privacy` | Instrumented storage | `telemetry/TelemetryInstrumentationPolicyTest` actual SharedPreferences/controller reinitialization, durable all-off clearing, and malformed-value repair |
+| `I-Settings` | Instrumented Compose | `ui/settings/SettingsScreensUiTest`, including shared preference controls and policy-link dispatch |
 | `I-Leaf` | Instrumented Compose | `ui/LeafScreensUiTest` |
 | `I-Keyboard` | Instrumented Compose | `ui/KeyboardScreenUiTest`, `ui/keys/DeleteKeyUiTest` |
 | `I-Suggest` | Instrumented Compose | `ui/SuggestionAreaUiTest` |
@@ -63,7 +56,7 @@ not release evidence until its `Last release` cell names the exact build that pa
 | `I-External` | Intent instrumentation | `ExternalActionsInstrumentedTest` |
 | `B-Startup` | Macrobenchmark | `benchmark/StartupBenchmark` |
 | `B-IME` | Macrobenchmark/profile | `benchmark/ImeJourneyBenchmark`, `BaselineProfileGenerator.criticalJourneys` |
-| `B-Prediction` | Macrobenchmark | `benchmark/PredictionLatencyBenchmark.warmEnglishNextWordRequestToPublication`, `warmAmharicNextWordRequestToPublication` |
+| `B-Prediction` | Macrobenchmark | `benchmark/PredictionLatencyBenchmark.warmEnglishNextWordRequestToPublication` |
 
 ## Manual evidence profiles
 
@@ -317,7 +310,7 @@ adds its behavior-specific expected result.
 | Checklist behavior | Status | Automated evidence | Manual residual / expected result | Failure modes covered | Last release |
 |---|---:|---|---|---|---|
 | Password field | H | `J-Privacy`, `I-IME.realServiceTypesAcrossFieldKindsAndEditorActions` | `M-XAPP`: expected suggestions/email chips/previews/mic hidden or disabled. | Private UI/data exposure. | Pending 2.0.0 |
-| Password isolation | H | `J-Privacy` private telemetry/suggestion policy, `I-IME.staleSuggestionTapCannotMutateANewerStateOrPrivateField` | `M-XAPP`: unique secret then normal field; expected it never appears elsewhere. | Cache/telemetry leak; stale chip mutation after switching to a private field. | Pending 2.0.0 |
+| Password isolation | H | `J-Privacy` private suggestion policy, `I-IME.staleSuggestionTapCannotMutateANewerStateOrPrivateField` | `M-XAPP`: unique secret then normal field; expected it never appears elsewhere. | Suggestion-cache leak; stale chip mutation after switching to a private field. | Pending 2.0.0 |
 | Visible/web password | A | `J-Privacy.InputTypePolicyTest` covers both variations | None for classification; cross-host rendering remains under Browser row. | Missed private variation. | Pending 2.0.0 |
 | Email Latin output | H | `J-Enter` email classification, `I-IME` email host | `M-XAPP`: start in Amharic, type address; expected Latin only. | Transliteration in address. | Pending 2.0.0 |
 | Email capitalization | H | `J-Enter` email no-auto-cap | `M-XAPP`: expected lowercase start/address. | Auto-cap leak. | Pending 2.0.0 |
@@ -329,15 +322,6 @@ adds its behavior-specific expected result.
 | Go action | H | `J-Enter` exhaustive mapping | `M-XAPP`: URL/navigation field; expected Go once. | Wrong ID/newline. | Pending 2.0.0 |
 | Multiline override | H | `EnterActionPolicyTest.noEnterActionFlagOverridesEveryDeclaredAction`, `explicitActionWinsWhenHostAlsoSetsMultilineFlag`, and `multilineWithoutAnExplicitActionResolvesToNewline` (`J-Enter`) | `M-XAPP`: verify representative multiline hosts; expected `IME_FLAG_NO_ENTER_ACTION` to produce newline, otherwise an explicit editor action wins even when multiline is set, and multiline with no explicit action produces newline. | Incorrect precedence among `NO_ENTER_ACTION`, explicit actions, and multiline input flags. | Pending 2.0.0 |
 | Read-only/no editor | M | — | `M-XAPP`: tap non-editable area; expected IME absent and no crash. | Invalid/no connection handling. | Pending 2.0.0 |
-| Fresh diagnostics defaults | H | `J-Privacy.TelemetryConsentPolicyTest`, `I-Settings.diagnosticsChoicesStartOffAndPersistIndependently` | `M-LIFE`: clear release app data; expected independent Analytics/Crash controls, both off. | Accidental default collection, coupled controls. | Pending 2.0.0 |
-| Diagnostics persistence | H | `J-Privacy` independent consent policy and fail-closed save-failure coverage, `I-Privacy.realPreferencesPersistIndependentChoicesAcrossControllerReinitialization`, `clearingDedicatedConsentStoreIsDurablyAllOffAcrossReinitialization`, `malformedPersistedValuesAreRepairedToOff`, `I-Settings.diagnosticsPersistenceFailureStaysOnScreenAndShowsRetryMessage` | `M-LIFE`: enable each choice separately and force-stop/relaunch the exact release; expected only selected choices persist on this device. | Lost or coupled consent; failed revocation re-enabling after restart; unreported storage failure; malformed values enabling collection or remaining unrepaired. | Pending 2.0.0 |
-| Consent is not restored | H | `J-Privacy.FirebaseManifestContractTest` verifies backup/transfer exclusions | `M-LIFE`: restore or transfer to another release phone; expected diagnostics off while eligible ordinary settings may restore. | Consent silently inherited by another device. | Pending 2.0.0 |
-| Analytics privacy | H | `J-Privacy` enum-only API, reviewed schema, private-field suppression, and static negative audits for raw key/Space/Delete, transliteration, composition, cursor, email, and voice-transcript paths; `I-IME.telemetryEmitsOncePerNonRestartingNonPrivateSessionAndOnlyTypedActions` fake-backend service integration | `M-REL`: opt in and inspect Firebase DebugView during the complete stated input sequence; expected no content-bearing event and no private-field custom event. | Duplicate/restart/private session events; typed/editor/private data exposure. | Pending 2.0.0 |
-| Analytics revocation | H | `J-Privacy.TelemetryConsentPolicyTest` verifies collection disable and local reset calls | `M-REL`: revoke while watching DebugView; expected no future events and reset local Analytics state. | Post-revocation collection or stale identity. | Pending 2.0.0 |
-| Sanitized non-fatal | H | `J-Privacy.SanitizedNonFatalTest`, telemetry API/static tests | `M-REL`: with crash consent, run debug-only command and inspect Firebase; expected fixed category/coarse class, allowlisted frames, and no message/cause/suppressed data. | Original exception content or foreign frames uploaded. | Pending 2.0.0 |
-| Crash revocation | H | `J-Privacy.TelemetryConsentPolicyTest` verifies queued-report deletion call | `M-LIFE`: queue a report, revoke, relaunch; expected queued deletion and no later upload. | Post-revocation report transmission. | Pending 2.0.0 |
-| Minified fatal deobfuscation | M | Debug/internal-only fatal command and R8 source/line attributes exist; no console proof is automatable locally | `M-REL`: exact minified internal artifact on release phone; expected deobfuscated file/line and no typed/editor data after relaunch/upload. | Missing mapping upload, obfuscated stack, sensitive crash payload. | Pending 2.0.0 |
-| Release telemetry surface | H | `J-Privacy.FirebaseManifestContractTest`, `plans/verify-release-artifact.sh` static gates | `M-REL`: pin the production Firebase app/project IDs in `version.properties`, then inspect the config-enabled merged manifest and AAB; expected the exact pinned Firebase identity, no advertising permissions, debug components, or crash commands. | Wrong Firebase app/project, transitive permission, test surface in release. | Pending 2.0.0 |
 
 ## 14. Cross-app compatibility
 
@@ -356,11 +340,10 @@ adds its behavior-specific expected result.
 
 | Checklist behavior | Status | Automated evidence | Manual residual / expected result | Failure modes covered | Last release |
 |---|---:|---|---|---|---|
-| Cold app launch | H | `B-Startup.coldStartupWithProfile`, `coldStartupWithoutProfile` | `M-STRESS`: force-stop/open the exact release and record p50/p95. On the same phone compare a no-op-config build with the Firebase-configured build, including first-key latency; expected no material diagnostics startup regression or blank frame. | Startup/first-key regression, Firebase provider cost, blank frame. | Pending 2.0.0 |
+| Cold app launch | H | `B-Startup.coldStartupWithProfile`, `coldStartupWithoutProfile` | `M-STRESS`: force-stop/open the exact release and record p50/p95; expected no material startup regression or blank frame. | Startup/first-key regression, blank frame. | Pending 2.0.0 |
 | Cold keyboard launch | H | `B-IME`, `I-IME` recreation, `I-Store.badChecksumIsAtomicallyReinstalledAndInterruptedBackupIsRestored` | `M-STRESS`: clear app data, force-stop, then focus English and Amharic in separate fresh runs. Record `Addiyon.database_install_open` duration and time-to-usable keyboard for both databases; expected typing remains usable while preparation completes, with no blank/crash loop. | Service restart, unmeasured first database install/open, checksum, interrupted-swap recovery, or typing-path block. | Pending 2.0.0 |
 | Cold database preparation | H | `I-Store` install/checksum/restore/low-space correctness plus the `Addiyon.database_install_open` trace | `M-STRESS`: in separate fresh-data English and Amharic runs, record the install/open duration and time-to-usable keyboard; expected preparation stays off the typing path and reaches ready or a terminal fallback. | Unbounded copy/checksum/open, blocked typing, stuck loading, language-specific cold regression. | Pending 2.0.0 |
 | Prediction latency | H | `B-Prediction` English and Amharic trace metrics | `M-STRESS`: run both methods on the same recorded reference phone; each warm request-to-publication p95 must be below 80 ms. Emulator dry-runs validate wiring only. | English/Amharic latency regression, queue blocking, misleading emulator evidence. | Pending 2.0.0 |
-| Firebase startup delta | M | — | `M-STRESS`: compare no-op-config and production-Firebase-configured builds on the same phone; record cold app, cold keyboard, and first-key p50/p95 and reject a material regression. | Provider/startup cost hidden by a no-op local build. | Pending 2.0.0 |
 | Rapid key stress | M | — | `M-STRESS`: alternate keys for 30 seconds; expected no freeze/ANR/missing burst. | Queue overload/event loss. | Pending 2.0.0 |
 | Language stress | H | `J-Suggest` separated caches/generations | `M-STRESS`: switch 20 times while typing; expected correct layout/results only. | Stale language work. | Pending 2.0.0 |
 | Mode stress | H | `J-Layout`, `B-IME` | `M-STRESS`: cycle all modes 20 times; expected correct layout each cycle. | State-machine desync. | Pending 2.0.0 |

@@ -26,28 +26,9 @@ class PredictionLatencyBenchmark {
             setupBlock = {
                 selectTargetIme()
                 startEditor()
-                command("language_english")
             },
             measureBlock = {
                 runEnglishPredictionJourney()
-            }
-        )
-    }
-
-    @Test
-    fun warmAmharicNextWordRequestToPublication() {
-        rule.measureRepeated(
-            packageName = TARGET_PACKAGE,
-            metrics = predictionMetrics(),
-            compilationMode = CompilationMode.Partial(BaselineProfileMode.Require),
-            iterations = 10,
-            setupBlock = {
-                selectTargetIme()
-                startEditor()
-                command("language_amharic")
-            },
-            measureBlock = {
-                runAmharicPredictionJourney()
             }
         )
     }

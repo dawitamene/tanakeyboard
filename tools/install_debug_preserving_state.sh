@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SDK_DIR="$(sed -n 's/^sdk.dir=//p' "$PROJECT_DIR/local.properties" | tail -n 1)"
 ADB="$SDK_DIR/platform-tools/adb"
-APK="$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk"
+APK="$PROJECT_DIR/apps/addiyon/build/outputs/apk/debug/addiyon-debug.apk"
 IME_COMPONENT="com.addiyon.keyboard.debug/com.addiyon.keyboard.AddiyonKeyboardService"
 
 if [[ ! -x "$ADB" ]]; then
@@ -18,7 +18,7 @@ else
     ADB_COMMAND=("$ADB")
 fi
 
-"$PROJECT_DIR/gradlew" assembleDebug
+"$PROJECT_DIR/gradlew" :apps:addiyon:assembleDebug
 "${ADB_COMMAND[@]}" wait-for-device
 "${ADB_COMMAND[@]}" install -r -t "$APK"
 "${ADB_COMMAND[@]}" shell settings put secure show_ime_with_hard_keyboard 1

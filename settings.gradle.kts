@@ -23,14 +23,25 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Addiyon Keyboard"
-include(":app")
+rootProject.name = "Addiyon Keyboards"
 include(":benchmark")
 include(":keyboard:contracts")
 include(":keyboard:core")
+include(":keyboard:ui")
+include(":keyboard:runtime")
+include(":keyboard:preferences")
 include(":language:api")
+include(":language:android-api")
 include(":language:english")
 include(":language:amharic")
 include(":suggestions:api")
 include(":suggestions:core")
 include(":suggestions:sqlite")
+include(":features:api")
+include(":features:emoji")
+include(":features:voice")
+include(":features:ai")
+include(":features:app-shell")
+include(":language:oromo")
+include(":apps:addiyon")
+include(":apps:textrevamp")

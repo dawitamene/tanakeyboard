@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Addiyon Keyboard</string>
+    <string name="keyboard_product_name">Addiyon Keyboard</string>
+    <string name="ime_name">Addiyon Keyboard - አዲዮን ኪቦርድ</string>
+    <string name="keyboard_activate_title">Activate Addiyon Keyboard</string>
+    <string name="keyboard_enable_title">Enable Addiyon Keyboard</string>
+    <string name="keyboard_all_set_subtitle">Addiyon Keyboard is ready in Amharic and English.</string>
+    <string name="tour_typing_title">Type in two languages</string>
+    <string name="tour_typing_description">Use the language key to move between Amharic and English.</string>
+    <string name="tour_typing_example">አማርኛ • English</string>
+    <string name="typing_guide_body">Type in Amharic or English. Use the language key to move between the two installed languages.</string>
+    <string name="typing_guide_search_placeholder">Search: he, sh, ላ …</string>
+    <string name="typing_guide_how_it_works">How it works</string>
+    <string name="about_body">An Ethiopian keyboard for Amharic and English, built by Addiyon.</string>
+</resources>

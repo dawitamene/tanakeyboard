@@ -35,6 +35,19 @@ class LanguageRegistryTest {
         assertEquals(listOf("out:am-ET", "in:en-US"), events)
     }
 
+    @Test
+    fun subtypeLocaleTagsResolveExactUnderscoreAndPrimaryLanguageMatches() {
+        val registry = LanguageRegistry(
+            listOf(pack("am-ET"), pack("en-US"), pack("om-ET")),
+            LanguageId.of("am-ET")
+        )
+
+        assertEquals(LanguageId.of("om-ET"), registry.findByLocaleTag("om-ET"))
+        assertEquals(LanguageId.of("en-US"), registry.findByLocaleTag("en_US"))
+        assertEquals(LanguageId.of("am-ET"), registry.findByLocaleTag("am"))
+        assertEquals(null, registry.findByLocaleTag("fr-FR"))
+    }
+
     private fun pack(value: String): LanguagePack = object : LanguagePack {
         override val id = LanguageId.of(value)
         override val localeTag = value
@@ -43,7 +56,7 @@ class LanguageRegistryTest {
         override val typingProfile = TypingProfile(isWordCharacter = { true })
         override val capabilities = LanguageCapabilities(true)
         override val voiceLocaleTag: String? = null
-        override val telemetryCategory = LanguageTelemetryCategory.OTHER
+        override val presentationCategory = LanguagePresentationCategory.OTHER
         override val suggestionEngine = object : LanguageSuggestionEngine {
             override val languageId = value
             override val isReady = true

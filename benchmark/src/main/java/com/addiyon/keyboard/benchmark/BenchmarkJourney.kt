@@ -5,9 +5,9 @@ import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Until
 
-internal const val TARGET_PACKAGE = "com.addiyon.keyboard"
+internal const val TARGET_PACKAGE = "com.textrevamp.keyboard"
 internal const val TARGET_IME =
-    "$TARGET_PACKAGE/.AddiyonKeyboardService"
+    "$TARGET_PACKAGE/com.addiyon.keyboard.AddiyonKeyboardService"
 internal const val TARGET_HOST =
     "$TARGET_PACKAGE/com.addiyon.keyboard.benchmarkhost.ImeTestHostActivity"
 internal const val TARGET_RECEIVER =
@@ -100,20 +100,13 @@ private fun MacrobenchmarkScope.waitForImeReady() {
 
 internal fun MacrobenchmarkScope.runImeCriticalJourney() {
     startEditor()
-    command("language_amharic")
-    command("shift_reset")
-    typeCharacters("selam")
-    waitForUiText("ሰላም")
-    command("space")
-    command("language_english")
     command("shift_reset")
     typeCharacters("info")
     waitForUiText("information")
     command("suggestion", "information")
     waitForEditorText("information")
     waitForUiText("about")
-    command("language_amharic")
-    typeCharacters("bet")
+    typeCharacters("test")
     command("delete_start")
     repeat(3) { command("delete") }
     command("delete_end")
@@ -133,14 +126,6 @@ internal fun MacrobenchmarkScope.runEnglishPredictionJourney() {
     command("suggestion", "information")
     waitForEditorText("information")
     waitForUiText("about")
-}
-
-internal fun MacrobenchmarkScope.runAmharicPredictionJourney() {
-    command("shift_reset")
-    typeCharacters("endiet")
-    command("space")
-    waitForEditorText("እንዴት ")
-    waitForUiText("ነው")
 }
 
 private const val UI_RESULT_TIMEOUT_MS = 10_000L

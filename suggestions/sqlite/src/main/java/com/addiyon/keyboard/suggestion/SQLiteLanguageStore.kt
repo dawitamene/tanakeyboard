@@ -184,6 +184,7 @@ class SQLiteLanguageStore(
         )
         val checksumFile = File(finalFile.parentFile, "${finalFile.name}.sha256")
         restoreInterruptedSwap(finalFile, checksumFile, metadata, asset)
+        cleanupInterruptedTemps()
 
         var swap: InstalledSwap? = null
         if (!isReusable(finalFile, checksumFile, metadata, asset)) {
@@ -338,6 +339,15 @@ class SQLiteLanguageStore(
         }
     }
 
+    private fun cleanupInterruptedTemps() {
+        val assetPrefix = assetName.removeSuffix(".db")
+        storeDir.listFiles()?.forEach { file ->
+            if (file.name.startsWith(assetPrefix) && ".tmp-" in file.name) {
+                file.delete()
+            }
+        }
+    }
+
     private fun writeSynced(file: File, value: String) {
         FileOutputStream(file).use { output ->
             output.write(value.toByteArray(Charsets.UTF_8))
@@ -390,10 +400,20 @@ class SQLiteLanguageStore(
     ) {
         require(pragmaInt(db, "user_version") == metadata.schemaVersion)
         require(pragmaInt(db, "application_id") == metadata.applicationId)
-        val required = setOf("words", "prefix_top", "vocab", "bigrams", "trigrams")
+        val required = setOf(
+            "words",
+            "morph_lexemes",
+            "prefix_top",
+            "fuzzy_top",
+            "bigrams",
+            "trigrams"
+        )
         val found = HashSet<String>()
         db.rawQuery(
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('words','prefix_top','vocab','bigrams','trigrams')",
+            "SELECT name FROM sqlite_master WHERE type = 'table' " +
+                "AND name IN (" +
+                    "'words','morph_lexemes','prefix_top','fuzzy_top','bigrams','trigrams'" +
+                    ")",
             null,
         ).use { cursor ->
             while (cursor.moveToNext()) found.add(cursor.getString(0))

@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name" translatable="false">TextRevamp AI Keyboard</string>
+    <string name="keyboard_product_name" translatable="false">TextRevamp AI Keyboard</string>
+    <string name="ime_name" translatable="false">TextRevamp AI Keyboard</string>
+    <string name="subtype_english" translatable="false">English</string>
+    <string name="keyboard_activate_title" translatable="false">Activate TextRevamp AI Keyboard</string>
+    <string name="keyboard_activate_footnote" translatable="false">TextRevamp sends text to its backend only when you choose an AI action and cannot read passwords.</string>
+    <string name="keyboard_enable_title" translatable="false">Enable TextRevamp AI Keyboard</string>
+    <string name="keyboard_all_set_subtitle" translatable="false">TextRevamp AI Keyboard is ready to use.</string>
+    <string name="tour_typing_title" translatable="false">Write naturally in English</string>
+    <string name="tour_typing_description" translatable="false">Type normally in English in any app.</string>
+    <string name="tour_typing_example" translatable="false">English</string>
+    <string name="typing_guide_body" translatable="false">Write naturally in English and use the shared typing controls in any app.</string>
+    <string name="test_keyboard_placeholder" translatable="false">Start writing, then use AI rephrase</string>
+    <string name="about_body" translatable="false">Write in English and use TextRevamp to improve tone, clarity, grammar, length, and style in any app.</string>
+    <string name="share_text_format" translatable="false">Write and rewrite in any app with TextRevamp AI Keyboard: %1$s</string>
+    <string name="default_web_client_id" translatable="false">68341982467-n5slo74o939ij9g9bdnb99ofr1b867ce.apps.googleusercontent.com</string>
+    <item name="ic_addiyon_app_shell" type="drawable">@drawable/ic_addiyon_icon</item>
+</resources>

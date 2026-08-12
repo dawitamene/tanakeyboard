@@ -1,8 +1,7 @@
 # Production stability and performance hardening plan
 
-> **Superseded for telemetry and release-state facts on 2026-07-30.** This document
-> preserves its original pre-Firebase audit. Use
-> `plans/input-safety-predictions-firebase-test-coverage.md`, `analytics.md`, and
+> **Superseded for release-state facts.** This document preserves its historical audit;
+> its telemetry/Firebase discussion is not part of the current products. Use
 > `docs/production-launch-checklist.md` for the current implementation and release gate.
 
 ## Goal

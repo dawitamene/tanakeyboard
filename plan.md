@@ -170,7 +170,7 @@ as "Addiyon Keyboard" in Settings › On-screen keyboards, and typing still work
 ## Also update (docs, non-code)
 
 `CLAUDE.md`, `AGENTS.md`, `play-store-listing.md`, `closed-testing.md`,
-`analytics.md`, and the icon assets `tana_play_icon.svg` / `play_icon_512.png`
+and the icon assets `tana_play_icon.svg` / `play_icon_512.png`
 still say "Tana". Rename/rewrite these separately (not build-critical, but do it
 before the store listing goes live).
 

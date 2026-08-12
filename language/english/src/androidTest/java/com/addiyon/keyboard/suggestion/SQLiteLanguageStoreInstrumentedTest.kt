@@ -121,6 +121,49 @@ class SQLiteLanguageStoreInstrumentedTest {
         store.release()
     }
 
+    @Test
+    fun interruptedTemporaryFilesAreRemovedBeforeOpening() {
+        val metadata = Properties().apply {
+            targetContext.assets.open(METADATA_ASSET).use(::load)
+        }
+        val schemaVersion = requireNotNull(metadata.getProperty("schemaVersion")?.toIntOrNull())
+        val sha256 = requireNotNull(metadata.getProperty("$ASSET_NAME.sha256"))
+        val store = newStore()
+        awaitLoad(store)
+        store.release()
+        val database = installedDatabase(schemaVersion, sha256)
+        val staleDatabase = File(database.parentFile, "english-v0-stale.db.tmp-dead")
+        val staleChecksum = File(database.parentFile, "english-v0-stale.db.sha256.tmp-dead")
+        staleDatabase.writeText("partial")
+        staleChecksum.writeText("partial")
+
+        val reopened = newStore()
+        awaitLoad(reopened)
+
+        assertTrue(reopened.isReady)
+        assertFalse(staleDatabase.exists())
+        assertFalse(staleChecksum.exists())
+        reopened.release()
+    }
+
+    @Test
+    fun fuzzyLookupCanRepairTheFirstCharacter() {
+        val store = newStore()
+        awaitLoad(store)
+        val dictionary = SQLiteDictionary(
+            store = store,
+            precomputedPrefixLength = 2,
+            normalize = { word ->
+                buildString(word.length) { word.forEach { append(it.lowercaseChar()) } }
+            }
+        )
+
+        val matches = dictionary.fuzzySuggestions("xat", maxEdits = 1, limit = 10)
+
+        assertTrue(matches.map { it.word }.contains("cat"))
+        dictionary.release()
+    }
+
     private fun newStore(): SQLiteLanguageStore =
         SQLiteLanguageStore(
             context = context,

@@ -2,8 +2,8 @@
 
 ## `install_debug_preserving_state.sh`
 
-Builds and installs the debug APK as an in-place update, preserving app data
-such as the AI login session. It also keeps the virtual keyboard visible when
+Builds and installs the Addiyon debug APK as an in-place update, preserving app data
+such as keyboard preferences. It also keeps the virtual keyboard visible when
 the emulator's hardware-keyboard integration is active, enables Addiyon, and
 selects it as the default IME:
 
@@ -17,53 +17,32 @@ Android cannot perform a state-preserving update.
 
 ## `build_amharic_dict.py`
 
-Regenerates `language/amharic/src/main/assets/amharic_words.dat`, the Amharic suggestion
-dictionary loaded by `suggestion/WordDictionary.kt`, from a corpus
-term-frequency dump (one `frequency<TAB>token` line, single header line):
+Regenerates the Amharic SQLite inputs from the pinned HornMorpho 5.3.6
+lexicon snapshot under `language/amharic/hornmorpho`:
 
 ```sh
-python3 tools/build_amharic_dict.py Term_Frequency.txt
+python3 /Users/dev/code/addiyon-keyboard/tools/build_amharic_dict.py
 ```
 
-- **Homoglyph folding**: spelling variants of the same word (ሀ/ሃ/ሐ/ኀ, ሰ/ሠ,
-  አ/ኣ/ዐ, ጸ/ፀ …) are merged — frequencies summed, the most frequent spelling
-  kept as the display form. The fold table is a hand-mirrored copy of
-  `transliteration/EthiopicNormalizer.kt` (keep in sync; `BundledAssetTest`
-  catches drift).
-- **Corpora** (frequency evidence, counts summed after folding): the CACO
-  dump passed on the command line plus the vendored
-  `term_frequency_yididiyan.txt.gz` (from
-  [yididiyan/amharic_spell_corrector](https://github.com/yididiyan/amharic_spell_corrector),
-  a similar-scale corpus; the upstream file's accidentally-duplicated tail
-  block was deduplicated when vendoring). Keeps pure Ethiopic-syllable words
-  with combined frequency ≥ 10 on corpus evidence alone; rarer words
-  (frequency 2–9) only when a validation wordlist also attests their folded
-  form — rare tokens in a scraped corpus are disproportionately typos
-  (~97% of freq-50+ tokens are wordlist-attested vs ~12% of freq-2–4).
-- **Validation wordlists**: `am_et_hunspell_words.txt.gz` (Hunspell am_ET
-  expansion, recovered from this repo's git history) and
-  `wordlist_abdulmunim.txt.gz` (curated, from
-  [abdulmunimjemal/AmharicSpellCheckerEngine](https://github.com/abdulmunimjemal/AmharicSpellCheckerEngine)).
-- **Enrichment**: abdulmunim words not already kept are added at frequency 1
-  (rank floor: they complete, but below every corpus-attested word). The
-  Hunspell list is attestation-only — it's machine-expanded and was the old,
-  low-quality dictionary.
-- Common abbreviations (`ዓ.ም`, `ዶ/ር`, `ት/ቤት`, …) with frequency ≥ 50 are kept
-  without a wordlist check; drops punctuation tokens, numbers, Latin
-  fragments, and anything containing digits.
-- Output: gzip, `word<TAB>frequency` per line, **sorted by the folded key**
-  (UTF-16 code-unit order) — required by `WordTrie.build`'s streaming
-  flat-array construction, which throws on unsorted input. ~254k entries.
-- The CACO dump itself is gitignored (17MB); keep it wherever convenient
-  and pass its path.
+- `amharic_lexemes.dat` contains 18,867 unique source records, including the
+  HornMorpho verb roots and grammatical classes needed by the next morphology
+  phase.
+- `amharic_words.dat` contains 18,067 displayable base lemmas. Internal slash
+  notation is removed, spelling-equivalent keys are folded, and ranking uses
+  HornMorpho's own `root.frq` statistics.
+- `amharic_ngrams.dat` is intentionally empty. It prevents the prediction
+  model tied to the discarded surface dictionary from leaking those forms
+  back into the new database.
+- The old approximately 254,000-row wordlist and its inputs are retained only
+  under `archive/legacy-amharic-dictionary`; they are not build inputs.
+- Full source and licensing details are in
+  `language/amharic/hornmorpho/UPSTREAM.md`.
 
 ## `build_ngrams.py`
 
-Regenerates `language/amharic/src/main/assets/amharic_ngrams.dat`, the Amharic bigram /
-trigram next-word model loaded by `suggestion/NgramDictionary.kt` →
-`suggestion/NgramModel.kt`, from one or more raw corpora (counts summed;
-pre-tokenized like `CACO_TEXT.txt` and raw text like the abdulmunim corpus
-both work):
+Rebuilds `language/amharic/src/dictionary/amharic_ngrams.dat` from a clean
+corpus after gating every token through the HornMorpho displayable lemma set.
+The checked-in baseline is empty until an appropriate corpus is selected.
 
 ```sh
 python3 tools/build_ngrams.py CACO_TEXT.txt amharic_corpus_abdulmunim.txt
@@ -89,19 +68,16 @@ python3 tools/build_ngrams.py CACO_TEXT.txt amharic_corpus_abdulmunim.txt
   key + sorted context arrays + offset/successor/weight arrays, big-endian,
   weights log-quantized to a byte), gzipped with `mtime=0` for byte-stable
   output. `NgramModel.kt` rejects v1 assets loudly.
-- The abdulmunim corpus re-downloads from that repo's LFS media URL (see
-  `.gitignore`); like `CACO_TEXT.txt` it stays out of the repo.
 - `--test-fixture` builds the tiny JVM-test model from the checked-in mini
   corpus:
 
 ```sh
 python3 tools/build_ngrams.py --test-fixture \
-    app/src/test/resources/ngram_mini_corpus.txt \
-    app/src/test/resources/ngram_fixture.dat
+    apps/textrevamp/src/test/resources/ngram_mini_corpus.txt \
+    apps/textrevamp/src/test/resources/ngram_fixture.dat
 ```
 
-- The corpus itself is gitignored (249MB); keep it wherever convenient and
-  pass its path.
+- Corpus files stay outside the repository and are passed explicitly.
 
 ### English (`--lang english`)
 
@@ -139,13 +115,13 @@ python3 tools/build_ngrams.py --lang english \
   (0 as-is / 1 capitalize-first / 2 all-caps); the fix is **per-context**, so
   "United → States" and "New York → Times/City" capitalize while "of → the"
   stays lowercase. Coverage is limited to pairs the ~3k trigrams attest.
-- Output: `language/english/src/main/assets/english_ngrams.dat` (~240 KB), loaded by
-  `NgramDictionary` with the per-char lowercase fold.
+- Output: `language/english/src/dictionary/english_ngrams.dat` (~240 KB), folded into
+  the generated SQLite database with per-context casing metadata.
 
 ## `build_english_dict.py`
 
-Regenerates `language/english/src/main/assets/english_words.dat`, the English suggestion
-dictionary loaded by `suggestion/WordDictionary.kt`.
+Regenerates `language/english/src/dictionary/english_words.dat`, the English suggestion
+source folded into the generated SQLite database.
 
 ```sh
 python3 tools/build_english_dict.py

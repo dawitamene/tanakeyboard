@@ -179,7 +179,7 @@ class AmharicSuggestionEngine(
 
     override fun release() {
         clearCaches()
-        dictionary.release()
+        ngrams.release()
     }
 
     private fun cache(raw: String, suggestions: List<String>): List<String> {

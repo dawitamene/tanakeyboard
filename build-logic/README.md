@@ -11,10 +11,13 @@ Versions come from `../gradle/libs.versions.toml`.
 | `addiyon.kotlin.jvm` | Kotlin/JVM plugin with the shared Java 11 toolchain |
 | `addiyon.language-dictionaries` | One SQLite generation task per configured language plus the aggregate database metadata manifest |
 
-Application IDs, namespaces, signing, versioning, Firebase configuration, release behavior, and
+Application IDs, namespaces, signing, versioning, release behavior, and
 product dependencies remain in each application module.
 
 The dictionary convention retains `generateDictionaryDbs` as the aggregate task. A module registers
-each language through `LanguageDictionariesExtension`, including its word/ngram inputs, output DB,
-normalization mode, and precomputed prefix length. Asset merge and lint tasks depend on the aggregate
+each language through `LanguageDictionariesExtension`, including its word, optional morphology
+lexeme, and n-gram inputs, output DB, normalization mode, and precomputed prefix length. Source
+`.dat` files live outside `src/main/assets`;
+the convention writes the database and manifest to `build/generated/dictionaryAssets`, which is the
+only dictionary directory packaged into the app. Asset merge and lint tasks depend on the aggregate
 task automatically.

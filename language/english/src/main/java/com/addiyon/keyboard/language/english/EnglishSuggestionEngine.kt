@@ -79,7 +79,8 @@ class EnglishSuggestionEngine(
     override fun clearCaches() = dictionary.clearCache()
 
     override fun release() {
-        dictionary.release()
+        dictionary.clearCache()
+        ngrams.release()
     }
 
     companion object {

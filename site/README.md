@@ -14,7 +14,7 @@ reachable from inside the app as well as from the Console.
 That exact URL is hardcoded in two places that must be kept in sync:
 
 - `ExternalActions.PRIVACY_POLICY_URL` — the About screen's "Privacy policy" link
-  (`app/src/main/java/com/addiyon/keyboard/ExternalActions.kt`)
+  (`apps/textrevamp/src/main/java/com/addiyon/keyboard/ExternalActions.kt`)
 - Play Console → App content → Privacy policy
 
 The file is a single self-contained HTML page with no external assets, so deploying it
@@ -29,14 +29,11 @@ is a common cause of IME review rejection.
 
 | Claim in the policy | What it depends on |
 |---|---|
-| Typed/editor content is never sent | typed enum/boolean-only `telemetry/Telemetry.kt` API and static privacy tests |
-| Analytics and Crashlytics are independent opt-ins, off by default | manifest collection defaults, `TelemetryPrefs`, and `TelemetryConsentPolicyTest` |
-| No advertising ID, AdServices, signals, or ad personalization | manifest removals/defaults and `plans/verify-release-artifact.sh` deny checks |
+| Typed/editor content is never sent | Addiyon has no network dependency or `INTERNET` permission; typing and suggestions use the shared local runtime |
+| No usage analytics or crash-reporting SDK | Addiyon's dependency graph and merged manifest |
 | Voice audio is handled by the device's speech service | `voice/VoiceInputController.kt` delegating to `SpeechRecognizer` |
-| Diagnostics consent is not restored | explicit exclusions in `res/xml/backup_rules.xml` and `res/xml/data_extraction_rules.xml` |
 | The listed on-device settings | the `KEY_*` constants in `ui/settings/KeyboardPrefs.kt` |
 
-The matching in-app wording lives in `ui/i18n/AppStrings.kt` and
-`ui/settings/PrivacyDiagnosticsScreen.kt`, in both English and Amharic. Before deployment,
-confirm the production Firebase property uses two-month event-level Analytics retention,
-Google Signals and ad personalization are disabled, and the Play Data safety form matches.
+The matching in-app wording lives in the shared app-shell resources. Before deployment,
+confirm the Play Data safety form matches the shipped dependency graph, permissions, and
+speech-provider handoff.

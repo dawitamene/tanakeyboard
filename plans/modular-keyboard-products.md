@@ -3,6 +3,8 @@
 ## Status
 
 Implementation plan only. This document does not authorize or include production-code changes.
+Telemetry references in the original research are superseded: neither product owns a telemetry
+or Firebase stack.
 
 ## Objective
 
@@ -24,11 +26,11 @@ Refactor the current single-module Addiyon Keyboard into a multi-module Android 
 The repository is not currently modular at the language or product boundary:
 
 - `settings.gradle.kts` includes only `:app` and `:benchmark`.
-- `app/build.gradle.kts` configures application identity, signing, Firebase, Compose, dictionary
+- `app/build.gradle.kts` configures application identity, signing, Compose, dictionary
   generation, dependencies, baseline profiles, and the `/Users/dev/Sync` APK copy in one module.
 - `DictionaryDbGenerator` generates both `amharic.db` and `english.db` from one task.
 - `AddiyonKeyboardService.kt` is approximately 3,750 lines and owns language selection,
-  composition, dictionaries, ranking, UI state, AI, voice, emoji, telemetry, and Android lifecycle.
+  composition, dictionaries, ranking, UI state, AI, voice, emoji, and Android lifecycle.
 - Language state is a Boolean (`isAmharic`), which cannot scale cleanly to Oromo or later packs.
 - `KeyboardScreen` imports `AmharicLayout` and `EnglishLayout` directly and selects between them.
 - English and Amharic stores, dictionaries, and n-gram models are constructed directly by the
@@ -169,8 +171,8 @@ Use a Kotlin/JVM module where possible. It owns small, stable types used across 
 - neutral request/result models shared by language, suggestion, and feature contracts;
 - an editor-operations interface needed by the pure composing layer.
 
-It must not depend on Android UI, Compose, a concrete language, a product application, Retrofit,
-Firebase, or SQLite.
+It must not depend on Android UI, Compose, a concrete language, a product application, network
+SDKs, or SQLite.
 
 ### `:keyboard:core`
 
@@ -209,7 +211,7 @@ Own the contracts that make a language installable without teaching shared code 
 - numeric-layout capabilities, such as Ge'ez numbers;
 - suggestion-engine factory;
 - voice locale, when voice is supported;
-- telemetry category that is low-cardinality and contains no typed text;
+- stable language-kind metadata needed by language-specific presentation;
 - lifecycle hooks to load and release language-specific resources.
 
 Do not add methods named after a concrete language, such as `isAmharic`, `amharicCandidates`, or
@@ -328,10 +330,10 @@ functional callback or not render, per the design-system contract.
 
 #### Existing `:app` (Addiyon)
 
-- Keep the existing application ID, signing, app/IME label, resources, backup behavior, Firebase
+- Keep the existing application ID, signing, app/IME label, resources, backup behavior,
   identity checks, activities, debug receivers, and `AddiyonKeyboardService` FQCN.
 - Assemble English and Amharic packs.
-- Assemble the existing AI, voice, emoji, review, update, telemetry, settings, and feedback feature
+- Assemble the selected AI, voice, emoji, review, update, settings, and feedback feature
   set unless a separate product decision changes it.
 - Keep the existing timestamped `/Users/dev/Sync` APK hook.
 - Continue as the initial baseline-profile benchmark target.
@@ -367,7 +369,6 @@ The app-owned product descriptor should define only assembly and product policy:
 - app-screen destination provider;
 - utility layouts needed independently of input packs;
 - defaults for preferences that vary by product;
-- safe telemetry product identifier;
 - behavior for the language key when only one pack is present.
 
 Brand resources such as launcher icons and app labels remain Android resources in the app module.
@@ -556,7 +557,7 @@ behavior.
    - Android application defaults;
    - language dictionary generation.
 3. Move reusable Gradle configuration from `app/build.gradle.kts` only after equivalence tests.
-   Keep product-specific application ID, Firebase identity, signing, versioning, baseline profile,
+   Keep product-specific application ID, signing, versioning, baseline profile,
    and `/Users/dev/Sync` copy in `:app`.
 4. Move or adapt `DictionaryDbGenerator` from `buildSrc` into `build-logic` after its existing output
    is byte/schema equivalent. Avoid leaving duplicate task implementations.
@@ -600,8 +601,7 @@ existing real-IME crash test before proceeding.
 5. Replace `KEY_AMHARIC_MODE` with the tested migration to `KEY_ACTIVE_LANGUAGE_ID`.
 6. Generalize subtype selection policy from “selects Amharic” to “resolve language ID”, while
    preserving existing Addiyon subtype behavior during this refactor.
-7. Generalize telemetry language mapping and add a bounded Oromo/other category without logging
-   raw locale strings from untrusted editors.
+7. Generalize bounded language-kind mapping for Oromo/other presentation.
 8. Make email fields use the shared email typing override independent of active pack.
 
 **Verification:** English/Amharic behavior parity, saved-language migration in both Boolean states,
@@ -689,7 +689,7 @@ accessibility semantics, and Addiyon instrumented smoke tests.
 4. Keep exported service/activity declarations and product permissions in the application or
    optional feature manifests, not in a generic runtime manifest.
 5. Preserve `AddiyonApp`, current activities, launcher resources, preferences filenames, backup
-   rules, app/IME labels, network security, Firebase metadata, and release hooks.
+   rules, app/IME labels, network security, and release hooks.
 6. Replace `AddiyonKeyboardView` with the shared view host while preserving lifecycle/saved-state
    ownership.
 7. Remove all temporary `isAmharic` adapters and concrete language imports from runtime/UI.
@@ -710,7 +710,7 @@ Extract one feature per change, preferably in this order:
 2. voice (permission, recognizer lifecycle, and locale integration);
 3. AI (network/auth/quota/app-screen boundary and backend contract);
 4. app shell/settings/manual/feedback;
-5. telemetry/review/update where product differences justify extraction.
+5. review/update where product differences justify extraction.
 
 For each feature:
 
@@ -848,7 +848,6 @@ Install each product when its assembly, manifest, service, subtype, or runtime w
 - Preserve low-RAM lazy loading: only active language databases should be open, and inactive packs
   must be releasable.
 - Preserve private-field restrictions and ensure optional modules cannot bypass them.
-- Preserve telemetry sanitization and use stable bounded language/product categories.
 - Do not alter the TextRevamp backend/API contract as part of module movement.
 - Compare R8 rules after each Android library extraction. Consumer rules belong with the library
   that needs them; release minification remains enabled by the app.
@@ -980,7 +979,7 @@ These do not block Phases 1-7 but must be resolved before the corresponding prod
 1. What are the public names, application IDs, icons, and Play listings for English and Oromo?
 2. Will all products use the same signing key, or distinct keys with separately managed secrets?
 3. Does the Oromo product include English as an internal second language?
-4. Which products include AI, voice, emoji, themes, feedback, update, review, and telemetry?
+4. Which products include AI, voice, emoji, themes, feedback, update, and review?
 5. Should English/Oromo app screens retain Addiyon branding and English/Amharic UI localization, or
    use product-specific branding/locales?
 6. What Oromo corpus and n-gram sources are approved, and what licenses/distribution constraints

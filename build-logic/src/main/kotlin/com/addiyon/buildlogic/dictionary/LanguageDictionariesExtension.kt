@@ -10,6 +10,7 @@ abstract class LanguageDictionarySpec @Inject constructor(
     val name: String,
 ) {
     abstract val wordsDat: RegularFileProperty
+    abstract val lexemesDat: RegularFileProperty
     abstract val ngramsDat: RegularFileProperty
     abstract val outputDb: RegularFileProperty
     abstract val normalization: Property<String>

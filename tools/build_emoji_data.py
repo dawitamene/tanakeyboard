@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Regenerates app/src/main/assets/emoji.dat -- the emoji picker data consumed by
+Regenerates features/emoji/src/main/assets/emoji.dat -- the emoji picker data consumed by
 emoji/EmojiRepository.kt -> EmojiData.kt.
 
 Output format (UTF-8, gzip-compressed, `.dat` NOT `.gz` because the Android
@@ -45,7 +45,7 @@ import xml.etree.ElementTree as ET
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, ".cache")
 REPO = os.path.abspath(os.path.join(HERE, ".."))
-OUT = os.path.join(REPO, "app", "src", "main", "assets", "emoji.dat")
+OUT = os.path.join(REPO, "features", "emoji", "src", "main", "assets", "emoji.dat")
 
 EMOJI_VERSION = "16.0"
 EMOJI_TEST_URL = f"https://unicode.org/Public/emoji/{EMOJI_VERSION}/emoji-test.txt"

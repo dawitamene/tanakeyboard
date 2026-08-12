@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name="com.addiyon.keyboard.benchmarkhost.ImeTestHostActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.KeyboardAppShell"
+            android:windowSoftInputMode="adjustResize" />
+        <receiver
+            android:name="com.addiyon.keyboard.debug.LanguageToggleReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.addiyon.keyboard.TOGGLE_LANGUAGE" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name="com.addiyon.keyboard.debug.ImeTestCommandReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.addiyon.keyboard.TEST_COMMAND" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

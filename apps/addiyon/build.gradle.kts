@@ -1,0 +1,78 @@
+import java.util.zip.ZipFile
+import com.addiyon.buildlogic.configureVerifiedReleaseSigning
+import com.addiyon.buildlogic.loadProductReleaseConfig
+
+plugins {
+    id("addiyon.android.application")
+    id("addiyon.android.compose")
+}
+
+val productRelease = loadProductReleaseConfig(rootProject.file("version.properties"))
+
+android {
+    namespace = "com.addiyon.keyboard"
+    defaultConfig {
+        applicationId = "com.addiyon.keyboard"
+        versionCode = productRelease.versionCode.get()
+        versionName = productRelease.versionName
+    }
+    buildTypes {
+        debug { applicationIdSuffix = ".debug" }
+        release { isMinifyEnabled = false }
+    }
+    configureVerifiedReleaseSigning(project, productRelease.expectedReleaseCertificateSha256)
+}
+
+dependencies {
+    implementation(project(":keyboard:runtime"))
+    implementation(project(":language:english"))
+    implementation(project(":language:amharic"))
+    implementation(project(":features:app-shell"))
+    implementation(project(":keyboard:preferences"))
+    implementation(project(":keyboard:ui"))
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(project(":features:emoji"))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(platform(libs.androidx.compose.bom))
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+val verifyDebugProductContents by tasks.registering {
+    group = "verification"
+    dependsOn("assembleDebug")
+    doLast {
+        val apk = layout.buildDirectory.file("outputs/apk/debug/addiyon-debug.apk").get().asFile
+        require(apk.isFile) { "Addiyon debug APK was not produced" }
+        ZipFile(apk).use { zip ->
+            val names = zip.entries().asSequence().map { it.name }.toList()
+            require(names.any { it.endsWith("english.db") }) { "English dictionary is missing" }
+            require(names.any { it.endsWith("amharic.db") }) { "Amharic dictionary is missing" }
+            require(names.none { it.endsWith("_words.dat") || it.endsWith("_ngrams.dat") }) {
+                "Addiyon must not package dictionary build inputs"
+            }
+        }
+        val components = configurations.getByName("debugRuntimeClasspath")
+            .incoming.resolutionResult.allComponents.map { it.id.displayName }
+        setOf("language:amharic", "language:english").forEach { required ->
+            require(components.any { it.contains(required) }) { "Addiyon product is missing $required" }
+        }
+        require(components.none { it.contains("language:oromo") }) {
+            "Addiyon product must not include the disabled Oromo language pack"
+        }
+        require(components.none { it.contains("features:ai") }) {
+            "Addiyon product must not include the AI feature module"
+        }
+        val manifest = layout.buildDirectory.file(
+            "intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml"
+        ).get().asFile.readText()
+        require("android.permission.INTERNET" !in manifest) {
+            "Addiyon product must not request network access"
+        }
+    }
+}

@@ -2,16 +2,13 @@
 set -euo pipefail
 
 project_dir="$(cd "$(dirname "$0")/.." && pwd)"
-aab="$project_dir/app/build/outputs/bundle/release/app-release.aab"
-mapping="$project_dir/app/build/outputs/mapping/release/mapping.txt"
-manifest="$project_dir/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml"
-profiles="$project_dir/app/src/release/generated/baselineProfiles"
-metadata="$project_dir/app/build/outputs/release-candidate.properties"
-version_file="$project_dir/version.properties"
-firebase_config="$project_dir/app/google-services.json"
-firebase_release_config="$project_dir/app/src/release/google-services.json"
-firebase_values="$project_dir/app/build/generated/res/google-services/release/values/values.xml"
-crashlytics_mapping_id="$project_dir/app/build/crashlytics/release/mappingFileId.txt"
+product_dir="$project_dir/apps/textrevamp"
+aab="$product_dir/build/outputs/bundle/release/textrevamp-release.aab"
+mapping="$product_dir/build/outputs/mapping/release/mapping.txt"
+manifest="$product_dir/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml"
+profiles="$product_dir/src/release/generated/baselineProfiles"
+metadata="$product_dir/build/outputs/release-candidate.properties"
+version_file="$product_dir/version.properties"
 
 fail() {
     printf 'Release verification failed: %s\n' "$1" >&2
@@ -23,60 +20,10 @@ fail() {
 [[ -s "$manifest" ]] || fail "merged release manifest is missing"
 [[ -s "$profiles/baseline-prof.txt" ]] || fail "generated baseline profile is missing"
 [[ -s "$profiles/startup-prof.txt" ]] || fail "generated startup profile is missing"
-firebase_config_count=0
-firebase_config_path=""
-if [[ -s "$firebase_config" ]]; then
-    firebase_config_count=$((firebase_config_count + 1))
-    firebase_config_path="$firebase_config"
-fi
-if [[ -s "$firebase_release_config" ]]; then
-    firebase_config_count=$((firebase_config_count + 1))
-    firebase_config_path="$firebase_release_config"
-fi
-[[ "$firebase_config_count" -eq 1 ]] ||
-    fail "provide exactly one production google-services.json"
-[[ -s "$firebase_values" ]] || fail "generated production Firebase resources are missing"
-[[ -s "$crashlytics_mapping_id" ]] || fail "Crashlytics mapping metadata is missing"
-grep -Eq '"package_name"[[:space:]]*:[[:space:]]*"com\.addiyon\.keyboard"' \
-    "$firebase_config_path" ||
-    fail "production Firebase config has the wrong application ID"
-expected_firebase_app_id="$(
-    sed -n 's/^firebaseProductionAppId=//p' "$version_file"
-)"
-expected_firebase_project_id="$(
-    sed -n 's/^firebaseProductionProjectId=//p' "$version_file"
-)"
-[[ -n "$expected_firebase_app_id" ]] ||
-    fail "firebaseProductionAppId is not pinned in version.properties"
-[[ -n "$expected_firebase_project_id" ]] ||
-    fail "firebaseProductionProjectId is not pinned in version.properties"
-actual_firebase_app_id="$(
-    sed -n 's/.*"mobilesdk_app_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
-        "$firebase_config_path" |
-        head -1
-)"
-actual_firebase_project_id="$(
-    sed -n 's/.*"project_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
-        "$firebase_config_path" |
-        head -1
-)"
-[[ "$actual_firebase_app_id" == "$expected_firebase_app_id" ]] ||
-    fail "production Firebase app ID does not match version.properties"
-[[ "$actual_firebase_project_id" == "$expected_firebase_project_id" ]] ||
-    fail "production Firebase project ID does not match version.properties"
-generated_firebase_app_id="$(
-    sed -n 's/.*<string name="google_app_id"[^>]*>\([^<]*\)<\/string>.*/\1/p' \
-        "$firebase_values" |
-        head -1
-)"
-[[ "$generated_firebase_app_id" == "$expected_firebase_app_id" ]] ||
-    fail "generated production Firebase app ID does not match version.properties"
 
 entries="$(unzip -Z1 "$aab")"
 for entry in \
-    base/assets/amharic.db \
     base/assets/english.db \
-    base/assets/amharic_dictionary_manifest.properties \
     base/assets/english_dictionary_manifest.properties \
     base/assets/emoji.dat \
     BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map \
@@ -95,7 +42,7 @@ expected_permissions="$(
         android.permission.INTERNET \
         android.permission.ACCESS_NETWORK_STATE \
         android.permission.WAKE_LOCK \
-        com.addiyon.keyboard.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION |
+        com.textrevamp.keyboard.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION |
         sort
 )"
 actual_permissions="$(
@@ -105,19 +52,6 @@ actual_permissions="$(
 if [[ "$actual_permissions" != "$expected_permissions" ]]; then
     fail "release permissions differ from the allowlist: $actual_permissions"
 fi
-if grep -Eiq 'AD_ID|ADSERVICES|AD_SERVICES|ACCESS_ADSERVICES|TOPICS|ATTRIBUTION' \
-    <<<"$actual_permissions"; then
-    fail "advertising or AdServices permission is present: $actual_permissions"
-fi
-for metadata_name in \
-    firebase_analytics_collection_enabled \
-    firebase_crashlytics_collection_enabled \
-    google_analytics_adid_collection_enabled \
-    google_analytics_default_allow_ad_personalization_signals; do
-    metadata_block="$(grep -A2 -F "android:name=\"$metadata_name\"" "$manifest" || true)"
-    grep -Fq 'android:value="false"' <<<"$metadata_block" ||
-        fail "$metadata_name is not false in the merged release manifest"
-done
 grep -Fq 'android:name="com.addiyon.keyboard.AddiyonKeyboardService"' "$manifest" ||
     fail "IME service is missing"
 grep -Fq 'android:targetSdkVersion="36"' "$manifest" ||
@@ -127,15 +61,6 @@ if grep -Eq \
     "$manifest"; then
     fail "a debug or benchmark component is present in the release manifest"
 fi
-
-while IFS= read -r dex_entry; do
-    if unzip -p "$aab" "$dex_entry" |
-        strings |
-        grep -E 'telemetry_fatal|telemetry_non_fatal|ImeTestCommandReceiver|controlled telemetry test crash' \
-            >/dev/null; then
-        fail "production dex contains a debug crash trigger"
-    fi
-done < <(grep -E '^base/dex/classes[^/]*\.dex$' <<<"$entries")
 
 jarsigner -verify "$aab" >/dev/null 2>&1 ||
     fail "AAB signature verification failed"

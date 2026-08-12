@@ -17,7 +17,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    targetProjectPath = ":app"
+    targetProjectPath = ":apps:textrevamp"
     experimentalProperties["android.experimental.self-instrumenting"] = true
 
     compileOptions {

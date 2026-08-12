@@ -58,4 +58,20 @@ class LanguageRegistry(
     }
 
     fun contains(id: LanguageId): Boolean = id in byId
+
+    fun findByLocaleTag(reportedTag: String?): LanguageId? {
+        val normalized = reportedTag
+            ?.trim()
+            ?.replace('_', '-')
+            ?.takeIf(String::isNotEmpty)
+            ?: return null
+        return orderedPacks.firstOrNull {
+            it.localeTag.equals(normalized, ignoreCase = true)
+        }?.id ?: orderedPacks.firstOrNull {
+            it.localeTag.substringBefore('-').equals(
+                normalized.substringBefore('-'),
+                ignoreCase = true
+            )
+        }?.id
+    }
 }

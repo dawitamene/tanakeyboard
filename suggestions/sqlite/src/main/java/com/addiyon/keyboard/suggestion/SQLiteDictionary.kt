@@ -11,10 +11,10 @@ package com.addiyon.keyboard.suggestion
  * direct effect on the heap -- the bulk data stays in the .db file and
  * is read on demand.
  *
- * [fuzzySuggestions] is bounded by a short LIKE prefix (first 1-2 chars)
- * to keep the candidate set small, then runs in-Kotlin two-row Levenshtein
- * over that set. The Amharic caller injects a fidel-aware substitution
- * cost; English uses the uniform default.
+ * [fuzzySuggestions] combines frequency-ranked length buckets with anchored
+ * prefix ranges, then runs in-Kotlin two-row Levenshtein over that bounded
+ * set. The Amharic caller injects a fidel-aware substitution cost; English
+ * uses the uniform default.
  */
 class SQLiteDictionary(
     private val store: SQLiteLanguageStore,
@@ -81,8 +81,8 @@ class SQLiteDictionary(
             } else {
                 statements +=
                     "SELECT ? requested, word, freq FROM " +
-                    "(SELECT word, freq FROM words WHERE key >= ? AND key < ? " +
-                    "ORDER BY freq DESC LIMIT ?)"
+                    "(SELECT COALESCE(display, key) word, freq FROM words " +
+                    "WHERE key >= ? AND key < ? ORDER BY freq DESC, word ASC LIMIT ?)"
                 args += prefix
                 args += key
                 args += prefixEndBound(key)
@@ -107,10 +107,10 @@ class SQLiteDictionary(
 
     fun suggestionEntries(prefix: String, limit: Int = 3): List<Suggestion> {
         if (!isReady || limit <= 0) return emptyList()
-        val cacheKey = "$limit\u0001$prefix"
-        cache.get(cacheKey)?.let { return it }
         val key = normalize(prefix)
         if (key.isEmpty()) return emptyList()
+        val cacheKey = "$limit\u0001$key"
+        cache.get(cacheKey)?.let { return it }
         val upperBound = prefixEndBound(key)
         val database = store.databaseOrNull() ?: return emptyList()
         val result = ArrayList<Suggestion>(limit)
@@ -119,7 +119,9 @@ class SQLiteDictionary(
             val sql = if (shortPrefix) {
                 "SELECT word, freq FROM prefix_top WHERE prefix = ? ORDER BY rank LIMIT ?"
             } else {
-                "SELECT word, freq FROM words WHERE key >= ? AND key < ? ORDER BY freq DESC LIMIT ?"
+                "SELECT COALESCE(display, key), freq FROM words " +
+                    "WHERE key >= ? AND key < ? " +
+                    "ORDER BY freq DESC, COALESCE(display, key) ASC LIMIT ?"
             }
             val args = if (shortPrefix) {
                 arrayOf(key, limit.toString())
@@ -176,7 +178,7 @@ class SQLiteDictionary(
         val database = store.databaseOrNull() ?: return emptyMap()
         try {
             database.rawQuery(
-                "SELECT key, MAX(freq) FROM words WHERE key IN ($placeholders) GROUP BY key",
+                "SELECT key, freq FROM words WHERE key IN ($placeholders)",
                 keys.toTypedArray(),
             ).use { cursor ->
                 while (cursor.moveToNext()) {
@@ -198,10 +200,9 @@ class SQLiteDictionary(
     fun isWord(word: String): Boolean = frequencyOf(word) != null
 
     /**
-     * Bounded fuzzy / typo-tolerant completions of [prefix]: small candidate
-     * set from a short LIKE prefix, then in-Kotlin two-row Levenshtein. The
-     * Amharic caller injects a script-aware [substitutionCost]; English uses
-     * the uniform default.
+     * Bounded fuzzy / typo-tolerant completions of [prefix]. The Amharic
+     * caller injects a script-aware [substitutionCost]; English uses the
+     * uniform default.
      */
     fun fuzzySuggestions(
         prefix: String,
@@ -214,19 +215,47 @@ class SQLiteDictionary(
         if (!isReady || maxEdits <= 0 || limit <= 0) return emptyList()
         val key = normalize(prefix)
         if (key.isEmpty()) return emptyList()
-        val window = key.take(2)
         val db = store.databaseOrNull() ?: return emptyList()
-        val upperBound = prefixEndBound(window)
-        val candidateLimit = if (store.isLowRam) 192 else 512
-        val candidates = ArrayList<Pair<String, Int>>(candidateLimit.coerceAtMost(128))
-        val lower = window
+        val candidates = LinkedHashMap<String, FuzzyCandidate>()
+        val minimumLength = (key.length - maxEdits).coerceAtLeast(1)
+        val maximumLength = key.length + maxEdits
+        val broadLimit = if (store.isLowRam) 1024 else 2048
+        val anchorLimit = if (store.isLowRam) 128 else 256
         try {
             db.rawQuery(
-                "SELECT word, freq FROM words WHERE key >= ? AND key < ? LIMIT ?",
-                arrayOf(lower, upperBound, candidateLimit.toString())
+                "SELECT key, word, freq FROM fuzzy_top " +
+                    "WHERE length >= ? AND length <= ? " +
+                    "ORDER BY freq DESC, key ASC LIMIT ?",
+                arrayOf(
+                    minimumLength.toString(),
+                    maximumLength.toString(),
+                    broadLimit.toString(),
+                )
             ).use { cursor ->
                 while (cursor.moveToNext()) {
-                    candidates.add(cursor.getString(0) to cursor.getInt(1))
+                    val candidateKey = cursor.getString(0)
+                    candidates[candidateKey] = FuzzyCandidate(
+                        key = candidateKey,
+                        word = cursor.getString(1),
+                        frequency = cursor.getInt(2),
+                    )
+                }
+            }
+            listOf(key.take(1), key.take(2)).distinct().forEach { anchor ->
+                db.rawQuery(
+                    "SELECT key, COALESCE(display, key), freq FROM words " +
+                        "WHERE key >= ? AND key < ? " +
+                        "ORDER BY freq DESC, key ASC LIMIT ?",
+                    arrayOf(anchor, prefixEndBound(anchor), anchorLimit.toString()),
+                ).use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val candidateKey = cursor.getString(0)
+                        candidates[candidateKey] = FuzzyCandidate(
+                            key = candidateKey,
+                            word = cursor.getString(1),
+                            frequency = cursor.getInt(2),
+                        )
+                    }
                 }
             }
         } catch (t: Throwable) {
@@ -235,17 +264,32 @@ class SQLiteDictionary(
             return emptyList()
         }
         val matcher = FuzzyMatcher(maxEdits, insertCost, deleteCost, substitutionCost)
-        val matches = matcher.rank(prefix, candidates)
-        return matches.take(limit)
+        val matches = matcher.rank(
+            key,
+            candidates.values.map { it.key to it.frequency },
+        )
+        return matches.take(limit).map { match ->
+            val candidate = checkNotNull(candidates[match.word])
+            FuzzyMatch(candidate.word, match.editDistance, match.frequency)
+        }
     }
 
-    /**
-     * Computes the exclusive upper bound for an open-ended prefix range scan:
-     * `key < prefixEndBound(prefix)` matches all keys with the given prefix
-     * under UTF-16 code-unit order. Appends `\uFFFF` to the prefix so the
-     * resulting bound is strictly greater than every key that *starts* with
-     * the prefix but less than any key that exceeds the prefix at the last
-     * code unit.
-     */
-    private fun prefixEndBound(prefix: String): String = prefix + "\uFFFF"
+    private fun prefixEndBound(prefix: String): String {
+        var end = prefix.length
+        while (end > 0) {
+            val codePoint = prefix.codePointBefore(end)
+            val start = end - Character.charCount(codePoint)
+            if (codePoint < Character.MAX_CODE_POINT) {
+                return prefix.substring(0, start) + String(Character.toChars(codePoint + 1))
+            }
+            end = start
+        }
+        error("Cannot compute an upper bound for an empty prefix")
+    }
+
+    private data class FuzzyCandidate(
+        val key: String,
+        val word: String,
+        val frequency: Int,
+    )
 }

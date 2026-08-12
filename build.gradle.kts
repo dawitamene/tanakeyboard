@@ -6,8 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.android.test) apply false
     alias(libs.plugins.baselineprofile) apply false
-    alias(libs.plugins.google.services) apply false
-    alias(libs.plugins.firebase.crashlytics) apply false
 }
 
 tasks.register("checkKeyboardProducts") {
@@ -16,16 +14,26 @@ tasks.register("checkKeyboardProducts") {
     dependsOn(
         ":keyboard:contracts:check",
         ":keyboard:core:check",
+        ":keyboard:preferences:check",
+        ":keyboard:ui:check",
+        ":keyboard:runtime:check",
         ":language:api:check",
+        ":language:android-api:check",
         ":language:english:check",
         ":language:amharic:check",
+        ":language:oromo:check",
         ":suggestions:api:check",
         ":suggestions:core:check",
         ":suggestions:sqlite:check",
-        ":app:testDebugUnitTest",
-        ":app:verifyCoreDebugUnitTestCoverage",
-        ":app:lintRelease",
-        ":app:verifyDebugLanguagePackAssets",
+        ":features:api:check",
+        ":features:emoji:check",
+        ":features:voice:check",
+        ":features:ai:check",
+        ":features:app-shell:check",
+        ":apps:textrevamp:testDebugUnitTest",
+        ":apps:textrevamp:lintRelease",
+        ":apps:textrevamp:verifyDebugProductContents",
+        ":apps:addiyon:verifyDebugProductContents",
         ":benchmark:assembleBenchmarkRelease"
     )
 }

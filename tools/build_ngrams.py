@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Regenerates language/amharic/src/main/assets/amharic_ngrams.dat -- the Amharic bigram /
+Regenerates language/amharic/src/dictionary/amharic_ngrams.dat -- the Amharic bigram /
 trigram next-word model consumed by suggestion/NgramModel.kt (via
 suggestion/NgramDictionary.kt).
 
@@ -82,8 +82,8 @@ Sources:
 Test fixture (tiny model for JVM unit tests; no dictionary gating, display =
 folded form):
       python3 tools/build_ngrams.py --test-fixture \
-          app/src/test/resources/ngram_mini_corpus.txt \
-          app/src/test/resources/ngram_fixture.dat
+          apps/textrevamp/src/test/resources/ngram_mini_corpus.txt \
+          apps/textrevamp/src/test/resources/ngram_fixture.dat
 """
 
 import argparse
@@ -103,16 +103,16 @@ from build_amharic_dict import fold, SYLLABLE, WORD_RE, GEMINATION_RE
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, ".."))
-DEFAULT_OUT = os.path.join(REPO, "language", "amharic", "src", "main", "assets", "amharic_ngrams.dat")
-DICT_ASSET = os.path.join(REPO, "language", "amharic", "src", "main", "assets", "amharic_words.dat")
+DEFAULT_OUT = os.path.join(REPO, "language", "amharic", "src", "dictionary", "amharic_ngrams.dat")
+DICT_ASSET = os.path.join(REPO, "language", "amharic", "src", "dictionary", "amharic_words.dat")
 
 # English uses per-char lowercase as its fold -- the analogue of the Amharic
 # homoglyph fold, and identical to WordDictionary's default Char::lowercaseChar
 # keying and build_english_dict.py's sort key (so the vocab order the Kotlin
 # side binary-searches agrees). A word is letters with optional internal
 # apostrophes ("don't", "o'clock"); dictionary entries are already clean.
-ENGLISH_OUT = os.path.join(REPO, "language", "english", "src", "main", "assets", "english_ngrams.dat")
-ENGLISH_DICT_ASSET = os.path.join(REPO, "language", "english", "src", "main", "assets", "english_words.dat")
+ENGLISH_OUT = os.path.join(REPO, "language", "english", "src", "dictionary", "english_ngrams.dat")
+ENGLISH_DICT_ASSET = os.path.join(REPO, "language", "english", "src", "dictionary", "english_words.dat")
 EN_WORD_RE = re.compile(r"^[A-Za-z]+(?:'[A-Za-z]+)*$")
 
 

@@ -274,10 +274,8 @@ Current project observations:
 
 - `targetSdk` and `compileSdk` are 36, which already satisfy the Android 16
   target required for new submissions from August 31, 2026.
-- The main manifest intentionally requests `RECORD_AUDIO`, `VIBRATE`, and `INTERNET`.
-  Firebase Analytics and Crashlytics are independently opt-in and off by default; the
-  release verifier checks the final transitive permission allowlist and rejects
-  Advertising ID and AdServices permissions.
+- The Addiyon manifest intentionally requests `RECORD_AUDIO` and `VIBRATE`; it has no
+  network permission, analytics SDK, or crash-reporting SDK.
 - Core transliteration and dictionary suggestions are local. Voice input uses
   Android's `SpeechRecognizer`.
 - Release builds use R8 minification and resource shrinking, so a successful

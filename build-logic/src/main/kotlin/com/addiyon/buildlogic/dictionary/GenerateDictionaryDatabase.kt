@@ -1,7 +1,6 @@
 package com.addiyon.buildlogic.dictionary
 
 import java.io.BufferedReader
-import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.io.File
 import java.sql.Connection
@@ -11,6 +10,7 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
@@ -32,6 +32,11 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
     abstract val wordsDat: RegularFileProperty
 
     @get:InputFile
+    @get:Optional
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val lexemesDat: RegularFileProperty
+
+    @get:InputFile
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val ngramsDat: RegularFileProperty
 
@@ -49,6 +54,7 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
         }
         buildDatabase(
             wordsDat = wordsDat.get().asFile,
+            lexemesDat = lexemesDat.orNull?.asFile,
             ngramsDat = ngramsDat.get().asFile,
             output = outputDb.get().asFile,
             mode = mode,
@@ -58,6 +64,7 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
 
     private fun buildDatabase(
         wordsDat: File,
+        lexemesDat: File?,
         ngramsDat: File,
         output: File,
         mode: String,
@@ -78,13 +85,24 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
                 statement.execute(
                     """
                     CREATE TABLE words(
-                        word TEXT NOT NULL,
-                        freq INTEGER NOT NULL,
-                        key  TEXT NOT NULL
-                    )
+                        key           TEXT PRIMARY KEY,
+                        display       TEXT,
+                        freq          INTEGER NOT NULL,
+                        ngram_id      INTEGER,
+                        ngram_display TEXT
+                    ) WITHOUT ROWID
                     """.trimIndent()
                 )
-                statement.execute("CREATE INDEX idx_words_key ON words(key)")
+                statement.execute(
+                    """
+                    CREATE TABLE morph_lexemes(
+                        kind     INTEGER NOT NULL,
+                        form     TEXT NOT NULL,
+                        features TEXT NOT NULL,
+                        PRIMARY KEY(kind, form, features)
+                    ) WITHOUT ROWID
+                    """.trimIndent()
+                )
                 statement.execute(
                     """
                     CREATE TABLE prefix_top(
@@ -98,44 +116,50 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
                 )
                 statement.execute(
                     """
-                    CREATE TABLE vocab(
-                        id   INTEGER PRIMARY KEY,
-                        text TEXT NOT NULL,
-                        key  TEXT NOT NULL
-                    )
+                    CREATE TABLE fuzzy_top(
+                        length INTEGER NOT NULL,
+                        rank   INTEGER NOT NULL,
+                        key    TEXT NOT NULL,
+                        word   TEXT NOT NULL,
+                        freq   INTEGER NOT NULL,
+                        PRIMARY KEY(length, rank)
+                    ) WITHOUT ROWID
                     """.trimIndent()
                 )
-                statement.execute("CREATE INDEX idx_vocab_key ON vocab(key)")
                 statement.execute(
                     """
                     CREATE TABLE bigrams(
                         ctx     INTEGER NOT NULL,
                         succ    INTEGER NOT NULL,
                         weight  INTEGER NOT NULL,
-                        casing  INTEGER NOT NULL
-                    )
+                        casing  INTEGER NOT NULL,
+                        PRIMARY KEY(ctx, weight DESC, succ, casing)
+                    ) WITHOUT ROWID
                     """.trimIndent()
-                )
-                statement.execute(
-                    "CREATE INDEX idx_bigrams_ctx ON bigrams(ctx, weight DESC, succ, casing)"
                 )
                 statement.execute(
                     """
                     CREATE TABLE trigrams(
                         ctx     INTEGER NOT NULL,
                         succ    INTEGER NOT NULL,
-                        weight  INTEGER NOT NULL
-                    )
+                        weight  INTEGER NOT NULL,
+                        PRIMARY KEY(ctx, weight DESC, succ)
+                    ) WITHOUT ROWID
                     """.trimIndent()
-                )
-                statement.execute(
-                    "CREATE INDEX idx_trigrams_ctx ON trigrams(ctx, weight DESC, succ)"
                 )
             }
             connection.autoCommit = false
             loadWords(connection, wordsDat, mode)
+            lexemesDat?.let { loadLexemes(connection, it) }
             populatePrefixTop(connection, prefixLength)
+            populateFuzzyTop(connection)
             loadNgrams(connection, ngramsDat, mode)
+            connection.createStatement().use { statement ->
+                statement.execute(
+                    "CREATE UNIQUE INDEX idx_words_ngram_id ON words(ngram_id) " +
+                        "WHERE ngram_id IS NOT NULL"
+                )
+            }
             connection.commit()
             connection.autoCommit = true
             connection.createStatement().use { it.execute("VACUUM") }
@@ -144,7 +168,8 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
 
     private fun populatePrefixTop(connection: Connection, maxPrefixLength: Int) {
         val sources = (1..maxPrefixLength).joinToString("\nUNION ALL\n") { length ->
-            "SELECT substr(key, 1, $length), word, freq FROM words WHERE length(key) >= $length"
+            "SELECT substr(key, 1, $length), COALESCE(display, key), freq " +
+                "FROM words WHERE length(key) >= $length"
         }
         connection.createStatement().use { statement ->
             statement.execute(
@@ -169,12 +194,51 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
                 WHERE rank <= ${DictionaryDatabaseFormat.PREFIX_TOP_LIMIT}
                 """.trimIndent()
             )
+            statement.execute(
+                """
+                INSERT INTO prefix_top(prefix, rank, word, freq)
+                SELECT '', rank, word, freq
+                FROM (
+                    SELECT
+                        COALESCE(display, key) AS word,
+                        freq,
+                        row_number() OVER (ORDER BY freq DESC, key ASC) AS rank
+                    FROM words
+                )
+                WHERE rank <= ${DictionaryDatabaseFormat.GLOBAL_TOP_LIMIT}
+                """.trimIndent()
+            )
+        }
+    }
+
+    private fun populateFuzzyTop(connection: Connection) {
+        connection.createStatement().use { statement ->
+            statement.execute(
+                """
+                INSERT INTO fuzzy_top(length, rank, key, word, freq)
+                WITH ranked AS (
+                    SELECT
+                        length(key) AS length,
+                        key,
+                        COALESCE(display, key) AS word,
+                        freq,
+                        row_number() OVER (
+                            PARTITION BY length(key)
+                            ORDER BY freq DESC, key ASC
+                        ) AS rank
+                    FROM words
+                )
+                SELECT length, rank, key, word, freq
+                FROM ranked
+                WHERE rank <= ${DictionaryDatabaseFormat.FUZZY_TOP_PER_LENGTH}
+                """.trimIndent()
+            )
         }
     }
 
     private fun loadWords(connection: Connection, wordsDat: File, mode: String) {
-        val sql = "INSERT INTO words(word, freq, key) VALUES (?, ?, ?)"
-        val data = GZIPInputStream(ByteArrayInputStream(wordsDat.readBytes()))
+        val sql = "INSERT INTO words(key, display, freq) VALUES (?, ?, ?)"
+        val data = GZIPInputStream(wordsDat.inputStream().buffered())
         val reader = BufferedReader(data.reader(Charsets.UTF_8))
         var count = 0
         connection.prepareStatement(sql).use { statement ->
@@ -184,9 +248,36 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
                     if (tab <= 0) continue
                     val word = line.substring(0, tab)
                     val frequency = line.substring(tab + 1).toIntOrNull() ?: continue
-                    statement.setString(1, word)
-                    statement.setInt(2, frequency)
-                    statement.setString(3, normalize(word, mode))
+                    require(frequency > 0) { "Frequency must be positive for '$word'" }
+                    val key = normalize(word, mode)
+                    statement.setString(1, key)
+                    if (word == key) statement.setNull(2, java.sql.Types.VARCHAR)
+                    else statement.setString(2, word)
+                    statement.setInt(3, frequency)
+                    statement.addBatch()
+                    count++
+                    if (count % 10000 == 0) statement.executeBatch()
+                }
+            }
+            statement.executeBatch()
+        }
+    }
+
+    private fun loadLexemes(connection: Connection, lexemesDat: File) {
+        val sql = "INSERT INTO morph_lexemes(kind, form, features) VALUES (?, ?, ?)"
+        val data = GZIPInputStream(lexemesDat.inputStream().buffered())
+        val reader = BufferedReader(data.reader(Charsets.UTF_8))
+        var count = 0
+        connection.prepareStatement(sql).use { statement ->
+            reader.useLines { lines ->
+                for (line in lines) {
+                    val fields = line.split('\t', limit = 3)
+                    if (fields.size != 3) continue
+                    val kind = fields[0].toIntOrNull() ?: continue
+                    require(fields[1].isNotEmpty()) { "Lexeme form must not be empty" }
+                    statement.setInt(1, kind)
+                    statement.setString(2, fields[1])
+                    statement.setString(3, fields[2])
                     statement.addBatch()
                     count++
                     if (count % 10000 == 0) statement.executeBatch()
@@ -198,7 +289,7 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
 
     private fun loadNgrams(connection: Connection, ngramsDat: File, mode: String) {
         val data = DataInputStream(
-            GZIPInputStream(ByteArrayInputStream(ngramsDat.readBytes())).buffered()
+            GZIPInputStream(ngramsDat.inputStream().buffered()).buffered()
         )
         val magic = ByteArray(4)
         data.readFully(magic)
@@ -216,15 +307,37 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
             String(bytes, Charsets.UTF_8)
         }
         connection.prepareStatement(
-            "INSERT INTO vocab(id, text, key) VALUES (?, ?, ?)"
+            """
+            UPDATE words
+            SET
+                ngram_id = ?,
+                ngram_display = CASE
+                    WHEN COALESCE(display, key) = ? THEN NULL
+                    ELSE ?
+                END
+            WHERE key = ?
+            """.trimIndent()
         ).use { statement ->
             for ((index, word) in vocab.withIndex()) {
                 statement.setInt(1, index)
                 statement.setString(2, word)
-                statement.setString(3, normalize(word, mode))
+                statement.setString(3, word)
+                statement.setString(4, normalize(word, mode))
                 statement.addBatch()
+                if ((index + 1) % 10000 == 0) statement.executeBatch()
             }
             statement.executeBatch()
+        }
+        val assignedVocab = connection.createStatement().use { statement ->
+            statement.executeQuery(
+                "SELECT count(*) FROM words WHERE ngram_id IS NOT NULL"
+            ).use { result ->
+                require(result.next())
+                result.getInt(1)
+            }
+        }
+        require(assignedVocab == vocabSize) {
+            "N-gram vocabulary contains ${vocabSize - assignedVocab} words missing from the dictionary"
         }
 
         val bigramCount = data.readInt()

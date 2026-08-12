@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.KeyboardAppShell" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/addiyon_brand_primary</item>
+        <item name="colorPrimaryVariant">@color/addiyon_brand_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/addiyon_brand_primary</item>
+        <item name="colorSecondaryVariant">@color/addiyon_brand_primary</item>
+        <item name="colorOnSecondary">@color/white</item>
+    </style>
+
+    <style name="Theme.KeyboardAppShell.Splash" parent="Theme.KeyboardAppShell">
+        <item name="android:windowBackground">@drawable/keyboard_app_shell_splash</item>
+    </style>
+</resources>

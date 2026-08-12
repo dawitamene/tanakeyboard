@@ -19,7 +19,7 @@ value class LanguageId private constructor(val value: String) {
     override fun toString(): String = value
 }
 
-enum class LanguageTelemetryCategory {
+enum class LanguagePresentationCategory {
     AMHARIC,
     ENGLISH,
     OROMO,
@@ -29,7 +29,8 @@ enum class LanguageTelemetryCategory {
 data class LanguageCapabilities(
     val hasLetterCase: Boolean,
     val supportsGeezNumbers: Boolean = false,
-    val supportsAutoCapitalization: Boolean = hasLetterCase
+    val supportsAutoCapitalization: Boolean = hasLetterCase,
+    val providesSuggestions: Boolean = true
 )
 
 interface LanguagePack {
@@ -37,12 +38,15 @@ interface LanguagePack {
     val localeTag: String
     val displayName: String
     val letterLayout: KeyboardLayout
+    val languageKeyLabel: String get() = displayName.take(2)
     val typingProfile: TypingProfile
     val capabilities: LanguageCapabilities
     val voiceLocaleTag: String?
-    val telemetryCategory: LanguageTelemetryCategory
+    val presentationCategory: LanguagePresentationCategory
     val suggestionEngine: LanguageSuggestionEngine
     val contextReader: (CharSequence?) -> LanguageContext
+    val alternateNumbersLayout: KeyboardLayout? get() = null
+    val alternateNumbersLabel: String? get() = null
     fun cornerPreview(letter: String): String? = null
 }
 

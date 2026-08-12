@@ -1,17 +1,21 @@
 # AGENTS.md
 
-Addiyon Keyboard is an Android IME (`InputMethodService`) with Amharic (Ge'ez script) Latin-to-Fidel transliteration, an English layout, and a SQLite-backed suggestion engine. UI is Jetpack Compose. Single module `:app`.
+Addiyon Keyboard is a multi-product Android IME build. `:apps:addiyon` is the Ethiopian Addiyon product with Amharic, English, and Afaan Oromo and no AI dependency or AI UI. `:apps:textrevamp` is the English-only TextRevamp AI Keyboard backed by `https://api.textrevamp.com`. Shared typing, UI, and runtime code live under `:keyboard:*`; language packs live under `:language:*`; optional implementations live under `:features:*`.
 
 ## Commands
 
 All commands assume workspace root `/Users/dev/code/addiyon-keyboard`. When the user asks for a command, always include the full path so it can be pasted from any terminal — e.g. `/Users/dev/code/addiyon-keyboard/gradlew assembleDebug` (or `bash /Users/dev/code/addiyon-keyboard/gradlew ...`), not just `./gradlew ...`.
 
-- Build: `/Users/dev/code/addiyon-keyboard/gradlew assembleDebug` (also via `./gradlew assembleDebug` from workspace root)
+- Build Addiyon: `/Users/dev/code/addiyon-keyboard/gradlew :apps:addiyon:assembleDebug`
+- Build TextRevamp: `/Users/dev/code/addiyon-keyboard/gradlew :apps:textrevamp:assembleDebug`
+- Verify all products: `/Users/dev/code/addiyon-keyboard/gradlew checkKeyboardProducts`
 - JVM unit tests (no emulator): `/Users/dev/code/addiyon-keyboard/gradlew testDebugUnitTest`
 - Single unit test: `/Users/dev/code/addiyon-keyboard/gradlew testDebugUnitTest --tests "com.addiyon.keyboard.composing.TypingControllerTest"`
-- Compile-only check (fast): `/Users/dev/code/addiyon-keyboard/gradlew compileDebugKotlin`
-- Instrumented tests (needs emulator): `/Users/dev/code/addiyon-keyboard/gradlew connectedAndroidTest`
-- `app/build.gradle.kts` has an `assembleProvider` hook that copies the APK to `/Users/dev/Sync` with a timestamped filename — local convenience, do not remove.
+- Compile-only check (fast): `/Users/dev/code/addiyon-keyboard/gradlew :apps:addiyon:compileDebugKotlin :apps:textrevamp:compileDebugKotlin`
+- Install Addiyon: `/Users/dev/code/addiyon-keyboard/gradlew :apps:addiyon:installDebug`
+- Install TextRevamp: `/Users/dev/code/addiyon-keyboard/gradlew :apps:textrevamp:installDebug`
+- Instrumented tests (needs emulator): `/Users/dev/code/addiyon-keyboard/gradlew :apps:textrevamp:connectedDebugAndroidTest`
+- The shared Android application convention copies every assembled product APK to `/Users/dev/Sync/addiyon-keyboard` with a product-specific timestamped filename — local convenience, do not remove.
 
 ## Mandatory design system
 
@@ -28,8 +32,9 @@ design-system document and contract test in the same change.
 
 
 ### Entry points
-- `AddiyonKeyboardService` — the real product, an `InputMethodService`
-- `MainActivity` — settings/test harness only
+- `apps/addiyon/.../AddiyonKeyboardService` — a thin Addiyon `PackKeyboardService` composition root.
+- `apps/textrevamp/.../AddiyonKeyboardService` — the same shared service with the optional AI feature attached; its internal class name is retained for migration compatibility.
+- Each product's `MainActivity` is a thin launcher for the shared app shell.
 
 ### Transliteration pipeline (pure Kotlin, JVM-testable)
 `transliteration/AmharicTable.kt` → `transliteration/Transliterator.kt` → suggestions consumed via `candidateRanker` + `AmharicPrefixCompletion`.
@@ -38,7 +43,7 @@ design-system document and contract test in the same change.
 - **`Transliterator`**: stateless, whole-buffer retransliteration on every keystroke (not incremental). Matching: longest consonant (case-sensitive first) → longest vowel → longest bare vowel → passthrough. Case-sensitive-first matters only for h/H, t/T, ch/C (the three families with distinct uppercase consonants); other letters fall through to case-insensitive.
 
 ### Composing layer (pure Kotlin, JVM-testable — THE load-bearing class for cursor/rich-text bugs)
-`composing/Composition.kt` + `composing/TypingController.kt` + `composing/WordAdoption.kt` + `composing/ResumableWord.kt`
+`keyboard/core/.../Composition.kt` + `TypingController.kt` + `WordAdoption.kt` + `ResumableWord.kt`
 
 - **`Composition`** owns the raw buffer that IS the field's composing region. Never computes, stores, or passes an **absolute document offset** — every editor call (`setComposingText`, `commitText`, `finishComposingText`, `deleteBeforeCursor`) is cursor-relative, so the field's offset reporting (which Compose TextFields, WebViews and cross-platform toolkits do not reliably expose) cannot desync it. The invariant: a composition exists only while the caret is at its end; any other caret move finalizes the region in place (`finalizeInPlace`) and never adds, removes, or replaces text. Replacing the legacy `WordComposer` (which tracked `composingStart`/`composingEnd` as absolute offsets seeded from selection reads) is what made the "spaces disappear / random words appear" cursor bugs go away.
 - **`TypingController`** owns every edit the keyboard makes: key handling (`onCharacter` / `onSpace` / `onEnter` / `onDelete` / `onCommitText`), caret-aware word resume via `WordAdoption`, chip-tap replacement (`onSuggestionTap` with `SuggestionKind.COMPLETION` / `PREDICTION`), session lifecycle (`onStartInput` / `onFinishInput`), and selection-change handling (`onSelectionChanged`). The only platform-specific dependency is `EditorGateway`, which is mockable — see `TypingControllerTest` for the full behavioural contract.
@@ -46,8 +51,10 @@ design-system document and contract test in the same change.
 - **`ResumableWord`** extracts the word ENDING at the caret (Latin / Amharic / email). Pure, JVM-unit-testable.
 
 ### Service / UI layer
-- **`AddiyonKeyboardService`** owns `isAmharic`, `isEmailField`, `shiftState` (OFF → SHIFT → CAPS_LOCK → OFF), `numbersMode`, and the single `TypingController`. All key handling goes through service methods (`onCharacter`, `onDelete`, `onSpace`, `onEnter`, `toggleShift`, `toggleLanguage`), never UI touching `InputConnection` directly. Case resolution from shift state happens inside `onCharacter` via `latin.uppercase()`/`.lowercase()`. Language/field-specific behaviour comes from `typingProfile()`, read fresh on every controller call — a switch is just flipping `isAmharic`.
-- **UI stack**: `KeyboardScreen` → `KeyRow` → `KeyComposables` renders whichever `KeyboardLayout` is active (`AmharicLayout.kt` / `EnglishLayout.kt`, flat `KeyData` row lists).
+- **One runtime:** `keyboard/runtime/.../PackKeyboardService` owns editor sessions, field policy, `shiftState`, numeric/symbol modes, language switching, suggestions, emoji, voice, preferences, lifecycle, and the single `TypingController` for both products. Product services may only provide product metadata, ordered language-pack providers, their concrete shared-shell activity, and optional feature bindings.
+- **Language providers:** product modules enumerate `AndroidLanguagePackProvider` objects. Concrete pack and suggestion-engine construction stays inside `:language:*`; it must never be repeated under `apps/*`.
+- **Only product differences:** Addiyon registers Amharic, English, and Oromo providers with no AI dependency or UI. TextRevamp registers English and attaches `:features:ai` through the shared optional UI/lifecycle seam. Emoji, voice, settings, onboarding, themes, review/update behavior, editor behavior, and keyboard rendering are common.
+- **UI stack**: product/runtime state → shared `KeyboardUiState`/`KeyboardActions` → `KeyRow` → `KeyComposables`. Language packs supply layouts, labels, corner previews, and number capabilities; shared UI does not import a concrete pack.
 - Every `KeyData.Character` carries exactly one base Latin letter — digraphs ("sh", "ch", "gn") arise from sequential keypresses matching an `AmharicTable` family.
 - Composables never read `service.currentInputConnection` at composition time (goes stale across input sessions) — they call service methods that re-fetch it on each tap.
 - Corner preview glyph: looked up live via `AmharicTable.bareFormOf` off the shift-resolved letter, not baked into layout data.
@@ -62,8 +69,9 @@ When the user asks to create a plan or plan something, write a detailed plan as 
 ## After every code change
 - Run the relevant test(s) for the changed behavior. Prefer the focused test class/target when possible; broaden the test run when shared behavior is affected.
 - When adding a new feature, add or update tests that cover that feature.
-- Build and install on emulator: `/Users/dev/code/addiyon-keyboard/gradlew installDebug`
-- Generate timestamped APK in `/Users/dev/Sync`: `/Users/dev/code/addiyon-keyboard/gradlew assembleDebug`
+- Build and install Addiyon on emulator: `/Users/dev/code/addiyon-keyboard/gradlew :apps:addiyon:installDebug`
+- Assemble all product APKs: `/Users/dev/code/addiyon-keyboard/gradlew :apps:addiyon:assembleDebug :apps:textrevamp:assembleDebug`
+- Generate timestamped product APKs in `/Users/dev/Sync/addiyon-keyboard`: `/Users/dev/code/addiyon-keyboard/gradlew :apps:addiyon:assembleDebug :apps:textrevamp:assembleDebug`
 
 ## Conventions
 - kotlin.code.style=official
@@ -73,8 +81,8 @@ When the user asks to create a plan or plan something, write a detailed plan as 
 
 ## Related repositories
 
-This keyboard's AI feature (`ai/AiApi.kt` → `https://api.textrevamp.com`) is not self-contained — two sibling repos on this machine own the backend and its deployment:
+TextRevamp AI Keyboard's AI feature (`features/ai/.../AiApi.kt` → `https://api.textrevamp.com`) is not self-contained. Addiyon does not include this module. Two sibling repos on this machine own the backend and its deployment:
 
-- **`textrevamp` backend** — `/Users/dev/code/textrevamp/server` (NestJS 10, `server/` in that repo; Chrome extension side is `extension/`). API contract is `POST /text` / `POST /text/alternatives` / `GET /usage/status` / `POST /auth/link` defined in `app/src/main/java/com/addiyon/keyboard/ai/AiApi.kt` and mirrored in `textrevamp/server/src/text/dto/revamp-text-dto.ts` + `ToneOptions` (must stay identical between keyboard and server). Keyboard uses `AiServiceFactory.BASE_URL = https://api.textrevamp.com/` via Retrofit/Moshi. Server proxies Bedrock GPT-OSS 120B, talks to Postgres (`users` table, `DATABASE_URL`), and exposes `PORT=8080` in container (see `textrevamp/AGENTS.md` and `textrevamp/CLAUDE.md`). Any change to request/response shapes, quotas, or auth (JWT / `X-Anonymous-Id`) must be coordinated there first.
+- **`textrevamp` backend** — `/Users/dev/code/textrevamp/server` (NestJS 10, `server/` in that repo; Chrome extension side is `extension/`). API contract is `POST /text` / `POST /text/alternatives` / `GET /usage/status` / `POST /auth/link` defined in `features/ai/src/main/java/com/addiyon/keyboard/ai/AiApi.kt` and mirrored in `textrevamp/server/src/text/dto/revamp-text-dto.ts` + `ToneOptions` (must stay identical between keyboard and server). Keyboard uses `AiServiceFactory.BASE_URL = https://api.textrevamp.com/` via Retrofit/Moshi. Server proxies Bedrock GPT-OSS 120B, talks to Postgres (`users` table, `DATABASE_URL`), and exposes `PORT=8080` in container (see `textrevamp/AGENTS.md` and `textrevamp/CLAUDE.md`). Any change to request/response shapes, quotas, or auth (JWT / `X-Anonymous-Id`) must be coordinated there first.
 
 - **`addiyon-gitops`** — `/Users/dev/code/addiyon-gitops` (Argo CD GitOps repo, app-of-apps in `kustomization.yaml`, auto-sync + prune on `main`). `textrevamp/resources/deployment.yaml` (namespace `textrevamp`, Deployment `ghcr.io/dawitamene/textrevamp-server:<short-sha>`, Service + Traefik `IngressRoute` for `api.textrevamp.com`) is bumped by `textrevamp/.github/workflows/ci.yml` on every `server/**` push to `main`: it builds `ghcr.io/dawitamene/textrevamp-server`, then commits the new tag into `addiyon-gitops` and Argo CD deploys it. Do not edit the image tag manually — let CI do it. Validate with `kubectl kustomize .` / `kubectl apply --dry-run=client -f textrevamp/resources/` before any manual GitOps edit (see `addiyon-gitops/CLAUDE.md`).

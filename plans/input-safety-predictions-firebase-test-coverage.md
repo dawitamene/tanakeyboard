@@ -1,5 +1,9 @@
 # Input safety, fast predictions, Firebase telemetry, and complete test-coverage plan
 
+> **Partially superseded on 2026-08-10.** The input-safety, prediction, and general
+> coverage research remains historical context. The Firebase/telemetry proposal was
+> removed from production and must not be reintroduced as a product difference.
+
 ## Status and approval gate
 
 This document is a plan only. No implementation, dependency, manifest, Firebase, or test

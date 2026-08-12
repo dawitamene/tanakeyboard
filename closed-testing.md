@@ -1,9 +1,9 @@
 # Play Store Testing — Pre-Submission Readiness Checklist
 
-> **Superseded on 2026-07-30.** This is a historical pre-telemetry snapshot with old
-> package, SDK, permission, and Firebase facts. Use
-> `docs/production-launch-checklist.md`, `analytics.md`, and
-> `plans/verify-release-artifact.sh` for the current release.
+> **Superseded.** This is a historical proposal with old package, SDK, permission, and
+> analytics plans. The current products contain no telemetry or Firebase stack. Use
+> `docs/production-launch-checklist.md` and `plans/verify-release-artifact.sh` for the
+> current release.
 
 ## Context
 

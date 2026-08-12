@@ -31,6 +31,11 @@ class SQLiteNgramModel(
 
     fun release() {
         store.release()
+        clearCache()
+    }
+
+    fun clearCache() {
+        topWordsCache = null
     }
 
     /**
@@ -84,7 +89,10 @@ class SQLiteNgramModel(
         if (word.isEmpty()) return null
         val key = normalize(word)
         val db = store.databaseOrNull() ?: return null
-        return db.rawQuery("SELECT id FROM vocab WHERE key = ? LIMIT 1", arrayOf(key)).use { cursor ->
+        return db.rawQuery(
+            "SELECT ngram_id FROM words WHERE key = ? AND ngram_id IS NOT NULL LIMIT 1",
+            arrayOf(key),
+        ).use { cursor ->
             if (cursor.moveToNext()) cursor.getInt(0) else null
         }
     }
@@ -98,9 +106,9 @@ class SQLiteNgramModel(
         val db = store.databaseOrNull() ?: return
         db.rawQuery(
             """
-            SELECT t.succ, t.weight, v.text
+            SELECT t.succ, t.weight, COALESCE(v.ngram_display, v.display, v.key)
             FROM trigrams t
-            JOIN vocab v ON v.id = t.succ
+            JOIN words v ON v.ngram_id = t.succ
             WHERE t.ctx = ?
             ORDER BY t.weight DESC
             LIMIT ?
@@ -126,9 +134,9 @@ class SQLiteNgramModel(
         val db = store.databaseOrNull() ?: return
         db.rawQuery(
             """
-            SELECT b.succ, b.weight, b.casing, v.text
+            SELECT b.succ, b.weight, b.casing, COALESCE(v.ngram_display, v.display, v.key)
             FROM bigrams b
-            JOIN vocab v ON v.id = b.succ
+            JOIN words v ON v.ngram_id = b.succ
             WHERE b.ctx = ?
             ORDER BY b.weight DESC
             LIMIT ?
@@ -155,7 +163,7 @@ class SQLiteNgramModel(
     private fun fetchTopFrequentWords(count: Int): List<Prediction> {
         val db = store.databaseOrNull() ?: return emptyList()
         return db.rawQuery(
-            "SELECT word, freq FROM words ORDER BY freq DESC LIMIT ?",
+            "SELECT word, freq FROM prefix_top WHERE prefix = '' ORDER BY rank LIMIT ?",
             arrayOf(count.toString())
         ).use { cursor ->
             ArrayList<Prediction>(count).apply {
@@ -167,6 +175,6 @@ class SQLiteNgramModel(
     }
 
     companion object {
-        private const val TOP_FREQUENT_WORD_COUNT = 10
+        private const val TOP_FREQUENT_WORD_COUNT = 15
     }
 }

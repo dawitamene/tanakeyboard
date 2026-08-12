@@ -58,15 +58,9 @@ Verified from the repository on 2026-07-30:
 The AAB currently under `app/build/outputs/bundle/release/` was built on 2026-07-25. It
 predates the current uncommitted changes and must not be treated as the final candidate.
 
-### 2. Run the release verifier against fresh Firebase-enabled outputs
+### 2. Run the release verifier against fresh outputs
 
-- [x] Replace the contradictory permission-count check with an exact allowlist and
-  advertising-permission denylist.
-- [x] Add production Firebase resource, Crashlytics mapping metadata, and debug crash
-  trigger checks to `plans/verify-release-artifact.sh`.
-- [ ] Supply exactly one valid production `google-services.json` downloaded from
-  Firebase, pin its `mobilesdk_app_id` and `project_id` in `version.properties`, and run
-  the config-enabled release gate.
+- [x] Replace the contradictory permission-count check with an exact allowlist.
 
 - [ ] Rebuild after repairing the verifier; do not validate against stale intermediates.
 - [ ] Confirm the final merged manifest has only the intended permissions.
@@ -85,10 +79,10 @@ predates the current uncommitted changes and must not be treated as the final ca
   policy.
 - [ ] Complete the Data safety form based on the final AAB, including third-party SDK and
   Android Backup behavior.
-- [ ] Review the optional voice flow carefully: Addiyon has `INTERNET` for optional
-  Firebase diagnostics, while Android's selected speech-recognition provider may process
-  voice off-device. Ensure the Data safety answers, hosted policy, in-app disclosure,
-  permission prompt, and store description distinguish those paths accurately.
+- [ ] Review the optional voice flow carefully: Android's selected speech-recognition
+  provider may process voice off-device even though Addiyon itself has no network
+  permission. Ensure the Data safety answers, hosted policy, in-app disclosure,
+  permission prompt, and store description explain that handoff accurately.
 - [ ] Confirm the microphone permission is requested only after the user intentionally
   starts voice typing, with understandable context and a usable deny path.
 - [ ] Confirm the keyboard remains fully usable when microphone access is denied or

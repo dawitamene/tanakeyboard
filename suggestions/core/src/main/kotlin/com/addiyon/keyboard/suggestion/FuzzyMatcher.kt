@@ -4,9 +4,8 @@ package com.addiyon.keyboard.suggestion
  * Bounded Levenshtein (insert / delete / substitute) over a small candidate
  * set, with two rolling DP rows to keep allocation tight. Same shape as the
  * old [WordTrie.searchFuzzy] fuzzy pass, just stripped of trie recursion and
- * given a pre-fetched candidate list (typically the result of a short
- * `LIKE 'X%'` prefix query, which is how the SQLite-backed runtime fetches
- * its candidates). The [SubstitutionCost] is a per-character callback so the
+ * given a pre-fetched candidate list. The [SubstitutionCost] is a
+ * per-character callback so the
  * Amharic caller can route the fidel-aware edit cost through here.
  */
 class FuzzyMatcher(
@@ -33,7 +32,7 @@ class FuzzyMatcher(
                 result.add(FuzzyMatch(candidate, distance, frequency))
             }
         }
-        result.sortWith(compareBy({ it.editDistance }, { -it.frequency }))
+        result.sortWith(compareBy({ it.editDistance }, { -it.frequency }, { it.word }))
         return result
     }
 

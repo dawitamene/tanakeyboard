@@ -11,9 +11,9 @@ Use these sources in this order:
 
 1. Product safety, Android platform behavior, and accessibility requirements.
 2. This document and the executable contract in
-   `app/src/test/java/com/addiyon/keyboard/ui/design/DesignSystemContractTest.kt`.
-3. The implementation in `app/src/main/java/com/addiyon/keyboard/ui/design/`,
-   `ui/theme/Theme.kt`, and the shared UI components.
+   `apps/textrevamp/src/test/java/com/addiyon/keyboard/ui/design/DesignSystemContractTest.kt`.
+3. The implementation in `keyboard/ui/src/main/java/com/addiyon/keyboard/ui/design/`,
+   `keyboard/ui/src/main/java/com/addiyon/keyboard/ui/theme/Theme.kt`, and the shared UI components.
 4. Screen-specific product requirements and existing call-site behavior.
 5. A visual preference or an individual request.
 
@@ -31,7 +31,7 @@ including work proposed by an LLM.
   meaning or interaction state, not decoration.
 - Keep behavior predictable across app screens and the keyboard. A control
   must either work, be disabled with a reason, or not be rendered.
-- Design for both English and Amharic users from the first layout pass.
+- Design Addiyon for Amharic, English, and Afaan Oromo; design TextRevamp for English.
 - Preserve user choice in the IME. The app brand must not override a user's
   keyboard palette.
 
@@ -100,8 +100,8 @@ success color is not a general green accent. Error, warning, and info states
 must use the corresponding Material roles or a future documented extension.
 `brandPrimary` and `onBrandPrimary` expose the fixed Addiyon primary pair for
 the selected AI tone and other explicitly documented brand-identity moments.
-`aiResultSurface` and `onAiResultSurface` provide the AI panel's flat white
-reading canvas and fixed ink text; this pair intentionally remains light in
+`resultSurface` and `onResultSurface` provide a flat white reading canvas and
+fixed ink text; this pair intentionally remains light in
 both appearances so generated versions have one quiet, shadow-free treatment.
 
 Brand and semantic roles have light and dark values. Use the theme-provided
@@ -130,10 +130,11 @@ text styles (`titleLarge`, `titleMedium`, `bodyLarge`, `bodyMedium`,
 `PlaypenSansBrand` for logo/display moments only. Do not stretch, outline, or
 fake bold text to compensate for a missing font weight.
 
-User-facing text belongs in `ui/i18n/AppStrings.kt` and must have English and
-Amharic values. New or newly touched app screens must not introduce hard-coded
-copy in a composable. Technical identifiers, test tags, and keyboard key
-labels are not user-facing prose.
+User-facing TextRevamp text belongs in its English-only `ui/i18n/AppStrings.kt`.
+Addiyon app-shell text belongs in Android string resources and must cover its
+Amharic, English, and Afaan Oromo product scope. New or newly touched app
+screens must not introduce hard-coded copy in a composable. Technical
+identifiers, test tags, and keyboard key labels are not user-facing prose.
 
 ## Tokens
 
@@ -165,10 +166,21 @@ content that grows when translated into Amharic. Prefer constraint-aware layout
 not use fixed heights for app content unless the component contract explicitly
 requires one.
 
-The compact language selector uses `AddiyonContentSection` for its trigger and
-`AddiyonDropdownMenu` for its popup so it receives the same `surface` color,
-group radius, and zero tonal elevation instead of Material's default tinted
-container. The signed-in profile icon is a direct navigation control: it opens
+Multi-product app navigation uses the shared renderers in `:features:app-shell`.
+`KeyboardOnboardingScreen`, `KeyboardProductHeader`, and
+`KeyboardSettingsMenuScreen` define the common onboarding and settings shell.
+`KeyboardPageTopBar`, `KeyboardThemePickerScreen`, `KeyboardPreferencesScreen`,
+`KeyboardTestScreen`, `KeyboardAboutScreen`, and `KeyboardTextGuideScreen`
+define its reusable destinations. Products supply localized copy, preference
+storage, functional destinations, and capability-specific rows without cloning
+those layouts into application modules.
+
+Both products also use the shared `Theme.KeyboardAppShell` content window and
+`Theme.KeyboardAppShell.Splash` launch window from `:features:app-shell`.
+Launcher and IME test-host activities keep `adjustResize`; product manifests
+must not redefine these common window styles.
+
+The signed-in profile icon is a direct navigation control: it opens
 the AI account screen without an intermediate logout menu.
 
 IME surfaces are the exception: keyboard rows, suggestion strips, and AI/emoji
@@ -184,7 +196,7 @@ omits quota text from that toolbar,
 gives the state and result region the bounded scroll, omits a duplicate input
 preview, and stacks the three generated versions vertically. It does not show
 the AI mark, a close icon, a separate “Tone” label, strength selectors, or pinned
-global actions. Generated versions use rounded `aiResultSurface` surfaces without
+global actions. Generated versions use rounded `resultSurface` surfaces without
 card elevation and provide compact per-result Copy and Replace controls. Loading
 uses three rounded result-shaped placeholders with an animated directional shimmer
 rather than a spinner or status sentence.

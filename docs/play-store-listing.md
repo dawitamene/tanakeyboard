@@ -7,12 +7,10 @@ Primary keywords: *Amharic keyboard, Amharic typing, Ethiopian keyboard, Ge'ez /
 Fidel, transliteration, Ethiopia* — and in Ethiopic: *አማርኛ, ኪቦርድ, ፊደል, ግዕዝ*.
 
 > **Accuracy note.** The privacy wording below is deliberately scoped and must stay
-> identical in meaning to the diagnostics and onboarding strings in
-> `ui/i18n/AppStrings.kt` and to `site/privacy.html`. Addiyon never collects
-> typed/editor content. Optional usage analytics and crash diagnostics are independent
-> opt-ins, both off by default. The listing and Data Safety form must disclose those
-> Firebase data categories and the speech-provider handoff without reverting to a
-> blanket "no data collected" claim.
+> identical in meaning to the onboarding strings and `site/privacy.html`. Addiyon does
+> not include usage analytics or crash-reporting SDKs and never collects typed/editor
+> content. The listing and Data Safety form must still disclose the speech-provider
+> handoff accurately.
 
 ---
 
