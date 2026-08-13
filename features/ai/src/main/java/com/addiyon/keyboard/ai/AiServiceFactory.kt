@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 object AiServiceFactory {
     const val BASE_URL = "https://api.textrevamp.com/"
     private const val TIMEOUT_SECONDS = 30L
-    private const val COMPLETION_TIMEOUT_MILLISECONDS = 1_500L
+    private const val COMPLETION_TIMEOUT_MILLISECONDS = 5_000L
 
     fun create(baseUrl: String = BASE_URL, debug: Boolean = false): AiApi {
         return create(
