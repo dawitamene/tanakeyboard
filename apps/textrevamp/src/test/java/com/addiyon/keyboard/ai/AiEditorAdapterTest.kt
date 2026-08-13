@@ -123,6 +123,36 @@ class AiEditorAdapterTest {
         assertFalse(adapter.isCompletionCaptureCurrent(requireNotNull(capture).snapshot))
     }
 
+    @Test
+    fun `phrase completion still captures after optional editor reads are disabled`() {
+        val editor = MutableEditor("I will send the draft", 21, 21)
+        val times = ArrayDeque(listOf(0L, 25_000_001L))
+        val gateway = EditorGateway(
+            connectionProvider = { editor.connection },
+            clockNanos = { times.removeFirstOrNull() ?: 25_000_001L }
+        )
+        gateway.beginSession(21, 21)
+        gateway.textBeforeCursor(1)
+        assertFalse(gateway.allowsOptionalReads)
+
+        val capture = AiEditorAdapter(gateway).captureCompletionContext()
+
+        assertEquals("I will send the draft", requireNotNull(capture).prefix)
+    }
+
+    @Test
+    fun `phrase completion does not require an absolute editor selection`() {
+        val editor = MutableEditor("hello how are", 13, 13)
+        val gateway = EditorGateway { editor.connection }
+        gateway.beginSession()
+        val adapter = AiEditorAdapter(gateway)
+
+        val capture = requireNotNull(adapter.captureCompletionContext())
+
+        assertEquals("hello how are", capture.prefix)
+        assertTrue(adapter.isCompletionCaptureCurrent(capture.snapshot))
+    }
+
     private class MutableEditor(
         var text: String,
         var selectionStart: Int,

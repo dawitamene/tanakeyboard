@@ -82,7 +82,8 @@ internal class AiEditorAdapter(
         val field = gateway.surroundingText(
             beforeChars = MAX_COMPLETION_PREFIX_CHARS,
             afterChars = 1,
-            optional = true
+            optional = false,
+            verifyReportedSelection = false
         ) ?: return null
         val surrounding = field.value
         if (surrounding.selectedText.isNotEmpty() || surrounding.textAfterSelection.isNotEmpty()) {
@@ -192,11 +193,12 @@ internal class AiEditorAdapter(
     )
 
     private fun completionTargetIsCurrent(target: CompletionTarget): Boolean {
-        if (!gateway.revalidateSelection(target.token)) return false
+        if (!gateway.isCurrentSession(target.token)) return false
         val field = gateway.surroundingText(
             beforeChars = MAX_COMPLETION_PREFIX_CHARS,
             afterChars = 1,
-            optional = false
+            optional = false,
+            verifyReportedSelection = false
         ) ?: return false
         return field.value.selectedText.isEmpty() &&
             field.value.textAfterSelection.isEmpty() &&
