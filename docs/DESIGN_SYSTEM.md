@@ -228,6 +228,9 @@ standard suggestion strip. The row is exactly `AddiyonSizes.keyboardAction`
 one line and non-scrolling, and keeps the same height across idle, debounce,
 loading, and ready states. It is absent when the opted-in feature or editor is
 ineligible, when an optional full panel replaces the keyboard, and in Addiyon.
+Its idle and debounce states center the AI icon with the instruction “Type
+something to complete the phrase.” Loading replaces that prompt with a centered,
+animated three-dot indicator that retains an accessible loading description.
 The completion body and dismiss action are separate controls; displayed text
 may omit a leading separator for readability, while insertion preserves the
 exact suffix.

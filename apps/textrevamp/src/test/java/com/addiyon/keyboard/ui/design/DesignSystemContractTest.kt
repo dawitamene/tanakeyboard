@@ -19,14 +19,25 @@ class DesignSystemContractTest {
         val screen = root.resolve(
             "keyboard/ui/src/main/java/com/addiyon/keyboard/ui/KeyboardScreen.kt"
         ).readText()
+        val strings = root.resolve(
+            "apps/textrevamp/src/main/java/com/addiyon/keyboard/TextRevampStrings.kt"
+        ).readText()
         val designSystem = root.resolve("docs/DESIGN_SYSTEM.md").readText()
 
         assertTrue(bar.contains("height(AddiyonSizes.keyboardAction)"))
         assertTrue(bar.contains("MaterialTheme.colorScheme.surfaceVariant"))
         assertTrue(bar.contains("maxLines = 1"))
+        assertTrue(bar.contains("private fun CompletionIdleStatus"))
+        assertTrue(bar.contains("horizontalArrangement = Arrangement.Center"))
+        assertTrue(bar.contains("private fun CompletionLoadingDots"))
+        assertTrue(bar.contains("rememberInfiniteTransition"))
+        assertTrue(bar.contains("repeat(3)"))
+        assertTrue(bar.contains("contentDescription = label"))
+        assertTrue(strings.contains("Type something to complete the phrase"))
         assertTrue(screen.contains("optionalUi.contextualRow()"))
         assertTrue(designSystem.contains("optional phrase-completion row"))
         assertTrue(designSystem.contains("44 dp"))
+        assertTrue(designSystem.contains("animated three-dot indicator"))
     }
 
     @Test
