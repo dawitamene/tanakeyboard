@@ -24,9 +24,10 @@ object AmharicSuggestionPipeline {
         context: Context,
         limit: Int,
         frequencyOf: (String) -> Int?,
-        completionsForPrefix: (String, Int) -> List<CandidateRanker.DictionaryWord>,
+        completionsForPrefix: (String, Int) -> List<CandidateRanker.AmharicCandidate>,
         fuzzyWords: List<CandidateRanker.FuzzyWord> = emptyList(),
         ngramNext: Map<String, Int> = emptyMap(),
+        personalEvidence: Map<String, CandidateRanker.PersonalEvidence> = emptyMap(),
     ): List<String> = CandidateRanker.rankAmharic(
         readings = context.readings,
         limit = limit,
@@ -36,6 +37,7 @@ object AmharicSuggestionPipeline {
         fuzzyWords = fuzzyWords,
         quirkReadings = context.quirkReadings,
         ngramNext = ngramNext,
+        personalEvidence = personalEvidence,
         preferGreedy = context.preferGreedy,
         normalize = EthiopicNormalizer::normalize,
     )

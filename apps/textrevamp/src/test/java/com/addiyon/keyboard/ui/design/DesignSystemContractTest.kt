@@ -11,6 +11,25 @@ import org.junit.Test
 
 class DesignSystemContractTest {
     @Test
+    fun phraseCompletionRowUsesTheFixedImeContract() {
+        val root = projectRoot()
+        val bar = root.resolve(
+            "features/ai/src/main/java/com/addiyon/keyboard/ui/ai/AiCompletionBar.kt"
+        ).readText()
+        val screen = root.resolve(
+            "keyboard/ui/src/main/java/com/addiyon/keyboard/ui/KeyboardScreen.kt"
+        ).readText()
+        val designSystem = root.resolve("docs/DESIGN_SYSTEM.md").readText()
+
+        assertTrue(bar.contains("height(AddiyonSizes.keyboardAction)"))
+        assertTrue(bar.contains("MaterialTheme.colorScheme.surfaceVariant"))
+        assertTrue(bar.contains("maxLines = 1"))
+        assertTrue(screen.contains("optionalUi.contextualRow()"))
+        assertTrue(designSystem.contains("optional phrase-completion row"))
+        assertTrue(designSystem.contains("44 dp"))
+    }
+
+    @Test
     fun requiredDesignSystemFilesAndInstructionsArePresent() {
         val root = projectRoot()
         val required = listOf(
@@ -108,16 +127,18 @@ class DesignSystemContractTest {
             "object AddiyonSizes",
             "val formControl = 56.dp",
             "object AddiyonBorders",
-            "val selectedTone = 3.dp",
+            "val selectedTone = 1.dp",
             "object AddiyonMotion",
             "data class AddiyonBrand",
             "fun rememberAddiyonBrand",
             "colorResource(R.color.addiyon_brand_primary)",
             "data class AddiyonColors",
             "data class AddiyonAiToneColors",
+            "data class AddiyonAiToneGlowColors",
             "brandPrimary",
             "onBrandPrimary",
             "aiToneIcons",
+            "aiToneGlow",
             "resultSurface",
             "onResultSurface",
             "successContainer",
@@ -190,6 +211,23 @@ class DesignSystemContractTest {
                 properties.size,
                 assignments.toSet().size
             )
+        }
+    }
+
+    @Test
+    fun aiToneGlowUsesTheApprovedGradientInBothAppearances() {
+        val tokens = projectRoot().resolve(
+            "keyboard/ui/src/main/java/com/addiyon/keyboard/ui/design/AddiyonDesignTokens.kt"
+        ).readText()
+        val appearances = listOf(
+            tokens.substringAfter("fun addiyonLightColors").substringBefore("fun addiyonDarkColors"),
+            tokens.substringAfter("fun addiyonDarkColors").substringBefore("val LocalAddiyonColors")
+        )
+
+        appearances.forEach { appearance ->
+            assertTrue(appearance.contains("aiToneGlow = AddiyonAiToneGlowColors("))
+            assertTrue(appearance.contains("start = Color(0xFFD05398)"))
+            assertTrue(appearance.contains("end = Color(0xFF5980F0)"))
         }
     }
 

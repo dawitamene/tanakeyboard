@@ -10,25 +10,62 @@ object CandidateRanker {
     data class DictionaryWord(val word: String, val frequency: Int)
     data class FuzzyWord(val word: String, val frequency: Int, val editDistance: Int)
 
-    private data class ScoredSuggestion(
-        val word: String,
-        val score: Int,
-        val sourceRank: Int,
-        val structuralIndex: Int
+    enum class CandidateSource {
+        EXACT_LEXEME,
+        GREEDY_LITERAL,
+        ATTESTED_SURFACE,
+        GENERATED_MORPHOLOGY,
+        PERSONAL,
+        FUZZY,
+    }
+
+    data class PersonalEvidence(
+        val count: Int,
+        val recency: Int,
     )
 
-    private const val EXACT_WORD_BONUS = 160_000
-    private const val LITERAL_BONUS = 120_000
-    private const val COMPLETION_BONUS = 80_000
-    private const val FUZZY_BONUS = 40_000
+    data class AmharicCandidate(
+        val word: String,
+        val source: CandidateSource,
+        val lexicalFrequency: Int = 0,
+        val surfaceFrequency: Int? = null,
+        val personalCount: Int = 0,
+        val personalRecency: Int = 0,
+        val morphologyCost: Int = 0,
+        val editDistance: Int = 0,
+        val evidenceSources: Set<CandidateSource> = emptySet(),
+    )
+
+    data class RankedCandidate(
+        val candidate: AmharicCandidate,
+        val score: Int,
+        val structuralIndex: Int,
+        val exactReading: Boolean,
+    )
+
+    private data class ScoredSuggestion(
+        val ranked: RankedCandidate,
+    )
+
+    private const val EXACT_READING_BONUS = 250_000
+    private const val LITERAL_BONUS = 210_000
+    private const val EXACT_LEXEME_COMPLETION_BONUS = 170_000
+    private const val ATTESTED_SURFACE_BONUS = 130_000
+    private const val GENERATED_MORPHOLOGY_BONUS = 90_000
+    private const val FUZZY_BONUS = 50_000
     private const val STRUCTURAL_PENALTY = 180
     private const val COMPLETION_LENGTH_PENALTY = 20
     private const val FUZZY_EDIT_PENALTY = 5_000
+    private const val MORPHOLOGY_COST_PENALTY = 1_000
+    private const val PERSONAL_COUNT_SCALE = 500
+    private const val PERSONAL_MAX_BONUS = 4_000
+    private const val PERSONAL_RECENCY_MAX_BONUS = 1_000
+    private const val COMPLETION_CONTEXT_MAX_BONUS = 5_000
+    private const val WITHIN_TIER_MAX_PENALTY = 10_000
 
-    // N-gram context boost: base + scaled model weight (0-255), capped well
-    // below both the 40k source-tier gaps and the 30k frequency band, so
-    // context reorders candidates *within* their tier but can never promote
-    // e.g. a fuzzy match over a completion.
+    // N-gram context boost: base + scaled model weight (0-255), capped below
+    // the source-tier gaps so context cannot promote fuzzy or generated forms
+    // across a stronger validity tier.
     private const val NGRAM_BASE_BONUS = 2_000
     private const val NGRAM_WEIGHT_SCALE = 31
     private const val NGRAM_MAX_BONUS = 10_000
@@ -72,14 +109,41 @@ object CandidateRanker {
         readings: List<String>,
         limit: Int,
         frequencyOf: (String) -> Int?,
-        completionsForPrefix: (String, Int) -> List<DictionaryWord>,
+        completionsForPrefix: (String, Int) -> List<AmharicCandidate>,
         visibleReadings: List<String> = emptyList(),
         fuzzyWords: List<FuzzyWord> = emptyList(),
         quirkReadings: Set<String> = emptySet(),
         ngramNext: Map<String, Int> = emptyMap(),
+        personalEvidence: Map<String, PersonalEvidence> = emptyMap(),
         preferGreedy: Boolean = false,
         normalize: (String) -> String = { it }
-    ): List<String> {
+    ): List<String> = rankAmharicDetailed(
+        readings = readings,
+        limit = limit,
+        frequencyOf = frequencyOf,
+        completionsForPrefix = completionsForPrefix,
+        visibleReadings = visibleReadings,
+        fuzzyWords = fuzzyWords,
+        quirkReadings = quirkReadings,
+        ngramNext = ngramNext,
+        personalEvidence = personalEvidence,
+        preferGreedy = preferGreedy,
+        normalize = normalize,
+    ).map { it.candidate.word }
+
+    fun rankAmharicDetailed(
+        readings: List<String>,
+        limit: Int,
+        frequencyOf: (String) -> Int?,
+        completionsForPrefix: (String, Int) -> List<AmharicCandidate>,
+        visibleReadings: List<String> = emptyList(),
+        fuzzyWords: List<FuzzyWord> = emptyList(),
+        quirkReadings: Set<String> = emptySet(),
+        ngramNext: Map<String, Int> = emptyMap(),
+        personalEvidence: Map<String, PersonalEvidence> = emptyMap(),
+        preferGreedy: Boolean = false,
+        normalize: (String) -> String = { it }
+    ): List<RankedCandidate> {
         if (readings.isEmpty() || limit <= 0) return emptyList()
 
         val scored = ArrayList<ScoredSuggestion>()
@@ -94,14 +158,21 @@ object CandidateRanker {
             if (reading in quirkReadings) continue
             val frequency = frequencyOf(reading) ?: continue
             if (index == 0) greedyIsExactWord = true
-            scored.add(
-                ScoredSuggestion(
-                    reading,
-                    exactScore(frequency, index) +
-                        ngramBoost(ngramNext, reading, normalize),
-                    sourceRank = 0,
-                    structuralIndex = index
-                )
+            val candidate = withPersonalEvidence(
+                AmharicCandidate(
+                    word = reading,
+                    source = CandidateSource.EXACT_LEXEME,
+                    lexicalFrequency = frequency,
+                ),
+                personalEvidence,
+                normalize,
+            )
+            scored += score(
+                candidate = candidate,
+                structuralIndex = index,
+                exactReading = true,
+                lengthDelta = 0,
+                contextBonus = ngramBoost(ngramNext, reading, normalize),
             )
         }
 
@@ -113,98 +184,203 @@ object CandidateRanker {
         // and before any other suggestion. Skipped only when the greedy reading
         // is itself an exact word (already scored higher, in the loop above).
         if (!greedyIsExactWord) {
-            scored.add(
-                ScoredSuggestion(
-                    readings.first(),
-                    LITERAL_BONUS,
-                    sourceRank = 1,
-                    structuralIndex = 0
-                )
+            scored += score(
+                candidate = AmharicCandidate(
+                    word = readings.first(),
+                    source = CandidateSource.GREEDY_LITERAL,
+                ),
+                structuralIndex = 0,
+                exactReading = false,
+                lengthDelta = 0,
+                contextBonus = 0,
             )
         }
 
         for ((index, reading) in visibleReadings.withIndex()) {
             if (reading == readings.first() || frequencyOf(reading) == null) continue
-            scored.add(
-                ScoredSuggestion(
-                    reading,
-                    visibleReadingScore(index + 1),
-                    sourceRank = 1,
-                    structuralIndex = index + 1
-                )
+            val candidate = withPersonalEvidence(
+                AmharicCandidate(
+                    word = reading,
+                    source = CandidateSource.EXACT_LEXEME,
+                    lexicalFrequency = frequencyOf(reading) ?: 0,
+                ),
+                personalEvidence,
+                normalize,
+            )
+            scored += score(
+                candidate = candidate,
+                structuralIndex = index + 1,
+                exactReading = false,
+                lengthDelta = 0,
+                contextBonus = ngramBoost(ngramNext, reading, normalize),
             )
         }
 
         for ((index, reading) in readings.withIndex()) {
             val completions = completionsForPrefix(reading, limit)
             for (completion in completions) {
-                scored.add(
-                    ScoredSuggestion(
-                        completion.word,
-                        completionScore(
-                            completion.frequency,
-                            index,
-                            completion.word.length - reading.length
-                        ) + ngramBoost(ngramNext, completion.word, normalize),
-                        sourceRank = 2,
-                        structuralIndex = index
-                    )
+                val candidate = withPersonalEvidence(completion, personalEvidence, normalize)
+                scored += score(
+                    candidate = candidate,
+                    structuralIndex = index,
+                    exactReading = false,
+                    lengthDelta = completion.word.length - reading.length,
+                    contextBonus = ngramBoost(ngramNext, completion.word, normalize),
                 )
             }
         }
 
         for (word in fuzzyWords) {
-            scored.add(
-                ScoredSuggestion(
-                    word.word,
-                    fuzzyScore(word.frequency, word.editDistance),
-                    sourceRank = 3,
-                    structuralIndex = Int.MAX_VALUE
-                )
+            scored += score(
+                candidate = AmharicCandidate(
+                    word = word.word,
+                    source = CandidateSource.FUZZY,
+                    lexicalFrequency = word.frequency,
+                    editDistance = word.editDistance,
+                ),
+                structuralIndex = Int.MAX_VALUE,
+                exactReading = false,
+                lengthDelta = 0,
+                contextBonus = 0,
             )
         }
 
         val bestByWord = LinkedHashMap<String, ScoredSuggestion>(scored.size)
-        for (candidate in scored) {
-            val current = bestByWord[candidate.word]
+        for (scoredCandidate in scored) {
+            val candidate = scoredCandidate.ranked
+            val current = bestByWord[candidate.candidate.word]?.ranked
             if (
                 current == null ||
                 candidate.score > current.score ||
-                candidate.score == current.score && candidate.sourceRank < current.sourceRank ||
                 candidate.score == current.score &&
-                    candidate.sourceRank == current.sourceRank &&
+                    sourceRank(candidate.candidate.source) < sourceRank(current.candidate.source) ||
+                candidate.score == current.score &&
+                    sourceRank(candidate.candidate.source) == sourceRank(current.candidate.source) &&
                     candidate.structuralIndex < current.structuralIndex
             ) {
-                bestByWord[candidate.word] = candidate
+                bestByWord[candidate.candidate.word] = scoredCandidate
             }
         }
         val ranked = bestByWord.values
             .sortedWith(
-                compareByDescending<ScoredSuggestion> { it.score }
-                    .thenBy { it.sourceRank }
-                    .thenBy { it.structuralIndex }
-                    .thenBy { it.word }
+                compareByDescending<ScoredSuggestion> { it.ranked.score }
+                    .thenBy { sourceRank(it.ranked.candidate.source) }
+                    .thenBy { it.ranked.structuralIndex }
+                    .thenBy { it.ranked.candidate.word }
             )
-            .map { it.word }
+            .map { it.ranked }
             .take(limit)
-        if (!preferGreedy || ranked.firstOrNull() == readings.first()) return ranked
+        if (!preferGreedy || ranked.firstOrNull()?.candidate?.word == readings.first()) return ranked
         return buildList {
-            add(readings.first())
-            addAll(ranked.filterNot { it == readings.first() })
+            ranked.firstOrNull { it.candidate.word == readings.first() }?.let(::add)
+            addAll(ranked.filterNot { it.candidate.word == readings.first() })
         }.take(limit)
     }
 
     private fun exactScore(frequency: Int, structuralIndex: Int): Int =
-        EXACT_WORD_BONUS + frequencyScore(frequency) - structuralIndex * STRUCTURAL_PENALTY
+        EXACT_READING_BONUS + frequencyScore(frequency) - structuralIndex * STRUCTURAL_PENALTY
 
-    private fun completionScore(frequency: Int, structuralIndex: Int, lengthDelta: Int): Int =
-        COMPLETION_BONUS +
-            frequencyScore(frequency) -
-            structuralIndex * STRUCTURAL_PENALTY -
-            lengthDelta.coerceAtLeast(0) * COMPLETION_LENGTH_PENALTY
+    private fun score(
+        candidate: AmharicCandidate,
+        structuralIndex: Int,
+        exactReading: Boolean,
+        lengthDelta: Int,
+        contextBonus: Int,
+    ): ScoredSuggestion {
+        require(candidate.source != CandidateSource.PERSONAL)
+        val sourceBonus = when {
+            exactReading -> EXACT_READING_BONUS
+            candidate.source == CandidateSource.GREEDY_LITERAL -> LITERAL_BONUS
+            candidate.source == CandidateSource.EXACT_LEXEME -> EXACT_LEXEME_COMPLETION_BONUS
+            candidate.source == CandidateSource.ATTESTED_SURFACE -> ATTESTED_SURFACE_BONUS
+            candidate.source == CandidateSource.GENERATED_MORPHOLOGY -> GENERATED_MORPHOLOGY_BONUS
+            else -> FUZZY_BONUS
+        }
+        val frequencyEvidence = when {
+            exactReading ->
+                frequencyScore(candidate.lexicalFrequency)
+            candidate.source == CandidateSource.EXACT_LEXEME ->
+                frequencyScore(candidate.lexicalFrequency).coerceAtMost(15_000)
+            candidate.source == CandidateSource.ATTESTED_SURFACE ->
+                candidate.surfaceFrequency.orZero().coerceAtMost(10_000) +
+                    lexicalEvidenceScore(candidate.lexicalFrequency).coerceAtMost(3_000)
+            candidate.source == CandidateSource.GENERATED_MORPHOLOGY ->
+                lexicalEvidenceScore(candidate.lexicalFrequency).coerceAtMost(3_000)
+            candidate.source == CandidateSource.FUZZY ->
+                frequencyScore(candidate.lexicalFrequency).coerceAtMost(15_000)
+            else -> 0
+        }
+        val penalties = (
+            structuralIndex.coerceAtMost(1_000) * STRUCTURAL_PENALTY +
+                lengthDelta.coerceIn(0, 500) * COMPLETION_LENGTH_PENALTY +
+                candidate.morphologyCost.coerceIn(0, 10) * MORPHOLOGY_COST_PENALTY +
+                candidate.editDistance.coerceIn(0, 10) * FUZZY_EDIT_PENALTY
+            ).coerceAtMost(WITHIN_TIER_MAX_PENALTY)
+        val score = sourceBonus +
+            frequencyEvidence +
+            personalBonus(candidate) +
+            contextBonus.coerceAtMost(if (exactReading) NGRAM_MAX_BONUS else COMPLETION_CONTEXT_MAX_BONUS) -
+            penalties
+        return ScoredSuggestion(
+            RankedCandidate(
+                candidate = candidate,
+                score = score,
+                structuralIndex = structuralIndex,
+                exactReading = exactReading,
+            )
+        )
+    }
 
-    private fun fuzzyScore(frequency: Int, editDistance: Int): Int =
-        FUZZY_BONUS + frequencyScore(frequency) - editDistance * FUZZY_EDIT_PENALTY
+    private fun withPersonalEvidence(
+        candidate: AmharicCandidate,
+        personalEvidence: Map<String, PersonalEvidence>,
+        normalize: (String) -> String,
+    ): AmharicCandidate {
+        if (
+            candidate.source != CandidateSource.EXACT_LEXEME &&
+            candidate.source != CandidateSource.ATTESTED_SURFACE &&
+            candidate.source != CandidateSource.GENERATED_MORPHOLOGY
+        ) {
+            return candidate
+        }
+        val evidence = personalEvidence[normalize(candidate.word)] ?: return candidate
+        return candidate.copy(
+            personalCount = maxOf(candidate.personalCount, evidence.count),
+            personalRecency = maxOf(candidate.personalRecency, evidence.recency),
+            evidenceSources = candidate.evidenceSources + CandidateSource.PERSONAL,
+        )
+    }
+
+    private fun personalBonus(candidate: AmharicCandidate): Int {
+        if (CandidateSource.PERSONAL !in candidate.evidenceSources) return 0
+        val cappedCount = candidate.personalCount.coerceIn(
+            0,
+            PERSONAL_MAX_BONUS / PERSONAL_COUNT_SCALE,
+        )
+        val count = cappedCount * PERSONAL_COUNT_SCALE
+        val recency = (candidate.personalRecency.coerceAtLeast(0) * 2)
+            .coerceAtMost(PERSONAL_RECENCY_MAX_BONUS)
+        return count + recency
+    }
+
+    private fun lexicalEvidenceScore(frequency: Int): Int {
+        var remaining = frequency.coerceAtLeast(0)
+        var magnitude = 0
+        while (remaining > 0) {
+            magnitude += 1
+            remaining = remaining ushr 1
+        }
+        return (magnitude * 300).coerceAtMost(5_000)
+    }
+
+    private fun sourceRank(source: CandidateSource): Int = when (source) {
+        CandidateSource.EXACT_LEXEME -> 0
+        CandidateSource.GREEDY_LITERAL -> 1
+        CandidateSource.ATTESTED_SURFACE -> 2
+        CandidateSource.GENERATED_MORPHOLOGY -> 3
+        CandidateSource.FUZZY -> 4
+        CandidateSource.PERSONAL -> 5
+    }
 
     /**
      * English next-word-aware completion ordering: reorders [candidates]
@@ -253,9 +429,8 @@ object CandidateRanker {
             .coerceAtMost(NGRAM_MAX_BONUS)
     }
 
-    private fun visibleReadingScore(index: Int): Int =
-        LITERAL_BONUS - index * STRUCTURAL_PENALTY
-
     private fun frequencyScore(frequency: Int): Int =
         frequency.coerceAtLeast(0).coerceAtMost(30_000)
+
+    private fun Int?.orZero(): Int = this ?: 0
 }

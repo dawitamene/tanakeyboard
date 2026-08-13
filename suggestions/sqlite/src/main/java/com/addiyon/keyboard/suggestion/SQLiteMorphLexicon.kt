@@ -4,12 +4,18 @@ class SQLiteMorphLexicon(
     private val store: SQLiteLanguageStore,
     private val normalize: (String) -> String,
 ) {
+    @Volatile
+    private var surfaceStatistics: Map<String, Int>? = null
+
     data class NounQuery(val sql: String, val args: List<String>)
 
     data class Lexeme(
+        val lexemeId: Long,
         val kind: Int,
         val surface: String,
         val features: String,
+        val morphBits: Long,
+        val stemClass: Int,
         val frequency: Int,
     )
 
@@ -26,10 +32,13 @@ class SQLiteMorphLexicon(
             database.rawQuery(query.sql, query.args.toTypedArray()).use { cursor ->
                 while (cursor.moveToNext()) {
                     result += Lexeme(
-                        kind = cursor.getInt(0),
-                        surface = cleanSurface(cursor.getString(1)),
-                        features = cursor.getString(2),
-                        frequency = cursor.getInt(3),
+                        lexemeId = cursor.getLong(0),
+                        kind = cursor.getInt(1),
+                        surface = cleanSurface(cursor.getString(2)),
+                        features = cursor.getString(3),
+                        morphBits = cursor.getLong(4),
+                        stemClass = cursor.getInt(5),
+                        frequency = cursor.getInt(6),
                     )
                 }
             }
@@ -41,7 +50,42 @@ class SQLiteMorphLexicon(
         }
     }
 
+    fun surfaceFrequencies(keys: Collection<String>): Map<String, Int> {
+        if (!store.isReady || keys.isEmpty()) return emptyMap()
+        val normalizedKeys = keys.asSequence().map(normalize).filter(String::isNotEmpty).distinct().toList()
+        if (normalizedKeys.isEmpty()) return emptyMap()
+        val statistics = surfaceStatistics ?: loadSurfaceStatistics() ?: return emptyMap()
+        return buildMap {
+            normalizedKeys.forEach { key -> statistics[key]?.let { put(key, it) } }
+        }
+    }
+
+    fun clearCache() {
+        surfaceStatistics = null
+    }
+
+    private fun loadSurfaceStatistics(): Map<String, Int>? = synchronized(this) {
+        surfaceStatistics?.let { return@synchronized it }
+        val database = store.databaseOrNull() ?: return emptyMap()
+        try {
+            database.rawQuery(
+                "SELECT key, frequency FROM morph_surface_stats",
+                emptyArray(),
+            ).use { cursor ->
+                buildMap {
+                    while (cursor.moveToNext()) put(cursor.getString(0), cursor.getInt(1))
+                }
+            }.also { surfaceStatistics = it }
+        } catch (t: Throwable) {
+            store.handleQueryFailure(t)
+            store.reportFailure(t, "SQLiteMorphLexicon.surfaceFrequencies")
+            null
+        }
+    }
+
     companion object {
+        private const val PRODUCTIVE_NOMINAL_BIT = 1L
+
         fun nounQuery(
             exactSurfaces: Collection<String>,
             completionPrefix: String,
@@ -77,11 +121,12 @@ class SQLiteMorphLexicon(
             if (exactCondition != null) args.addAll(exactKeys)
             args += limit.toString()
             val sql = """
-                SELECT m.kind, m.form, m.features, COALESCE(w.freq, 1)
+                SELECT m.lexeme_id, m.kind, m.form, m.features,
+                       m.morph_bits, m.stem_class, COALESCE(w.freq, 1)
                 FROM morph_lexemes m
                 LEFT JOIN words w ON w.key = m.key
-                WHERE m.kind IN (0, 1, 2, 3)
-                  AND m.key IS NOT NULL
+                WHERE m.key IS NOT NULL
+                  AND (m.morph_bits & $PRODUCTIVE_NOMINAL_BIT) != 0
                   AND (${conditions.joinToString(" OR ")})
                 ORDER BY CASE WHEN $exactOrder THEN 0 ELSE 1 END,
                          COALESCE(w.freq, 1) DESC,

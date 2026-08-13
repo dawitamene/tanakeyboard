@@ -121,7 +121,24 @@ data class QuotaResponse(
     val unit: String? = null
 )
 
+@JsonClass(generateAdapter = true)
+data class CompletionRequest(
+    val prefix: String
+)
+
+@JsonClass(generateAdapter = true)
+data class CompletionResponse(
+    val completion: String?
+)
+
 interface AiApi {
+    @POST("text/completion")
+    suspend fun completion(
+        @Body body: CompletionRequest,
+        @Header("Authorization") auth: String? = null,
+        @Header("X-Anonymous-Id") anonId: String? = null
+    ): CompletionResponse
+
     @POST("text")
     suspend fun revamp(
         @Body body: RevampRequest,

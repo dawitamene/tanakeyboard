@@ -43,6 +43,10 @@ class SQLiteLanguageStore(
     @Volatile
     private var database: SQLiteDatabase? = null
 
+    @Volatile
+    var modelVersion: String = "unloaded"
+        private set
+
     private var generation = 0L
     private var failureCount = 0
     private var retryAfterElapsed = 0L
@@ -175,6 +179,7 @@ class SQLiteLanguageStore(
     private fun installAndOpen(): SQLiteDatabase {
         val metadata = appContext.assets.open(metadataAssetName).use(DictionaryAssetMetadata::read)
         val asset = metadata.asset(assetName)
+        modelVersion = "${metadata.schemaVersion}:${asset.sha256}"
         storeDir.mkdirs()
         require(storeDir.isDirectory)
         val contentId = asset.sha256.take(CONTENT_ID_LENGTH)
@@ -402,7 +407,9 @@ class SQLiteLanguageStore(
         require(pragmaInt(db, "application_id") == metadata.applicationId)
         val required = setOf(
             "words",
+            "ngram_vocab",
             "morph_lexemes",
+            "morph_surface_stats",
             "prefix_top",
             "fuzzy_top",
             "bigrams",
@@ -412,7 +419,8 @@ class SQLiteLanguageStore(
         db.rawQuery(
             "SELECT name FROM sqlite_master WHERE type = 'table' " +
                 "AND name IN (" +
-                    "'words','morph_lexemes','prefix_top','fuzzy_top','bigrams','trigrams'" +
+                    "'words','ngram_vocab','morph_lexemes','morph_surface_stats','prefix_top'," +
+                    "'fuzzy_top','bigrams','trigrams'" +
                     ")",
             null,
         ).use { cursor ->

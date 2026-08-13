@@ -367,7 +367,8 @@ data class KeyboardAppShellCustomization(
     val guideScreen: (@Composable (() -> Unit) -> Unit)? = null,
     val featureTourPages: List<KeyboardTourPage> = emptyList(),
     val headerActions: @Composable RowScope.() -> Unit = {},
-    val onSettingChanged: (KeyboardPreferenceSetting, Boolean) -> Unit = { _, _ -> }
+    val onSettingChanged: (KeyboardPreferenceSetting, Boolean) -> Unit = { _, _ -> },
+    val privacyPolicyUrl: String = KeyboardExternalActions.DEFAULT_PRIVACY_POLICY_URL
 )
 
 private const val PRIVACY_POLICY_TEST_TAG = "about.privacyPolicy"
@@ -494,7 +495,8 @@ fun packKeyboardAppShellConfig(
         ),
         isTourSeen = { KeyboardPrefs.featureTourSeen(context) },
         markTourSeen = { KeyboardPrefs.setFeatureTourSeen(context) },
-        onSettingChanged = customization.onSettingChanged
+        onSettingChanged = customization.onSettingChanged,
+        privacyPolicyUrl = customization.privacyPolicyUrl
     )
     return standardKeyboardAppShellConfig(product, options)
 }

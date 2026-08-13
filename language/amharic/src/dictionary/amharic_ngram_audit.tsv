@@ -1,0 +1,41 @@
+display	normalized_key	validity_source	preferred_lemma	preferred_analysis	ambiguity_count	surface_frequency
+ሃገር	ሀገር	exact_lexeme	ሃገር	kind=0;form=ሀገር;features=ሀገር [pos=N,-h]	1	0
+ሁለት	ሁለት	exact_lexeme	ሁለት	kind=0;form=ሁለ/ት;features='' [pos=NUM,p=0]	1	0
+ልጅ	ልጅ	exact_lexeme	ልጅ	kind=0;form=ልጅ;features='' [pos=N]	1	0
+መምህራን	መምህራን	oracle_surface	መምህር	kind=1;form=መምህር;features='' [pos=N,t=[eng="teacher"]]	1	3334
+መምህር	መምህር	exact_lexeme			2	0
+መጽሀፍ	መጽሀፍ	exact_lexeme	መጽሀፍ	kind=0;form=መጽሀፍ;features=መጽሀፍ [pos=N,-h]	1	0
+ምሁር	ምሁር	exact_lexeme			2	0
+ሰው	ሰው	exact_lexeme	ሰው	kind=0;form=ሰው;features='' [g=m,pos=N]	1	0
+ሰዎች	ሰዎች	exact_lexeme	ሰዎች		1	0
+ስራ	ስራ	exact_lexeme	ስራ	kind=0;form=ስራ;features='' [pos=N,-h]	1	0
+ቅዱስ	ቅዱስ	exact_lexeme			3	0
+በቤት	በቤት	oracle_surface	ቤት	kind=0;form=ቤት;features='' [pos=N,-h]	1	1392
+በጣም	በጣም	exact_lexeme	በጣም		1	0
+ቤታችን	ቤታችን	oracle_surface	ቤት	kind=0;form=ቤት;features='' [pos=N,-h]	1	932
+ቤት	ቤት	exact_lexeme	ቤት	kind=0;form=ቤት;features='' [pos=N,-h]	1	0
+ቤቶች	ቤቶች	oracle_surface	ቤት	kind=0;form=ቤት;features='' [pos=N,-h]	1	17206
+ብዙ	ብዙ	exact_lexeme	ብዙ	kind=0;form=ብዙ;features='' [pos=ADJ]	1	0
+ቦታ	ቦታ	exact_lexeme	ቦታ	kind=0;form=ቦታ;features='' [pos=N,-h]	1	0
+ትልቅ	ትልቅ	exact_lexeme			2	0
+ትምህርት	ትምህርት	exact_lexeme	ትምህርት	kind=0;form=ትምህርት;features='' [pos=N,-h]	1	0
+ነው	ነው	exact_lexeme	ነው		1	0
+አስፈላጊ	አስፈላጊ	exact_lexeme	አስፈላጊ	kind=0;form=አስፈ/ላጊ;features='' [pos=N|ADJ,-h]	1	0
+አበባ	አበባ	exact_lexeme			2	0
+አንድ	አንድ	exact_lexeme	አንድ	kind=0;form=አንድ;features='' [pos=NUM,p=0]	1	0
+አዲስ	አዲስ	exact_lexeme			2	0
+አዳማ	አዳማ	exact_lexeme	አዳማ	kind=3;form=አዳማ;features=	1	0
+ኢትዮጵያ	ኢትዮጵያ	exact_lexeme			2	0
+እሱ	እሱ	exact_lexeme	እሱ		1	0
+እሷ	እሷ	exact_lexeme	እሷ		1	0
+እና	እና	exact_lexeme	እና		1	0
+እናት	እናት	exact_lexeme			2	0
+ከተማ	ከተማ	exact_lexeme			3	0
+ክቡር	ክቡር	exact_lexeme			2	0
+የሰው	የሰው	oracle_surface	ሰው	kind=0;form=ሰው;features='' [g=m,pos=N]	1	17483
+የቤት	የቤት	oracle_surface	ቤት	kind=0;form=ቤት;features='' [pos=N,-h]	1	6322
+የኢትዮጵያ	የኢትዮጵያ	oracle_surface	ኢትዮጵያ	kind=3;form=ኢትዮጵያ;features=	1	45615
+ይህ	ይህ	exact_lexeme	ይህ	kind=0;form=ይህ;features='' [g=m,pos=DET,p=0,adp=0,ptype=dem,-pl]	1	0
+ደራሲ	ደራሲ	exact_lexeme			2	0
+ጎንደር	ጎንደር	exact_lexeme	ጎንደር	kind=3;form=ጎንደር;features=	1	0
+ጥሩ	ጥሩ	exact_lexeme	ጥሩ	kind=0;form=ጥሩ;features='' [pos=ADJ]	1	0

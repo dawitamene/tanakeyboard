@@ -82,7 +82,18 @@ data class TextRevampStrings(
     val aiStrengthBalanced: String,
     val aiStrengthStrong: String,
     val aiTourDescription: String,
-    val aiTourExample: String
+    val aiTourExample: String,
+    val aiPhraseCompletionTitle: String,
+    val aiPhraseCompletionDescription: String,
+    val aiPhraseCompletionSignedOut: String,
+    val aiPhraseCompletionDisclosureTitle: String,
+    val aiPhraseCompletionDisclosureMessage: String,
+    val aiPhraseCompletionEnable: String,
+    val aiPhraseCompletionNotNow: String,
+    val aiPhraseCompletionIdle: String,
+    val aiPhraseCompletionLoading: String,
+    val aiPhraseCompletionInsert: String,
+    val aiPhraseCompletionDismiss: String
 )
 
 val EnglishTextRevampStrings = TextRevampStrings(
@@ -165,7 +176,18 @@ val EnglishTextRevampStrings = TextRevampStrings(
     aiStrengthStrong = "Strong",
     aiTourDescription = "Use TextRevamp when you want to improve " +
         "tone, grammar, clarity, or length.",
-    aiTourExample = "Draft → polished version"
+    aiTourExample = "Draft → polished version",
+    aiPhraseCompletionTitle = "Phrase completions",
+    aiPhraseCompletionDescription = "Suggest the rest of a phrase or sentence while you type.",
+    aiPhraseCompletionSignedOut = "Sign in to enable cloud phrase completions.",
+    aiPhraseCompletionDisclosureTitle = "Enable phrase completions?",
+    aiPhraseCompletionDisclosureMessage = "After you pause while typing, TextRevamp sends up to the last 512 characters to its server and paid AI provider to suggest a short continuation. Passwords, private fields, email-address fields, and apps that opt out are excluded. Suggestions are not saved as typing history, and you can turn this off at any time.",
+    aiPhraseCompletionEnable = "Enable phrase completions",
+    aiPhraseCompletionNotNow = "Not now",
+    aiPhraseCompletionIdle = "AI phrase completion",
+    aiPhraseCompletionLoading = "Completing phrase…",
+    aiPhraseCompletionInsert = "Insert phrase completion",
+    aiPhraseCompletionDismiss = "Dismiss phrase completion"
 )
 
 val LocalTextRevampStrings = staticCompositionLocalOf { EnglishTextRevampStrings }

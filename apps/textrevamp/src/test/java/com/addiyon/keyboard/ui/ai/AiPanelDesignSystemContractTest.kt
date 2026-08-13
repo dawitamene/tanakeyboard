@@ -32,16 +32,25 @@ class AiPanelDesignSystemContractTest {
             panel.contains("AddiyonSizes.compact")
         )
         assertTrue(
-            "Tone controls must keep one background and use an animated icon-color selection border.",
+            "The selected tone alone must use the shared neon gradient border and outward halo.",
                 panel.contains("horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm)") &&
                 panel.contains("horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.xxs)") &&
-                panel.contains("shape = RoundedCornerShape(AddiyonRadii.pill)") &&
+                panel.contains("val toneShape = RoundedCornerShape(AddiyonRadii.pill)") &&
+                panel.contains("isLoading = state.isLoading") &&
+                panel.contains("val toneGlowVisuals = toneGlowVisuals(isLoading)") &&
                 panel.contains("selected = selected") &&
+                panel.contains("val glowModifier = if (selected)") &&
+                panel.contains("modifier = glowModifier") &&
                 panel.contains("color = MaterialTheme.colorScheme.surface") &&
-                panel.contains("border = toneSelectionBorder(iconColor, selected, isLoading)") &&
+                panel.contains("contentColor = MaterialTheme.colorScheme.onSurfaceVariant") &&
+                panel.contains("shadow = toneGlowVisuals.glow") &&
+                panel.contains("border = if (selected) toneGlowVisuals.border else null") &&
+                !panel.contains("aiToneSelectedContainer") &&
+                !panel.contains("onAiToneSelectedContainer") &&
                 panel.contains(".padding(horizontal = AddiyonSpacing.xs)") &&
                 panel.contains("imageVector = toneIcon(tab)") &&
                 panel.contains("tint = iconColor") &&
+                panel.contains("color = MaterialTheme.colorScheme.onSurfaceVariant") &&
                 panel.contains(".size(AddiyonSizes.iconSmall)") &&
                 panel.contains(".testTag(aiPanelToneIconTag(tab))")
         )
@@ -55,21 +64,21 @@ class AiPanelDesignSystemContractTest {
             panel.contains("strings.aiRephraseTitle") || panel.contains("strings.aiRephraseSubtitle") ||
                 panel.contains("strings.aiToneLabel")
         )
+        val toolbar = panel.substringAfter("private fun AiPanelToolbar")
+            .substringBefore("private fun AiToneRow")
         assertTrue(
-            "The AI toolbar back action must use a 44 dp white circle with 6 dp around its arrow.",
+            "The AI toolbar back action must have a transparent 44 dp target with 6 dp around its arrow.",
             panel.contains("SuggestionChevronLeftButton(") &&
                 panel.contains("contentDescription = strings.back") &&
                 panel.contains("testTag = AI_PANEL_BACK_ACTION_TAG") &&
                 panel.contains("buttonSize = AddiyonSizes.keyboardAction") &&
                 panel.contains("containerSize = AddiyonSizes.keyboardAction") &&
                 panel.contains("iconSize = AddiyonSizes.iconLarge") &&
-                panel.contains("containerColor = MaterialTheme.addiyonColors.resultSurface") &&
-                panel.contains("iconTint = MaterialTheme.addiyonColors.onResultSurface") &&
+                !toolbar.contains("containerColor =") &&
+                panel.contains("iconTint = MaterialTheme.colorScheme.onBackground") &&
                 !panel.contains("Icons.Filled.AutoAwesome") &&
                 !panel.contains("Icons.Filled.Close")
         )
-        val toolbar = panel.substringAfter("private fun AiPanelToolbar")
-            .substringBefore("private fun AiToneRow")
         assertTrue(
             "Tone controls must be rendered directly beside the back action.",
             toolbar.indexOf("SuggestionChevronLeftButton(") in 0 until toolbar.indexOf("AiToneRow(") &&
@@ -84,16 +93,23 @@ class AiPanelDesignSystemContractTest {
                 panel.contains("strings.aiUsageOpenDescriptionFormat") ||
                 panel.contains("strings.aiQuotaFormat")
         )
-        val selectionBorder = panel.substringAfter("private fun toneSelectionBorder")
+        val toneGlowVisuals = panel.substringAfter("private fun toneGlowVisuals")
             .substringBefore("private fun AiPanelAuthCard")
         assertTrue(
-            "The selected tone border must be static when idle and animate a same-hue sweep only while loading.",
-            selectionBorder.contains("AddiyonBorders.selectedTone") &&
-                selectionBorder.contains("if (!isLoading)") &&
-                selectionBorder.contains("color = color") &&
-                selectionBorder.contains("Brush.sweepGradient(colors)") &&
-                selectionBorder.contains("rememberInfiniteTransition") &&
-                selectionBorder.contains("color.copy(alpha =")
+            "The selected tone must stay static when idle and animate both its border and halo while loading.",
+            toneGlowVisuals.contains("MaterialTheme.addiyonColors.aiToneGlow") &&
+                toneGlowVisuals.contains("AddiyonBorders.selectedTone") &&
+                toneGlowVisuals.contains("radius = AddiyonElevation.overlay") &&
+                toneGlowVisuals.contains("if (isLoading)") &&
+                toneGlowVisuals.contains("rememberInfiniteTransition") &&
+                toneGlowVisuals.contains("AddiyonMotion.gentle * 2") &&
+                toneGlowVisuals.contains("Brush.sweepGradient(") &&
+                toneGlowVisuals.contains("Brush.horizontalGradient(") &&
+                toneGlowVisuals.contains("listOf(colors.start, colors.end)") &&
+                toneGlowVisuals.contains("animatedToneGradient(colors, phase)") &&
+                toneGlowVisuals.contains("it.copy(alpha = glowAlpha)") &&
+                toneGlowVisuals.contains("colors.start.copy(alpha = glowAlpha)") &&
+                toneGlowVisuals.contains("colors.end.copy(alpha = glowAlpha)")
         )
     }
 
@@ -141,9 +157,13 @@ class AiPanelDesignSystemContractTest {
 
     @Test
     fun emptyStateUsesBrandedHeroIconAndPillAction() {
-        val emptyState = panelSource()
+        val panel = panelSource()
+        val emptyState = panel
             .substringAfter("private fun AiPanelEmptyState")
             .substringBefore("private fun AiPanelSelectToneState")
+        val selectToneState = panel
+            .substringAfter("private fun AiPanelSelectToneState")
+            .substringBefore("private fun AiPanelToolbar")
 
         assertTrue(
             "The empty-state icon must be large and use the fixed Addiyon brand colors.",
@@ -158,6 +178,15 @@ class AiPanelDesignSystemContractTest {
                 emptyState.contains("contentColor = MaterialTheme.addiyonColors.brandPrimary") &&
                 emptyState.contains("ButtonDefaults.outlinedButtonBorder().width") &&
                 emptyState.contains("color = MaterialTheme.addiyonColors.brandPrimary")
+        )
+        assertTrue(
+            "The select-tone state must use the same branded hero-icon treatment.",
+            selectToneState.contains("icon = Icons.Outlined.Palette") &&
+                selectToneState.contains("containerColor = MaterialTheme.addiyonColors.brandPrimary") &&
+                selectToneState.contains("contentColor = MaterialTheme.addiyonColors.onBrandPrimary") &&
+                selectToneState.contains("containerSize = AddiyonSizes.minimumTouchTarget") &&
+                selectToneState.contains("iconSize = AddiyonSizes.iconLarge") &&
+                selectToneState.contains("Modifier.testTag(AI_PANEL_SELECT_TONE_ICON_TAG)")
         )
     }
 

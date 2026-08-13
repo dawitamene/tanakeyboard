@@ -250,6 +250,9 @@ fun KeyboardScreen(
                 if (emojiSearching) {
                     EmojiSearchHeader(service)
                 } else {
+                    if (optionalUi.contextualRowVisible) {
+                        optionalUi.contextualRow()
+                    }
                     // Always present -- across letter AND number/symbol layouts. When
                     // there's nothing to suggest (always the case on the numeric pages,
                     // where no word composes) it's the quick-action toolbar with the

@@ -38,3 +38,49 @@ The output retains HornMorpho's original surface, segmentation, roots, and
 analyses while adding the same normalized comparison key used by Addiyon.
 `compare_nominal_runtime.py` compares a runtime result JSONL file with the
 checked-in nominal golden TSV by stable case id.
+
+`generate_nominal_phase4.py` analyzes the practical Phase 4 inventory and
+rebuilds the checked-in positive, explicit-exclusion, and negative fixture:
+
+```sh
+/private/tmp/addiyon-hornmorpho-oracle/bin/python \
+  /Users/dev/code/addiyon-keyboard/tools/hornmorpho/generate_nominal_phase4.py
+```
+
+The default output is
+`language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv`. Python and
+HornMorpho are used only by this developer-side verification workflow; the
+Android runtime uses the generated SQLite lexicon and pure Kotlin rule graph.
+
+`build_nominal_surface_stats.py` builds the bounded Phase 5 ranking-statistics
+asset from the analyzer-supported Phase 3 and Phase 4 oracle forms. Corpus
+counts come from the archived legacy surface-frequency file, but a key is
+eligible only after the pinned oracle has validated it and base lemmas are
+excluded:
+
+```sh
+python3 /Users/dev/code/addiyon-keyboard/tools/hornmorpho/build_nominal_surface_stats.py
+```
+
+The output is
+`language/amharic/src/dictionary/amharic_surface_stats.dat`. It is capped at
+2,048 rows, prunes frequencies below two, and is written as deterministic gzip
+with `mtime=0`. It contains ranking evidence only: it is not a dictionary and
+cannot make a surface valid. Only this compact generated asset is an Android
+build input; the archived corpus is never packaged or read by the app.
+
+`../build_ngrams.py` uses the pinned Phase 3 and Phase 4 oracle fixtures as a
+developer-side validity gate for Phase 6 prediction surfaces. The checked-in
+project-authored training and held-out inputs are:
+
+- `fixtures/amharic_phase6_corpus.txt`
+- `fixtures/amharic_phase6_held_out.txt`
+
+The build emits a sparse bigram model plus
+`language/amharic/src/dictionary/amharic_ngram_audit.tsv` and
+`amharic_ngram_quality.json`, plus `amharic_ngram_review.tsv` for the fluent
+context review. See
+`language/amharic/hornmorpho/PHASE6_PREDICTION.md` for the exact command,
+checksums, provenance decision, quality metric, and fluent-review gate. This
+workflow remains developer-only; Android loads a generated SQLite database and
+does not run Python or HornMorpho.

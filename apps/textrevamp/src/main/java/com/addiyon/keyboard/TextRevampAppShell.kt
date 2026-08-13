@@ -43,6 +43,7 @@ private fun textRevampShellCustomization(): KeyboardAppShellCustomization {
         badge = strings.aiNewBadge
     )
     return KeyboardAppShellCustomization(
+        privacyPolicyUrl = TEXTREVAMP_PRIVACY_POLICY_URL,
         featurePrimaryEntries = listOf(aiEntry),
         featureGuideSections = listOf(
             KeyboardGuideSection(strings.aiRephraseTitle, strings.aiRephraseSubtitle)
@@ -71,3 +72,6 @@ private fun textRevampShellCustomization(): KeyboardAppShellCustomization {
         }
     )
 }
+
+private const val TEXTREVAMP_PRIVACY_POLICY_URL =
+    "https://keyboard.addiyon.com/textrevamp-privacy.html"

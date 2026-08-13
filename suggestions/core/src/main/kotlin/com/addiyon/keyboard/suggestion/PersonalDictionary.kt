@@ -8,7 +8,7 @@ class PersonalDictionary private constructor(
         val value = word.trim()
         if (value.isEmpty() || value.any { it.isWhitespace() }) return
         val counts = buckets.getOrPut(languageBucket(languageId)) { LinkedHashMap() }
-        counts[value] = (counts[value] ?: 0) + 1
+        counts[value] = (counts.remove(value) ?: 0) + 1
         trimToLimit()
     }
 
@@ -16,12 +16,33 @@ class PersonalDictionary private constructor(
         val value = address.trim()
         if ('@' !in value || value.any { it.isWhitespace() }) return
         val counts = buckets.getOrPut(EMAIL_BUCKET) { LinkedHashMap() }
-        counts[value] = (counts[value] ?: 0) + 1
+        counts[value] = (counts.remove(value) ?: 0) + 1
         trimToLimit()
     }
 
     fun completions(languageId: String, prefix: String, limit: Int): List<String> =
         ranked(languageId, prefix, limit)
+
+    fun completionEntries(
+        languageId: String,
+        prefix: String,
+        limit: Int,
+    ): List<PersonalCompletion> {
+        val entries = buckets[languageBucket(languageId)].orEmpty().entries.toList()
+        val recencyByWord = entries.mapIndexed { index, entry -> entry.key to index }.toMap()
+        return entries.asSequence()
+            .filter { it.key.startsWith(prefix, ignoreCase = true) }
+            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+            .take(limit)
+            .map {
+                PersonalCompletion(
+                    word = it.key,
+                    count = it.value,
+                    recency = recencyByWord.getValue(it.key),
+                )
+            }
+            .toList()
+    }
 
     fun allWords(): List<String> = buckets.values.flatMap { it.keys }.distinct()
 

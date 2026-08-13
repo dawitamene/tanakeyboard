@@ -52,10 +52,10 @@ for primary actions and meaningful emphasis.
 The input method, suggestion strip, emoji panel, and keyboard-height preview use
 `CustomKeyboardTheme`. `KeyboardPalette` remains user-selectable and owns the
 keyboard tray, key, special-key, accent, and background effect colors. Do not
-replace palette roles with the fixed app brand. The selected AI tone is the
-narrow exception: it uses `MaterialTheme.addiyonColors.brandPrimary` so the AI
-action has one stable Addiyon identity instead of inheriting a blue keyboard
-accent. The IME is a fixed-height,
+replace palette roles with the fixed app brand. AI tone controls are the narrow
+exception: their semantic icon accents and shared neon gradient come from
+`MaterialTheme.addiyonColors` so the AI actions keep a stable identity instead
+of inheriting the keyboard accent. The IME is a fixed-height,
 latency-sensitive surface: preserve its measured height and never introduce a
 scrolling full-panel container to solve overflow.
 
@@ -99,11 +99,14 @@ Status meaning uses the extended `MaterialTheme.addiyonColors` roles:
 success color is not a general green accent. Error, warning, and info states
 must use the corresponding Material roles or a future documented extension.
 `brandPrimary` and `onBrandPrimary` expose the fixed Addiyon primary pair for
-the selected AI tone and other explicitly documented brand-identity moments.
+explicitly documented brand-identity moments such as AI empty-state icons.
 `aiToneIcons` exposes distinct light/dark accent roles for the Humanize,
 Professional, Casual, Formal, Friendly, Fix grammar, Shorten, and Summarize
 icons. These accents identify tone categories and must not be substituted with
 error, success, or other status roles.
+`aiToneGlow` exposes the fixed magenta-to-blue gradient used by the selected AI
+tone's outline and outward halo. Its two endpoints are sampled from the approved
+neon reference and remain stable across light and dark keyboard appearances.
 `resultSurface` and `onResultSurface` provide a flat white reading canvas and
 fixed ink text; this pair intentionally remains light in
 both appearances so generated versions have one quiet, shadow-free treatment.
@@ -149,7 +152,7 @@ Use the public tokens in `ui/design/AddiyonDesignTokens.kt`:
 | `AddiyonSpacing` | 4, 8, 12, 16, 20, 24, 32 dp | gaps, insets, and page rhythm |
 | `AddiyonRadii` | 8, 12, 16, 20, 28 dp, pill | controls, cards, groups, chips |
 | `AddiyonSizes` | 40 compact, 44 keyboard action, 48 minimum touch, 56 form control, 64 app header; 16/24/32/44 icon sizes | controls, bars, icons |
-| `AddiyonBorders` | 3 dp selected tone | emphasized selection outlines |
+| `AddiyonBorders` | 1 dp tone glow | neon AI tone outlines |
 | `AddiyonElevation` | none, low, raised, overlay | surfaces and overlays |
 | `AddiyonMotion` | 150, 250, 400, 500 ms | feedback, standard transitions, emphasis |
 
@@ -196,8 +199,8 @@ must not scroll. A bounded inner content region may scroll when persistent
 header and primary actions remain visible.
 
 The canonical AI assistant panel keeps a 44 dp tap area for the suggestion
-bar's chevron-left control with a 32 dp arrow. Its fixed white, truly circular
-surface also fills the 44 dp area, leaving exactly 6 dp around the arrow.
+bar's chevron-left control with a 32 dp arrow. It has no container fill and
+uses the themed background content color, leaving 6 dp within the tap area.
 It does not show a toolbar title or usage control. Compact pill-shaped
 tones with leading semantic icons sit directly beside the back action in the
 same persistent row. The toolbar uses compact 8 dp top and 12 dp bottom insets,
@@ -209,11 +212,25 @@ card elevation and provide compact per-result Copy and Replace controls. Loading
 uses three rounded result-shaped placeholders with an animated directional shimmer
 rather than a spinner or status sentence.
 Tone icons use distinct semantic theme accents to make the actions easier to
-scan. Selection does not change the chip background. Instead, the selected tone
-uses a 3 dp border derived entirely from its icon color. The border is static
-while idle and becomes an animated sweep shine only while the AI request is
-loading; varying alpha creates the moving shine while the text label keeps
-selection independent of color alone.
+scan. Every tone keeps the standard chip background. Unselected tones are
+borderless and have no halo. Only the selected tone uses the static
+magenta-to-blue 1 dp gradient outline with a soft matching halo around the full
+pill. The border runs from magenta on the left through violet to blue on the
+right, matching the approved neon reference. While an AI request is loading,
+the selected tone's border becomes a continuous color sweep and its outward
+halo sweeps and pulses; the treatment returns to the static gradient when the
+request finishes. The selected semantics and glow treatment identify selection
+without changing the chip fill.
+
+TextRevamp may expose one optional phrase-completion row immediately above the
+standard suggestion strip. The row is exactly `AddiyonSizes.keyboardAction`
+(44 dp), uses `CustomKeyboardTheme` semantic surface/content roles, remains
+one line and non-scrolling, and keeps the same height across idle, debounce,
+loading, and ready states. It is absent when the opted-in feature or editor is
+ineligible, when an optional full panel replaces the keyboard, and in Addiyon.
+The completion body and dismiss action are separate controls; displayed text
+may omit a leading separator for readability, while insertion preserves the
+exact suffix.
 
 ## Component patterns
 

@@ -172,6 +172,15 @@ class TypingControllerTest {
         assertEquals("cool breeze today ", driver.text)
     }
 
+    @Test
+    fun phraseCompletionCommitsTheActiveWordAndExactSuffix() = everywhere { driver ->
+        driver.reset("I will ")
+        "sen".forEach(driver::type)
+        assertTrue(driver.phraseCompletion("d it tomorrow."))
+        assertEquals("I will send it tomorrow.", driver.text)
+        assertFalse(driver.isComposing)
+    }
+
     // ------------------------------------------- cursor moves never mutate text
 
     /**
@@ -464,6 +473,9 @@ private class ControllerDriver(
         controller.onSuggestionTap(word, SuggestionKind.PREDICTION)
         editor.flush()
     }
+
+    fun phraseCompletion(suffix: String): Boolean =
+        controller.onPhraseCompletion(suffix).also { editor.flush() }
 
     fun tap(position: Int) {
         editor.setSelection(position, position)

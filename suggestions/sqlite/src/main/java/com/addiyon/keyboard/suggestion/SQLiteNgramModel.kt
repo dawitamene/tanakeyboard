@@ -90,7 +90,7 @@ class SQLiteNgramModel(
         val key = normalize(word)
         val db = store.databaseOrNull() ?: return null
         return db.rawQuery(
-            "SELECT ngram_id FROM words WHERE key = ? AND ngram_id IS NOT NULL LIMIT 1",
+            "SELECT id FROM ngram_vocab WHERE key = ? LIMIT 1",
             arrayOf(key),
         ).use { cursor ->
             if (cursor.moveToNext()) cursor.getInt(0) else null
@@ -106,11 +106,11 @@ class SQLiteNgramModel(
         val db = store.databaseOrNull() ?: return
         db.rawQuery(
             """
-            SELECT t.succ, t.weight, COALESCE(v.ngram_display, v.display, v.key)
+            SELECT t.succ, t.weight, v.display
             FROM trigrams t
-            JOIN words v ON v.ngram_id = t.succ
+            JOIN ngram_vocab v ON v.id = t.succ
             WHERE t.ctx = ?
-            ORDER BY t.weight DESC
+            ORDER BY t.weight DESC, t.succ ASC
             LIMIT ?
             """.trimIndent(),
             arrayOf(ctx.toString(), limit.toString())
@@ -134,11 +134,11 @@ class SQLiteNgramModel(
         val db = store.databaseOrNull() ?: return
         db.rawQuery(
             """
-            SELECT b.succ, b.weight, b.casing, COALESCE(v.ngram_display, v.display, v.key)
+            SELECT b.succ, b.weight, b.casing, v.display
             FROM bigrams b
-            JOIN words v ON v.ngram_id = b.succ
+            JOIN ngram_vocab v ON v.id = b.succ
             WHERE b.ctx = ?
-            ORDER BY b.weight DESC
+            ORDER BY b.weight DESC, b.succ ASC, b.casing ASC
             LIMIT ?
             """.trimIndent(),
             arrayOf(ctx.toString(), limit.toString())

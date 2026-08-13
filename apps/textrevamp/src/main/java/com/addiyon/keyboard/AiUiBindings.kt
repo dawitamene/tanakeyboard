@@ -65,6 +65,19 @@ internal fun TextRevampStrings.asAiUiStrings(): AiUiStrings = object : AiUiStrin
     override val aiWorkspaceConnectedDescription = this@asAiUiStrings.aiWorkspaceConnectedDescription
     override val aiWorkspaceDisconnectedDescription = this@asAiUiStrings.aiWorkspaceDisconnectedDescription
     override val aiWorkspaceTitle = this@asAiUiStrings.aiWorkspaceTitle
+    override val aiPhraseCompletionTitle = this@asAiUiStrings.aiPhraseCompletionTitle
+    override val aiPhraseCompletionDescription = this@asAiUiStrings.aiPhraseCompletionDescription
+    override val aiPhraseCompletionSignedOut = this@asAiUiStrings.aiPhraseCompletionSignedOut
+    override val aiPhraseCompletionDisclosureTitle =
+        this@asAiUiStrings.aiPhraseCompletionDisclosureTitle
+    override val aiPhraseCompletionDisclosureMessage =
+        this@asAiUiStrings.aiPhraseCompletionDisclosureMessage
+    override val aiPhraseCompletionEnable = this@asAiUiStrings.aiPhraseCompletionEnable
+    override val aiPhraseCompletionNotNow = this@asAiUiStrings.aiPhraseCompletionNotNow
+    override val aiPhraseCompletionIdle = this@asAiUiStrings.aiPhraseCompletionIdle
+    override val aiPhraseCompletionLoading = this@asAiUiStrings.aiPhraseCompletionLoading
+    override val aiPhraseCompletionInsert = this@asAiUiStrings.aiPhraseCompletionInsert
+    override val aiPhraseCompletionDismiss = this@asAiUiStrings.aiPhraseCompletionDismiss
 }
 
 internal fun Context.openAiAccount(mode: String) {

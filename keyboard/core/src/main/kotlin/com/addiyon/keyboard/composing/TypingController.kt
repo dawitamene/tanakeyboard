@@ -151,6 +151,12 @@ class TypingController(
         onCompositionChanged()
     }
 
+    fun onPhraseCompletion(suffix: String): Boolean = applyingOwnEdit {
+        if (suffix.isEmpty()) return@applyingOwnEdit false
+        commitActiveWord()
+        editor.commitText(suffix).also { onCompositionChanged() }
+    }
+
     /**
      * A suggestion chip was tapped.
      *

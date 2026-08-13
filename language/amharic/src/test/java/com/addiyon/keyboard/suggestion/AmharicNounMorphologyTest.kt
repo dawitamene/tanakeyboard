@@ -96,19 +96,26 @@ class AmharicNounMorphologyTest {
     }
 
     @Test
-    fun properNamesDoNotReceivePluralOrPossessiveForms() {
+    fun properNamesReceiveOnlyOracleAllowedNominalExtensions() {
         val abebe = noun("አበበ", features = "", kind = 2)
         val words = complete("አበበ", abebe)
-        assertEquals(listOf("አበበ", "አበበን"), words)
+        assertTrue("አበበ" in words)
+        assertTrue("አበበን" in words)
+        assertTrue("አበበም" in words)
+        assertTrue("አበበጋ" in words)
+        assertFalse("አበበዎች" in words)
+        assertFalse("አበበው" in words)
     }
 
     @Test
-    fun generatedFrequencyIsDiscountedBelowTheStem() {
+    fun generatedCandidateKeepsLexicalFrequencySeparateFromSurfaceFrequency() {
         val result = AmharicNounMorphology.complete(
             typed = "የሰው",
             lexemes = listOf(noun("ሰው", frequency = 800)),
             limit = 3,
         ).first { it.word == "የሰው" }
-        assertTrue(result.frequency in 1 until 800)
+        assertEquals(800, result.lexicalFrequency)
+        assertEquals(null, result.surfaceFrequency)
+        assertEquals(CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY, result.source)
     }
 }

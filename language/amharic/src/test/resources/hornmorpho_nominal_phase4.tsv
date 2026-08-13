@@ -1,0 +1,1061 @@
+id	kind	raw_form	lemma	source_features	surface	normalized_key	classification	oracle_recognized	oracle_analysis_count	reason
+s0000	0	ሰው	ሰው	'' [g=m,pos=N]	ሰው	ሰው	supported	true	1	base
+s0001	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውን	ሰውን	supported	true	1	accusative
+s0002	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውኑ	ሰውኑ	supported	true	1	accepted alternate accusative
+s0003	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውም	ሰውም	supported	true	2	conjunctive m
+s0004	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውስ	ሰውስ	supported	true	1	adverbial s
+s0005	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውማ	ሰውማ	supported	true	1	adverbial ma
+s0006	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውሳ	ሰውሳ	supported	true	1	adverbial sa
+s0007	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውና	ሰውና	supported	true	1	conjunctive na
+s0008	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውኮ	ሰውኮ	supported	true	1	adverbial ko
+s0009	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውጋ	ሰውጋ	supported	true	1	postposition ga
+s0010	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውንም	ሰውንም	supported	true	2	accusative then conjunctive
+s0011	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውንጋ	ሰውንጋ	supported	true	1	accusative then postposition
+s0012	0	ሰው	ሰው	'' [g=m,pos=N]	የሰው	የሰው	supported	true	1	adposition የ
+s0013	0	ሰው	ሰው	'' [g=m,pos=N]	ለሰው	ለሰው	supported	true	1	adposition ለ
+s0014	0	ሰው	ሰው	'' [g=m,pos=N]	በሰው	በሰው	supported	true	1	adposition በ
+s0015	0	ሰው	ሰው	'' [g=m,pos=N]	ከሰው	ከሰው	supported	true	1	adposition ከ
+s0016	0	ሰው	ሰው	'' [g=m,pos=N]	እንደሰው	እንደሰው	supported	true	1	adposition እንደ
+s0017	0	ሰው	ሰው	'' [g=m,pos=N]	ስለሰው	ስለሰው	supported	true	1	adposition ስለ
+s0018	0	ሰው	ሰው	'' [g=m,pos=N]	ወደሰው	ወደሰው	supported	true	1	adposition ወደ
+s0019	0	ሰው	ሰው	'' [g=m,pos=N]	እስከሰው	እስከሰው	supported	true	1	adposition እስከ
+s0020	0	ሰው	ሰው	'' [g=m,pos=N]	እየሰው	እየሰው	supported	true	1	distributive
+s0021	0	ሰው	ሰው	'' [g=m,pos=N]	በየሰው	በየሰው	supported	true	1	adposition plus distributive
+s0022	0	ሰው	ሰው	'' [g=m,pos=N]	እነሰው	እነሰው	supported	true	1	collective
+s0023	0	ሰው	ሰው	'' [g=m,pos=N]	የእነሰው	የእነሰው	supported	true	1	genitive plus collective
+s0024	0	ቤት	ቤት	'' [pos=N,-h]	ቤት	ቤት	supported	true	1	base
+s0025	0	ቤት	ቤት	'' [pos=N,-h]	ቤትን	ቤትን	supported	true	1	accusative
+s0026	0	ቤት	ቤት	'' [pos=N,-h]	ቤትኑ	ቤትኑ	supported	true	1	accepted alternate accusative
+s0027	0	ቤት	ቤት	'' [pos=N,-h]	ቤትም	ቤትም	supported	true	2	conjunctive m
+s0028	0	ቤት	ቤት	'' [pos=N,-h]	ቤትስ	ቤትስ	supported	true	1	adverbial s
+s0029	0	ቤት	ቤት	'' [pos=N,-h]	ቤትማ	ቤትማ	supported	true	1	adverbial ma
+s0030	0	ቤት	ቤት	'' [pos=N,-h]	ቤትሳ	ቤትሳ	supported	true	1	adverbial sa
+s0031	0	ቤት	ቤት	'' [pos=N,-h]	ቤትና	ቤትና	supported	true	1	conjunctive na
+s0032	0	ቤት	ቤት	'' [pos=N,-h]	ቤትኮ	ቤትኮ	supported	true	1	adverbial ko
+s0033	0	ቤት	ቤት	'' [pos=N,-h]	ቤትጋ	ቤትጋ	supported	true	1	postposition ga
+s0034	0	ቤት	ቤት	'' [pos=N,-h]	ቤትንም	ቤትንም	supported	true	2	accusative then conjunctive
+s0035	0	ቤት	ቤት	'' [pos=N,-h]	ቤትንጋ	ቤትንጋ	supported	true	1	accusative then postposition
+s0036	0	ቤት	ቤት	'' [pos=N,-h]	የቤት	የቤት	supported	true	1	adposition የ
+s0037	0	ቤት	ቤት	'' [pos=N,-h]	ለቤት	ለቤት	supported	true	1	adposition ለ
+s0038	0	ቤት	ቤት	'' [pos=N,-h]	በቤት	በቤት	supported	true	1	adposition በ
+s0039	0	ቤት	ቤት	'' [pos=N,-h]	ከቤት	ከቤት	supported	true	1	adposition ከ
+s0040	0	ቤት	ቤት	'' [pos=N,-h]	እንደቤት	እንደቤት	supported	true	1	adposition እንደ
+s0041	0	ቤት	ቤት	'' [pos=N,-h]	ስለቤት	ስለቤት	supported	true	1	adposition ስለ
+s0042	0	ቤት	ቤት	'' [pos=N,-h]	ወደቤት	ወደቤት	supported	true	1	adposition ወደ
+s0043	0	ቤት	ቤት	'' [pos=N,-h]	እስከቤት	እስከቤት	supported	true	1	adposition እስከ
+s0044	0	ቤት	ቤት	'' [pos=N,-h]	እየቤት	እየቤት	supported	true	1	distributive
+s0045	0	ቤት	ቤት	'' [pos=N,-h]	በየቤት	በየቤት	supported	true	1	adposition plus distributive
+s0046	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታ	ቦታ	supported	true	1	base
+s0047	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታን	ቦታን	supported	true	1	accusative
+s0048	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታኑ	ቦታኑ	supported	true	1	accepted alternate accusative
+s0049	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታም	ቦታም	supported	true	2	conjunctive m
+s0050	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታስ	ቦታስ	supported	true	1	adverbial s
+s0051	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታማ	ቦታማ	supported	true	1	adverbial ma
+s0052	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታሳ	ቦታሳ	supported	true	1	adverbial sa
+s0053	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታና	ቦታና	supported	true	1	conjunctive na
+s0054	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታኮ	ቦታኮ	supported	true	1	adverbial ko
+s0055	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታጋ	ቦታጋ	supported	true	1	postposition ga
+s0056	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታንም	ቦታንም	supported	true	2	accusative then conjunctive
+s0057	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታንጋ	ቦታንጋ	supported	true	1	accusative then postposition
+s0058	0	ቦታ	ቦታ	'' [pos=N,-h]	የቦታ	የቦታ	supported	true	1	adposition የ
+s0059	0	ቦታ	ቦታ	'' [pos=N,-h]	ለቦታ	ለቦታ	supported	true	1	adposition ለ
+s0060	0	ቦታ	ቦታ	'' [pos=N,-h]	በቦታ	በቦታ	supported	true	1	adposition በ
+s0061	0	ቦታ	ቦታ	'' [pos=N,-h]	ከቦታ	ከቦታ	supported	true	1	adposition ከ
+s0062	0	ቦታ	ቦታ	'' [pos=N,-h]	እንደቦታ	እንደቦታ	supported	true	1	adposition እንደ
+s0063	0	ቦታ	ቦታ	'' [pos=N,-h]	ስለቦታ	ስለቦታ	supported	true	1	adposition ስለ
+s0064	0	ቦታ	ቦታ	'' [pos=N,-h]	ወደቦታ	ወደቦታ	supported	true	1	adposition ወደ
+s0065	0	ቦታ	ቦታ	'' [pos=N,-h]	እስከቦታ	እስከቦታ	supported	true	1	adposition እስከ
+s0066	0	ቦታ	ቦታ	'' [pos=N,-h]	እየቦታ	እየቦታ	supported	true	1	distributive
+s0067	0	ቦታ	ቦታ	'' [pos=N,-h]	በየቦታ	በየቦታ	supported	true	1	adposition plus distributive
+s0068	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገር	ሀገር	supported	true	1	base
+s0069	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርን	ሀገርን	supported	true	1	accusative
+s0070	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርኑ	ሀገርኑ	supported	true	1	accepted alternate accusative
+s0071	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርም	ሀገርም	supported	true	2	conjunctive m
+s0072	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርስ	ሀገርስ	supported	true	1	adverbial s
+s0073	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርማ	ሀገርማ	supported	true	1	adverbial ma
+s0074	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርሳ	ሀገርሳ	supported	true	1	adverbial sa
+s0075	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርና	ሀገርና	supported	true	1	conjunctive na
+s0076	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርኮ	ሀገርኮ	supported	true	1	adverbial ko
+s0077	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርጋ	ሀገርጋ	supported	true	1	postposition ga
+s0078	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርንም	ሀገርንም	supported	true	2	accusative then conjunctive
+s0079	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርንጋ	ሀገርንጋ	supported	true	1	accusative then postposition
+s0080	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	የሀገር	የሀገር	supported	true	1	adposition የ
+s0081	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ለሀገር	ለሀገር	supported	true	1	adposition ለ
+s0082	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	በሀገር	በሀገር	supported	true	1	adposition በ
+s0083	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ከሀገር	ከሀገር	supported	true	1	adposition ከ
+s0084	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	እንደሀገር	እንደሀገር	supported	true	1	adposition እንደ
+s0085	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ስለሀገር	ስለሀገር	supported	true	1	adposition ስለ
+s0086	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ወደሀገር	ወደሀገር	supported	true	1	adposition ወደ
+s0087	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	እስከሀገር	እስከሀገር	supported	true	1	adposition እስከ
+s0088	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	እየሀገር	እየሀገር	supported	true	1	distributive
+s0089	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	በየሀገር	በየሀገር	supported	true	1	adposition plus distributive
+s0090	0	ልጅ	ልጅ	'' [pos=N]	ልጅ	ልጅ	supported	true	1	base
+s0091	0	ልጅ	ልጅ	'' [pos=N]	ልጅን	ልጅን	supported	true	1	accusative
+s0092	0	ልጅ	ልጅ	'' [pos=N]	ልጅኑ	ልጅኑ	supported	true	1	accepted alternate accusative
+s0093	0	ልጅ	ልጅ	'' [pos=N]	ልጅም	ልጅም	supported	true	2	conjunctive m
+s0094	0	ልጅ	ልጅ	'' [pos=N]	ልጅስ	ልጅስ	supported	true	1	adverbial s
+s0095	0	ልጅ	ልጅ	'' [pos=N]	ልጅማ	ልጅማ	supported	true	1	adverbial ma
+s0096	0	ልጅ	ልጅ	'' [pos=N]	ልጅሳ	ልጅሳ	supported	true	1	adverbial sa
+s0097	0	ልጅ	ልጅ	'' [pos=N]	ልጅና	ልጅና	supported	true	1	conjunctive na
+s0098	0	ልጅ	ልጅ	'' [pos=N]	ልጅኮ	ልጅኮ	supported	true	1	adverbial ko
+s0099	0	ልጅ	ልጅ	'' [pos=N]	ልጅጋ	ልጅጋ	supported	true	1	postposition ga
+s0100	0	ልጅ	ልጅ	'' [pos=N]	ልጅንም	ልጅንም	supported	true	2	accusative then conjunctive
+s0101	0	ልጅ	ልጅ	'' [pos=N]	ልጅንጋ	ልጅንጋ	supported	true	1	accusative then postposition
+s0102	0	ልጅ	ልጅ	'' [pos=N]	የልጅ	የልጅ	supported	true	1	adposition የ
+s0103	0	ልጅ	ልጅ	'' [pos=N]	ለልጅ	ለልጅ	supported	true	1	adposition ለ
+s0104	0	ልጅ	ልጅ	'' [pos=N]	በልጅ	በልጅ	supported	true	1	adposition በ
+s0105	0	ልጅ	ልጅ	'' [pos=N]	ከልጅ	ከልጅ	supported	true	1	adposition ከ
+s0106	0	ልጅ	ልጅ	'' [pos=N]	እንደልጅ	እንደልጅ	supported	true	1	adposition እንደ
+s0107	0	ልጅ	ልጅ	'' [pos=N]	ስለልጅ	ስለልጅ	supported	true	1	adposition ስለ
+s0108	0	ልጅ	ልጅ	'' [pos=N]	ወደልጅ	ወደልጅ	supported	true	1	adposition ወደ
+s0109	0	ልጅ	ልጅ	'' [pos=N]	እስከልጅ	እስከልጅ	supported	true	1	adposition እስከ
+s0110	0	ልጅ	ልጅ	'' [pos=N]	እየልጅ	እየልጅ	supported	true	1	distributive
+s0111	0	ልጅ	ልጅ	'' [pos=N]	በየልጅ	በየልጅ	supported	true	1	adposition plus distributive
+s0112	0	ልጅ	ልጅ	'' [pos=N]	እነልጅ	እነልጅ	supported	true	1	collective
+s0113	0	ልጅ	ልጅ	'' [pos=N]	የእነልጅ	የእነልጅ	supported	true	1	genitive plus collective
+s0114	0	መኪና	መኪና	'' [pos=N,-h]	መኪና	መኪና	supported	true	1	base
+s0115	0	መኪና	መኪና	'' [pos=N,-h]	መኪናን	መኪናን	supported	true	1	accusative
+s0116	0	መኪና	መኪና	'' [pos=N,-h]	መኪናኑ	መኪናኑ	supported	true	1	accepted alternate accusative
+s0117	0	መኪና	መኪና	'' [pos=N,-h]	መኪናም	መኪናም	supported	true	2	conjunctive m
+s0118	0	መኪና	መኪና	'' [pos=N,-h]	መኪናስ	መኪናስ	supported	true	1	adverbial s
+s0119	0	መኪና	መኪና	'' [pos=N,-h]	መኪናማ	መኪናማ	supported	true	1	adverbial ma
+s0120	0	መኪና	መኪና	'' [pos=N,-h]	መኪናሳ	መኪናሳ	supported	true	1	adverbial sa
+s0121	0	መኪና	መኪና	'' [pos=N,-h]	መኪናና	መኪናና	supported	true	1	conjunctive na
+s0122	0	መኪና	መኪና	'' [pos=N,-h]	መኪናኮ	መኪናኮ	supported	true	1	adverbial ko
+s0123	0	መኪና	መኪና	'' [pos=N,-h]	መኪናጋ	መኪናጋ	supported	true	1	postposition ga
+s0124	0	መኪና	መኪና	'' [pos=N,-h]	መኪናንም	መኪናንም	supported	true	2	accusative then conjunctive
+s0125	0	መኪና	መኪና	'' [pos=N,-h]	መኪናንጋ	መኪናንጋ	supported	true	1	accusative then postposition
+s0126	0	መኪና	መኪና	'' [pos=N,-h]	የመኪና	የመኪና	supported	true	1	adposition የ
+s0127	0	መኪና	መኪና	'' [pos=N,-h]	ለመኪና	ለመኪና	supported	true	1	adposition ለ
+s0128	0	መኪና	መኪና	'' [pos=N,-h]	በመኪና	በመኪና	supported	true	1	adposition በ
+s0129	0	መኪና	መኪና	'' [pos=N,-h]	ከመኪና	ከመኪና	supported	true	1	adposition ከ
+s0130	0	መኪና	መኪና	'' [pos=N,-h]	እንደመኪና	እንደመኪና	supported	true	1	adposition እንደ
+s0131	0	መኪና	መኪና	'' [pos=N,-h]	ስለመኪና	ስለመኪና	supported	true	1	adposition ስለ
+s0132	0	መኪና	መኪና	'' [pos=N,-h]	ወደመኪና	ወደመኪና	supported	true	1	adposition ወደ
+s0133	0	መኪና	መኪና	'' [pos=N,-h]	እስከመኪና	እስከመኪና	supported	true	1	adposition እስከ
+s0134	0	መኪና	መኪና	'' [pos=N,-h]	እየመኪና	እየመኪና	supported	true	1	distributive
+s0135	0	መኪና	መኪና	'' [pos=N,-h]	በየመኪና	በየመኪና	supported	true	1	adposition plus distributive
+s0136	0	ስራ	ስራ	'' [pos=N,-h]	ስራ	ስራ	supported	true	1	base
+s0137	0	ስራ	ስራ	'' [pos=N,-h]	ስራን	ስራን	supported	true	1	accusative
+s0138	0	ስራ	ስራ	'' [pos=N,-h]	ስራኑ	ስራኑ	supported	true	1	accepted alternate accusative
+s0139	0	ስራ	ስራ	'' [pos=N,-h]	ስራም	ስራም	supported	true	2	conjunctive m
+s0140	0	ስራ	ስራ	'' [pos=N,-h]	ስራስ	ስራስ	supported	true	1	adverbial s
+s0141	0	ስራ	ስራ	'' [pos=N,-h]	ስራማ	ስራማ	supported	true	1	adverbial ma
+s0142	0	ስራ	ስራ	'' [pos=N,-h]	ስራሳ	ስራሳ	supported	true	1	adverbial sa
+s0143	0	ስራ	ስራ	'' [pos=N,-h]	ስራና	ስራና	supported	true	1	conjunctive na
+s0144	0	ስራ	ስራ	'' [pos=N,-h]	ስራኮ	ስራኮ	supported	true	1	adverbial ko
+s0145	0	ስራ	ስራ	'' [pos=N,-h]	ስራጋ	ስራጋ	supported	true	1	postposition ga
+s0146	0	ስራ	ስራ	'' [pos=N,-h]	ስራንም	ስራንም	supported	true	2	accusative then conjunctive
+s0147	0	ስራ	ስራ	'' [pos=N,-h]	ስራንጋ	ስራንጋ	supported	true	1	accusative then postposition
+s0148	0	ስራ	ስራ	'' [pos=N,-h]	የስራ	የስራ	supported	true	1	adposition የ
+s0149	0	ስራ	ስራ	'' [pos=N,-h]	ለስራ	ለስራ	supported	true	1	adposition ለ
+s0150	0	ስራ	ስራ	'' [pos=N,-h]	በስራ	በስራ	supported	true	1	adposition በ
+s0151	0	ስራ	ስራ	'' [pos=N,-h]	ከስራ	ከስራ	supported	true	1	adposition ከ
+s0152	0	ስራ	ስራ	'' [pos=N,-h]	እንደስራ	እንደስራ	supported	true	1	adposition እንደ
+s0153	0	ስራ	ስራ	'' [pos=N,-h]	ስለስራ	ስለስራ	supported	true	1	adposition ስለ
+s0154	0	ስራ	ስራ	'' [pos=N,-h]	ወደስራ	ወደስራ	supported	true	1	adposition ወደ
+s0155	0	ስራ	ስራ	'' [pos=N,-h]	እስከስራ	እስከስራ	supported	true	1	adposition እስከ
+s0156	0	ስራ	ስራ	'' [pos=N,-h]	እየስራ	እየስራ	supported	true	1	distributive
+s0157	0	ስራ	ስራ	'' [pos=N,-h]	በየስራ	በየስራ	supported	true	1	adposition plus distributive
+s0158	0	ሴት	ሴት	'' [g=f,pos=N]	ሴት	ሴት	supported	true	1	base
+s0159	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትን	ሴትን	supported	true	1	accusative
+s0160	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትኑ	ሴትኑ	supported	true	1	accepted alternate accusative
+s0161	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትም	ሴትም	supported	true	2	conjunctive m
+s0162	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትስ	ሴትስ	supported	true	1	adverbial s
+s0163	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትማ	ሴትማ	supported	true	1	adverbial ma
+s0164	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትሳ	ሴትሳ	supported	true	1	adverbial sa
+s0165	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትና	ሴትና	supported	true	1	conjunctive na
+s0166	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትኮ	ሴትኮ	supported	true	1	adverbial ko
+s0167	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትጋ	ሴትጋ	supported	true	1	postposition ga
+s0168	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትንም	ሴትንም	supported	true	2	accusative then conjunctive
+s0169	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትንጋ	ሴትንጋ	supported	true	1	accusative then postposition
+s0170	0	ሴት	ሴት	'' [g=f,pos=N]	የሴት	የሴት	supported	true	1	adposition የ
+s0171	0	ሴት	ሴት	'' [g=f,pos=N]	ለሴት	ለሴት	supported	true	1	adposition ለ
+s0172	0	ሴት	ሴት	'' [g=f,pos=N]	በሴት	በሴት	supported	true	1	adposition በ
+s0173	0	ሴት	ሴት	'' [g=f,pos=N]	ከሴት	ከሴት	supported	true	1	adposition ከ
+s0174	0	ሴት	ሴት	'' [g=f,pos=N]	እንደሴት	እንደሴት	supported	true	1	adposition እንደ
+s0175	0	ሴት	ሴት	'' [g=f,pos=N]	ስለሴት	ስለሴት	supported	true	1	adposition ስለ
+s0176	0	ሴት	ሴት	'' [g=f,pos=N]	ወደሴት	ወደሴት	supported	true	1	adposition ወደ
+s0177	0	ሴት	ሴት	'' [g=f,pos=N]	እስከሴት	እስከሴት	supported	true	1	adposition እስከ
+s0178	0	ሴት	ሴት	'' [g=f,pos=N]	እየሴት	እየሴት	supported	true	1	distributive
+s0179	0	ሴት	ሴት	'' [g=f,pos=N]	በየሴት	በየሴት	supported	true	1	adposition plus distributive
+s0180	0	ሴት	ሴት	'' [g=f,pos=N]	እነሴት	እነሴት	supported	true	1	collective
+s0181	0	ሴት	ሴት	'' [g=f,pos=N]	የእነሴት	የእነሴት	supported	true	1	genitive plus collective
+s0182	0	ቀን	ቀን	'' [pos=N,-h]	ቀን	ቀን	supported	true	1	base
+s0183	0	ቀን	ቀን	'' [pos=N,-h]	ቀንን	ቀንን	supported	true	1	accusative
+s0184	0	ቀን	ቀን	'' [pos=N,-h]	ቀንኑ	ቀንኑ	supported	true	1	accepted alternate accusative
+s0185	0	ቀን	ቀን	'' [pos=N,-h]	ቀንም	ቀንም	supported	true	2	conjunctive m
+s0186	0	ቀን	ቀን	'' [pos=N,-h]	ቀንስ	ቀንስ	supported	true	1	adverbial s
+s0187	0	ቀን	ቀን	'' [pos=N,-h]	ቀንማ	ቀንማ	supported	true	1	adverbial ma
+s0188	0	ቀን	ቀን	'' [pos=N,-h]	ቀንሳ	ቀንሳ	supported	true	1	adverbial sa
+s0189	0	ቀን	ቀን	'' [pos=N,-h]	ቀንና	ቀንና	supported	true	1	conjunctive na
+s0190	0	ቀን	ቀን	'' [pos=N,-h]	ቀንኮ	ቀንኮ	supported	true	1	adverbial ko
+s0191	0	ቀን	ቀን	'' [pos=N,-h]	ቀንጋ	ቀንጋ	supported	true	1	postposition ga
+s0192	0	ቀን	ቀን	'' [pos=N,-h]	ቀንንም	ቀንንም	supported	true	2	accusative then conjunctive
+s0193	0	ቀን	ቀን	'' [pos=N,-h]	ቀንንጋ	ቀንንጋ	supported	true	1	accusative then postposition
+s0194	0	ቀን	ቀን	'' [pos=N,-h]	የቀን	የቀን	supported	true	1	adposition የ
+s0195	0	ቀን	ቀን	'' [pos=N,-h]	ለቀን	ለቀን	supported	true	1	adposition ለ
+s0196	0	ቀን	ቀን	'' [pos=N,-h]	በቀን	በቀን	supported	true	1	adposition በ
+s0197	0	ቀን	ቀን	'' [pos=N,-h]	ከቀን	ከቀን	supported	true	1	adposition ከ
+s0198	0	ቀን	ቀን	'' [pos=N,-h]	እንደቀን	እንደቀን	supported	true	1	adposition እንደ
+s0199	0	ቀን	ቀን	'' [pos=N,-h]	ስለቀን	ስለቀን	supported	true	1	adposition ስለ
+s0200	0	ቀን	ቀን	'' [pos=N,-h]	ወደቀን	ወደቀን	supported	true	1	adposition ወደ
+s0201	0	ቀን	ቀን	'' [pos=N,-h]	እስከቀን	እስከቀን	supported	true	1	adposition እስከ
+s0202	0	ቀን	ቀን	'' [pos=N,-h]	እየቀን	እየቀን	supported	true	1	distributive
+s0203	0	ቀን	ቀን	'' [pos=N,-h]	በየቀን	በየቀን	supported	true	1	adposition plus distributive
+s0204	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርት	ትምህርት	supported	true	1	base
+s0205	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትን	ትምህርትን	supported	true	1	accusative
+s0206	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትኑ	ትምህርትኑ	supported	true	1	accepted alternate accusative
+s0207	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትም	ትምህርትም	supported	true	2	conjunctive m
+s0208	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትስ	ትምህርትስ	supported	true	1	adverbial s
+s0209	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትማ	ትምህርትማ	supported	true	1	adverbial ma
+s0210	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትሳ	ትምህርትሳ	supported	true	1	adverbial sa
+s0211	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትና	ትምህርትና	supported	true	1	conjunctive na
+s0212	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትኮ	ትምህርትኮ	supported	true	1	adverbial ko
+s0213	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትጋ	ትምህርትጋ	supported	true	1	postposition ga
+s0214	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትንም	ትምህርትንም	supported	true	2	accusative then conjunctive
+s0215	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትንጋ	ትምህርትንጋ	supported	true	1	accusative then postposition
+s0216	0	ትምህርት	ትምህርት	'' [pos=N,-h]	የትምህርት	የትምህርት	supported	true	1	adposition የ
+s0217	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ለትምህርት	ለትምህርት	supported	true	1	adposition ለ
+s0218	0	ትምህርት	ትምህርት	'' [pos=N,-h]	በትምህርት	በትምህርት	supported	true	1	adposition በ
+s0219	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ከትምህርት	ከትምህርት	supported	true	1	adposition ከ
+s0220	0	ትምህርት	ትምህርት	'' [pos=N,-h]	እንደትምህርት	እንደትምህርት	supported	true	1	adposition እንደ
+s0221	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ስለትምህርት	ስለትምህርት	supported	true	1	adposition ስለ
+s0222	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ወደትምህርት	ወደትምህርት	supported	true	1	adposition ወደ
+s0223	0	ትምህርት	ትምህርት	'' [pos=N,-h]	እስከትምህርት	እስከትምህርት	supported	true	1	adposition እስከ
+s0224	0	ትምህርት	ትምህርት	'' [pos=N,-h]	እየትምህርት	እየትምህርት	supported	true	1	distributive
+s0225	0	ትምህርት	ትምህርት	'' [pos=N,-h]	በየትምህርት	በየትምህርት	supported	true	1	adposition plus distributive
+s0226	0	ወንበር	ወንበር	'' [pos=N]	ወንበር	ወንበር	supported	true	1	base
+s0227	0	ወንበር	ወንበር	'' [pos=N]	ወንበርን	ወንበርን	supported	true	1	accusative
+s0228	0	ወንበር	ወንበር	'' [pos=N]	ወንበርኑ	ወንበርኑ	supported	true	1	accepted alternate accusative
+s0229	0	ወንበር	ወንበር	'' [pos=N]	ወንበርም	ወንበርም	supported	true	2	conjunctive m
+s0230	0	ወንበር	ወንበር	'' [pos=N]	ወንበርስ	ወንበርስ	supported	true	1	adverbial s
+s0231	0	ወንበር	ወንበር	'' [pos=N]	ወንበርማ	ወንበርማ	supported	true	1	adverbial ma
+s0232	0	ወንበር	ወንበር	'' [pos=N]	ወንበርሳ	ወንበርሳ	supported	true	1	adverbial sa
+s0233	0	ወንበር	ወንበር	'' [pos=N]	ወንበርና	ወንበርና	supported	true	1	conjunctive na
+s0234	0	ወንበር	ወንበር	'' [pos=N]	ወንበርኮ	ወንበርኮ	supported	true	1	adverbial ko
+s0235	0	ወንበር	ወንበር	'' [pos=N]	ወንበርጋ	ወንበርጋ	supported	true	1	postposition ga
+s0236	0	ወንበር	ወንበር	'' [pos=N]	ወንበርንም	ወንበርንም	supported	true	2	accusative then conjunctive
+s0237	0	ወንበር	ወንበር	'' [pos=N]	ወንበርንጋ	ወንበርንጋ	supported	true	1	accusative then postposition
+s0238	0	ወንበር	ወንበር	'' [pos=N]	የወንበር	የወንበር	supported	true	1	adposition የ
+s0239	0	ወንበር	ወንበር	'' [pos=N]	ለወንበር	ለወንበር	supported	true	1	adposition ለ
+s0240	0	ወንበር	ወንበር	'' [pos=N]	በወንበር	በወንበር	supported	true	1	adposition በ
+s0241	0	ወንበር	ወንበር	'' [pos=N]	ከወንበር	ከወንበር	supported	true	1	adposition ከ
+s0242	0	ወንበር	ወንበር	'' [pos=N]	እንደወንበር	እንደወንበር	supported	true	1	adposition እንደ
+s0243	0	ወንበር	ወንበር	'' [pos=N]	ስለወንበር	ስለወንበር	supported	true	1	adposition ስለ
+s0244	0	ወንበር	ወንበር	'' [pos=N]	ወደወንበር	ወደወንበር	supported	true	1	adposition ወደ
+s0245	0	ወንበር	ወንበር	'' [pos=N]	እስከወንበር	እስከወንበር	supported	true	1	adposition እስከ
+s0246	0	ወንበር	ወንበር	'' [pos=N]	እየወንበር	እየወንበር	supported	true	1	distributive
+s0247	0	ወንበር	ወንበር	'' [pos=N]	በየወንበር	በየወንበር	supported	true	1	adposition plus distributive
+s0248	0	ወንበር	ወንበር	'' [pos=N]	እነወንበር	እነወንበር	supported	true	1	collective
+s0249	0	ወንበር	ወንበር	'' [pos=N]	የእነወንበር	የእነወንበር	supported	true	1	genitive plus collective
+s0250	0	አበባ	አበባ	'' [pos=N,-h]	አበባ	አበባ	supported	true	2	base
+s0251	0	አበባ	አበባ	'' [pos=N,-h]	አበባን	አበባን	supported	true	2	accusative
+s0252	0	አበባ	አበባ	'' [pos=N,-h]	አበባኑ	አበባኑ	supported	true	2	accepted alternate accusative
+s0253	0	አበባ	አበባ	'' [pos=N,-h]	አበባም	አበባም	supported	true	4	conjunctive m
+s0254	0	አበባ	አበባ	'' [pos=N,-h]	አበባስ	አበባስ	supported	true	2	adverbial s
+s0255	0	አበባ	አበባ	'' [pos=N,-h]	አበባማ	አበባማ	supported	true	2	adverbial ma
+s0256	0	አበባ	አበባ	'' [pos=N,-h]	አበባሳ	አበባሳ	supported	true	2	adverbial sa
+s0257	0	አበባ	አበባ	'' [pos=N,-h]	አበባና	አበባና	supported	true	2	conjunctive na
+s0258	0	አበባ	አበባ	'' [pos=N,-h]	አበባኮ	አበባኮ	supported	true	2	adverbial ko
+s0259	0	አበባ	አበባ	'' [pos=N,-h]	አበባጋ	አበባጋ	supported	true	2	postposition ga
+s0260	0	አበባ	አበባ	'' [pos=N,-h]	አበባንም	አበባንም	supported	true	4	accusative then conjunctive
+s0261	0	አበባ	አበባ	'' [pos=N,-h]	አበባንጋ	አበባንጋ	supported	true	2	accusative then postposition
+s0262	0	አበባ	አበባ	'' [pos=N,-h]	የአበባ	የአበባ	supported	true	2	adposition የ
+s0263	0	አበባ	አበባ	'' [pos=N,-h]	ለአበባ	ለአበባ	supported	true	2	adposition ለ
+s0264	0	አበባ	አበባ	'' [pos=N,-h]	በአበባ	በአበባ	supported	true	2	adposition በ
+s0265	0	አበባ	አበባ	'' [pos=N,-h]	ከአበባ	ከአበባ	supported	true	2	adposition ከ
+s0266	0	አበባ	አበባ	'' [pos=N,-h]	እንደአበባ	እንደአበባ	supported	true	2	adposition እንደ
+s0267	0	አበባ	አበባ	'' [pos=N,-h]	ስለአበባ	ስለአበባ	supported	true	2	adposition ስለ
+s0268	0	አበባ	አበባ	'' [pos=N,-h]	ወደአበባ	ወደአበባ	supported	true	2	adposition ወደ
+s0269	0	አበባ	አበባ	'' [pos=N,-h]	እስከአበባ	እስከአበባ	supported	true	2	adposition እስከ
+s0270	0	አበባ	አበባ	'' [pos=N,-h]	እየአበባ	እየአበባ	supported	true	1	distributive
+s0271	0	አበባ	አበባ	'' [pos=N,-h]	በየአበባ	በየአበባ	supported	true	1	adposition plus distributive
+e000	0	አበባ	አበባ	'' [pos=N,-h]	እነአበባ	እነአበባ	excluded	true	1	excluded surface conflicts with this source lexeme's restrictions
+e001	0	አበባ	አበባ	'' [pos=N,-h]	የእነአበባ	የእነአበባ	excluded	true	1	excluded surface conflicts with this source lexeme's restrictions
+s0272	0	አበባ	አበባ	'' [pos=N,-h]	ያበባ	ያበባ	supported	true	2	contracted initial vowel after የ
+s0273	0	አበባ	አበባ	'' [pos=N,-h]	ላበባ	ላበባ	supported	true	2	contracted initial vowel after ለ
+s0274	0	አበባ	አበባ	'' [pos=N,-h]	ባበባ	ባበባ	supported	true	2	contracted initial vowel after በ
+s0275	0	አበባ	አበባ	'' [pos=N,-h]	ካበባ	ካበባ	supported	true	2	contracted initial vowel after ከ
+s0276	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድ	ወንድ	supported	true	1	base
+s0277	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድን	ወንድን	supported	true	1	accusative
+s0278	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድኑ	ወንድኑ	supported	true	1	accepted alternate accusative
+s0279	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድም	ወንድም	supported	true	2	conjunctive m
+s0280	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድስ	ወንድስ	supported	true	1	adverbial s
+s0281	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድማ	ወንድማ	supported	true	1	adverbial ma
+s0282	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድሳ	ወንድሳ	supported	true	1	adverbial sa
+s0283	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድና	ወንድና	supported	true	1	conjunctive na
+s0284	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድኮ	ወንድኮ	supported	true	1	adverbial ko
+s0285	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድጋ	ወንድጋ	supported	true	1	postposition ga
+s0286	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድንም	ወንድንም	supported	true	2	accusative then conjunctive
+s0287	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድንጋ	ወንድንጋ	supported	true	1	accusative then postposition
+s0288	0	ወንድ	ወንድ	'' [g=m,pos=N]	የወንድ	የወንድ	supported	true	1	adposition የ
+s0289	0	ወንድ	ወንድ	'' [g=m,pos=N]	ለወንድ	ለወንድ	supported	true	1	adposition ለ
+s0290	0	ወንድ	ወንድ	'' [g=m,pos=N]	በወንድ	በወንድ	supported	true	1	adposition በ
+s0291	0	ወንድ	ወንድ	'' [g=m,pos=N]	ከወንድ	ከወንድ	supported	true	1	adposition ከ
+s0292	0	ወንድ	ወንድ	'' [g=m,pos=N]	እንደወንድ	እንደወንድ	supported	true	1	adposition እንደ
+s0293	0	ወንድ	ወንድ	'' [g=m,pos=N]	ስለወንድ	ስለወንድ	supported	true	1	adposition ስለ
+s0294	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወደወንድ	ወደወንድ	supported	true	1	adposition ወደ
+s0295	0	ወንድ	ወንድ	'' [g=m,pos=N]	እስከወንድ	እስከወንድ	supported	true	1	adposition እስከ
+s0296	0	ወንድ	ወንድ	'' [g=m,pos=N]	እየወንድ	እየወንድ	supported	true	1	distributive
+s0297	0	ወንድ	ወንድ	'' [g=m,pos=N]	በየወንድ	በየወንድ	supported	true	1	adposition plus distributive
+s0298	0	ወንድ	ወንድ	'' [g=m,pos=N]	እነወንድ	እነወንድ	supported	true	1	collective
+s0299	0	ወንድ	ወንድ	'' [g=m,pos=N]	የእነወንድ	የእነወንድ	supported	true	1	genitive plus collective
+s0300	0	አመት	አመት	'' [pos=N,-h]	አመት	አመት	supported	true	1	base
+s0301	0	አመት	አመት	'' [pos=N,-h]	አመትን	አመትን	supported	true	1	accusative
+s0302	0	አመት	አመት	'' [pos=N,-h]	አመትኑ	አመትኑ	supported	true	1	accepted alternate accusative
+s0303	0	አመት	አመት	'' [pos=N,-h]	አመትም	አመትም	supported	true	2	conjunctive m
+s0304	0	አመት	አመት	'' [pos=N,-h]	አመትስ	አመትስ	supported	true	1	adverbial s
+s0305	0	አመት	አመት	'' [pos=N,-h]	አመትማ	አመትማ	supported	true	1	adverbial ma
+s0306	0	አመት	አመት	'' [pos=N,-h]	አመትሳ	አመትሳ	supported	true	1	adverbial sa
+s0307	0	አመት	አመት	'' [pos=N,-h]	አመትና	አመትና	supported	true	1	conjunctive na
+s0308	0	አመት	አመት	'' [pos=N,-h]	አመትኮ	አመትኮ	supported	true	1	adverbial ko
+s0309	0	አመት	አመት	'' [pos=N,-h]	አመትጋ	አመትጋ	supported	true	1	postposition ga
+s0310	0	አመት	አመት	'' [pos=N,-h]	አመትንም	አመትንም	supported	true	2	accusative then conjunctive
+s0311	0	አመት	አመት	'' [pos=N,-h]	አመትንጋ	አመትንጋ	supported	true	1	accusative then postposition
+s0312	0	አመት	አመት	'' [pos=N,-h]	የአመት	የአመት	supported	true	1	adposition የ
+s0313	0	አመት	አመት	'' [pos=N,-h]	ለአመት	ለአመት	supported	true	1	adposition ለ
+s0314	0	አመት	አመት	'' [pos=N,-h]	በአመት	በአመት	supported	true	1	adposition በ
+s0315	0	አመት	አመት	'' [pos=N,-h]	ከአመት	ከአመት	supported	true	1	adposition ከ
+s0316	0	አመት	አመት	'' [pos=N,-h]	እንደአመት	እንደአመት	supported	true	1	adposition እንደ
+s0317	0	አመት	አመት	'' [pos=N,-h]	ስለአመት	ስለአመት	supported	true	1	adposition ስለ
+s0318	0	አመት	አመት	'' [pos=N,-h]	ወደአመት	ወደአመት	supported	true	1	adposition ወደ
+s0319	0	አመት	አመት	'' [pos=N,-h]	እስከአመት	እስከአመት	supported	true	1	adposition እስከ
+s0320	0	አመት	አመት	'' [pos=N,-h]	እየአመት	እየአመት	supported	true	1	distributive
+s0321	0	አመት	አመት	'' [pos=N,-h]	በየአመት	በየአመት	supported	true	1	adposition plus distributive
+s0322	0	አመት	አመት	'' [pos=N,-h]	ያመት	ያመት	supported	true	1	contracted initial vowel after የ
+s0323	0	አመት	አመት	'' [pos=N,-h]	ላመት	ላመት	supported	true	1	contracted initial vowel after ለ
+s0324	0	አመት	አመት	'' [pos=N,-h]	ባመት	ባመት	supported	true	1	contracted initial vowel after በ
+s0325	0	አመት	አመት	'' [pos=N,-h]	ካመት	ካመት	supported	true	1	contracted initial vowel after ከ
+s0326	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍ	መጽሀፍ	supported	true	1	base
+s0327	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍን	መጽሀፍን	supported	true	1	accusative
+s0328	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍኑ	መጽሀፍኑ	supported	true	1	accepted alternate accusative
+s0329	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍም	መጽሀፍም	supported	true	2	conjunctive m
+s0330	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍስ	መጽሀፍስ	supported	true	1	adverbial s
+s0331	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍማ	መጽሀፍማ	supported	true	1	adverbial ma
+s0332	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍሳ	መጽሀፍሳ	supported	true	1	adverbial sa
+s0333	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍና	መጽሀፍና	supported	true	1	conjunctive na
+s0334	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍኮ	መጽሀፍኮ	supported	true	1	adverbial ko
+s0335	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍጋ	መጽሀፍጋ	supported	true	1	postposition ga
+s0336	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍንም	መጽሀፍንም	supported	true	2	accusative then conjunctive
+s0337	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍንጋ	መጽሀፍንጋ	supported	true	1	accusative then postposition
+s0338	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	የመጽሀፍ	የመጽሀፍ	supported	true	1	adposition የ
+s0339	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	ለመጽሀፍ	ለመጽሀፍ	supported	true	1	adposition ለ
+s0340	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	በመጽሀፍ	በመጽሀፍ	supported	true	1	adposition በ
+s0341	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	ከመጽሀፍ	ከመጽሀፍ	supported	true	1	adposition ከ
+s0342	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	እንደመጽሀፍ	እንደመጽሀፍ	supported	true	1	adposition እንደ
+s0343	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	ስለመጽሀፍ	ስለመጽሀፍ	supported	true	1	adposition ስለ
+s0344	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	ወደመጽሀፍ	ወደመጽሀፍ	supported	true	1	adposition ወደ
+s0345	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	እስከመጽሀፍ	እስከመጽሀፍ	supported	true	1	adposition እስከ
+s0346	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	እየመጽሀፍ	እየመጽሀፍ	supported	true	1	distributive
+s0347	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	በየመጽሀፍ	በየመጽሀፍ	supported	true	1	adposition plus distributive
+s0348	0	ላም	ላም	'' [g=f,pos=N,-h]	ላም	ላም	supported	true	1	base
+s0349	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምን	ላምን	supported	true	1	accusative
+s0350	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምኑ	ላምኑ	supported	true	1	accepted alternate accusative
+s0351	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምም	ላምም	supported	true	2	conjunctive m
+s0352	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምስ	ላምስ	supported	true	1	adverbial s
+s0353	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምማ	ላምማ	supported	true	1	adverbial ma
+s0354	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምሳ	ላምሳ	supported	true	1	adverbial sa
+s0355	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምና	ላምና	supported	true	1	conjunctive na
+s0356	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምኮ	ላምኮ	supported	true	1	adverbial ko
+s0357	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምጋ	ላምጋ	supported	true	1	postposition ga
+s0358	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምንም	ላምንም	supported	true	2	accusative then conjunctive
+s0359	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምንጋ	ላምንጋ	supported	true	1	accusative then postposition
+s0360	0	ላም	ላም	'' [g=f,pos=N,-h]	የላም	የላም	supported	true	1	adposition የ
+s0361	0	ላም	ላም	'' [g=f,pos=N,-h]	ለላም	ለላም	supported	true	1	adposition ለ
+s0362	0	ላም	ላም	'' [g=f,pos=N,-h]	በላም	በላም	supported	true	1	adposition በ
+s0363	0	ላም	ላም	'' [g=f,pos=N,-h]	ከላም	ከላም	supported	true	1	adposition ከ
+s0364	0	ላም	ላም	'' [g=f,pos=N,-h]	እንደላም	እንደላም	supported	true	1	adposition እንደ
+s0365	0	ላም	ላም	'' [g=f,pos=N,-h]	ስለላም	ስለላም	supported	true	1	adposition ስለ
+s0366	0	ላም	ላም	'' [g=f,pos=N,-h]	ወደላም	ወደላም	supported	true	1	adposition ወደ
+s0367	0	ላም	ላም	'' [g=f,pos=N,-h]	እስከላም	እስከላም	supported	true	1	adposition እስከ
+s0368	0	ላም	ላም	'' [g=f,pos=N,-h]	እየላም	እየላም	supported	true	1	distributive
+s0369	0	ላም	ላም	'' [g=f,pos=N,-h]	በየላም	በየላም	supported	true	1	adposition plus distributive
+s0370	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስት	ሚስት	supported	true	1	base
+s0371	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትን	ሚስትን	supported	true	1	accusative
+s0372	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትኑ	ሚስትኑ	supported	true	1	accepted alternate accusative
+s0373	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትም	ሚስትም	supported	true	2	conjunctive m
+s0374	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትስ	ሚስትስ	supported	true	1	adverbial s
+s0375	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትማ	ሚስትማ	supported	true	1	adverbial ma
+s0376	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትሳ	ሚስትሳ	supported	true	1	adverbial sa
+s0377	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትና	ሚስትና	supported	true	1	conjunctive na
+s0378	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትኮ	ሚስትኮ	supported	true	1	adverbial ko
+s0379	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትጋ	ሚስትጋ	supported	true	1	postposition ga
+s0380	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትንም	ሚስትንም	supported	true	2	accusative then conjunctive
+s0381	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትንጋ	ሚስትንጋ	supported	true	1	accusative then postposition
+s0382	0	ሚስት	ሚስት	'' [g=f,pos=N]	የሚስት	የሚስት	supported	true	1	adposition የ
+s0383	0	ሚስት	ሚስት	'' [g=f,pos=N]	ለሚስት	ለሚስት	supported	true	1	adposition ለ
+s0384	0	ሚስት	ሚስት	'' [g=f,pos=N]	በሚስት	በሚስት	supported	true	1	adposition በ
+s0385	0	ሚስት	ሚስት	'' [g=f,pos=N]	ከሚስት	ከሚስት	supported	true	1	adposition ከ
+s0386	0	ሚስት	ሚስት	'' [g=f,pos=N]	እንደሚስት	እንደሚስት	supported	true	1	adposition እንደ
+s0387	0	ሚስት	ሚስት	'' [g=f,pos=N]	ስለሚስት	ስለሚስት	supported	true	1	adposition ስለ
+s0388	0	ሚስት	ሚስት	'' [g=f,pos=N]	ወደሚስት	ወደሚስት	supported	true	1	adposition ወደ
+s0389	0	ሚስት	ሚስት	'' [g=f,pos=N]	እስከሚስት	እስከሚስት	supported	true	1	adposition እስከ
+s0390	0	ሚስት	ሚስት	'' [g=f,pos=N]	እየሚስት	እየሚስት	supported	true	1	distributive
+s0391	0	ሚስት	ሚስት	'' [g=f,pos=N]	በየሚስት	በየሚስት	supported	true	1	adposition plus distributive
+s0392	0	ሚስት	ሚስት	'' [g=f,pos=N]	እነሚስት	እነሚስት	supported	true	1	collective
+s0393	0	ሚስት	ሚስት	'' [g=f,pos=N]	የእነሚስት	የእነሚስት	supported	true	1	genitive plus collective
+s0394	0	እህት	እህት	'' [g=f,pos=N]	እህት	እህት	supported	true	1	base
+s0395	0	እህት	እህት	'' [g=f,pos=N]	እህትን	እህትን	supported	true	1	accusative
+s0396	0	እህት	እህት	'' [g=f,pos=N]	እህትኑ	እህትኑ	supported	true	1	accepted alternate accusative
+s0397	0	እህት	እህት	'' [g=f,pos=N]	እህትም	እህትም	supported	true	2	conjunctive m
+s0398	0	እህት	እህት	'' [g=f,pos=N]	እህትስ	እህትስ	supported	true	1	adverbial s
+s0399	0	እህት	እህት	'' [g=f,pos=N]	እህትማ	እህትማ	supported	true	1	adverbial ma
+s0400	0	እህት	እህት	'' [g=f,pos=N]	እህትሳ	እህትሳ	supported	true	1	adverbial sa
+s0401	0	እህት	እህት	'' [g=f,pos=N]	እህትና	እህትና	supported	true	1	conjunctive na
+s0402	0	እህት	እህት	'' [g=f,pos=N]	እህትኮ	እህትኮ	supported	true	1	adverbial ko
+s0403	0	እህት	እህት	'' [g=f,pos=N]	እህትጋ	እህትጋ	supported	true	1	postposition ga
+s0404	0	እህት	እህት	'' [g=f,pos=N]	እህትንም	እህትንም	supported	true	2	accusative then conjunctive
+s0405	0	እህት	እህት	'' [g=f,pos=N]	እህትንጋ	እህትንጋ	supported	true	1	accusative then postposition
+s0406	0	እህት	እህት	'' [g=f,pos=N]	የእህት	የእህት	supported	true	1	adposition የ
+s0407	0	እህት	እህት	'' [g=f,pos=N]	ለእህት	ለእህት	supported	true	1	adposition ለ
+s0408	0	እህት	እህት	'' [g=f,pos=N]	በእህት	በእህት	supported	true	1	adposition በ
+s0409	0	እህት	እህት	'' [g=f,pos=N]	ከእህት	ከእህት	supported	true	1	adposition ከ
+s0410	0	እህት	እህት	'' [g=f,pos=N]	እንደእህት	እንደእህት	supported	true	1	adposition እንደ
+s0411	0	እህት	እህት	'' [g=f,pos=N]	ስለእህት	ስለእህት	supported	true	1	adposition ስለ
+s0412	0	እህት	እህት	'' [g=f,pos=N]	ወደእህት	ወደእህት	supported	true	1	adposition ወደ
+s0413	0	እህት	እህት	'' [g=f,pos=N]	እስከእህት	እስከእህት	supported	true	1	adposition እስከ
+s0414	0	እህት	እህት	'' [g=f,pos=N]	እየእህት	እየእህት	supported	true	1	distributive
+s0415	0	እህት	እህት	'' [g=f,pos=N]	በየእህት	በየእህት	supported	true	1	adposition plus distributive
+s0416	0	እህት	እህት	'' [g=f,pos=N]	እነእህት	እነእህት	supported	true	1	collective
+s0417	0	እህት	እህት	'' [g=f,pos=N]	የእነእህት	የእነእህት	supported	true	1	genitive plus collective
+s0418	0	እ/ናት	እናት	'' [g=f,pos=N]	እናት	እናት	supported	true	2	base
+s0419	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትን	እናትን	supported	true	2	accusative
+s0420	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትኑ	እናትኑ	supported	true	2	accepted alternate accusative
+s0421	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትም	እናትም	supported	true	4	conjunctive m
+s0422	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትስ	እናትስ	supported	true	2	adverbial s
+s0423	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትማ	እናትማ	supported	true	2	adverbial ma
+s0424	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትሳ	እናትሳ	supported	true	2	adverbial sa
+s0425	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትና	እናትና	supported	true	2	conjunctive na
+s0426	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትኮ	እናትኮ	supported	true	2	adverbial ko
+s0427	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትጋ	እናትጋ	supported	true	2	postposition ga
+s0428	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትንም	እናትንም	supported	true	4	accusative then conjunctive
+s0429	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትንጋ	እናትንጋ	supported	true	2	accusative then postposition
+s0430	0	እ/ናት	እናት	'' [g=f,pos=N]	የእናት	የእናት	supported	true	2	adposition የ
+s0431	0	እ/ናት	እናት	'' [g=f,pos=N]	ለእናት	ለእናት	supported	true	2	adposition ለ
+s0432	0	እ/ናት	እናት	'' [g=f,pos=N]	በእናት	በእናት	supported	true	2	adposition በ
+s0433	0	እ/ናት	እናት	'' [g=f,pos=N]	ከእናት	ከእናት	supported	true	2	adposition ከ
+s0434	0	እ/ናት	እናት	'' [g=f,pos=N]	እንደእናት	እንደእናት	supported	true	2	adposition እንደ
+s0435	0	እ/ናት	እናት	'' [g=f,pos=N]	ስለእናት	ስለእናት	supported	true	2	adposition ስለ
+s0436	0	እ/ናት	እናት	'' [g=f,pos=N]	ወደእናት	ወደእናት	supported	true	2	adposition ወደ
+s0437	0	እ/ናት	እናት	'' [g=f,pos=N]	እስከእናት	እስከእናት	supported	true	2	adposition እስከ
+s0438	0	እ/ናት	እናት	'' [g=f,pos=N]	እየእናት	እየእናት	supported	true	1	distributive
+s0439	0	እ/ናት	እናት	'' [g=f,pos=N]	በየእናት	በየእናት	supported	true	1	adposition plus distributive
+s0440	0	እ/ናት	እናት	'' [g=f,pos=N]	እነእናት	እነእናት	supported	true	2	collective
+s0441	0	እ/ናት	እናት	'' [g=f,pos=N]	የእነእናት	የእነእናት	supported	true	2	genitive plus collective
+s0442	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃ	ጨረቃ	supported	true	1	base
+s0443	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃን	ጨረቃን	supported	true	1	accusative
+s0444	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃኑ	ጨረቃኑ	supported	true	1	accepted alternate accusative
+s0445	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃም	ጨረቃም	supported	true	2	conjunctive m
+s0446	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃስ	ጨረቃስ	supported	true	1	adverbial s
+s0447	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃማ	ጨረቃማ	supported	true	1	adverbial ma
+s0448	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃሳ	ጨረቃሳ	supported	true	1	adverbial sa
+s0449	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃና	ጨረቃና	supported	true	1	conjunctive na
+s0450	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃኮ	ጨረቃኮ	supported	true	1	adverbial ko
+s0451	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃጋ	ጨረቃጋ	supported	true	1	postposition ga
+s0452	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃንም	ጨረቃንም	supported	true	2	accusative then conjunctive
+s0453	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃንጋ	ጨረቃንጋ	supported	true	1	accusative then postposition
+s0454	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	የጨረቃ	የጨረቃ	supported	true	1	adposition የ
+s0455	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ለጨረቃ	ለጨረቃ	supported	true	1	adposition ለ
+s0456	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	በጨረቃ	በጨረቃ	supported	true	1	adposition በ
+s0457	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ከጨረቃ	ከጨረቃ	supported	true	1	adposition ከ
+s0458	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	እንደጨረቃ	እንደጨረቃ	supported	true	1	adposition እንደ
+s0459	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ስለጨረቃ	ስለጨረቃ	supported	true	1	adposition ስለ
+s0460	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ወደጨረቃ	ወደጨረቃ	supported	true	1	adposition ወደ
+s0461	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	እስከጨረቃ	እስከጨረቃ	supported	true	1	adposition እስከ
+s0462	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	እየጨረቃ	እየጨረቃ	supported	true	1	distributive
+s0463	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	በየጨረቃ	በየጨረቃ	supported	true	1	adposition plus distributive
+s0464	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይ	ጸሀይ	supported	true	2	base
+s0465	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይን	ጸሀይን	supported	true	2	accusative
+s0466	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይኑ	ጸሀይኑ	supported	true	2	accepted alternate accusative
+s0467	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይም	ጸሀይም	supported	true	4	conjunctive m
+s0468	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይስ	ጸሀይስ	supported	true	2	adverbial s
+s0469	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይማ	ጸሀይማ	supported	true	2	adverbial ma
+s0470	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይሳ	ጸሀይሳ	supported	true	2	adverbial sa
+s0471	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይና	ጸሀይና	supported	true	2	conjunctive na
+s0472	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይኮ	ጸሀይኮ	supported	true	2	adverbial ko
+s0473	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይጋ	ጸሀይጋ	supported	true	2	postposition ga
+s0474	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይንም	ጸሀይንም	supported	true	4	accusative then conjunctive
+s0475	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይንጋ	ጸሀይንጋ	supported	true	2	accusative then postposition
+s0476	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	የጸሀይ	የጸሀይ	supported	true	2	adposition የ
+s0477	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ለጸሀይ	ለጸሀይ	supported	true	2	adposition ለ
+s0478	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	በጸሀይ	በጸሀይ	supported	true	2	adposition በ
+s0479	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ከጸሀይ	ከጸሀይ	supported	true	2	adposition ከ
+s0480	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	እንደጸሀይ	እንደጸሀይ	supported	true	2	adposition እንደ
+s0481	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ስለጸሀይ	ስለጸሀይ	supported	true	2	adposition ስለ
+s0482	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ወደጸሀይ	ወደጸሀይ	supported	true	2	adposition ወደ
+s0483	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	እስከጸሀይ	እስከጸሀይ	supported	true	2	adposition እስከ
+s0484	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	እየጸሀይ	እየጸሀይ	supported	true	1	distributive
+s0485	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	በየጸሀይ	በየጸሀይ	supported	true	1	adposition plus distributive
+e002	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	እነጸሀይ	እነጸሀይ	excluded	true	1	excluded surface conflicts with this source lexeme's restrictions
+e003	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	የእነጸሀይ	የእነጸሀይ	excluded	true	1	excluded surface conflicts with this source lexeme's restrictions
+s0486	0	ራስ	ራስ	'' [pos=N,-h]	ራስ	ራስ	supported	true	2	base
+s0487	0	ራስ	ራስ	'' [pos=N,-h]	ራስን	ራስን	supported	true	2	accusative
+s0488	0	ራስ	ራስ	'' [pos=N,-h]	ራስኑ	ራስኑ	supported	true	2	accepted alternate accusative
+s0489	0	ራስ	ራስ	'' [pos=N,-h]	ራስም	ራስም	supported	true	4	conjunctive m
+s0490	0	ራስ	ራስ	'' [pos=N,-h]	ራስስ	ራስስ	supported	true	2	adverbial s
+s0491	0	ራስ	ራስ	'' [pos=N,-h]	ራስማ	ራስማ	supported	true	2	adverbial ma
+s0492	0	ራስ	ራስ	'' [pos=N,-h]	ራስሳ	ራስሳ	supported	true	2	adverbial sa
+s0493	0	ራስ	ራስ	'' [pos=N,-h]	ራስና	ራስና	supported	true	2	conjunctive na
+s0494	0	ራስ	ራስ	'' [pos=N,-h]	ራስኮ	ራስኮ	supported	true	2	adverbial ko
+s0495	0	ራስ	ራስ	'' [pos=N,-h]	ራስጋ	ራስጋ	supported	true	2	postposition ga
+s0496	0	ራስ	ራስ	'' [pos=N,-h]	ራስንም	ራስንም	supported	true	4	accusative then conjunctive
+s0497	0	ራስ	ራስ	'' [pos=N,-h]	ራስንጋ	ራስንጋ	supported	true	2	accusative then postposition
+s0498	0	ራስ	ራስ	'' [pos=N,-h]	የራስ	የራስ	supported	true	2	adposition የ
+s0499	0	ራስ	ራስ	'' [pos=N,-h]	ለራስ	ለራስ	supported	true	2	adposition ለ
+s0500	0	ራስ	ራስ	'' [pos=N,-h]	በራስ	በራስ	supported	true	2	adposition በ
+s0501	0	ራስ	ራስ	'' [pos=N,-h]	ከራስ	ከራስ	supported	true	2	adposition ከ
+s0502	0	ራስ	ራስ	'' [pos=N,-h]	እንደራስ	እንደራስ	supported	true	2	adposition እንደ
+s0503	0	ራስ	ራስ	'' [pos=N,-h]	ስለራስ	ስለራስ	supported	true	2	adposition ስለ
+s0504	0	ራስ	ራስ	'' [pos=N,-h]	ወደራስ	ወደራስ	supported	true	2	adposition ወደ
+s0505	0	ራስ	ራስ	'' [pos=N,-h]	እስከራስ	እስከራስ	supported	true	2	adposition እስከ
+s0506	0	ራስ	ራስ	'' [pos=N,-h]	እየራስ	እየራስ	supported	true	1	distributive
+s0507	0	ራስ	ራስ	'' [pos=N,-h]	በየራስ	በየራስ	supported	true	1	adposition plus distributive
+s0508	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነት	ውነት	supported	true	1	base
+s0509	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትን	ውነትን	supported	true	1	accusative
+s0510	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትኑ	ውነትኑ	supported	true	1	accepted alternate accusative
+s0511	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትም	ውነትም	supported	true	2	conjunctive m
+s0512	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትስ	ውነትስ	supported	true	1	adverbial s
+s0513	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትማ	ውነትማ	supported	true	1	adverbial ma
+s0514	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትሳ	ውነትሳ	supported	true	1	adverbial sa
+s0515	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትና	ውነትና	supported	true	1	conjunctive na
+s0516	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትኮ	ውነትኮ	supported	true	1	adverbial ko
+s0517	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትጋ	ውነትጋ	supported	true	1	postposition ga
+s0518	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትንም	ውነትንም	supported	true	2	accusative then conjunctive
+s0519	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትንጋ	ውነትንጋ	supported	true	1	accusative then postposition
+s0520	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	እየውነት	እየውነት	supported	true	1	distributive
+e004	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	የገዛ	የገዛ	excluded	true	1	excluded surface conflicts with this source lexeme's restrictions
+s0521	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ለገዛ	ለገዛ	supported	true	1	adposition ለ
+s0522	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	በገዛ	በገዛ	supported	true	1	adposition በ
+s0523	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ከገዛ	ከገዛ	supported	true	1	adposition ከ
+s0524	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ስለገዛ	ስለገዛ	supported	true	1	adposition ስለ
+s0525	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	በየገዛ	በየገዛ	supported	true	1	adposition plus distributive
+s0526	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥር	ጥር	supported	true	1	base
+s0527	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርን	ጥርን	supported	true	1	accusative
+s0528	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርኑ	ጥርኑ	supported	true	1	accepted alternate accusative
+s0529	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርም	ጥርም	supported	true	2	conjunctive m
+s0530	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርስ	ጥርስ	supported	true	1	adverbial s
+s0531	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርማ	ጥርማ	supported	true	1	adverbial ma
+s0532	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርሳ	ጥርሳ	supported	true	1	adverbial sa
+s0533	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርና	ጥርና	supported	true	1	conjunctive na
+s0534	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርኮ	ጥርኮ	supported	true	1	adverbial ko
+s0535	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርጋ	ጥርጋ	supported	true	1	postposition ga
+s0536	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርንም	ጥርንም	supported	true	2	accusative then conjunctive
+s0537	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርንጋ	ጥርንጋ	supported	true	1	accusative then postposition
+s0538	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	የጥር	የጥር	supported	true	1	adposition የ
+s0539	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ለጥር	ለጥር	supported	true	1	adposition ለ
+s0540	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	በጥር	በጥር	supported	true	1	adposition በ
+s0541	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ከጥር	ከጥር	supported	true	1	adposition ከ
+s0542	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	እንደጥር	እንደጥር	supported	true	1	adposition እንደ
+s0543	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ስለጥር	ስለጥር	supported	true	1	adposition ስለ
+s0544	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ወደጥር	ወደጥር	supported	true	1	adposition ወደ
+s0545	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	እስከጥር	እስከጥር	supported	true	1	adposition እስከ
+s0546	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	እየጥር	እየጥር	supported	true	1	distributive
+s0547	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	በየጥር	በየጥር	supported	true	1	adposition plus distributive
+s0548	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪት	ወይዘሪት	supported	true	2	base
+s0549	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትን	ወይዘሪትን	supported	true	2	accusative
+s0550	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትኑ	ወይዘሪትኑ	supported	true	2	accepted alternate accusative
+s0551	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትም	ወይዘሪትም	supported	true	4	conjunctive m
+s0552	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትስ	ወይዘሪትስ	supported	true	2	adverbial s
+s0553	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትማ	ወይዘሪትማ	supported	true	2	adverbial ma
+s0554	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትሳ	ወይዘሪትሳ	supported	true	2	adverbial sa
+s0555	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትና	ወይዘሪትና	supported	true	2	conjunctive na
+s0556	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትኮ	ወይዘሪትኮ	supported	true	2	adverbial ko
+s0557	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትጋ	ወይዘሪትጋ	supported	true	2	postposition ga
+s0558	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትንም	ወይዘሪትንም	supported	true	4	accusative then conjunctive
+s0559	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትንጋ	ወይዘሪትንጋ	supported	true	2	accusative then postposition
+s0560	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	የወይዘሪት	የወይዘሪት	supported	true	2	adposition የ
+s0561	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ለወይዘሪት	ለወይዘሪት	supported	true	2	adposition ለ
+s0562	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	በወይዘሪት	በወይዘሪት	supported	true	2	adposition በ
+s0563	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ከወይዘሪት	ከወይዘሪት	supported	true	2	adposition ከ
+s0564	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	እንደወይዘሪት	እንደወይዘሪት	supported	true	2	adposition እንደ
+s0565	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ስለወይዘሪት	ስለወይዘሪት	supported	true	2	adposition ስለ
+s0566	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወደወይዘሪት	ወደወይዘሪት	supported	true	2	adposition ወደ
+s0567	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	እስከወይዘሪት	እስከወይዘሪት	supported	true	2	adposition እስከ
+s0568	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	እየወይዘሪት	እየወይዘሪት	supported	true	1	distributive
+s0569	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	በየወይዘሪት	በየወይዘሪት	supported	true	1	adposition plus distributive
+s0570	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	እነወይዘሪት	እነወይዘሪት	supported	true	1	collective
+s0571	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	የእነወይዘሪት	የእነወይዘሪት	supported	true	1	genitive plus collective
+s0572	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁት	ራቁት	supported	true	1	base
+s0573	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትን	ራቁትን	supported	true	1	accusative
+s0574	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትኑ	ራቁትኑ	supported	true	1	accepted alternate accusative
+s0575	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትም	ራቁትም	supported	true	2	conjunctive m
+s0576	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትስ	ራቁትስ	supported	true	1	adverbial s
+s0577	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትማ	ራቁትማ	supported	true	1	adverbial ma
+s0578	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትሳ	ራቁትሳ	supported	true	1	adverbial sa
+s0579	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትና	ራቁትና	supported	true	1	conjunctive na
+s0580	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትኮ	ራቁትኮ	supported	true	1	adverbial ko
+s0581	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትጋ	ራቁትጋ	supported	true	1	postposition ga
+s0582	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትንም	ራቁትንም	supported	true	2	accusative then conjunctive
+s0583	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትንጋ	ራቁትንጋ	supported	true	1	accusative then postposition
+s0584	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	የራቁት	የራቁት	supported	true	1	adposition የ
+s0585	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ለራቁት	ለራቁት	supported	true	1	adposition ለ
+s0586	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	በራቁት	በራቁት	supported	true	1	adposition በ
+s0587	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ከራቁት	ከራቁት	supported	true	1	adposition ከ
+s0588	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	እንደራቁት	እንደራቁት	supported	true	1	adposition እንደ
+s0589	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ስለራቁት	ስለራቁት	supported	true	1	adposition ስለ
+s0590	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ወደራቁት	ወደራቁት	supported	true	1	adposition ወደ
+s0591	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	እስከራቁት	እስከራቁት	supported	true	1	adposition እስከ
+s0592	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	እየራቁት	እየራቁት	supported	true	1	distributive
+s0593	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	በየራቁት	በየራቁት	supported	true	1	adposition plus distributive
+s0594	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስ	እራስ	supported	true	2	base
+s0595	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስን	እራስን	supported	true	2	accusative
+s0596	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስኑ	እራስኑ	supported	true	2	accepted alternate accusative
+s0597	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስም	እራስም	supported	true	4	conjunctive m
+s0598	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስስ	እራስስ	supported	true	2	adverbial s
+s0599	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስማ	እራስማ	supported	true	2	adverbial ma
+s0600	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስሳ	እራስሳ	supported	true	2	adverbial sa
+s0601	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስና	እራስና	supported	true	2	conjunctive na
+s0602	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስኮ	እራስኮ	supported	true	2	adverbial ko
+s0603	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስጋ	እራስጋ	supported	true	2	postposition ga
+s0604	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስንም	እራስንም	supported	true	4	accusative then conjunctive
+s0605	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስንጋ	እራስንጋ	supported	true	2	accusative then postposition
+s0606	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌ	ምሳሌ	supported	true	2	base
+s0607	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌን	ምሳሌን	supported	true	2	accusative
+s0608	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌኑ	ምሳሌኑ	supported	true	2	accepted alternate accusative
+s0609	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌም	ምሳሌም	supported	true	4	conjunctive m
+s0610	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌስ	ምሳሌስ	supported	true	2	adverbial s
+s0611	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌማ	ምሳሌማ	supported	true	2	adverbial ma
+s0612	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌሳ	ምሳሌሳ	supported	true	2	adverbial sa
+s0613	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌና	ምሳሌና	supported	true	2	conjunctive na
+s0614	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌኮ	ምሳሌኮ	supported	true	2	adverbial ko
+s0615	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌጋ	ምሳሌጋ	supported	true	2	postposition ga
+s0616	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌንም	ምሳሌንም	supported	true	4	accusative then conjunctive
+s0617	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌንጋ	ምሳሌንጋ	supported	true	2	accusative then postposition
+s0618	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	የምሳሌ	የምሳሌ	supported	true	2	adposition የ
+s0619	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ለምሳሌ	ለምሳሌ	supported	true	2	adposition ለ
+s0620	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	በምሳሌ	በምሳሌ	supported	true	2	adposition በ
+s0621	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ከምሳሌ	ከምሳሌ	supported	true	2	adposition ከ
+s0622	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	እንደምሳሌ	እንደምሳሌ	supported	true	2	adposition እንደ
+s0623	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ስለምሳሌ	ስለምሳሌ	supported	true	2	adposition ስለ
+s0624	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ወደምሳሌ	ወደምሳሌ	supported	true	2	adposition ወደ
+s0625	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	እስከምሳሌ	እስከምሳሌ	supported	true	2	adposition እስከ
+s0626	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	እየምሳሌ	እየምሳሌ	supported	true	1	distributive
+s0627	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	በየምሳሌ	በየምሳሌ	supported	true	1	adposition plus distributive
+e005	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	እነምሳሌ	እነምሳሌ	excluded	true	1	excluded surface conflicts with this source lexeme's restrictions
+e006	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	የእነምሳሌ	የእነምሳሌ	excluded	true	1	excluded surface conflicts with this source lexeme's restrictions
+s0628	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህር	መምህር	supported	true	1	base
+s0629	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርን	መምህርን	supported	true	1	accusative
+s0630	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርኑ	መምህርኑ	supported	true	1	accepted alternate accusative
+s0631	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርም	መምህርም	supported	true	2	conjunctive m
+s0632	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርስ	መምህርስ	supported	true	1	adverbial s
+s0633	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርማ	መምህርማ	supported	true	1	adverbial ma
+s0634	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርሳ	መምህርሳ	supported	true	1	adverbial sa
+s0635	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርና	መምህርና	supported	true	1	conjunctive na
+s0636	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርኮ	መምህርኮ	supported	true	1	adverbial ko
+s0637	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርጋ	መምህርጋ	supported	true	1	postposition ga
+s0638	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርንም	መምህርንም	supported	true	2	accusative then conjunctive
+s0639	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርንጋ	መምህርንጋ	supported	true	1	accusative then postposition
+s0640	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	የመምህር	የመምህር	supported	true	1	adposition የ
+s0641	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	ለመምህር	ለመምህር	supported	true	1	adposition ለ
+s0642	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	በመምህር	በመምህር	supported	true	1	adposition በ
+s0643	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	ከመምህር	ከመምህር	supported	true	1	adposition ከ
+s0644	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	እንደመምህር	እንደመምህር	supported	true	1	adposition እንደ
+s0645	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	ስለመምህር	ስለመምህር	supported	true	1	adposition ስለ
+s0646	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	ወደመምህር	ወደመምህር	supported	true	1	adposition ወደ
+s0647	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	እስከመምህር	እስከመምህር	supported	true	1	adposition እስከ
+s0648	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	እየመምህር	እየመምህር	supported	true	1	distributive
+s0649	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	በየመምህር	በየመምህር	supported	true	1	adposition plus distributive
+s0650	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	እነመምህር	እነመምህር	supported	true	1	collective
+s0651	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	የእነመምህር	የእነመምህር	supported	true	1	genitive plus collective
+s0652	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡር	ክቡር	supported	true	1	base
+s0653	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርን	ክቡርን	supported	true	1	accusative
+s0654	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርኑ	ክቡርኑ	supported	true	1	accepted alternate accusative
+s0655	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርም	ክቡርም	supported	true	2	conjunctive m
+s0656	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርስ	ክቡርስ	supported	true	1	adverbial s
+s0657	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርማ	ክቡርማ	supported	true	1	adverbial ma
+s0658	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርሳ	ክቡርሳ	supported	true	1	adverbial sa
+s0659	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርና	ክቡርና	supported	true	1	conjunctive na
+s0660	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርኮ	ክቡርኮ	supported	true	1	adverbial ko
+s0661	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርጋ	ክቡርጋ	supported	true	1	postposition ga
+s0662	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርንም	ክቡርንም	supported	true	2	accusative then conjunctive
+s0663	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርንጋ	ክቡርንጋ	supported	true	1	accusative then postposition
+s0664	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	የክቡር	የክቡር	supported	true	1	adposition የ
+s0665	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ለክቡር	ለክቡር	supported	true	1	adposition ለ
+s0666	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	በክቡር	በክቡር	supported	true	1	adposition በ
+s0667	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ከክቡር	ከክቡር	supported	true	1	adposition ከ
+s0668	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	እንደክቡር	እንደክቡር	supported	true	1	adposition እንደ
+s0669	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ስለክቡር	ስለክቡር	supported	true	1	adposition ስለ
+s0670	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ወደክቡር	ወደክቡር	supported	true	1	adposition ወደ
+s0671	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	እስከክቡር	እስከክቡር	supported	true	1	adposition እስከ
+s0672	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	እየክቡር	እየክቡር	supported	true	1	distributive
+s0673	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	በየክቡር	በየክቡር	supported	true	1	adposition plus distributive
+s0674	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲ	ደራሲ	supported	true	1	base
+s0675	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲን	ደራሲን	supported	true	1	accusative
+s0676	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲኑ	ደራሲኑ	supported	true	1	accepted alternate accusative
+s0677	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲም	ደራሲም	supported	true	2	conjunctive m
+s0678	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲስ	ደራሲስ	supported	true	1	adverbial s
+s0679	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲማ	ደራሲማ	supported	true	1	adverbial ma
+s0680	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲሳ	ደራሲሳ	supported	true	1	adverbial sa
+s0681	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲና	ደራሲና	supported	true	1	conjunctive na
+s0682	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲኮ	ደራሲኮ	supported	true	1	adverbial ko
+s0683	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲጋ	ደራሲጋ	supported	true	1	postposition ga
+s0684	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲንም	ደራሲንም	supported	true	2	accusative then conjunctive
+s0685	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲንጋ	ደራሲንጋ	supported	true	1	accusative then postposition
+s0686	1	ደራሲ	ደራሲ	'' [pos=N]	የደራሲ	የደራሲ	supported	true	1	adposition የ
+s0687	1	ደራሲ	ደራሲ	'' [pos=N]	ለደራሲ	ለደራሲ	supported	true	1	adposition ለ
+s0688	1	ደራሲ	ደራሲ	'' [pos=N]	በደራሲ	በደራሲ	supported	true	1	adposition በ
+s0689	1	ደራሲ	ደራሲ	'' [pos=N]	ከደራሲ	ከደራሲ	supported	true	1	adposition ከ
+s0690	1	ደራሲ	ደራሲ	'' [pos=N]	እንደደራሲ	እንደደራሲ	supported	true	1	adposition እንደ
+s0691	1	ደራሲ	ደራሲ	'' [pos=N]	ስለደራሲ	ስለደራሲ	supported	true	1	adposition ስለ
+s0692	1	ደራሲ	ደራሲ	'' [pos=N]	ወደደራሲ	ወደደራሲ	supported	true	1	adposition ወደ
+s0693	1	ደራሲ	ደራሲ	'' [pos=N]	እስከደራሲ	እስከደራሲ	supported	true	1	adposition እስከ
+s0694	1	ደራሲ	ደራሲ	'' [pos=N]	እየደራሲ	እየደራሲ	supported	true	1	distributive
+s0695	1	ደራሲ	ደራሲ	'' [pos=N]	በየደራሲ	በየደራሲ	supported	true	1	adposition plus distributive
+s0696	1	ደራሲ	ደራሲ	'' [pos=N]	እነደራሲ	እነደራሲ	supported	true	1	collective
+s0697	1	ደራሲ	ደራሲ	'' [pos=N]	የእነደራሲ	የእነደራሲ	supported	true	1	genitive plus collective
+s0698	1	ምሁር	ምሁር	'' [pos=N]	ምሁር	ምሁር	supported	true	2	base
+s0699	1	ምሁር	ምሁር	'' [pos=N]	ምሁርን	ምሁርን	supported	true	2	accusative
+s0700	1	ምሁር	ምሁር	'' [pos=N]	ምሁርኑ	ምሁርኑ	supported	true	2	accepted alternate accusative
+s0701	1	ምሁር	ምሁር	'' [pos=N]	ምሁርም	ምሁርም	supported	true	4	conjunctive m
+s0702	1	ምሁር	ምሁር	'' [pos=N]	ምሁርስ	ምሁርስ	supported	true	2	adverbial s
+s0703	1	ምሁር	ምሁር	'' [pos=N]	ምሁርማ	ምሁርማ	supported	true	2	adverbial ma
+s0704	1	ምሁር	ምሁር	'' [pos=N]	ምሁርሳ	ምሁርሳ	supported	true	2	adverbial sa
+s0705	1	ምሁር	ምሁር	'' [pos=N]	ምሁርና	ምሁርና	supported	true	2	conjunctive na
+s0706	1	ምሁር	ምሁር	'' [pos=N]	ምሁርኮ	ምሁርኮ	supported	true	2	adverbial ko
+s0707	1	ምሁር	ምሁር	'' [pos=N]	ምሁርጋ	ምሁርጋ	supported	true	2	postposition ga
+s0708	1	ምሁር	ምሁር	'' [pos=N]	ምሁርንም	ምሁርንም	supported	true	4	accusative then conjunctive
+s0709	1	ምሁር	ምሁር	'' [pos=N]	ምሁርንጋ	ምሁርንጋ	supported	true	2	accusative then postposition
+s0710	1	ምሁር	ምሁር	'' [pos=N]	የምሁር	የምሁር	supported	true	2	adposition የ
+s0711	1	ምሁር	ምሁር	'' [pos=N]	ለምሁር	ለምሁር	supported	true	2	adposition ለ
+s0712	1	ምሁር	ምሁር	'' [pos=N]	በምሁር	በምሁር	supported	true	2	adposition በ
+s0713	1	ምሁር	ምሁር	'' [pos=N]	ከምሁር	ከምሁር	supported	true	2	adposition ከ
+s0714	1	ምሁር	ምሁር	'' [pos=N]	እንደምሁር	እንደምሁር	supported	true	2	adposition እንደ
+s0715	1	ምሁር	ምሁር	'' [pos=N]	ስለምሁር	ስለምሁር	supported	true	2	adposition ስለ
+s0716	1	ምሁር	ምሁር	'' [pos=N]	ወደምሁር	ወደምሁር	supported	true	2	adposition ወደ
+s0717	1	ምሁር	ምሁር	'' [pos=N]	እስከምሁር	እስከምሁር	supported	true	2	adposition እስከ
+s0718	1	ምሁር	ምሁር	'' [pos=N]	እየምሁር	እየምሁር	supported	true	2	distributive
+s0719	1	ምሁር	ምሁር	'' [pos=N]	በየምሁር	በየምሁር	supported	true	2	adposition plus distributive
+s0720	1	ምሁር	ምሁር	'' [pos=N]	እነምሁር	እነምሁር	supported	true	1	collective
+s0721	1	ምሁር	ምሁር	'' [pos=N]	የእነምሁር	የእነምሁር	supported	true	1	genitive plus collective
+s0722	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስ	ቅዱስ	supported	true	2	base
+s0723	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስን	ቅዱስን	supported	true	2	accusative
+s0724	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስኑ	ቅዱስኑ	supported	true	2	accepted alternate accusative
+s0725	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስም	ቅዱስም	supported	true	4	conjunctive m
+s0726	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስስ	ቅዱስስ	supported	true	2	adverbial s
+s0727	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስማ	ቅዱስማ	supported	true	2	adverbial ma
+s0728	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስሳ	ቅዱስሳ	supported	true	2	adverbial sa
+s0729	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስና	ቅዱስና	supported	true	2	conjunctive na
+s0730	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስኮ	ቅዱስኮ	supported	true	2	adverbial ko
+s0731	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስጋ	ቅዱስጋ	supported	true	2	postposition ga
+s0732	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስንም	ቅዱስንም	supported	true	4	accusative then conjunctive
+s0733	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስንጋ	ቅዱስንጋ	supported	true	2	accusative then postposition
+s0734	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	የቅዱስ	የቅዱስ	supported	true	2	adposition የ
+s0735	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ለቅዱስ	ለቅዱስ	supported	true	2	adposition ለ
+s0736	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	በቅዱስ	በቅዱስ	supported	true	2	adposition በ
+s0737	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ከቅዱስ	ከቅዱስ	supported	true	2	adposition ከ
+s0738	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	እንደቅዱስ	እንደቅዱስ	supported	true	2	adposition እንደ
+s0739	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ስለቅዱስ	ስለቅዱስ	supported	true	2	adposition ስለ
+s0740	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ወደቅዱስ	ወደቅዱስ	supported	true	2	adposition ወደ
+s0741	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	እስከቅዱስ	እስከቅዱስ	supported	true	2	adposition እስከ
+s0742	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	እየቅዱስ	እየቅዱስ	supported	true	1	distributive
+s0743	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	በየቅዱስ	በየቅዱስ	supported	true	1	adposition plus distributive
+s0744	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	እነቅዱስ	እነቅዱስ	supported	true	1	collective
+s0745	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	የእነቅዱስ	የእነቅዱስ	supported	true	1	genitive plus collective
+s0746	2	አ/በበ	አበበ		አበበ	አበበ	supported	true	1	base
+s0747	2	አ/በበ	አበበ		አበበን	አበበን	supported	true	1	accusative
+s0748	2	አ/በበ	አበበ		አበበኑ	አበበኑ	supported	true	1	accepted alternate accusative
+s0749	2	አ/በበ	አበበ		አበበም	አበበም	supported	true	2	conjunctive m
+s0750	2	አ/በበ	አበበ		አበበስ	አበበስ	supported	true	1	adverbial s
+s0751	2	አ/በበ	አበበ		አበበማ	አበበማ	supported	true	1	adverbial ma
+s0752	2	አ/በበ	አበበ		አበበሳ	አበበሳ	supported	true	1	adverbial sa
+s0753	2	አ/በበ	አበበ		አበበና	አበበና	supported	true	1	conjunctive na
+s0754	2	አ/በበ	አበበ		አበበኮ	አበበኮ	supported	true	1	adverbial ko
+s0755	2	አ/በበ	አበበ		አበበጋ	አበበጋ	supported	true	1	postposition ga
+s0756	2	አ/በበ	አበበ		አበበንም	አበበንም	supported	true	2	accusative then conjunctive
+s0757	2	አ/በበ	አበበ		አበበንጋ	አበበንጋ	supported	true	1	accusative then postposition
+s0758	2	አ/በበ	አበበ		የአበበ	የአበበ	supported	true	1	adposition የ
+s0759	2	አ/በበ	አበበ		ለአበበ	ለአበበ	supported	true	1	adposition ለ
+s0760	2	አ/በበ	አበበ		በአበበ	በአበበ	supported	true	1	adposition በ
+s0761	2	አ/በበ	አበበ		ከአበበ	ከአበበ	supported	true	1	adposition ከ
+s0762	2	አ/በበ	አበበ		እንደአበበ	እንደአበበ	supported	true	1	adposition እንደ
+s0763	2	አ/በበ	አበበ		ስለአበበ	ስለአበበ	supported	true	1	adposition ስለ
+s0764	2	አ/በበ	አበበ		ወደአበበ	ወደአበበ	supported	true	1	adposition ወደ
+s0765	2	አ/በበ	አበበ		እስከአበበ	እስከአበበ	supported	true	1	adposition እስከ
+s0766	2	አ/በበ	አበበ		እነአበበ	እነአበበ	supported	true	1	collective
+s0767	2	አ/በበ	አበበ		የእነአበበ	የእነአበበ	supported	true	1	genitive plus collective
+s0768	2	አ/በበ	አበበ		ያበበ	ያበበ	supported	true	1	contracted initial vowel after የ
+s0769	2	አ/በበ	አበበ		ላበበ	ላበበ	supported	true	1	contracted initial vowel after ለ
+s0770	2	አ/በበ	አበበ		ባበበ	ባበበ	supported	true	1	contracted initial vowel after በ
+s0771	2	አ/በበ	አበበ		ካበበ	ካበበ	supported	true	1	contracted initial vowel after ከ
+s0772	2	ሳራ	ሳራ		ሳራ	ሳራ	supported	true	1	base
+s0773	2	ሳራ	ሳራ		ሳራን	ሳራን	supported	true	1	accusative
+s0774	2	ሳራ	ሳራ		ሳራኑ	ሳራኑ	supported	true	1	accepted alternate accusative
+s0775	2	ሳራ	ሳራ		ሳራም	ሳራም	supported	true	2	conjunctive m
+s0776	2	ሳራ	ሳራ		ሳራስ	ሳራስ	supported	true	1	adverbial s
+s0777	2	ሳራ	ሳራ		ሳራማ	ሳራማ	supported	true	1	adverbial ma
+s0778	2	ሳራ	ሳራ		ሳራሳ	ሳራሳ	supported	true	1	adverbial sa
+s0779	2	ሳራ	ሳራ		ሳራና	ሳራና	supported	true	1	conjunctive na
+s0780	2	ሳራ	ሳራ		ሳራኮ	ሳራኮ	supported	true	1	adverbial ko
+s0781	2	ሳራ	ሳራ		ሳራጋ	ሳራጋ	supported	true	1	postposition ga
+s0782	2	ሳራ	ሳራ		ሳራንም	ሳራንም	supported	true	2	accusative then conjunctive
+s0783	2	ሳራ	ሳራ		ሳራንጋ	ሳራንጋ	supported	true	1	accusative then postposition
+s0784	2	ሳራ	ሳራ		የሳራ	የሳራ	supported	true	1	adposition የ
+s0785	2	ሳራ	ሳራ		ለሳራ	ለሳራ	supported	true	1	adposition ለ
+s0786	2	ሳራ	ሳራ		በሳራ	በሳራ	supported	true	1	adposition በ
+s0787	2	ሳራ	ሳራ		ከሳራ	ከሳራ	supported	true	1	adposition ከ
+s0788	2	ሳራ	ሳራ		እንደሳራ	እንደሳራ	supported	true	1	adposition እንደ
+s0789	2	ሳራ	ሳራ		ስለሳራ	ስለሳራ	supported	true	1	adposition ስለ
+s0790	2	ሳራ	ሳራ		ወደሳራ	ወደሳራ	supported	true	1	adposition ወደ
+s0791	2	ሳራ	ሳራ		እስከሳራ	እስከሳራ	supported	true	1	adposition እስከ
+s0792	2	ሳራ	ሳራ		እነሳራ	እነሳራ	supported	true	1	collective
+s0793	2	ሳራ	ሳራ		የእነሳራ	የእነሳራ	supported	true	1	genitive plus collective
+s0794	2	ሀና	ሀና		ሀና	ሀና	supported	true	1	base
+s0795	2	ሀና	ሀና		ሀናን	ሀናን	supported	true	1	accusative
+s0796	2	ሀና	ሀና		ሀናኑ	ሀናኑ	supported	true	1	accepted alternate accusative
+s0797	2	ሀና	ሀና		ሀናም	ሀናም	supported	true	2	conjunctive m
+s0798	2	ሀና	ሀና		ሀናስ	ሀናስ	supported	true	1	adverbial s
+s0799	2	ሀና	ሀና		ሀናማ	ሀናማ	supported	true	1	adverbial ma
+s0800	2	ሀና	ሀና		ሀናሳ	ሀናሳ	supported	true	1	adverbial sa
+s0801	2	ሀና	ሀና		ሀናና	ሀናና	supported	true	1	conjunctive na
+s0802	2	ሀና	ሀና		ሀናኮ	ሀናኮ	supported	true	1	adverbial ko
+s0803	2	ሀና	ሀና		ሀናጋ	ሀናጋ	supported	true	1	postposition ga
+s0804	2	ሀና	ሀና		ሀናንም	ሀናንም	supported	true	2	accusative then conjunctive
+s0805	2	ሀና	ሀና		ሀናንጋ	ሀናንጋ	supported	true	1	accusative then postposition
+s0806	2	ሀና	ሀና		የሀና	የሀና	supported	true	1	adposition የ
+s0807	2	ሀና	ሀና		ለሀና	ለሀና	supported	true	1	adposition ለ
+s0808	2	ሀና	ሀና		በሀና	በሀና	supported	true	1	adposition በ
+s0809	2	ሀና	ሀና		ከሀና	ከሀና	supported	true	1	adposition ከ
+s0810	2	ሀና	ሀና		እንደሀና	እንደሀና	supported	true	1	adposition እንደ
+s0811	2	ሀና	ሀና		ስለሀና	ስለሀና	supported	true	1	adposition ስለ
+s0812	2	ሀና	ሀና		ወደሀና	ወደሀና	supported	true	1	adposition ወደ
+s0813	2	ሀና	ሀና		እስከሀና	እስከሀና	supported	true	1	adposition እስከ
+s0814	2	ሀና	ሀና		እነሀና	እነሀና	supported	true	1	collective
+s0815	2	ሀና	ሀና		የእነሀና	የእነሀና	supported	true	1	genitive plus collective
+s0816	2	ማርታ	ማርታ		ማርታ	ማርታ	supported	true	1	base
+s0817	2	ማርታ	ማርታ		ማርታን	ማርታን	supported	true	1	accusative
+s0818	2	ማርታ	ማርታ		ማርታኑ	ማርታኑ	supported	true	1	accepted alternate accusative
+s0819	2	ማርታ	ማርታ		ማርታም	ማርታም	supported	true	2	conjunctive m
+s0820	2	ማርታ	ማርታ		ማርታስ	ማርታስ	supported	true	1	adverbial s
+s0821	2	ማርታ	ማርታ		ማርታማ	ማርታማ	supported	true	1	adverbial ma
+s0822	2	ማርታ	ማርታ		ማርታሳ	ማርታሳ	supported	true	1	adverbial sa
+s0823	2	ማርታ	ማርታ		ማርታና	ማርታና	supported	true	1	conjunctive na
+s0824	2	ማርታ	ማርታ		ማርታኮ	ማርታኮ	supported	true	1	adverbial ko
+s0825	2	ማርታ	ማርታ		ማርታጋ	ማርታጋ	supported	true	1	postposition ga
+s0826	2	ማርታ	ማርታ		ማርታንም	ማርታንም	supported	true	2	accusative then conjunctive
+s0827	2	ማርታ	ማርታ		ማርታንጋ	ማርታንጋ	supported	true	1	accusative then postposition
+s0828	2	ማርታ	ማርታ		የማርታ	የማርታ	supported	true	1	adposition የ
+s0829	2	ማርታ	ማርታ		ለማርታ	ለማርታ	supported	true	1	adposition ለ
+s0830	2	ማርታ	ማርታ		በማርታ	በማርታ	supported	true	1	adposition በ
+s0831	2	ማርታ	ማርታ		ከማርታ	ከማርታ	supported	true	1	adposition ከ
+s0832	2	ማርታ	ማርታ		እንደማርታ	እንደማርታ	supported	true	1	adposition እንደ
+s0833	2	ማርታ	ማርታ		ስለማርታ	ስለማርታ	supported	true	1	adposition ስለ
+s0834	2	ማርታ	ማርታ		ወደማርታ	ወደማርታ	supported	true	1	adposition ወደ
+s0835	2	ማርታ	ማርታ		እስከማርታ	እስከማርታ	supported	true	1	adposition እስከ
+s0836	2	ማርታ	ማርታ		እነማርታ	እነማርታ	supported	true	1	collective
+s0837	2	ማርታ	ማርታ		የእነማርታ	የእነማርታ	supported	true	1	genitive plus collective
+s0838	3	አዳማ	አዳማ		አዳማ	አዳማ	supported	true	1	base
+s0839	3	አዳማ	አዳማ		አዳማን	አዳማን	supported	true	1	accusative
+s0840	3	አዳማ	አዳማ		አዳማኑ	አዳማኑ	supported	true	1	accepted alternate accusative
+s0841	3	አዳማ	አዳማ		አዳማም	አዳማም	supported	true	2	conjunctive m
+s0842	3	አዳማ	አዳማ		አዳማስ	አዳማስ	supported	true	1	adverbial s
+s0843	3	አዳማ	አዳማ		አዳማማ	አዳማማ	supported	true	1	adverbial ma
+s0844	3	አዳማ	አዳማ		አዳማሳ	አዳማሳ	supported	true	1	adverbial sa
+s0845	3	አዳማ	አዳማ		አዳማና	አዳማና	supported	true	1	conjunctive na
+s0846	3	አዳማ	አዳማ		አዳማኮ	አዳማኮ	supported	true	1	adverbial ko
+s0847	3	አዳማ	አዳማ		አዳማጋ	አዳማጋ	supported	true	1	postposition ga
+s0848	3	አዳማ	አዳማ		አዳማንም	አዳማንም	supported	true	2	accusative then conjunctive
+s0849	3	አዳማ	አዳማ		አዳማንጋ	አዳማንጋ	supported	true	1	accusative then postposition
+s0850	3	አዳማ	አዳማ		የአዳማ	የአዳማ	supported	true	1	adposition የ
+s0851	3	አዳማ	አዳማ		ለአዳማ	ለአዳማ	supported	true	1	adposition ለ
+s0852	3	አዳማ	አዳማ		በአዳማ	በአዳማ	supported	true	1	adposition በ
+s0853	3	አዳማ	አዳማ		ከአዳማ	ከአዳማ	supported	true	1	adposition ከ
+s0854	3	አዳማ	አዳማ		እንደአዳማ	እንደአዳማ	supported	true	1	adposition እንደ
+s0855	3	አዳማ	አዳማ		ስለአዳማ	ስለአዳማ	supported	true	1	adposition ስለ
+s0856	3	አዳማ	አዳማ		ወደአዳማ	ወደአዳማ	supported	true	1	adposition ወደ
+s0857	3	አዳማ	አዳማ		እስከአዳማ	እስከአዳማ	supported	true	1	adposition እስከ
+s0858	3	አዳማ	አዳማ		ያዳማ	ያዳማ	supported	true	1	contracted initial vowel after የ
+s0859	3	አዳማ	አዳማ		ላዳማ	ላዳማ	supported	true	1	contracted initial vowel after ለ
+s0860	3	አዳማ	አዳማ		ባዳማ	ባዳማ	supported	true	1	contracted initial vowel after በ
+s0861	3	አዳማ	አዳማ		ካዳማ	ካዳማ	supported	true	1	contracted initial vowel after ከ
+s0862	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያ	ኢትዮጵያ	supported	true	1	base
+s0863	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያን	ኢትዮጵያን	supported	true	1	accusative
+s0864	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያኑ	ኢትዮጵያኑ	supported	true	1	accepted alternate accusative
+s0865	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያም	ኢትዮጵያም	supported	true	2	conjunctive m
+s0866	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያስ	ኢትዮጵያስ	supported	true	1	adverbial s
+s0867	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያማ	ኢትዮጵያማ	supported	true	1	adverbial ma
+s0868	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያሳ	ኢትዮጵያሳ	supported	true	1	adverbial sa
+s0869	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያና	ኢትዮጵያና	supported	true	1	conjunctive na
+s0870	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያኮ	ኢትዮጵያኮ	supported	true	1	adverbial ko
+s0871	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያጋ	ኢትዮጵያጋ	supported	true	1	postposition ga
+s0872	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያንም	ኢትዮጵያንም	supported	true	2	accusative then conjunctive
+s0873	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያንጋ	ኢትዮጵያንጋ	supported	true	1	accusative then postposition
+s0874	3	ኢትዮጵያ	ኢትዮጵያ		የኢትዮጵያ	የኢትዮጵያ	supported	true	1	adposition የ
+s0875	3	ኢትዮጵያ	ኢትዮጵያ		ለኢትዮጵያ	ለኢትዮጵያ	supported	true	1	adposition ለ
+s0876	3	ኢትዮጵያ	ኢትዮጵያ		በኢትዮጵያ	በኢትዮጵያ	supported	true	1	adposition በ
+s0877	3	ኢትዮጵያ	ኢትዮጵያ		ከኢትዮጵያ	ከኢትዮጵያ	supported	true	1	adposition ከ
+s0878	3	ኢትዮጵያ	ኢትዮጵያ		እንደኢትዮጵያ	እንደኢትዮጵያ	supported	true	1	adposition እንደ
+s0879	3	ኢትዮጵያ	ኢትዮጵያ		ስለኢትዮጵያ	ስለኢትዮጵያ	supported	true	1	adposition ስለ
+s0880	3	ኢትዮጵያ	ኢትዮጵያ		ወደኢትዮጵያ	ወደኢትዮጵያ	supported	true	1	adposition ወደ
+s0881	3	ኢትዮጵያ	ኢትዮጵያ		እስከኢትዮጵያ	እስከኢትዮጵያ	supported	true	1	adposition እስከ
+e007	3	ኢትዮጵያ	ኢትዮጵያ		እነኢትዮጵያ	እነኢትዮጵያ	excluded	true	1	excluded analyzer homograph from another lexical analysis
+e008	3	ኢትዮጵያ	ኢትዮጵያ		የእነኢትዮጵያ	የእነኢትዮጵያ	excluded	true	1	excluded analyzer homograph from another lexical analysis
+s0882	3	ጎንደር	ጎንደር		ጎንደር	ጎንደር	supported	true	1	base
+s0883	3	ጎንደር	ጎንደር		ጎንደርን	ጎንደርን	supported	true	1	accusative
+s0884	3	ጎንደር	ጎንደር		ጎንደርኑ	ጎንደርኑ	supported	true	1	accepted alternate accusative
+s0885	3	ጎንደር	ጎንደር		ጎንደርም	ጎንደርም	supported	true	2	conjunctive m
+s0886	3	ጎንደር	ጎንደር		ጎንደርስ	ጎንደርስ	supported	true	1	adverbial s
+s0887	3	ጎንደር	ጎንደር		ጎንደርማ	ጎንደርማ	supported	true	1	adverbial ma
+s0888	3	ጎንደር	ጎንደር		ጎንደርሳ	ጎንደርሳ	supported	true	1	adverbial sa
+s0889	3	ጎንደር	ጎንደር		ጎንደርና	ጎንደርና	supported	true	1	conjunctive na
+s0890	3	ጎንደር	ጎንደር		ጎንደርኮ	ጎንደርኮ	supported	true	1	adverbial ko
+s0891	3	ጎንደር	ጎንደር		ጎንደርጋ	ጎንደርጋ	supported	true	1	postposition ga
+s0892	3	ጎንደር	ጎንደር		ጎንደርንም	ጎንደርንም	supported	true	2	accusative then conjunctive
+s0893	3	ጎንደር	ጎንደር		ጎንደርንጋ	ጎንደርንጋ	supported	true	1	accusative then postposition
+s0894	3	ጎንደር	ጎንደር		የጎንደር	የጎንደር	supported	true	1	adposition የ
+s0895	3	ጎንደር	ጎንደር		ለጎንደር	ለጎንደር	supported	true	1	adposition ለ
+s0896	3	ጎንደር	ጎንደር		በጎንደር	በጎንደር	supported	true	1	adposition በ
+s0897	3	ጎንደር	ጎንደር		ከጎንደር	ከጎንደር	supported	true	1	adposition ከ
+s0898	3	ጎንደር	ጎንደር		እንደጎንደር	እንደጎንደር	supported	true	1	adposition እንደ
+s0899	3	ጎንደር	ጎንደር		ስለጎንደር	ስለጎንደር	supported	true	1	adposition ስለ
+s0900	3	ጎንደር	ጎንደር		ወደጎንደር	ወደጎንደር	supported	true	1	adposition ወደ
+s0901	3	ጎንደር	ጎንደር		እስከጎንደር	እስከጎንደር	supported	true	1	adposition እስከ
+s0902	3	ሀና	ሀና		ሀና	ሀና	supported	true	1	base
+s0903	3	ሀና	ሀና		ሀናን	ሀናን	supported	true	1	accusative
+s0904	3	ሀና	ሀና		ሀናኑ	ሀናኑ	supported	true	1	accepted alternate accusative
+s0905	3	ሀና	ሀና		ሀናም	ሀናም	supported	true	2	conjunctive m
+s0906	3	ሀና	ሀና		ሀናስ	ሀናስ	supported	true	1	adverbial s
+s0907	3	ሀና	ሀና		ሀናማ	ሀናማ	supported	true	1	adverbial ma
+s0908	3	ሀና	ሀና		ሀናሳ	ሀናሳ	supported	true	1	adverbial sa
+s0909	3	ሀና	ሀና		ሀናና	ሀናና	supported	true	1	conjunctive na
+s0910	3	ሀና	ሀና		ሀናኮ	ሀናኮ	supported	true	1	adverbial ko
+s0911	3	ሀና	ሀና		ሀናጋ	ሀናጋ	supported	true	1	postposition ga
+s0912	3	ሀና	ሀና		ሀናንም	ሀናንም	supported	true	2	accusative then conjunctive
+s0913	3	ሀና	ሀና		ሀናንጋ	ሀናንጋ	supported	true	1	accusative then postposition
+s0914	3	ሀና	ሀና		የሀና	የሀና	supported	true	1	adposition የ
+s0915	3	ሀና	ሀና		ለሀና	ለሀና	supported	true	1	adposition ለ
+s0916	3	ሀና	ሀና		በሀና	በሀና	supported	true	1	adposition በ
+s0917	3	ሀና	ሀና		ከሀና	ከሀና	supported	true	1	adposition ከ
+s0918	3	ሀና	ሀና		እንደሀና	እንደሀና	supported	true	1	adposition እንደ
+s0919	3	ሀና	ሀና		ስለሀና	ስለሀና	supported	true	1	adposition ስለ
+s0920	3	ሀና	ሀና		ወደሀና	ወደሀና	supported	true	1	adposition ወደ
+s0921	3	ሀና	ሀና		እስከሀና	እስከሀና	supported	true	1	adposition እስከ
+e009	3	ሀና	ሀና		እነሀና	እነሀና	excluded	true	1	excluded analyzer homograph from another lexical analysis
+e010	3	ሀና	ሀና		የእነሀና	የእነሀና	excluded	true	1	excluded analyzer homograph from another lexical analysis
+s0922	0	ቤት	ቤት	'' [pos=N,-h]	ቤቶች	ቤቶች	supported	true	1	canonical ordinary plural
+s0923	0	ቤት	ቤት	'' [pos=N,-h]	ቤተዎች	ቤተዎች	supported	true	1	accepted plural boundary variant
+s0924	0	ቤት	ቤት	'' [pos=N,-h]	ቤቱ	ቤቱ	supported	true	2	masculine determiner or third-person possessive
+s0925	0	ቤት	ቤት	'' [pos=N,-h]	ቤቷ	ቤቷ	supported	true	2	canonical feminine determiner or possessive
+s0926	0	ቤት	ቤት	'' [pos=N,-h]	ቤትዋ	ቤትዋ	supported	true	2	accepted feminine boundary variant
+s0927	0	ቤት	ቤት	'' [pos=N,-h]	ቤቲቱ	ቤቲቱ	supported	true	1	feminine itu determiner
+s0928	0	ቤት	ቤት	'' [pos=N,-h]	ቤቴ	ቤቴ	supported	true	1	first-person singular possessive
+s0929	0	ቤት	ቤት	'' [pos=N,-h]	ቤታችን	ቤታችን	supported	true	1	first-person plural possessive
+s0930	0	ቤት	ቤት	'' [pos=N,-h]	ቤትህ	ቤትህ	supported	true	1	second masculine singular possessive
+s0931	0	ቤት	ቤት	'' [pos=N,-h]	ቤትሽ	ቤትሽ	supported	true	1	second feminine singular possessive
+s0932	0	ቤት	ቤት	'' [pos=N,-h]	ቤታችሁ	ቤታችሁ	supported	true	1	second plural possessive
+s0933	0	ቤት	ቤት	'' [pos=N,-h]	ቤትዎ	ቤትዎ	supported	true	1	formal second-person possessive
+s0934	0	ቤት	ቤት	'' [pos=N,-h]	ቤታቸው	ቤታቸው	supported	true	1	third-person plural possessive
+s0935	0	ቤት	ቤት	'' [pos=N,-h]	የቤቶቹን	የቤቶቹን	supported	true	2	prefix plural determiner accusative
+s0936	0	ቤት	ቤት	'' [pos=N,-h]	ቤታችንንም	ቤታችንንም	supported	true	2	possessive accusative conjunctive
+s0937	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውየ	ሰውየ	supported	true	1	human suffix masculine
+s0938	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውዬ	ሰውዬ	supported	true	1	human suffix alternate
+s0939	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውዮ	ሰውዮ	supported	true	1	human suffix feminine
+s0940	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውየው	ሰውየው	supported	true	2	human suffix with third-masculine possessive
+s0941	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታዎች	ቦታዎች	supported	true	1	canonical vowel-final plural
+s0942	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦቶች	ቦቶች	supported	true	1	accepted fused plural boundary
+s0943	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታው	ቦታው	supported	true	2	vowel-final masculine determiner
+s0944	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታዋ	ቦታዋ	supported	true	2	vowel-final feminine determiner
+s0945	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታዬ	ቦታዬ	supported	true	1	vowel-final first-person possessive
+s0946	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታያችን	ቦታያችን	supported	true	1	vowel-final plural-person possessive
+s0947	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህራን	መምህራን	supported	true	1	alternate an plural
+e011	0	ቤት	ቤት	'' [pos=N,-h]	ቤተዋ	ቤተዋ	excluded	true	2	excluded epenthetic feminine analyzer variant
+e012	0	ቤት	ቤት	'' [pos=N,-h]	ቤተም	ቤተም	excluded	true	2	excluded epenthetic conjunctive analyzer variant
+e013	0	ቤት	ቤት	'' [pos=N,-h]	ቤተጋ	ቤተጋ	excluded	true	1	excluded epenthetic postposition analyzer variant
+e014	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውእየ	ሰውእየ	excluded	true	1	excluded raw human boundary variant
+e015	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውእዬ	ሰውእዬ	excluded	true	1	excluded raw human boundary variant
+e016	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውእዮ	ሰውእዮ	excluded	true	1	excluded raw human boundary variant
+n0000	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውንው	ሰውንው	negative	false	0	invalid accusative before determiner
+n0001	0	ሰው	ሰው	'' [g=m,pos=N]	ሰውጋም	ሰውጋም	negative	false	0	invalid postposition before conjunctive
+n0002	0	ቤት	ቤት	'' [pos=N,-h]	ቤትንው	ቤትንው	negative	false	0	invalid accusative before determiner
+n0003	0	ቤት	ቤት	'' [pos=N,-h]	ቤትጋም	ቤትጋም	negative	false	0	invalid postposition before conjunctive
+n0004	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታንው	ቦታንው	negative	false	0	invalid accusative before determiner
+n0005	0	ቦታ	ቦታ	'' [pos=N,-h]	ቦታጋም	ቦታጋም	negative	false	0	invalid postposition before conjunctive
+n0006	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርንው	ሀገርንው	negative	false	0	invalid accusative before determiner
+n0007	0	ሀገር	ሀገር	ሀገር [pos=N,-h]	ሀገርጋም	ሀገርጋም	negative	false	0	invalid postposition before conjunctive
+n0008	0	ልጅ	ልጅ	'' [pos=N]	ልጅንው	ልጅንው	negative	false	0	invalid accusative before determiner
+n0009	0	ልጅ	ልጅ	'' [pos=N]	ልጅጋም	ልጅጋም	negative	false	0	invalid postposition before conjunctive
+n0010	0	መኪና	መኪና	'' [pos=N,-h]	መኪናንው	መኪናንው	negative	false	0	invalid accusative before determiner
+n0011	0	መኪና	መኪና	'' [pos=N,-h]	መኪናጋም	መኪናጋም	negative	false	0	invalid postposition before conjunctive
+n0012	0	ስራ	ስራ	'' [pos=N,-h]	ስራንው	ስራንው	negative	false	0	invalid accusative before determiner
+n0013	0	ስራ	ስራ	'' [pos=N,-h]	ስራጋም	ስራጋም	negative	false	0	invalid postposition before conjunctive
+n0014	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትንው	ሴትንው	negative	false	0	invalid accusative before determiner
+n0015	0	ሴት	ሴት	'' [g=f,pos=N]	ሴትጋም	ሴትጋም	negative	false	0	invalid postposition before conjunctive
+n0016	0	ቀን	ቀን	'' [pos=N,-h]	ቀንንው	ቀንንው	negative	false	0	invalid accusative before determiner
+n0017	0	ቀን	ቀን	'' [pos=N,-h]	ቀንጋም	ቀንጋም	negative	false	0	invalid postposition before conjunctive
+n0018	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትንው	ትምህርትንው	negative	false	0	invalid accusative before determiner
+n0019	0	ትምህርት	ትምህርት	'' [pos=N,-h]	ትምህርትጋም	ትምህርትጋም	negative	false	0	invalid postposition before conjunctive
+n0020	0	ወንበር	ወንበር	'' [pos=N]	ወንበርንው	ወንበርንው	negative	false	0	invalid accusative before determiner
+n0021	0	ወንበር	ወንበር	'' [pos=N]	ወንበርጋም	ወንበርጋም	negative	false	0	invalid postposition before conjunctive
+n0022	0	አበባ	አበባ	'' [pos=N,-h]	አበባንው	አበባንው	negative	false	0	invalid accusative before determiner
+n0023	0	አበባ	አበባ	'' [pos=N,-h]	አበባጋም	አበባጋም	negative	false	0	invalid postposition before conjunctive
+n0024	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድንው	ወንድንው	negative	false	0	invalid accusative before determiner
+n0025	0	ወንድ	ወንድ	'' [g=m,pos=N]	ወንድጋም	ወንድጋም	negative	false	0	invalid postposition before conjunctive
+n0026	0	አመት	አመት	'' [pos=N,-h]	አመትንው	አመትንው	negative	false	0	invalid accusative before determiner
+n0027	0	አመት	አመት	'' [pos=N,-h]	አመትጋም	አመትጋም	negative	false	0	invalid postposition before conjunctive
+n0028	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍንው	መጽሀፍንው	negative	false	0	invalid accusative before determiner
+n0029	0	መጽሀፍ	መጽሀፍ	መጽሀፍ [pos=N,-h]	መጽሀፍጋም	መጽሀፍጋም	negative	false	0	invalid postposition before conjunctive
+n0030	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምንው	ላምንው	negative	false	0	invalid accusative before determiner
+n0031	0	ላም	ላም	'' [g=f,pos=N,-h]	ላምጋም	ላምጋም	negative	false	0	invalid postposition before conjunctive
+n0032	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትንው	ሚስትንው	negative	false	0	invalid accusative before determiner
+n0033	0	ሚስት	ሚስት	'' [g=f,pos=N]	ሚስትጋም	ሚስትጋም	negative	false	0	invalid postposition before conjunctive
+n0034	0	እህት	እህት	'' [g=f,pos=N]	እህትንው	እህትንው	negative	false	0	invalid accusative before determiner
+n0035	0	እህት	እህት	'' [g=f,pos=N]	እህትጋም	እህትጋም	negative	false	0	invalid postposition before conjunctive
+n0036	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትንው	እናትንው	negative	false	0	invalid accusative before determiner
+n0037	0	እ/ናት	እናት	'' [g=f,pos=N]	እናትጋም	እናትጋም	negative	false	0	invalid postposition before conjunctive
+n0038	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃንው	ጨረቃንው	negative	false	0	invalid accusative before determiner
+n0039	0	ጨረቃ	ጨረቃ	'' [g=f,pos=N,-h]	ጨረቃጋም	ጨረቃጋም	negative	false	0	invalid postposition before conjunctive
+n0040	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይንው	ጸሀይንው	negative	false	0	invalid accusative before determiner
+n0041	0	ጸሀይ	ጸሀይ	'' [g=f,pos=N,-h]	ጸሀይጋም	ጸሀይጋም	negative	false	0	invalid postposition before conjunctive
+n0042	0	ራስ	ራስ	'' [pos=N,-h]	ራስንው	ራስንው	negative	false	0	invalid accusative before determiner
+n0043	0	ራስ	ራስ	'' [pos=N,-h]	ራስጋም	ራስጋም	negative	false	0	invalid postposition before conjunctive
+n0044	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትንው	ውነትንው	negative	false	0	invalid accusative before determiner
+n0045	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	ውነትጋም	ውነትጋም	negative	false	0	invalid postposition before conjunctive
+n0046	0	ውነት	ውነት	'' [pos=N,-h,adp=0]	የየውነት	የየውነት	negative	false	0	duplicated genitive marker
+n0047	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ገዛንው	ገዛንው	negative	false	0	invalid accusative before determiner
+n0048	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	ገዛጋም	ገዛጋም	negative	false	0	invalid postposition before conjunctive
+n0049	0	ገ/ዛ	ገዛ	የገ/ዛ [pos=ADJ,adp=በ|ለ|ከ|ስለ,-gen]	የየገዛ	የየገዛ	negative	false	0	duplicated genitive marker
+n0050	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርንው	ጥርንው	negative	false	0	invalid accusative before determiner
+n0051	0	ጥ/ር	ጥር	'' [pos=N,-h,-def,p=0]	ጥርጋም	ጥርጋም	negative	false	0	invalid postposition before conjunctive
+n0052	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትንው	ወይዘሪትንው	negative	false	0	invalid accusative before determiner
+n0053	0	ወይዘሪት	ወይዘሪት	'' [g=f,-pl,pos=N]	ወይዘሪትጋም	ወይዘሪትጋም	negative	false	0	invalid postposition before conjunctive
+n0054	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትንው	ራቁትንው	negative	false	0	invalid accusative before determiner
+n0055	0	ራቁት	ራቁት	'' [pos=ADJ,-def]	ራቁትጋም	ራቁትጋም	negative	false	0	invalid postposition before conjunctive
+n0056	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስንው	እራስንው	negative	false	0	invalid accusative before determiner
+n0057	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	እራስጋም	እራስጋም	negative	false	0	invalid postposition before conjunctive
+n0058	0	እራስ	እራስ	ራስ [pos=N,-h,adp=0,-dis,-col]	የየእራስ	የየእራስ	negative	false	0	duplicated genitive marker
+n0059	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌንው	ምሳሌንው	negative	false	0	invalid accusative before determiner
+n0060	0	ም/ሳሌ	ምሳሌ	'' [pos=N,-h]	ምሳሌጋም	ምሳሌጋም	negative	false	0	invalid postposition before conjunctive
+n0061	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርንው	መምህርንው	negative	false	0	invalid accusative before determiner
+n0062	1	መምህር	መምህር	"'' [pos=N,t=[eng=""teacher""]]"	መምህርጋም	መምህርጋም	negative	false	0	invalid postposition before conjunctive
+n0063	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርንው	ክቡርንው	negative	false	0	invalid accusative before determiner
+n0064	1	ክቡር	ክቡር	"'' [pos=ADJ,t=[eng=""honored,respectful""]]"	ክቡርጋም	ክቡርጋም	negative	false	0	invalid postposition before conjunctive
+n0065	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲንው	ደራሲንው	negative	false	0	invalid accusative before determiner
+n0066	1	ደራሲ	ደራሲ	'' [pos=N]	ደራሲጋም	ደራሲጋም	negative	false	0	invalid postposition before conjunctive
+n0067	1	ምሁር	ምሁር	'' [pos=N]	ምሁርንው	ምሁርንው	negative	false	0	invalid accusative before determiner
+n0068	1	ምሁር	ምሁር	'' [pos=N]	ምሁርጋም	ምሁርጋም	negative	false	0	invalid postposition before conjunctive
+n0069	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስንው	ቅዱስንው	negative	false	0	invalid accusative before determiner
+n0070	1	ቅ/ዱስ	ቅዱስ	'' [pos=ADJ]	ቅዱስጋም	ቅዱስጋም	negative	false	0	invalid postposition before conjunctive
+n0071	2	አ/በበ	አበበ		አበበንው	አበበንው	negative	false	0	invalid accusative before determiner
+n0072	2	አ/በበ	አበበ		አበበጋም	አበበጋም	negative	false	0	invalid postposition before conjunctive
+n0073	2	አ/በበ	አበበ		የየአበበ	የየአበበ	negative	false	0	duplicated genitive marker
+n0074	2	ሳራ	ሳራ		ሳራንው	ሳራንው	negative	false	0	invalid accusative before determiner
+n0075	2	ሳራ	ሳራ		ሳራጋም	ሳራጋም	negative	false	0	invalid postposition before conjunctive
+n0076	2	ሳራ	ሳራ		የየሳራ	የየሳራ	negative	false	0	duplicated genitive marker
+n0077	2	ሀና	ሀና		ሀናንው	ሀናንው	negative	false	0	invalid accusative before determiner
+n0078	2	ሀና	ሀና		ሀናጋም	ሀናጋም	negative	false	0	invalid postposition before conjunctive
+n0079	2	ሀና	ሀና		የየሀና	የየሀና	negative	false	0	duplicated genitive marker
+n0080	2	ማርታ	ማርታ		ማርታንው	ማርታንው	negative	false	0	invalid accusative before determiner
+n0081	2	ማርታ	ማርታ		ማርታጋም	ማርታጋም	negative	false	0	invalid postposition before conjunctive
+n0082	2	ማርታ	ማርታ		የየማርታ	የየማርታ	negative	false	0	duplicated genitive marker
+n0083	3	አዳማ	አዳማ		አዳማንው	አዳማንው	negative	false	0	invalid accusative before determiner
+n0084	3	አዳማ	አዳማ		አዳማጋም	አዳማጋም	negative	false	0	invalid postposition before conjunctive
+n0085	3	አዳማ	አዳማ		የየአዳማ	የየአዳማ	negative	false	0	duplicated genitive marker
+n0086	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያንው	ኢትዮጵያንው	negative	false	0	invalid accusative before determiner
+n0087	3	ኢትዮጵያ	ኢትዮጵያ		ኢትዮጵያጋም	ኢትዮጵያጋም	negative	false	0	invalid postposition before conjunctive
+n0088	3	ኢትዮጵያ	ኢትዮጵያ		የየኢትዮጵያ	የየኢትዮጵያ	negative	false	0	duplicated genitive marker
+n0089	3	ጎንደር	ጎንደር		ጎንደርንው	ጎንደርንው	negative	false	0	invalid accusative before determiner
+n0090	3	ጎንደር	ጎንደር		ጎንደርጋም	ጎንደርጋም	negative	false	0	invalid postposition before conjunctive
+n0091	3	ጎንደር	ጎንደር		የየጎንደር	የየጎንደር	negative	false	0	duplicated genitive marker
+n0092	3	ሀና	ሀና		ሀናንው	ሀናንው	negative	false	0	invalid accusative before determiner
+n0093	3	ሀና	ሀና		ሀናጋም	ሀናጋም	negative	false	0	invalid postposition before conjunctive
+n0094	3	ሀና	ሀና		የየሀና	የየሀና	negative	false	0	duplicated genitive marker

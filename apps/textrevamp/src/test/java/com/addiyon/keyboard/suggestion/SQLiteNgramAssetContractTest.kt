@@ -15,8 +15,8 @@ class SQLiteNgramAssetContractTest {
             withDatabase(name) { connection ->
                 assertPlanUses(
                     connection,
-                    "SELECT ngram_id FROM words WHERE key = ? AND ngram_id IS NOT NULL LIMIT 1",
-                    "PRIMARY KEY"
+                    "SELECT id FROM ngram_vocab WHERE key = ? LIMIT 1",
+                    "idx_ngram_vocab_key"
                 )
                 assertPlanUses(
                     connection,
@@ -71,9 +71,9 @@ class SQLiteNgramAssetContractTest {
             }
             val rows = connection.prepareStatement(
                 """
-                SELECT COALESCE(v.ngram_display, v.display, v.key), b.casing
+                SELECT v.display, b.casing
                 FROM bigrams b
-                JOIN words v ON v.ngram_id = b.succ
+                JOIN ngram_vocab v ON v.id = b.succ
                 WHERE b.ctx = ?
                 ORDER BY b.weight DESC
                 LIMIT ?
@@ -107,7 +107,7 @@ class SQLiteNgramAssetContractTest {
 
     private fun wordId(connection: Connection, key: String): Int =
         connection.prepareStatement(
-            "SELECT ngram_id FROM words WHERE key = ? AND ngram_id IS NOT NULL LIMIT 1"
+            "SELECT id FROM ngram_vocab WHERE key = ? LIMIT 1"
         ).use { statement ->
             statement.setString(1, key)
             statement.executeQuery().use { result ->
@@ -125,9 +125,9 @@ class SQLiteNgramAssetContractTest {
         require(table == "bigrams" || table == "trigrams")
         return connection.prepareStatement(
             """
-            SELECT COALESCE(v.ngram_display, v.display, v.key)
+            SELECT v.display
             FROM $table n
-            JOIN words v ON v.ngram_id = n.succ
+            JOIN ngram_vocab v ON v.id = n.succ
             WHERE n.ctx = ?
             ORDER BY n.weight DESC
             LIMIT ?

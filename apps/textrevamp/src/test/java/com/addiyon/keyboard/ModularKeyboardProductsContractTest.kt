@@ -121,7 +121,12 @@ class ModularKeyboardProductsContractTest {
         listOf("english_words.dat", "english_ngrams.dat").forEach {
             assertTrue(it, File(english, it).isFile)
         }
-        listOf("amharic_words.dat", "amharic_lexemes.dat", "amharic_ngrams.dat").forEach {
+        listOf(
+            "amharic_words.dat",
+            "amharic_lexemes.dat",
+            "amharic_surface_stats.dat",
+            "amharic_ngrams.dat",
+        ).forEach {
             assertTrue(it, File(amharic, it).isFile)
         }
         assertTrue(

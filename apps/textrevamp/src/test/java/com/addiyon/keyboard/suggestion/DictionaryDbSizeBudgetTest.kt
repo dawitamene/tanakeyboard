@@ -28,7 +28,35 @@ class DictionaryDbSizeBudgetTest {
         val sizeKb = db.length() / 1024
         assertTrue(
             "amharic.db is unexpectedly large: ${sizeKb}KB",
-            sizeKb < 2_000
+            sizeKb < 3_072
+        )
+    }
+
+    @Test
+    fun amharicSurfaceStatisticsStaySparse() {
+        val asset = listOf(
+            File("language/amharic/src/dictionary/amharic_surface_stats.dat"),
+            File("../language/amharic/src/dictionary/amharic_surface_stats.dat"),
+        ).firstOrNull(File::isFile) ?: run {
+            assumeTrue("amharic_surface_stats.dat not found", false); return
+        }
+        assertTrue(
+            "amharic_surface_stats.dat is unexpectedly large: ${asset.length()} bytes",
+            asset.length() < 64 * 1024,
+        )
+    }
+
+    @Test
+    fun amharicNgramModelStaysSparse() {
+        val asset = listOf(
+            File("language/amharic/src/dictionary/amharic_ngrams.dat"),
+            File("../language/amharic/src/dictionary/amharic_ngrams.dat"),
+        ).firstOrNull(File::isFile) ?: run {
+            assumeTrue("amharic_ngrams.dat not found", false); return
+        }
+        assertTrue(
+            "amharic_ngrams.dat is unexpectedly large: ${asset.length()} bytes",
+            asset.length() < 64 * 1024,
         )
     }
 

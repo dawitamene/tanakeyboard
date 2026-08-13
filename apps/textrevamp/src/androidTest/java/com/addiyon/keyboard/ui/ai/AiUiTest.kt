@@ -78,8 +78,8 @@ class AiUiTest {
         compose.onNodeWithText(EnglishTextRevampStrings.aiToneProfessional).assertIsNotSelected()
         compose.onNodeWithText("TextRevamp AI").assertDoesNotExist()
         compose.onNodeWithTag(AI_PANEL_BACK_ACTION_TAG)
-            .assertHeightIsEqualTo(48.dp)
-            .assertWidthIsEqualTo(48.dp)
+            .assertHeightIsEqualTo(44.dp)
+            .assertWidthIsEqualTo(44.dp)
         AiToneTab.DefaultTabs.forEach { tone ->
             compose.onNodeWithTag(
                 aiPanelToneIconTag(tone),
@@ -96,6 +96,7 @@ class AiUiTest {
         assertTrue(toneBounds.left >= backBounds.right)
         assertTrue(toneBounds.center.y in backBounds.top..backBounds.bottom)
         compose.onNodeWithText(EnglishTextRevampStrings.aiSelectToneMessage).assertIsDisplayed()
+        compose.onNodeWithTag(AI_PANEL_SELECT_TONE_ICON_TAG).assertIsDisplayed()
         compose.onNodeWithTag(AI_PANEL_SKELETON_TAG).assertDoesNotExist()
         compose.mainClock.autoAdvance = false
         compose.onNodeWithText(EnglishTextRevampStrings.aiToneProfessional).performClick()

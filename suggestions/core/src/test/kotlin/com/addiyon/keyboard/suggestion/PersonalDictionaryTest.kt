@@ -1,9 +1,25 @@
 package com.addiyon.keyboard.suggestion
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PersonalDictionaryTest {
+
+    @Test
+    fun completionEntriesPreserveCountAndRecencySeparately() {
+        val dictionary = PersonalDictionary.decode(null)
+        dictionary.learn("am-ET", "ሰው")
+        dictionary.learn("am-ET", "ሰላም")
+        dictionary.learn("am-ET", "ሰው")
+
+        val entries = dictionary.completionEntries("am-ET", "ሰ", 5)
+
+        assertEquals("ሰው", entries.first().word)
+        assertEquals(2, entries.first().count)
+        assertTrue(entries.first().recency > entries.last().recency)
+    }
+
     @Test
     fun learnedWordsAreRankedBeforeBuiltInCandidatesByCaller() {
         val dictionary = PersonalDictionary.decode(null)

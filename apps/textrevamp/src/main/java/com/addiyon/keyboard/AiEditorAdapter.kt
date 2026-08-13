@@ -3,6 +3,9 @@ package com.addiyon.keyboard
 import com.addiyon.keyboard.ai.AiEditor
 import com.addiyon.keyboard.ai.AiEditorCapture
 import com.addiyon.keyboard.ai.AiEditorReplaceResult
+import com.addiyon.keyboard.ai.AiCompletionCapture
+import com.addiyon.keyboard.ai.AiCompletionContextKey
+import com.addiyon.keyboard.ai.AiCompletionSnapshot
 import com.addiyon.keyboard.ai.AiSnapshot
 import com.addiyon.keyboard.ai.AiSource
 
@@ -11,6 +14,7 @@ internal class AiEditorAdapter(
 ) : AiEditor {
     private var nextCaptureId = 0L
     private val captures = mutableMapOf<Long, ReplacementTarget>()
+    private val completionCaptures = mutableMapOf<Long, CompletionTarget>()
 
     override fun captureInput(): AiEditorCapture? {
         val selected = gateway.selectedText(optional = false)
@@ -74,8 +78,40 @@ internal class AiEditorAdapter(
         return result
     }
 
+    override fun captureCompletionContext(): AiCompletionCapture? {
+        val field = gateway.surroundingText(
+            beforeChars = MAX_COMPLETION_PREFIX_CHARS,
+            afterChars = 1,
+            optional = true
+        ) ?: return null
+        val surrounding = field.value
+        if (surrounding.selectedText.isNotEmpty() || surrounding.textAfterSelection.isNotEmpty()) {
+            return null
+        }
+        val prefix = surrounding.textBeforeSelection
+        val key = AiCompletionContextKey(
+            sessionId = field.token.generation,
+            prefix = prefix
+        )
+        completionCaptures.entries.firstOrNull { (_, target) ->
+            target.contextKey == key && completionTargetIsCurrent(target)
+        }?.let { (id, _) ->
+            return AiCompletionCapture(prefix, key, AiCompletionSnapshot(id))
+        }
+        val id = ++nextCaptureId
+        completionCaptures.clear()
+        completionCaptures[id] = CompletionTarget(field.token, key)
+        return AiCompletionCapture(prefix, key, AiCompletionSnapshot(id))
+    }
+
+    override fun isCompletionCaptureCurrent(snapshot: AiCompletionSnapshot): Boolean {
+        val target = completionCaptures[snapshot.captureId] ?: return false
+        return completionTargetIsCurrent(target)
+    }
+
     override fun invalidateCaptures() {
         captures.clear()
+        completionCaptures.clear()
     }
 
     private fun replaceSelection(
@@ -150,7 +186,25 @@ internal class AiEditorAdapter(
         ) : ReplacementTarget
     }
 
+    private data class CompletionTarget(
+        val token: EditorToken,
+        val contextKey: AiCompletionContextKey
+    )
+
+    private fun completionTargetIsCurrent(target: CompletionTarget): Boolean {
+        if (!gateway.revalidateSelection(target.token)) return false
+        val field = gateway.surroundingText(
+            beforeChars = MAX_COMPLETION_PREFIX_CHARS,
+            afterChars = 1,
+            optional = false
+        ) ?: return false
+        return field.value.selectedText.isEmpty() &&
+            field.value.textAfterSelection.isEmpty() &&
+            field.value.textBeforeSelection == target.contextKey.prefix
+    }
+
     private companion object {
         const val MAX_FIELD_SIDE_CHARS = 32_768
+        const val MAX_COMPLETION_PREFIX_CHARS = 512
     }
 }

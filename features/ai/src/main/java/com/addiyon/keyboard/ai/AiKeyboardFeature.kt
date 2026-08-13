@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import com.addiyon.keyboard.ui.KeyboardToolbarAction
 import com.addiyon.keyboard.ui.OptionalKeyboardUi
 import com.addiyon.keyboard.ui.ai.AiAccountStore
+import com.addiyon.keyboard.ui.ai.AiCompletionBar
 import com.addiyon.keyboard.ui.ai.AiPanel
 import com.addiyon.keyboard.ui.ai.AiUiStrings
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +37,7 @@ class AiKeyboardFeature internal constructor(
     private val openAuth: () -> Unit,
     private val openDashboard: () -> Unit,
     private val copyResult: (label: String, text: String) -> Unit,
+    private val completionController: AiCompletionController,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 ) {
     var uiState by mutableStateOf(
@@ -55,6 +57,15 @@ class AiKeyboardFeature internal constructor(
             contentDescription = strings.aiToolbarDescription,
             onClick = ::onToolbarAction
         ),
+        contextualRowVisible = completionController.uiState !is AiCompletionUiState.Hidden,
+        contextualRow = {
+            AiCompletionBar(
+                state = completionController.uiState,
+                strings = strings,
+                onInsert = { completionController.accept() },
+                onDismiss = completionController::dismiss
+            )
+        },
         panelVisible = uiState.isVisible,
         panelHeightScale = AI_PANEL_HEIGHT_SCALE,
         panel = {
@@ -71,6 +82,7 @@ class AiKeyboardFeature internal constructor(
     )
 
     fun onToolbarAction() {
+        completionController.reset()
         if (uiState.isVisible) {
             dismissPanel()
             return
@@ -247,6 +259,10 @@ class AiKeyboardFeature internal constructor(
         scope.cancel()
     }
 
+    fun onEditorContextChanged() {
+        completionController.onEditorContextChanged(uiState.isVisible)
+    }
+
     private fun selectVariant(strength: AiStrength): AiResult? {
         val selected = uiState.variantResults[strength]
             ?: uiState.result?.takeIf { strength == AiStrength.Balanced }
@@ -257,6 +273,7 @@ class AiKeyboardFeature internal constructor(
 
     private fun resetForLifecycle() {
         cancelRequest()
+        completionController.reset()
         controller.invalidateEditorCaptures()
         uiState = AiUiState(
             quota = store.quota(),
@@ -275,8 +292,10 @@ class AiKeyboardFeature internal constructor(
             editor: AiEditor,
             strings: AiUiStrings,
             isPrivateFieldProvider: () -> Boolean,
+            isCompletionFieldEligibleProvider: () -> Boolean,
             prepareForPanel: () -> Unit,
             onTextReplaced: () -> Unit,
+            onCompletionAccepted: (String) -> Boolean,
             openAuth: () -> Unit,
             openDashboard: () -> Unit
         ): AiKeyboardFeature {
@@ -296,6 +315,20 @@ class AiKeyboardFeature internal constructor(
                 anonIdProvider = store::anonymousId,
                 isPrivateFieldProvider = isPrivateFieldProvider
             )
+            val featureScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+            val completionController = AiCompletionController(
+                editor = editor,
+                source = AiCompletionRepository(
+                    AiServiceFactory.createCompletion(
+                        debug = appContext.applicationInfo.flags and
+                            ApplicationInfo.FLAG_DEBUGGABLE != 0
+                    )
+                ),
+                store = store,
+                isFieldEligible = isCompletionFieldEligibleProvider,
+                commitText = onCompletionAccepted,
+                scope = featureScope
+            )
             return AiKeyboardFeature(
                 controller = controller,
                 store = store,
@@ -305,6 +338,8 @@ class AiKeyboardFeature internal constructor(
                 onTextReplaced = onTextReplaced,
                 openAuth = openAuth,
                 openDashboard = openDashboard,
+                completionController = completionController,
+                scope = featureScope,
                 copyResult = { label, text ->
                     runCatching {
                         val clipboard = appContext.getSystemService(ClipboardManager::class.java)

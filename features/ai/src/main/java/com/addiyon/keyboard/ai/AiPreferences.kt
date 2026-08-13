@@ -72,6 +72,30 @@ class AiPreferences(context: Context) : AiAccountStore {
 
     override fun clearJwt() = setJwt(null)
 
+    override fun phraseCompletionsEnabled(): Boolean = runCatching {
+        preferences.getBoolean(KEY_PHRASE_COMPLETIONS_ENABLED, false)
+    }.getOrDefault(false)
+
+    override fun setPhraseCompletionsEnabled(enabled: Boolean) {
+        edit { putBoolean(KEY_PHRASE_COMPLETIONS_ENABLED, enabled) }
+    }
+
+    override fun phraseCompletionConsentVersion(): Int = int(
+        KEY_PHRASE_COMPLETION_CONSENT_VERSION,
+        0,
+        0,
+        CURRENT_PHRASE_COMPLETION_CONSENT_VERSION
+    )
+
+    override fun setPhraseCompletionConsentVersion(version: Int) {
+        edit {
+            putInt(
+                KEY_PHRASE_COMPLETION_CONSENT_VERSION,
+                version.coerceIn(0, CURRENT_PHRASE_COMPLETION_CONSENT_VERSION)
+            )
+        }
+    }
+
     private fun string(key: String, maximumLength: Int): String? = runCatching {
         preferences.getString(key, null)?.take(maximumLength)
     }.getOrNull()
@@ -103,6 +127,10 @@ internal const val KEY_USED_TODAY = "ai_tokens_used_today"
 internal const val KEY_QUOTA_DAY = "ai_quota_day"
 internal const val KEY_DAILY_LIMIT = "ai_daily_token_limit"
 internal const val KEY_LEGACY_MIGRATION_COMPLETE = "legacy_ai_preferences_migrated_v1"
+internal const val KEY_PHRASE_COMPLETIONS_ENABLED = "ai_phrase_completions_enabled"
+internal const val KEY_PHRASE_COMPLETION_CONSENT_VERSION =
+    "ai_phrase_completion_consent_version"
+const val CURRENT_PHRASE_COMPLETION_CONSENT_VERSION = 1
 
 internal val AI_STRING_PREFERENCE_KEYS = setOf(
     KEY_JWT,

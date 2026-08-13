@@ -123,6 +123,69 @@ class AddiyonLanguageImeTest {
         }
     }
 
+    @Test
+    fun predictsAnalyzerValidatedInflectedSurfacesAfterSpace() {
+        ActivityScenario.launch(AddiyonImeHostActivity::class.java).use { scenario ->
+            waitUntil { PackKeyboardService.currentInstance != null }
+            moveToLanguage("am-ET")
+            scenario.clearAndFocus()
+
+            runService { it.commitText("ብዙ") }
+            runService(PackKeyboardService::onSpace)
+            waitUntil {
+                requireService().suggestionsArePredictions &&
+                    setOf("መምህራን", "ሰዎች", "ቤቶች").all(requireService().suggestions::contains)
+            }
+
+            assertEquals("ብዙ ", scenario.text())
+            assertTrue("የነው" !in requireService().suggestions)
+            assertTrue("ሃሃሃ" !in requireService().suggestions)
+        }
+    }
+
+    @Test
+    fun warmNominalSuggestionPublicationMeetsLatencyBudget() {
+        ActivityScenario.launch(AddiyonImeHostActivity::class.java).use { scenario ->
+            waitUntil { PackKeyboardService.currentInstance != null }
+            moveToLanguage("am-ET")
+            val cases = listOf(
+                "sewn" to "ሰውን",
+                "yesewn" to "የሰውን",
+                "betoch" to "ቤቶች",
+                "bietu" to "ቤቱ",
+            )
+            cases.forEach { (raw, expected) ->
+                scenario.clearAndFocus()
+                typeWord(raw)
+                waitUntil { expected in requireService().suggestions }
+            }
+
+            val samples = buildList {
+                repeat(5) {
+                    cases.forEach { (raw, expected) ->
+                        scenario.clearAndFocus()
+                        typeWord(raw.dropLast(1))
+                        waitUntil { requireService().suggestionUiState is SuggestionUiState.WordCompletions }
+                        val previousGeneration = requireService().suggestionPublicationGeneration
+                        val start = SystemClock.elapsedRealtimeNanos()
+                        runService { it.onCharacter(raw.last().toString()) }
+                        waitUntilFast {
+                            requireService().suggestionPublicationGeneration > previousGeneration &&
+                                expected in requireService().suggestions
+                        }
+                        add((SystemClock.elapsedRealtimeNanos() - start) / 1_000_000.0)
+                    }
+                }
+            }.sorted()
+            val p95 = samples[((samples.size * 95 + 99) / 100 - 1).coerceIn(samples.indices)]
+            val maximum = samples.last()
+
+            println("PHASE4_METRIC connected_nominal_publication_p95_ms=$p95 max_ms=$maximum")
+            assertTrue("warm nominal publication p95=${p95}ms samples=$samples", p95 <= 75.0)
+            assertTrue("warm nominal publication max=${maximum}ms", maximum <= 200.0)
+        }
+    }
+
     private fun moveToLanguage(target: String) {
         repeat(4) {
             if (currentLanguageId() == target) return
@@ -189,6 +252,15 @@ class AddiyonLanguageImeTest {
         while (SystemClock.uptimeMillis() < deadline) {
             if (predicate()) return
             SystemClock.sleep(POLL_MILLIS)
+        }
+        assertTrue("Timed out waiting for Addiyon IME state", predicate())
+    }
+
+    private fun waitUntilFast(predicate: () -> Boolean) {
+        val deadline = SystemClock.uptimeMillis() + WAIT_TIMEOUT_MILLIS
+        while (SystemClock.uptimeMillis() < deadline) {
+            if (predicate()) return
+            SystemClock.sleep(2)
         }
         assertTrue("Timed out waiting for Addiyon IME state", predicate())
     }

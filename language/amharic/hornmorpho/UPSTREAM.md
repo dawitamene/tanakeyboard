@@ -36,15 +36,18 @@ order, with the corresponding `M` files used for multiword analysis. The
 boundary string sets are defined in `a.lg`; no rule is inferred from a newer
 upstream branch.
 
-`tools/build_amharic_dict.py` transforms this snapshot into three deterministic
+`tools/build_amharic_dict.py` transforms this snapshot into two deterministic
 inputs:
 
 - `amharic_lexemes.dat`: 18,867 unique HornMorpho lexical records, including
   1,832 verb-root records retained for the morphology generator
 - `amharic_words.dat`: 18,251 displayable, homoglyph-folded base lemmas used by
   the current completion runtime
-- `amharic_ngrams.dat`: an intentionally empty model until a clean prediction
-  corpus is rebuilt against the new lexeme set
+
+`tools/build_ngrams.py` separately creates `amharic_ngrams.dat`, the Phase 6
+sparse, morphology-gated bigram model. Rebuilding the base lexicon does not
+erase it, and its productive surface vocabulary is stored separately from
+base `words`.
 
 The transformation removes HornMorpho's internal slash notation only for the
 displayable completion list. The original notation and grammatical features
@@ -65,3 +68,45 @@ isolated environment. `generate_nominal_oracle.py` retains HornMorpho's
 original surface and analysis and adds a normalized key only for comparison.
 `generate_nominal_golden.py` rebuilds the JVM fixture and accepts a positive
 case only when HornMorpho returns a matching nominal analysis.
+
+Phase 4's supported cascade, rule ordering, morphophonemics, and deliberately
+excluded branches are recorded in `NOMINAL_RUNTIME.md`.
+`generate_nominal_phase4.py` rebuilds the practical-parity fixture from the
+pinned analyzer. The checked-in fixture contains 1,060 cases across 42 source
+lexemes: 948 supported forms, 17 analyzer-recognized exclusions with reasons,
+and 95 negative forms. Its SHA-256 is
+`f1f297edfc0ef6b3752b8b5187433ee2a6eb712cc039a0373753397c6dbcdb54`.
+The generator was run twice against HornMorpho 5.3.6 with byte-identical
+output.
+
+## Phase 5 surface-ranking statistics
+
+`tools/hornmorpho/build_nominal_surface_stats.py` intersects the archived
+legacy corpus frequencies with the analyzer-supported Phase 3 and Phase 4
+oracle surfaces, removes base lemmas, prunes counts below two, and caps the
+result at 2,048 rows. The checked-in
+`language/amharic/src/dictionary/amharic_surface_stats.dat` currently contains
+481 rows, is 2,477 bytes compressed, and has SHA-256
+`25491607220c2a6ffd622e6903f835c741f3a46f9c448e685990cd9c919ae331`.
+
+These counts are ranking evidence only. Runtime morphology must first validate
+and generate a candidate before looking up its surface frequency; the table
+cannot establish lexical or morphological validity. The archived legacy
+corpus is a developer-side generator input only and is neither a Gradle input
+nor an APK asset. The generated gzip and schema 10 SQLite database were each
+regenerated twice with byte-identical output.
+
+## Phase 6 morphology-gated prediction
+
+The prediction builder admits a token only when it is an exact base lexeme or
+an analyzer-recognized permitted surface from the pinned Phase 3/4 fixtures.
+The checked-in baseline uses only project-authored mini-corpus and held-out
+fixtures; historical local corpora and the retired n-gram model are excluded
+because their acquisition and redistribution provenance is not clear.
+
+The active model contains 40 vocabulary entries, 33 bigram contexts, 50
+successors, and no trigrams. Its 454-byte deterministic gzip has SHA-256
+`6f189e93939f6a2501cea58db3596bb962659b195f09b2e0af10387ee7973732`.
+Held-out top-3 accuracy is 11/14 (`0.785714`) versus zero hits for the empty
+baseline. Full provenance, artifact checksums, limitations, and the pending
+fluent-speaker expansion gate are in `PHASE6_PREDICTION.md`.

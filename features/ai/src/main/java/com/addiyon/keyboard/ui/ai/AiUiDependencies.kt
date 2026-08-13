@@ -62,6 +62,17 @@ interface AiUiStrings {
     val aiWorkspaceConnectedDescription: String
     val aiWorkspaceDisconnectedDescription: String
     val aiWorkspaceTitle: String
+    val aiPhraseCompletionTitle: String
+    val aiPhraseCompletionDescription: String
+    val aiPhraseCompletionSignedOut: String
+    val aiPhraseCompletionDisclosureTitle: String
+    val aiPhraseCompletionDisclosureMessage: String
+    val aiPhraseCompletionEnable: String
+    val aiPhraseCompletionNotNow: String
+    val aiPhraseCompletionIdle: String
+    val aiPhraseCompletionLoading: String
+    val aiPhraseCompletionInsert: String
+    val aiPhraseCompletionDismiss: String
 }
 
 interface AiAccountStore {
@@ -73,4 +84,8 @@ interface AiAccountStore {
     fun quota(): AiQuota
     fun saveQuota(quota: AiQuota)
     fun clearJwt()
+    fun phraseCompletionsEnabled(): Boolean
+    fun setPhraseCompletionsEnabled(enabled: Boolean)
+    fun phraseCompletionConsentVersion(): Int
+    fun setPhraseCompletionConsentVersion(version: Int)
 }

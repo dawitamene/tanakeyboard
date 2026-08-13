@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.SentimentSatisfied
 import androidx.compose.material.icons.outlined.Spellcheck
 import androidx.compose.material.icons.outlined.WorkOutline
@@ -57,9 +58,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -70,6 +74,7 @@ import com.addiyon.keyboard.ai.AiStrength
 import com.addiyon.keyboard.ai.AiToneTab
 import com.addiyon.keyboard.ai.AiUiState
 import com.addiyon.keyboard.ui.SuggestionChevronLeftButton
+import com.addiyon.keyboard.ui.design.AddiyonAiToneGlowColors
 import com.addiyon.keyboard.ui.design.AddiyonBorders
 import com.addiyon.keyboard.ui.design.AddiyonElevation
 import com.addiyon.keyboard.ui.design.AddiyonMotion
@@ -77,7 +82,6 @@ import com.addiyon.keyboard.ui.design.AddiyonRadii
 import com.addiyon.keyboard.ui.design.AddiyonSizes
 import com.addiyon.keyboard.ui.design.AddiyonSpacing
 import com.addiyon.keyboard.ui.design.addiyonColors
-import kotlin.math.abs
 
 fun aiPanelVariantTag(strength: AiStrength): String = "ai.panel.variant.${strength.name.lowercase()}"
 fun aiPanelCopyTag(strength: AiStrength): String = "ai.panel.copy.${strength.name.lowercase()}"
@@ -86,6 +90,7 @@ fun aiPanelToneIconTag(tab: AiToneTab): String = "ai.panel.tone.icon.${tab.name.
 const val AI_PANEL_BACK_ACTION_TAG = "ai.panel.back.action"
 const val AI_PANEL_SKELETON_TAG = "ai.panel.skeleton"
 const val AI_PANEL_EMPTY_ACTION_TAG = "ai.panel.empty.action"
+const val AI_PANEL_SELECT_TONE_ICON_TAG = "ai.panel.select.tone.icon"
 private const val AI_RESULT_VARIANT_COUNT = 3
 
 @Composable
@@ -241,15 +246,26 @@ private fun AiPanelSelectToneState(
     message: String,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Column(
         modifier = modifier,
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
+        IconBubble(
+            icon = Icons.Outlined.Palette,
+            containerColor = MaterialTheme.addiyonColors.brandPrimary,
+            contentColor = MaterialTheme.addiyonColors.onBrandPrimary,
+            containerSize = AddiyonSizes.minimumTouchTarget,
+            iconSize = AddiyonSizes.iconLarge,
+            modifier = Modifier.testTag(AI_PANEL_SELECT_TONE_ICON_TAG)
+        )
         Text(
             text = message,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = AddiyonSpacing.sm),
             textAlign = TextAlign.Center
         )
     }
@@ -280,8 +296,7 @@ private fun AiPanelToolbar(
             buttonSize = AddiyonSizes.keyboardAction,
             containerSize = AddiyonSizes.keyboardAction,
             iconSize = AddiyonSizes.iconLarge,
-            containerColor = MaterialTheme.addiyonColors.resultSurface,
-            iconTint = MaterialTheme.addiyonColors.onResultSurface
+            iconTint = MaterialTheme.colorScheme.onBackground
         )
         if (!state.isPrivateField && !state.needsAuth) {
             AiToneRow(
@@ -303,6 +318,8 @@ private fun AiToneRow(
     strings: AiUiStrings,
     modifier: Modifier = Modifier
 ) {
+    val toneShape = RoundedCornerShape(AddiyonRadii.pill)
+    val toneGlowVisuals = toneGlowVisuals(isLoading)
     Row(
         modifier = modifier
             .horizontalScroll(rememberScrollState())
@@ -312,13 +329,22 @@ private fun AiToneRow(
         AiToneTab.DefaultTabs.forEach { tab ->
             val selected = selectedTab == tab
             val iconColor = toneIconColor(tab)
+            val glowModifier = if (selected) {
+                Modifier.dropShadow(
+                    shape = toneShape,
+                    shadow = toneGlowVisuals.glow
+                )
+            } else {
+                Modifier
+            }
             Surface(
+                modifier = glowModifier,
                 selected = selected,
                 onClick = { onTabSelected(tab) },
-                shape = RoundedCornerShape(AddiyonRadii.pill),
+                shape = toneShape,
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                border = toneSelectionBorder(iconColor, selected, isLoading)
+                border = if (selected) toneGlowVisuals.border else null
             ) {
                 Row(
                     modifier = Modifier
@@ -348,39 +374,73 @@ private fun AiToneRow(
     }
 }
 
+private data class ToneGlowVisuals(
+    val border: BorderStroke,
+    val glow: Shadow
+)
+
 @Composable
-private fun toneSelectionBorder(
-    color: Color,
-    selected: Boolean,
-    isLoading: Boolean
-): BorderStroke? {
-    if (!selected) return null
-    if (!isLoading) {
-        return BorderStroke(
-            width = AddiyonBorders.selectedTone,
-            color = color
+private fun toneGlowVisuals(isLoading: Boolean): ToneGlowVisuals {
+    val colors = MaterialTheme.addiyonColors.aiToneGlow
+    val phase = if (isLoading) {
+        val transition = rememberInfiniteTransition(label = "toneGlow")
+        val animatedPhase by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = AddiyonMotion.gentle * 2,
+                    easing = LinearEasing
+                ),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "toneGlowPhase"
+        )
+        animatedPhase
+    } else {
+        0f
+    }
+    val glowAlpha = if (isLoading) {
+        if (phase <= 0.5f) 0.36f + phase * 0.4f else 0.76f - phase * 0.4f
+    } else {
+        0.48f
+    }
+    val borderBrush = if (isLoading) {
+        Brush.sweepGradient(animatedToneGradient(colors, phase))
+    } else {
+        Brush.horizontalGradient(listOf(colors.start, colors.end))
+    }
+    val glowBrush = if (isLoading) {
+        Brush.sweepGradient(
+            animatedToneGradient(colors, phase).map { it.copy(alpha = glowAlpha) }
+        )
+    } else {
+        Brush.horizontalGradient(
+            listOf(
+                colors.start.copy(alpha = glowAlpha),
+                colors.end.copy(alpha = glowAlpha)
+            )
         )
     }
-    val transition = rememberInfiniteTransition(label = "toneBorderShimmer")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = AddiyonMotion.gentle * 2),
-            repeatMode = RepeatMode.Restart
+    return ToneGlowVisuals(
+        border = BorderStroke(
+            width = AddiyonBorders.selectedTone,
+            brush = borderBrush
         ),
-        label = "toneBorderShimmerPhase"
+        glow = Shadow(
+            radius = AddiyonElevation.overlay,
+            brush = glowBrush
+        )
     )
-    val colors = List(12) { index ->
-        val position = index / 11f
-        val directDistance = abs(position - phase)
-        val distance = minOf(directDistance, 1f - directDistance)
-        color.copy(alpha = (1f - distance * 4f).coerceIn(0.35f, 1f))
-    }
-    return BorderStroke(
-        width = AddiyonBorders.selectedTone,
-        brush = Brush.sweepGradient(colors)
-    )
+}
+
+private fun animatedToneGradient(
+    colors: AddiyonAiToneGlowColors,
+    phase: Float
+): List<Color> = List(12) { index ->
+    val position = (index / 11f + phase) % 1f
+    val blend = if (position <= 0.5f) position * 2f else (1f - position) * 2f
+    lerp(colors.start, colors.end, blend)
 }
 
 @Composable
@@ -507,10 +567,11 @@ private fun IconBubble(
     containerColor: Color,
     contentColor: Color,
     containerSize: Dp = AddiyonSizes.iconLarge,
-    iconSize: Dp = AddiyonSizes.iconSmall
+    iconSize: Dp = AddiyonSizes.iconSmall,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(containerSize)
             .background(containerColor, CircleShape),
         contentAlignment = Alignment.Center

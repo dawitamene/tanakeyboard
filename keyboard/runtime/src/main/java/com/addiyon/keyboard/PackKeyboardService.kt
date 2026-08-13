@@ -10,6 +10,7 @@ import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.os.StrictMode
 import android.os.SystemClock
 import android.text.InputType
@@ -98,6 +99,7 @@ import com.addiyon.keyboard.voice.VoicePermissionActivity
 import com.addiyon.keyboard.voice.VoiceUiState
 import com.addiyon.keyboard.voice.isVoiceMode
 import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.Future
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -197,6 +199,19 @@ abstract class PackKeyboardService : BaseKeyboardService(),
         invalidateSuggestionWork()
         updateSuggestions()
     }
+
+    protected fun onOptionalFeatureTextCommitted(text: String): Boolean {
+        val committed = typingController.onPhraseCompletion(text)
+        if (committed) {
+            pendingPredictionBoundary = null
+            clearComposingContextCache()
+            invalidateSuggestionWork()
+            updateSuggestions()
+        }
+        return committed
+    }
+
+    protected open fun onEditorContextChanged() = Unit
 
     // ----------------------------
     // Lifecycle (UNCHANGED)
@@ -607,6 +622,7 @@ abstract class PackKeyboardService : BaseKeyboardService(),
      * out, so "Th" suggests "The", not "the".
      */
     private fun updateSuggestions() {
+        onEditorContextChanged()
         safeApply {
             if (!suggestionRefreshGate.requestRefresh()) return@safeApply
             if (isPrivateField) {
@@ -667,9 +683,6 @@ abstract class PackKeyboardService : BaseKeyboardService(),
             if (typed.isEmpty()) {
                 activeCompletionKey = null
                 clearComposingContextCache()
-                if (amharic) {
-                    engine.clearCaches()
-                }
                 invalidateCompletionWork()
                 if (context.prev1 == null) {
                     invalidatePredictionWork()
@@ -841,8 +854,17 @@ abstract class PackKeyboardService : BaseKeyboardService(),
         0L,
         TimeUnit.MILLISECONDS,
         LinkedBlockingQueue(),
-        { runnable -> Thread(runnable, "AddiyonSuggestions") },
+        { runnable ->
+            Thread(
+                {
+                    Process.setThreadPriority(Process.THREAD_PRIORITY_DISPLAY)
+                    runnable.run()
+                },
+                "AddiyonSuggestions"
+            )
+        },
     )
+    private var suggestionTask: Future<*>? = null
     private val predictionExecutorDelegate = lazy(LazyThreadSafetyMode.NONE) {
         ThreadPoolExecutor(
             1,
@@ -970,6 +992,8 @@ abstract class PackKeyboardService : BaseKeyboardService(),
     private fun invalidateCompletionWork() {
         suggestionGeneration += 1
         activeCompletionKey = null
+        suggestionTask?.cancel(true)
+        suggestionTask = null
         suggestionExecutor.queue.clear()
     }
 
@@ -1020,8 +1044,42 @@ abstract class PackKeyboardService : BaseKeyboardService(),
         val pack = languageRegistry.installedPacks.firstOrNull { it.id == languageId } ?: return
         val engine = pack.suggestionEngine
         val amharic = pack.presentationCategory == LanguagePresentationCategory.AMHARIC
+        suggestionTask?.cancel(true)
         suggestionExecutor.queue.clear()
-        suggestionExecutor.execute {
+        val personalCompletionSource = PersonalCompletionSource { prefix, limit ->
+            if (!::personalDictionary.isInitialized) emptyList()
+            else personalDictionary.completionEntries(languageId.value, prefix, limit)
+        }
+        val cachedBoost = composingNgramBoost
+        val cachedCasing = composingPredictionCasing
+        val immediatePair = when {
+            cachedBoost != null -> cachedBoost to cachedCasing
+            context.prev1 == null -> emptyMap<String, Int>() to emptyMap()
+            else -> null
+        }
+        if (immediatePair != null) {
+            val cached = try {
+                engine.cachedCompletion(
+                    CompletionQuery(
+                        raw = raw,
+                        contextWeights = immediatePair.first,
+                        contextCasing = immediatePair.second,
+                        personalCompletions = personalCompletionSource,
+                        lowMemory = lowRam,
+                    )
+                )
+            } catch (_: RuntimeException) {
+                null
+            }
+            if (cached != null) {
+                if (cached.isNotEmpty()) publishSuggestions(cached)
+                return
+            }
+        }
+        suggestionTask = suggestionExecutor.submit suggestion@{
+            if (generation != suggestionGeneration || Thread.currentThread().isInterrupted) {
+                return@suggestion
+            }
             // Deliberately NOT lowered to THREAD_PRIORITY_BACKGROUND. That moves a
             // thread into Android's background cgroup, which is capped at a small
             // share of CPU whenever anything foreground is running -- and something
@@ -1035,8 +1093,6 @@ abstract class PackKeyboardService : BaseKeyboardService(),
             } else {
                 if (lowRam) 4 else ENGLISH_NGRAM_CONTEXT_LIMIT
             }
-            val cachedBoost = composingNgramBoost
-            val cachedCasing = composingPredictionCasing
             val pair = if (cachedBoost != null) {
                 cachedBoost to cachedCasing
             } else {
@@ -1067,20 +1123,16 @@ abstract class PackKeyboardService : BaseKeyboardService(),
                 }
                 ngramNext to predictionCasing
             }
+            if (generation != suggestionGeneration || Thread.currentThread().isInterrupted) {
+                return@suggestion
+            }
             val computed = try {
                 engine.complete(
                     CompletionQuery(
                         raw = raw,
                         contextWeights = pair.first,
                         contextCasing = pair.second,
-                        personalCompletions = PersonalCompletionSource { prefix, limit ->
-                            if (!::personalDictionary.isInitialized) emptyList()
-                            else personalDictionary.completions(
-                                languageId.value,
-                                prefix,
-                                limit
-                            )
-                        },
+                        personalCompletions = personalCompletionSource,
                         lowMemory = lowRam
                     )
                 )
@@ -1389,6 +1441,7 @@ abstract class PackKeyboardService : BaseKeyboardService(),
 
     private fun publishSuggestions(value: List<String>, arePredictions: Boolean = false) {
         safeApply {
+            suggestionPublicationGeneration += 1
             publishSuggestionState(
                 when {
                     // An empty result mid-sentence must not drop to the toolbar.
@@ -1407,6 +1460,10 @@ abstract class PackKeyboardService : BaseKeyboardService(),
             )
         }
     }
+
+    @Volatile
+    var suggestionPublicationGeneration: Long = 0
+        private set
 
     private fun publishEmailSuggestions(value: List<EmailChip>) {
         safeApply {

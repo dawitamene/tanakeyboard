@@ -61,7 +61,7 @@ class EnglishSuggestionEngine(
         }
         query.personalCompletions.completions(query.raw, COMPLETION_POOL).forEach { word ->
             if (merged.size < SUGGESTION_LIMIT) {
-                val cased = matchCase(query.raw, word)
+                val cased = matchCase(query.raw, word.word)
                 if (cased !in merged) merged.add(cased)
             }
         }

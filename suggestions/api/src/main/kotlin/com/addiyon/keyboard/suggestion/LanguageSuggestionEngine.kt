@@ -2,8 +2,14 @@ package com.addiyon.keyboard.suggestion
 
 data class EngineSuggestion(val word: String, val weight: Int)
 
+data class PersonalCompletion(
+    val word: String,
+    val count: Int,
+    val recency: Int,
+)
+
 fun interface PersonalCompletionSource {
-    fun completions(prefix: String, limit: Int): List<String>
+    fun completions(prefix: String, limit: Int): List<PersonalCompletion>
 }
 
 data class CompletionQuery(
@@ -21,6 +27,7 @@ interface LanguageSuggestionEngine {
 
     fun loadAsync(onReady: () -> Unit)
     fun complete(query: CompletionQuery): List<String>
+    fun cachedCompletion(query: CompletionQuery): List<String>? = null
     fun commitCandidate(raw: String): String = raw
     fun predict(prev2: String?, prev1: String, limit: Int): List<EngineSuggestion>
     fun topFrequentWords(limit: Int): List<EngineSuggestion>

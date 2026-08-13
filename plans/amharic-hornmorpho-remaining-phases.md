@@ -132,7 +132,8 @@ HornMorpho snapshot is transformed deterministically into:
 
 - `amharic_lexemes.dat`: 18,867 lexical records
 - `amharic_words.dat`: 18,251 displayable normalized base lemmas
-- `amharic_ngrams.dat`: intentionally empty until rebuilt from a clean corpus
+- `amharic_ngrams.dat`: originally empty at this milestone; Phase 6 now supplies
+  the clean morphology-gated baseline
 
 Lexeme kinds currently mean:
 
@@ -260,9 +261,9 @@ raw slash/gemination notation in the source record for reproducibility.
 | Phase | Objective | Primary output | Safe stopping point |
 |---:|---|---|---|
 | 3 — complete | Harden and prove the current noun MVP | Oracle corpus, typed features, integration tests | Ship conservative noun generation |
-| 4 | Reach practical HornMorpho noun/adjective parity | Compact symmetric nominal analyzer/generator | Robust nominal suggestions |
-| 5 | Make ranking provenance-aware | Explicit source tiers and sparse surface statistics | Correct ranking without wordlist bloat |
-| 6 | Restore clean Amharic next-word prediction | Morphology-gated corpus and n-grams | Useful predictions with no garbage leakage |
+| 4 — complete | Reach practical HornMorpho noun/adjective parity | Compact symmetric nominal analyzer/generator | Robust nominal suggestions |
+| 5 — complete | Make ranking provenance-aware | Explicit source tiers and sparse surface statistics | Correct ranking without wordlist bloat |
+| 6 — complete | Restore clean Amharic next-word prediction | Morphology-gated corpus and n-grams | Useful predictions with no garbage leakage |
 | 7 | Decide the verb artifact architecture | Benchmarked ADR/prototype | No verb implementation until decision passes |
 | 8 | Add high-value verb generation and validation | Compact verb artifact and runtime lookup | Common verbs without paradigm explosion |
 | 9 | Add morphology-aware learning/correction and production gates | Personal weighting, fuzz validation, QA/perf suite | Production-ready system |
@@ -490,7 +491,7 @@ It must not be reintroduced into the production fallback path.
   for `ሰው`, `ሰውን`, `የሰውን`, `ቤቶች`, `ቤቱ`, and the contaminated-alternate
   negatives.
 
-## 7. Phase 4 — practical HornMorpho nominal parity
+## 7. Phase 4 — complete: practical HornMorpho nominal parity
 
 ### Goal
 
@@ -649,7 +650,7 @@ Do not put Amharic rules into `keyboard/runtime` or either app module.
 - Amharic DB remains below 3 MiB unless a measured, reviewed tradeoff changes
   the budget.
 
-## 8. Phase 5 — explicit candidate provenance and ranking
+## 8. Phase 5 — complete: explicit candidate provenance and ranking
 
 ### Goal
 
@@ -747,11 +748,11 @@ runtime can recover both cheaply. Benchmark both before choosing.
 - The additional database data has an explicit size cap and keeps total
   Amharic DB under the agreed budget.
 
-## 9. Phase 6 — clean morphology-gated Amharic prediction
+## 9. Phase 6 — complete: clean morphology-gated Amharic prediction
 
 ### Goal
 
-Replace the intentionally empty Amharic n-gram asset with a useful model that
+Replace the Phase 1 empty Amharic n-gram asset with a useful model that
 cannot leak the discarded dictionary's garbage back into suggestions.
 
 ### 6.1 Select and document a corpus
@@ -1186,8 +1187,8 @@ size test.
 | Phase 2 current Amharic DB | 2,019,328 bytes observed |
 | Phase 3 hardened nouns | < 2,500 KiB |
 | Phase 4 full practical nouns | < 3 MiB |
-| Phase 5 sparse surface stats | Explicit capped delta, target < 1 MiB |
-| Phase 6 n-grams | Explicit quality/size tradeoff, target < 1 MiB delta |
+| Phase 5 sparse surface stats | 2,477-byte asset; 16,384-byte DB delta observed; 2,048-row cap |
+| Phase 6 n-grams | 454-byte asset; schema 11 DB is 2,506,752 bytes, 32,768 bytes smaller than Phase 5 |
 | Phase 7/8 verb artifact | Target < 3 MiB compressed delta |
 | Runtime eager morphology heap | Target < 5 MiB incremental |
 
@@ -1298,6 +1299,9 @@ Append entries here instead of rewriting the historical snapshot.
 | 2026-08-12 | 1 | `fc0b927` plus captured uncommitted follow-up | Lexeme baseline | 18,867 lexemes; 18,251 base display lemmas |
 | 2026-08-12 | 2 | Uncommitted at handoff | Noun MVP implemented and tested | Both APKs assembled; install unavailable because no device was connected |
 | 2026-08-12 | 3 | Uncommitted | Noun MVP hardened and oracle-verified | Typed feature parser; pinned HornMorpho oracle; deterministic 442-case golden corpus across 42 lexemes; real-SQLite engine tests; obsolete blind prefix synthesis removed; 1,972 KiB DB; Addiyon installed and connected smoke passed on two Android 16 devices; both APKs assembled. `checkKeyboardProducts` reports the two known unrelated architecture-contract failures in section 2.3. |
+| 2026-08-12 | 4 | Uncommitted | Practical nominal parity implemented | Shared bounded forward/reverse rule graph with structured analyses; schema 9 stable lexeme IDs, feature bits, stem classes, and indexed nominal filtering; deterministic 1,060-case Phase 4 oracle corpus (948 supported, 17 explicit exclusions, 95 negatives) across 42 lexemes; combined Phase 3/4 coverage is 1,270 supported and 215 negative cases. SQLite DB is 2,523,136 bytes and byte-deterministic (`461ae3a2f1627b0f3ab117b0fd592e278d9e1f564e15baa343339e930b76f604`). JVM p95: 0.44 ms nominal lookup and 7.24 ms complete pipeline. Connected Android 16 Medium Phone AVD p95: 67.13 ms from final key to publication, max 92.64 ms; the requested `TanaLowRam` AVD was not available on this machine. |
+| 2026-08-13 | 5 | Uncommitted | Provenance-aware ranking and sparse statistics implemented | Exact lexeme, greedy literal, attested surface, generated morphology, personal evidence, and fuzzy provenance are explicit with invariant-tested source bands and deterministic canonical ties. Schema 10 adds 481 analyzer-gated surface counts as ranking metadata only; the 2,477-byte gzip is capped at 2,048 rows and byte-deterministic (`25491607220c2a6ffd622e6903f835c741f3a46f9c448e685990cd9c919ae331`). The Amharic DB is 2,539,520 bytes, a 16,384-byte delta from Phase 4, and byte-deterministic (`b9d30ca9c1cb8767b7125cc9dd698074c19db8de2bb91799890947dac4bb6f6a`). JVM p95: 0.60 ms nominal lookup and 7.22 ms complete pipeline. Connected Android 15 `TanaLowRam` p95: 71.02 ms from final key to publication, max 73.27 ms. All Phase 5 affected suites, including the existing English ranking tests, remain green. |
+| 2026-08-13 | 6 | Uncommitted | Conservative morphology-gated prediction baseline implemented | A project-authored 31-line corpus produces a deterministic 454-byte bigram-only model with 40 validated surface entries, 33 contexts, and 50 successor rows. Schema 11 separates `ngram_vocab` from base `words`, allowing analyzer-valid inflections without dictionary leakage. The preselected held-out metric is 11/14 top-3 hits (`0.785714`) versus zero for the empty baseline. The 2,506,752-byte DB is deterministic (`6df9462b48a876953d9fbd7b18421db4f848cc9f0431989b90b6d4b2c9367d03`); warm JVM prediction p95 is 0.106 ms. Focused/full affected suites, both APK assemblies, Addiyon install, and a connected Android 15 `TanaLowRam` inflected-prediction smoke test pass. The product gate still reports the two unrelated pre-existing architecture-contract failures for Addiyon manual-screen placement and shared `aiTone*` design tokens. Broader corpus import and trigrams remain gated on documented corpus provenance and fluent-speaker context review. |
 
 ## 19. Primary references
 

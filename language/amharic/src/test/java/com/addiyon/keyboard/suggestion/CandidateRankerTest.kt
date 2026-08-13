@@ -10,26 +10,40 @@ import org.junit.Test
 
 class CandidateRankerTest {
 
-    private class FakeDict(vararg words: Pair<String, Int>) {
+    private inner class FakeDict(vararg words: Pair<String, Int>) {
         private val byWord: Map<String, Int> = words.toMap()
         private val byKey: Map<String, List<Pair<String, Int>>> = words
             .groupBy { (w, _) -> w }
             .mapValues { (_, v) -> v }
 
         fun frequencyOf(word: String): Int? = byWord[word]
-        fun entriesFor(prefix: String, limit: Int): List<CandidateRanker.DictionaryWord> {
+        fun entriesFor(prefix: String, limit: Int): List<CandidateRanker.AmharicCandidate> {
             if (limit <= 0) return emptyList()
             val p = prefix
             return byWord.entries.asSequence()
                 .filter { it.key.startsWith(p) }
                 .sortedByDescending { it.value }
                 .take(limit)
-                .map { CandidateRanker.DictionaryWord(it.key, it.value) }
+                .map { candidate(it.key, it.value) }
                 .toList()
         }
     }
 
     private fun dict(vararg words: Pair<String, Int>) = FakeDict(*words)
+
+    private fun candidate(
+        word: String,
+        lexicalFrequency: Int,
+        source: CandidateRanker.CandidateSource = CandidateRanker.CandidateSource.EXACT_LEXEME,
+        surfaceFrequency: Int? = null,
+        morphologyCost: Int = 0,
+    ) = CandidateRanker.AmharicCandidate(
+        word = word,
+        source = source,
+        lexicalFrequency = lexicalFrequency,
+        surfaceFrequency = surfaceFrequency,
+        morphologyCost = morphologyCost,
+    )
 
     private fun rankAmharic(
         readings: List<String>,
@@ -205,7 +219,7 @@ class CandidateRankerTest {
             frequencyOf = { null },
             completionsForPrefix = { reading, _ ->
                 if (reading == "ሰውን") {
-                    listOf(CandidateRanker.DictionaryWord("ሰውን", 100))
+                    listOf(candidate("ሰውን", 100, CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY))
                 } else {
                     emptyList()
                 }
@@ -498,10 +512,10 @@ class CandidateRankerTest {
             frequencyOf = { null },
             completionsForPrefix = { _, _ ->
                 listOf(
-                    CandidateRanker.DictionaryWord("ሀሁ", 100),
-                    CandidateRanker.DictionaryWord("ሀሁ", 900),
-                    CandidateRanker.DictionaryWord("ሀሁ", 900),
-                    CandidateRanker.DictionaryWord("ሀሁ", 100)
+                    candidate("ሀሁ", 100),
+                    candidate("ሀሁ", 900),
+                    candidate("ሀሁ", 900),
+                    candidate("ሀሁ", 100)
                 )
             }
         )
@@ -520,5 +534,159 @@ class CandidateRankerTest {
         )
 
         assertEquals(listOf("ሀ", "ሁ"), ranked)
+    }
+
+    @Test
+    fun exactReadingBeatsEveryCompletionSource() {
+        val ranked = CandidateRanker.rankAmharicDetailed(
+            readings = listOf("ሰው"),
+            limit = 10,
+            frequencyOf = mapOf("ሰው" to 1)::get,
+            completionsForPrefix = { _, _ ->
+                listOf(
+                    candidate("ሰውነት", 30_000),
+                    candidate(
+                        "ሰውን",
+                        30_000,
+                        CandidateRanker.CandidateSource.ATTESTED_SURFACE,
+                        surfaceFrequency = 30_000,
+                    ),
+                    candidate(
+                        "ሰዎች",
+                        30_000,
+                        CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY,
+                    ),
+                )
+            },
+            fuzzyWords = listOf(CandidateRanker.FuzzyWord("ሰዋ", 30_000, 1)),
+            ngramNext = mapOf("ሰውነት" to 255, "ሰውን" to 255, "ሰዎች" to 255),
+            personalEvidence = mapOf(
+                "ሰውነት" to CandidateRanker.PersonalEvidence(100, 500),
+                "ሰውን" to CandidateRanker.PersonalEvidence(100, 500),
+                "ሰዎች" to CandidateRanker.PersonalEvidence(100, 500),
+            ),
+        )
+
+        assertEquals("ሰው", ranked.first().candidate.word)
+        assertEquals(CandidateRanker.CandidateSource.EXACT_LEXEME, ranked.first().candidate.source)
+        assertTrue(ranked.first().exactReading)
+    }
+
+    @Test
+    fun attestedSurfaceBeatsUnattestedGenerationWithoutBorrowingStemFrequency() {
+        val ranked = CandidateRanker.rankAmharicDetailed(
+            readings = listOf("ቤ"),
+            limit = 10,
+            frequencyOf = { null },
+            completionsForPrefix = { _, _ ->
+                listOf(
+                    candidate(
+                        "ቤቶች",
+                        1,
+                        CandidateRanker.CandidateSource.ATTESTED_SURFACE,
+                        surfaceFrequency = 2,
+                    ),
+                    candidate(
+                        "ቤታችሁ",
+                        1_000_000,
+                        CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY,
+                    ),
+                )
+            },
+        )
+
+        val completions = ranked.filter { it.candidate.source != CandidateRanker.CandidateSource.GREEDY_LITERAL }
+        assertEquals("ቤቶች", completions.first().candidate.word)
+        assertEquals(2, completions.first().candidate.surfaceFrequency)
+        assertEquals(null, completions.last().candidate.surfaceFrequency)
+    }
+
+    @Test
+    fun personalEvidenceReordersOnlyCandidatesAlreadyValidated() {
+        val ranked = CandidateRanker.rankAmharicDetailed(
+            readings = listOf("የሰ"),
+            limit = 10,
+            frequencyOf = { null },
+            completionsForPrefix = { _, _ ->
+                listOf(
+                    candidate(
+                        "የሰው",
+                        500,
+                        CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY,
+                    ),
+                    candidate(
+                        "የሰላም",
+                        500,
+                        CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY,
+                    ),
+                )
+            },
+            personalEvidence = mapOf(
+                "የሰላም" to CandidateRanker.PersonalEvidence(20, 500),
+                "የሰውው" to CandidateRanker.PersonalEvidence(100, 1_000),
+            ),
+        )
+
+        val generated = ranked.filter {
+            it.candidate.source == CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY
+        }
+        assertEquals("የሰላም", generated.first().candidate.word)
+        assertTrue(CandidateRanker.CandidateSource.PERSONAL in generated.first().candidate.evidenceSources)
+        assertFalse(ranked.any { it.candidate.word == "የሰውው" })
+    }
+
+    @Test
+    fun fuzzyCannotCrossAValidGeneratedCompletion() {
+        val ranked = CandidateRanker.rankAmharicDetailed(
+            readings = listOf("ቤ"),
+            limit = 10,
+            frequencyOf = { null },
+            completionsForPrefix = { _, _ ->
+                listOf(
+                    candidate(
+                        "ቤታችን",
+                        1,
+                        CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY,
+                    )
+                )
+            },
+            fuzzyWords = listOf(CandidateRanker.FuzzyWord("ቤተሰብ", Int.MAX_VALUE, 1)),
+        )
+
+        assertTrue(
+            ranked.indexOfFirst { it.candidate.word == "ቤታችን" } <
+                ranked.indexOfFirst { it.candidate.word == "ቤተሰብ" }
+        )
+    }
+
+    @Test
+    fun canonicalMorphologyWinsTiesAndOrderingIsDeterministic() {
+        val rank = {
+            CandidateRanker.rankAmharicDetailed(
+                readings = listOf("ቤ"),
+                limit = 10,
+                frequencyOf = { null },
+                completionsForPrefix = { _, _ ->
+                    listOf(
+                        candidate(
+                            "ቤትዋ",
+                            500,
+                            CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY,
+                            morphologyCost = 1,
+                        ),
+                        candidate(
+                            "ቤቷ",
+                            500,
+                            CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY,
+                            morphologyCost = 0,
+                        ),
+                    )
+                },
+            )
+        }
+        val first = rank()
+
+        assertEquals("ቤቷ", first.first { it.candidate.source == CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY }.candidate.word)
+        repeat(20) { assertEquals(first, rank()) }
     }
 }

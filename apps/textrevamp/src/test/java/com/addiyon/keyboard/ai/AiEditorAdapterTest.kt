@@ -7,6 +7,8 @@ import com.addiyon.keyboard.ai.AiSource
 import java.lang.reflect.Proxy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -82,6 +84,43 @@ class AiEditorAdapterTest {
             adapter.replaceIfCurrent(capture.snapshot, "replacement")
         )
         assertEquals("other field", editor.text)
+    }
+
+    @Test
+    fun `phrase completion captures only a collapsed caret at field end`() {
+        val editor = MutableEditor("I will send the draft", 21, 21)
+        val gateway = EditorGateway { editor.connection }
+        gateway.beginSession(21, 21)
+        val adapter = AiEditorAdapter(gateway)
+
+        val capture = requireNotNull(adapter.captureCompletionContext())
+
+        assertEquals("I will send the draft", capture.prefix)
+        assertTrue(adapter.isCompletionCaptureCurrent(capture.snapshot))
+
+        editor.selectionStart = 4
+        editor.selectionEnd = 4
+        gateway.noteSelection(4, 4)
+        assertFalse(adapter.isCompletionCaptureCurrent(capture.snapshot))
+        assertNull(adapter.captureCompletionContext())
+    }
+
+    @Test
+    fun `phrase completion rejects selected text and changed prefix`() {
+        val editor = MutableEditor("I will send the draft", 2, 6)
+        val gateway = EditorGateway { editor.connection }
+        gateway.beginSession(2, 6)
+        val adapter = AiEditorAdapter(gateway)
+
+        assertNull(adapter.captureCompletionContext())
+
+        editor.selectionStart = editor.text.length
+        editor.selectionEnd = editor.text.length
+        gateway.noteSelection(editor.text.length, editor.text.length)
+        val capture = adapter.captureCompletionContext()
+        assertNotNull(capture)
+        editor.text = "I will change the draft"
+        assertFalse(adapter.isCompletionCaptureCurrent(requireNotNull(capture).snapshot))
     }
 
     private class MutableEditor(

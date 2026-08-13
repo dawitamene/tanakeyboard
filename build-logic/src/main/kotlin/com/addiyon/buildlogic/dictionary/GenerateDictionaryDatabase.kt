@@ -19,6 +19,10 @@ import org.sqlite.SQLiteDataSource
 
 abstract class GenerateDictionaryDatabase : DefaultTask() {
     @get:Input
+    val databaseSchemaVersion: Int
+        get() = DictionaryDatabaseFormat.SCHEMA_VERSION
+
+    @get:Input
     abstract val languageId: Property<String>
 
     @get:Input
@@ -37,8 +41,18 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
     abstract val lexemesDat: RegularFileProperty
 
     @get:InputFile
+    @get:Optional
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val surfaceStatsDat: RegularFileProperty
+
+    @get:InputFile
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val ngramsDat: RegularFileProperty
+
+    @get:InputFile
+    @get:Optional
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val ngramAudit: RegularFileProperty
 
     @get:OutputFile
     abstract val outputDb: RegularFileProperty
@@ -55,7 +69,9 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
         buildDatabase(
             wordsDat = wordsDat.get().asFile,
             lexemesDat = lexemesDat.orNull?.asFile,
+            surfaceStatsDat = surfaceStatsDat.orNull?.asFile,
             ngramsDat = ngramsDat.get().asFile,
+            ngramAudit = ngramAudit.orNull?.asFile,
             output = outputDb.get().asFile,
             mode = mode,
             prefixLength = maxPrefixLength.get(),
@@ -65,7 +81,9 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
     private fun buildDatabase(
         wordsDat: File,
         lexemesDat: File?,
+        surfaceStatsDat: File?,
         ngramsDat: File,
+        ngramAudit: File?,
         output: File,
         mode: String,
         prefixLength: Int,
@@ -87,20 +105,38 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
                     CREATE TABLE words(
                         key           TEXT PRIMARY KEY,
                         display       TEXT,
-                        freq          INTEGER NOT NULL,
-                        ngram_id      INTEGER,
-                        ngram_display TEXT
+                        freq          INTEGER NOT NULL
+                    ) WITHOUT ROWID
+                    """.trimIndent()
+                )
+                statement.execute(
+                    """
+                    CREATE TABLE ngram_vocab(
+                        id      INTEGER NOT NULL PRIMARY KEY,
+                        key     TEXT NOT NULL,
+                        display TEXT NOT NULL
                     ) WITHOUT ROWID
                     """.trimIndent()
                 )
                 statement.execute(
                     """
                     CREATE TABLE morph_lexemes(
+                        lexeme_id  INTEGER NOT NULL PRIMARY KEY,
                         kind     INTEGER NOT NULL,
                         form     TEXT NOT NULL,
                         features TEXT NOT NULL,
                         key      TEXT,
-                        PRIMARY KEY(kind, form, features)
+                        morph_bits INTEGER NOT NULL,
+                        stem_class INTEGER NOT NULL,
+                        UNIQUE(kind, form, features)
+                    ) WITHOUT ROWID
+                    """.trimIndent()
+                )
+                statement.execute(
+                    """
+                    CREATE TABLE morph_surface_stats(
+                        key       TEXT NOT NULL PRIMARY KEY,
+                        frequency INTEGER NOT NULL
                     ) WITHOUT ROWID
                     """.trimIndent()
                 )
@@ -152,18 +188,16 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
             connection.autoCommit = false
             loadWords(connection, wordsDat, mode)
             lexemesDat?.let { loadLexemes(connection, it, mode) }
+            surfaceStatsDat?.let { loadSurfaceStats(connection, it, mode) }
             populatePrefixTop(connection, prefixLength)
             populateFuzzyTop(connection)
-            loadNgrams(connection, ngramsDat, mode)
+            loadNgrams(connection, ngramsDat, ngramAudit, mode)
             connection.createStatement().use { statement ->
                 statement.execute(
-                    "CREATE INDEX idx_morph_lexemes_key ON morph_lexemes(key) " +
+                    "CREATE INDEX idx_morph_lexemes_key ON morph_lexemes(key, kind, morph_bits) " +
                         "WHERE key IS NOT NULL"
                 )
-                statement.execute(
-                    "CREATE UNIQUE INDEX idx_words_ngram_id ON words(ngram_id) " +
-                        "WHERE ngram_id IS NOT NULL"
-                )
+                statement.execute("CREATE UNIQUE INDEX idx_ngram_vocab_key ON ngram_vocab(key)")
             }
             connection.commit()
             connection.autoCommit = true
@@ -270,7 +304,8 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
 
     private fun loadLexemes(connection: Connection, lexemesDat: File, mode: String) {
         val sql =
-            "INSERT INTO morph_lexemes(kind, form, features, key) VALUES (?, ?, ?, ?)"
+            "INSERT INTO morph_lexemes(lexeme_id, kind, form, features, key, morph_bits, stem_class) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)"
         val data = GZIPInputStream(lexemesDat.inputStream().buffered())
         val reader = BufferedReader(data.reader(Charsets.UTF_8))
         var count = 0
@@ -281,15 +316,19 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
                     if (fields.size != 3) continue
                     val kind = fields[0].toIntOrNull() ?: continue
                     require(fields[1].isNotEmpty()) { "Lexeme form must not be empty" }
-                    statement.setInt(1, kind)
-                    statement.setString(2, fields[1])
-                    statement.setString(3, fields[2])
+                    val encoded = NominalFeatureEncoding.encode(kind, fields[2])
+                    statement.setLong(1, count + 1L)
+                    statement.setInt(2, kind)
+                    statement.setString(3, fields[1])
+                    statement.setString(4, fields[2])
                     val surface = if (kind in 0..3) cleanLexemeSurface(fields[1]) else null
                     if (surface == null) {
-                        statement.setNull(4, java.sql.Types.VARCHAR)
+                        statement.setNull(5, java.sql.Types.VARCHAR)
                     } else {
-                        statement.setString(4, normalize(surface, mode))
+                        statement.setString(5, normalize(surface, mode))
                     }
+                    statement.setLong(6, encoded.bits)
+                    statement.setInt(7, encoded.stemClass)
                     statement.addBatch()
                     count++
                     if (count % 10000 == 0) statement.executeBatch()
@@ -308,13 +347,44 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
         return surface.takeIf { it.isNotEmpty() && it.all(::isEthiopicWordCharacter) }
     }
 
+    private fun loadSurfaceStats(connection: Connection, surfaceStatsDat: File, mode: String) {
+        require(mode == NORMALIZATION_ETHIOPIC) { "Surface statistics are Amharic-only" }
+        val sql = "INSERT INTO morph_surface_stats(key, frequency) VALUES (?, ?)"
+        val data = GZIPInputStream(surfaceStatsDat.inputStream().buffered())
+        val reader = BufferedReader(data.reader(Charsets.UTF_8))
+        var count = 0
+        connection.prepareStatement(sql).use { statement ->
+            reader.useLines { lines ->
+                for (line in lines) {
+                    val tab = line.lastIndexOf('\t')
+                    if (tab <= 0) continue
+                    val frequency = line.substring(tab + 1).toIntOrNull() ?: continue
+                    require(frequency > 0) { "Surface frequency must be positive" }
+                    statement.setString(1, normalize(line.substring(0, tab), mode))
+                    statement.setInt(2, frequency)
+                    statement.addBatch()
+                    count += 1
+                }
+            }
+            require(count <= DictionaryDatabaseFormat.MORPH_SURFACE_STATS_LIMIT) {
+                "Surface statistics exceed ${DictionaryDatabaseFormat.MORPH_SURFACE_STATS_LIMIT} rows"
+            }
+            statement.executeBatch()
+        }
+    }
+
     private fun isEthiopicWordCharacter(character: Char): Boolean =
         character in '\u1200'..'\u137A' ||
             character in '\u1380'..'\u139F' ||
             character in '\u2D80'..'\u2DDE' ||
             character in '\uAB01'..'\uAB2E'
 
-    private fun loadNgrams(connection: Connection, ngramsDat: File, mode: String) {
+    private fun loadNgrams(
+        connection: Connection,
+        ngramsDat: File,
+        ngramAudit: File?,
+        mode: String,
+    ) {
         val data = DataInputStream(
             GZIPInputStream(ngramsDat.inputStream().buffered()).buffered()
         )
@@ -333,38 +403,55 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
             data.readFully(bytes)
             String(bytes, Charsets.UTF_8)
         }
+        if (mode == NORMALIZATION_ETHIOPIC) {
+            val auditedKeys = loadNgramAudit(
+                ngramAudit ?: error("Amharic n-grams require an audit"),
+                mode,
+            )
+            val vocabKeys = vocab.mapTo(linkedSetOf()) { normalize(it, mode) }
+            require(auditedKeys == vocabKeys) {
+                "N-gram audit and binary vocabulary differ: " +
+                    "${vocabKeys - auditedKeys} missing, ${auditedKeys - vocabKeys} extra"
+            }
+        }
         connection.prepareStatement(
-            """
-            UPDATE words
-            SET
-                ngram_id = ?,
-                ngram_display = CASE
-                    WHEN COALESCE(display, key) = ? THEN NULL
-                    ELSE ?
-                END
-            WHERE key = ?
-            """.trimIndent()
+            "INSERT INTO ngram_vocab(id, key, display) VALUES (?, ?, ?)"
         ).use { statement ->
             for ((index, word) in vocab.withIndex()) {
                 statement.setInt(1, index)
-                statement.setString(2, word)
+                statement.setString(2, normalize(word, mode))
                 statement.setString(3, word)
-                statement.setString(4, normalize(word, mode))
                 statement.addBatch()
                 if ((index + 1) % 10000 == 0) statement.executeBatch()
             }
             statement.executeBatch()
         }
         val assignedVocab = connection.createStatement().use { statement ->
-            statement.executeQuery(
-                "SELECT count(*) FROM words WHERE ngram_id IS NOT NULL"
-            ).use { result ->
+            statement.executeQuery("SELECT count(*) FROM ngram_vocab").use { result ->
                 require(result.next())
                 result.getInt(1)
             }
         }
         require(assignedVocab == vocabSize) {
-            "N-gram vocabulary contains ${vocabSize - assignedVocab} words missing from the dictionary"
+            "N-gram vocabulary insertion lost ${vocabSize - assignedVocab} rows"
+        }
+        val invalidVocab = if (mode == NORMALIZATION_ETHIOPIC) {
+            0
+        } else connection.createStatement().use { statement ->
+            statement.executeQuery(
+                """
+                SELECT count(*)
+                FROM ngram_vocab v
+                LEFT JOIN words w ON w.key = v.key
+                WHERE w.key IS NULL
+                """.trimIndent()
+            ).use { result ->
+                require(result.next())
+                result.getInt(1)
+            }
+        }
+        require(invalidVocab == 0) {
+            "N-gram vocabulary contains $invalidVocab entries without lexical or validated surface evidence"
         }
 
         val bigramCount = data.readInt()
@@ -415,6 +502,36 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
                 }
             }
             statement.executeBatch()
+        }
+    }
+
+    private fun loadNgramAudit(audit: File, mode: String): Set<String> {
+        val expectedHeader =
+            "display\tnormalized_key\tvalidity_source\tpreferred_lemma\t" +
+                "preferred_analysis\tambiguity_count\tsurface_frequency"
+        return audit.bufferedReader(Charsets.UTF_8).use { reader ->
+            require(reader.readLine() == expectedHeader) { "Unexpected n-gram audit header" }
+            buildSet {
+                reader.lineSequence().forEach { line ->
+                    val fields = line.split('\t')
+                    require(fields.size == 7) { "Malformed n-gram audit row" }
+                    val display = fields[0]
+                    val key = fields[1]
+                    require(fields[2] == "exact_lexeme" || fields[2] == "oracle_surface") {
+                        "Unsupported n-gram validity source '${fields[2]}'"
+                    }
+                    require(normalize(display, mode) == key && normalize(key, mode) == key) {
+                        "N-gram audit normalization mismatch for '$display'"
+                    }
+                    require((fields[5].toIntOrNull() ?: 0) > 0) {
+                        "N-gram audit ambiguity count must be positive"
+                    }
+                    require((fields[6].toIntOrNull() ?: -1) >= 0) {
+                        "N-gram audit surface frequency must not be negative"
+                    }
+                    require(add(key)) { "Duplicate n-gram audit key '$key'" }
+                }
+            }
         }
     }
 

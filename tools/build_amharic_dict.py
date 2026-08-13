@@ -11,7 +11,6 @@ import gzip
 import io
 import os
 import re
-import struct
 import unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +19,6 @@ HORN = os.path.join(REPO, "language", "amharic", "hornmorpho")
 DICTIONARY = os.path.join(REPO, "language", "amharic", "src", "dictionary")
 WORDS_OUT = os.path.join(DICTIONARY, "amharic_words.dat")
 LEXEMES_OUT = os.path.join(DICTIONARY, "amharic_lexemes.dat")
-NGRAMS_OUT = os.path.join(DICTIONARY, "amharic_ngrams.dat")
 
 SURFACE_SOURCES = (
     (0, os.path.join(HORN, "lex", "n_stem.lex")),
@@ -224,18 +222,6 @@ def write_if_changed(path, data):
     return True
 
 
-def empty_ngram_model():
-    data = io.BytesIO()
-    data.write(b"ANGM")
-    data.write(struct.pack(">B", 2))
-    data.write(struct.pack(">i", 0))
-    data.write(struct.pack(">i", 0))
-    data.write(struct.pack(">i", 0))
-    data.write(struct.pack(">i", 0))
-    data.write(struct.pack(">i", 0))
-    return gzip_bytes(data.getvalue())
-
-
 def main():
     candidates = {}
     lexemes = []
@@ -291,9 +277,6 @@ def main():
         changed.append(WORDS_OUT)
     if write_if_changed(LEXEMES_OUT, gzip_bytes(lexeme_text.encode("utf-8"))):
         changed.append(LEXEMES_OUT)
-    if write_if_changed(NGRAMS_OUT, empty_ngram_model()):
-        changed.append(NGRAMS_OUT)
-
     print(f"HornMorpho lexical records: {len(unique_lexemes):,}")
     print(f"Displayable normalized lemmas: {len(rows):,}")
     print(f"Frequency-ranked lemmas: {len(folded_frequencies):,}")

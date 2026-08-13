@@ -44,7 +44,7 @@ object AddiyonSizes {
 }
 
 object AddiyonBorders {
-    val selectedTone = 3.dp
+    val selectedTone = 1.dp
 }
 
 object AddiyonElevation {
@@ -106,10 +106,17 @@ data class AddiyonAiToneColors(
 )
 
 @Immutable
+data class AddiyonAiToneGlowColors(
+    val start: Color,
+    val end: Color
+)
+
+@Immutable
 data class AddiyonColors(
     val brandPrimary: Color,
     val onBrandPrimary: Color,
     val aiToneIcons: AddiyonAiToneColors,
+    val aiToneGlow: AddiyonAiToneGlowColors,
     val resultSurface: Color,
     val onResultSurface: Color,
     val success: Color,
@@ -131,6 +138,10 @@ fun addiyonLightColors(brand: AddiyonBrand) = AddiyonColors(
         shorten = Color(0xFFD84315),
         summarize = Color(0xFF0277BD)
     ),
+    aiToneGlow = AddiyonAiToneGlowColors(
+        start = Color(0xFFD05398),
+        end = Color(0xFF5980F0)
+    ),
     resultSurface = brand.surface,
     onResultSurface = brand.ink,
     success = Color(0xFF2E7D32),
@@ -151,6 +162,10 @@ fun addiyonDarkColors(brand: AddiyonBrand) = AddiyonColors(
         fixGrammar = Color(0xFFB39DDB),
         shorten = Color(0xFFFF8A65),
         summarize = Color(0xFF4FC3F7)
+    ),
+    aiToneGlow = AddiyonAiToneGlowColors(
+        start = Color(0xFFD05398),
+        end = Color(0xFF5980F0)
     ),
     resultSurface = brand.surface,
     onResultSurface = brand.ink,

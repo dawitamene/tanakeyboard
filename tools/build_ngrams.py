@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Regenerates language/amharic/src/dictionary/amharic_ngrams.dat -- the Amharic bigram /
-trigram next-word model consumed by suggestion/NgramModel.kt (via
-suggestion/NgramDictionary.kt).
+Regenerates language/amharic/src/dictionary/amharic_ngrams.dat, the sparse
+Amharic surface n-gram model loaded into the generated SQLite database.
 
-Source: one or more raw Amharic corpora (e.g. CACO_TEXT.txt plus the
-abdulmunim web/social-media corpus), one sentence-ish line each; counts from
-all corpora are summed. Pre-tokenized text (punctuation as its own token) and
-raw text (punctuation attached to words) both work -- see tokenization.
+Source: one or more explicitly selected, documented Amharic corpora, one
+sentence-ish line each; counts from all corpora are summed. Pre-tokenized text
+(punctuation as its own token) and raw text (punctuation attached to words)
+both work. The checked-in Phase 6 baseline uses only the project-authored mini
+corpus documented in language/amharic/hornmorpho/PHASE6_PREDICTION.md. Local
+corpora with unclear redistribution or acquisition provenance are not used.
 
 Tokenization mirrors build_amharic_dict.py: NFC-normalize, strip the
 combining gemination marks U+135D-U+135F. A whitespace token fully made of
@@ -18,20 +19,17 @@ as a word plus an n-gram BOUNDARY on the punctuation side(s). Everything else
 "በ2007" -- is wholly a boundary: word runs split there and at line ends, so
 no bigram or trigram ever spans punctuation or a number.
 
-FOLDING + DICTIONARY GATING (this is what ties the model to the dictionary):
-every word is homoglyph-FOLDED (table imported from build_amharic_dict.py)
-and must resolve to an entry of the built amharic_words.dat; it is then
-counted AS THAT ENTRY'S DISPLAY FORM. So variant spellings merge into one
-context (ሀገር/ሃገር/ሐገር evidence pools), every prediction the model can emit
-is a real, canonically spelled dictionary word, and prediction strings agree
-exactly with dictionary suggestion strings (the n-gram boost in
-CandidateRanker matches on normalized keys). Corpus junk never enters the
-model: a token whose folded form isn't in the dictionary is skipped -- it
-breaks pair adjacency (no bigram is counted across it) without acting as a
-sentence boundary. Regenerate the dictionary BEFORE the n-gram model.
+FOLDING + MORPHOLOGY GATING: every word is homoglyph-folded and accepted only
+when it is an exact base lexeme or a surface recognized by the checked-in,
+pinned HornMorpho oracle fixtures and permitted by the runtime subset. Exact
+lexemes use the dictionary display; productive surfaces retain their canonical
+surface display plus lemma/analysis, ambiguity, and Phase 5 frequency metadata
+in amharic_ngram_audit.tsv. Variant spellings pool evidence without destroying
+display. An unknown word is skipped and breaks pair adjacency, so no n-gram is
+created across it. Regenerate the dictionary and oracle fixtures first.
 
-Counting is two passes per corpus to keep memory bounded (~330MB total):
-  1. bigram counts over dictionary words; prune to contexts with total count
+Counting is at most two passes per corpus:
+  1. bigram counts over accepted surfaces; prune to contexts with total count
      >= --bigram-min-context, successors with count >= --bigram-min-succ,
      top --k-bigram successors per context;
   2. trigram counts ONLY where (w1, w2) survived as a bigram context (a
@@ -46,8 +44,8 @@ All integers big-endian to match Kotlin's DataInputStream:
     vocabCount: int32
     vocab: vocabCount x (u16 UTF-8 byte length + bytes), DISPLAY forms
            sorted by their FOLDED key in UTF-16 code-unit order (folded keys
-           are unique -- one dictionary entry per key), so the Kotlin side
-           can binary-search by folded key; word id = index
+           are unique -- one admitted display surface per key); word id =
+           index
     bigramContextCount: int32
     bigramContexts:   int32[n]    context word ids, ascending
     bigramOffsets:    int32[n+1]  into the successor arrays
@@ -60,11 +58,15 @@ All integers big-endian to match Kotlin's DataInputStream:
     trigramOffsets / trigramSuccessors / trigramWeights [/ trigramCasing]:
                                   as the bigram section
 
-Version history: v2 = folded-key vocab order + dictionary-gated display forms;
+Version history: v2 = folded-key vocab order + gated display forms;
 v3 = v2 plus per-successor casing flags (English proper-noun casing).
-NgramModel.kt parses v2 and v3; it rejects v1 assets loudly.
+The build logic parses v2 and v3 and rejects v1 assets loudly.
 
-Run:  python3 tools/build_ngrams.py CACO_TEXT.txt amharic_corpus_abdulmunim.txt
+Phase 6 baseline:
+  python3 tools/build_ngrams.py --bigram-min-context 1 --bigram-min-succ 1 \
+      --k-bigram 8 --no-trigrams \
+      --held-out tools/hornmorpho/fixtures/amharic_phase6_held_out.txt \
+      tools/hornmorpho/fixtures/amharic_phase6_corpus.txt
 
 ENGLISH (--lang english): instead of counting a raw corpus, read PRE-COMPILED
 word n-gram frequency lists and gate them through english_words.dat. Emits the
@@ -87,8 +89,10 @@ folded form):
 """
 
 import argparse
+import csv
 import gzip
 import io
+import json
 import math
 import os
 import re
@@ -105,6 +109,15 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, ".."))
 DEFAULT_OUT = os.path.join(REPO, "language", "amharic", "src", "dictionary", "amharic_ngrams.dat")
 DICT_ASSET = os.path.join(REPO, "language", "amharic", "src", "dictionary", "amharic_words.dat")
+LEXEME_ASSET = os.path.join(REPO, "language", "amharic", "src", "dictionary", "amharic_lexemes.dat")
+SURFACE_STATS_ASSET = os.path.join(REPO, "language", "amharic", "src", "dictionary", "amharic_surface_stats.dat")
+DEFAULT_AUDIT_OUT = os.path.join(REPO, "language", "amharic", "src", "dictionary", "amharic_ngram_audit.tsv")
+DEFAULT_QUALITY_OUT = os.path.join(REPO, "language", "amharic", "src", "dictionary", "amharic_ngram_quality.json")
+DEFAULT_REVIEW_OUT = os.path.join(REPO, "language", "amharic", "src", "dictionary", "amharic_ngram_review.tsv")
+ORACLE_FIXTURES = (
+    os.path.join(REPO, "language", "amharic", "src", "test", "resources", "hornmorpho_nominal_golden.tsv"),
+    os.path.join(REPO, "language", "amharic", "src", "test", "resources", "hornmorpho_nominal_phase4.tsv"),
+)
 
 # English uses per-char lowercase as its fold -- the analogue of the Amharic
 # homoglyph fold, and identical to WordDictionary's default Char::lowercaseChar
@@ -141,10 +154,145 @@ def load_display_map(asset=DICT_ASSET, fold_fn=fold, word_re=WORD_RE):
     return display
 
 
+def load_lexeme_evidence(asset=LEXEME_ASSET):
+    evidence = {}
+    with gzip.open(asset, "rt", encoding="utf-8") as source:
+        for line in source:
+            fields = line.rstrip("\n").split("\t", 2)
+            if len(fields) != 3:
+                continue
+            surface = GEMINATION_RE.sub("", fields[1].replace("/", ""))
+            if WORD_RE.match(surface):
+                evidence.setdefault(fold(surface), set()).add(tuple(fields))
+    return evidence
+
+
+def load_surface_frequencies(asset=SURFACE_STATS_ASSET):
+    frequencies = {}
+    with gzip.open(asset, "rt", encoding="utf-8") as source:
+        for line in source:
+            surface, separator, raw_frequency = line.rstrip("\n").rpartition("\t")
+            if separator and raw_frequency.isdigit():
+                frequencies[fold(surface)] = int(raw_frequency)
+    return frequencies
+
+
+def load_oracle_surfaces(paths=ORACLE_FIXTURES):
+    evidence = {}
+    for path in paths:
+        with open(path, encoding="utf-8", newline="") as source:
+            for row in csv.DictReader(source, delimiter="\t"):
+                supported = (
+                    row.get("classification") == "supported"
+                    if "classification" in row
+                    else row.get("should_suggest") == "true"
+                )
+                if not supported or row.get("oracle_recognized") != "true":
+                    continue
+                key = fold(row["surface"])
+                item = evidence.setdefault(key, {
+                    "surfaces": set(),
+                    "lemmas": set(),
+                    "analyses": set(),
+                    "analysis_count": 0,
+                })
+                item["surfaces"].add(row["surface"])
+                if row.get("lemma"):
+                    item["lemmas"].add(GEMINATION_RE.sub("", row["lemma"].replace("/", "")))
+                item["analyses"].add(
+                    (
+                        row.get("kind", ""),
+                        row.get("raw_form", ""),
+                        row.get("source_features", ""),
+                    )
+                )
+                item["analysis_count"] = max(
+                    item["analysis_count"],
+                    int(row.get("oracle_analysis_count") or 0),
+                )
+    return {
+        key: {
+            "display": sorted(item["surfaces"], key=lambda value: (fold(value), value))[0],
+            "preferred_lemma": next(iter(item["lemmas"])) if len(item["lemmas"]) == 1 else "",
+            "ambiguity_count": max(1, item["analysis_count"]),
+            "preferred_analysis": (
+                analysis_text(next(iter(item["analyses"])))
+                if item["analysis_count"] == 1 and len(item["analyses"]) == 1
+                else ""
+            ),
+        }
+        for key, item in evidence.items()
+    }
+
+
+def analysis_text(analysis):
+    kind, form, features = analysis
+    return f"kind={kind};form={form};features={features}"
+
+
+class AmharicTokenGate:
+    def __init__(self):
+        self.base = load_display_map()
+        self.lexeme_evidence = load_lexeme_evidence()
+        self.oracle = load_oracle_surfaces()
+        self.surface_frequencies = load_surface_frequencies()
+        self.metadata = {}
+        self.rejected = set()
+
+    def canonical(self, token):
+        key = fold(token)
+        display = self.base.get(key)
+        if display is not None:
+            evidence = self.lexeme_evidence.get(key, set())
+            ambiguity_count = max(1, len(evidence))
+            self.metadata.setdefault(display, {
+                "normalized_key": key,
+                "validity_source": "exact_lexeme",
+                "preferred_lemma": display if ambiguity_count == 1 else "",
+                "preferred_analysis": (
+                    analysis_text(next(iter(evidence))) if len(evidence) == 1 else ""
+                ),
+                "ambiguity_count": ambiguity_count,
+                "surface_frequency": self.surface_frequencies.get(key, 0),
+            })
+            return display
+        oracle = self.oracle.get(key)
+        if oracle is None:
+            self.rejected.add(key)
+            return None
+        display = oracle["display"]
+        self.metadata.setdefault(display, {
+            "normalized_key": key,
+            "validity_source": "oracle_surface",
+            "preferred_lemma": (
+                oracle["preferred_lemma"] if oracle["ambiguity_count"] == 1 else ""
+            ),
+            "preferred_analysis": oracle["preferred_analysis"],
+            "ambiguity_count": oracle["ambiguity_count"],
+            "surface_frequency": self.surface_frequencies.get(key, 0),
+        })
+        return display
+
+    def write_audit(self, path, vocab):
+        with open(path, "w", encoding="utf-8", newline="\n") as output:
+            output.write(
+                "display\tnormalized_key\tvalidity_source\tpreferred_lemma\t"
+                "preferred_analysis\tambiguity_count\tsurface_frequency\n"
+            )
+            for display in sorted(vocab, key=fold):
+                item = self.metadata[display]
+                output.write(
+                    f"{display}\t{item['normalized_key']}\t{item['validity_source']}\t"
+                    f"{item['preferred_lemma']}\t{item['preferred_analysis']}\t"
+                    f"{item['ambiguity_count']}\t"
+                    f"{item['surface_frequency']}\n"
+                )
+
+
 def word_runs(path, canonical):
     """Yields lists over each boundary-free stretch of the corpus, one entry
     per word: the word's canonical form per `canonical(normalized token)`, or
-    None for a word the dictionary doesn't know (it blocks pair adjacency
+    None for a word the validity gate rejects (it blocks pair adjacency
     but, unlike punctuation, does not end the run)."""
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -186,11 +334,15 @@ def prune(counts, min_succ, top_k, min_context=0):
     for ctx, succs in counts.items():
         if min_context and sum(succs.values()) < min_context:
             continue
-        top = [
-            (w, c) for w, c in succs.most_common(top_k) if c >= min_succ
-        ]
+        top = sorted(
+            ((word, count) for word, count in succs.items() if count >= min_succ),
+            key=lambda item: (-item[1], fold(item[0])),
+        )[:top_k]
         if top:
-            kept[ctx] = [(w, quantize(c)) for w, c in top]
+            kept[ctx] = sorted(
+                ((word, quantize(count)) for word, count in top),
+                key=lambda item: (-item[1], fold(item[0])),
+            )
     return kept
 
 
@@ -275,7 +427,48 @@ def build_model(bigrams, trigrams, fold_fn=fold, bigram_flags=None, trigram_flag
     buf = io.BytesIO()
     with gzip.GzipFile(fileobj=buf, mode="wb", compresslevel=9, mtime=0) as gz:
         gz.write(out.getvalue())
-    return buf.getvalue(), len(vocab), len(out.getvalue())
+    return buf.getvalue(), len(vocab), len(out.getvalue()), vocab
+
+
+def evaluate_top3(paths, canonical, bigrams, trigrams):
+    hits = 0
+    total = 0
+    for path in paths:
+        for run in word_runs(path, canonical):
+            for index in range(1, len(run)):
+                previous = run[index - 1]
+                expected = run[index]
+                if previous is None or expected is None:
+                    continue
+                candidates = []
+                if index >= 2 and run[index - 2] is not None:
+                    candidates.extend(
+                        word for word, _ in trigrams.get((run[index - 2], previous), [])
+                    )
+                candidates.extend(word for word, _ in bigrams.get(previous, []))
+                top3 = list(dict.fromkeys(candidates))[:3]
+                total += 1
+                if expected in top3:
+                    hits += 1
+    return {
+        "baseline_top3_hits": 0,
+        "evaluated_transitions": total,
+        "model_top3_hits": hits,
+        "model_top3_accuracy": round(hits / total, 6) if total else 0.0,
+    }
+
+
+def write_review(path, bigrams, trigrams):
+    with open(path, "w", encoding="utf-8", newline="\n") as output:
+        output.write("order\tcontext\trank\tsuccessor\tweight\n")
+        for context in sorted(bigrams, key=fold):
+            for rank, (successor, weight) in enumerate(bigrams[context], start=1):
+                output.write(f"bigram\t{context}\t{rank}\t{successor}\t{weight}\n")
+        for context in sorted(trigrams, key=lambda value: (fold(value[0]), fold(value[1]))):
+            for rank, (successor, weight) in enumerate(trigrams[context], start=1):
+                output.write(
+                    f"trigram\t{context[0]} {context[1]}\t{rank}\t{successor}\t{weight}\n"
+                )
 
 
 def parse_bigram_lines(path):
@@ -404,7 +597,7 @@ def build_english(args):
     print(f"casing: {len(bigram_flags):,} bigram + {len(trigram_flags):,} "
           f"trigram successors recased", file=sys.stderr)
 
-    data, vocab_count, raw_size = build_model(
+    data, vocab_count, raw_size, _ = build_model(
         bigrams, trigrams, en_fold, bigram_flags, trigram_flags
     )
     with open(out, "wb") as f:
@@ -436,6 +629,16 @@ def main():
     parser.add_argument("--k-bigram", type=int, default=8)
     parser.add_argument("--trigram-min-succ", type=int, default=8)
     parser.add_argument("--k-trigram", type=int, default=6)
+    parser.add_argument("--no-trigrams", action="store_true",
+                        help="emit bigrams only until trigram quality is reviewed")
+    parser.add_argument("--audit-out",
+                        help="Amharic vocabulary validity audit TSV")
+    parser.add_argument("--held-out", action="append", default=[],
+                        help="held-out Amharic corpus used for top-3 evaluation")
+    parser.add_argument("--quality-out",
+                        help="Amharic held-out quality JSON")
+    parser.add_argument("--review-out",
+                        help="Amharic fluent-review context TSV")
     args = parser.parse_args()
     if args.lang == "english":
         build_english(args)
@@ -454,11 +657,15 @@ def main():
     else:
         corpora = args.corpora
         out = args.out
-        display = load_display_map()
-        print(f"dictionary: {len(display):,} folded keys", file=sys.stderr)
-        canonical = lambda token: display.get(fold(token))  # noqa: E731
+        gate = AmharicTokenGate()
+        print(
+            f"gate: {len(gate.base):,} exact lexemes + "
+            f"{len(gate.oracle):,} pinned-oracle surfaces",
+            file=sys.stderr,
+        )
+        canonical = gate.canonical
 
-    # Pass 1: bigrams over dictionary words.
+    # Pass 1: bigrams over admitted surfaces.
     bigram_counts = {}
     for path in corpora:
         for run in word_runs(path, canonical):
@@ -475,15 +682,14 @@ def main():
           file=sys.stderr)
 
     # Pass 2: trigrams gated on surviving bigram contexts.
-    kept_pairs = {
-        (ctx, w) for ctx, succs in bigrams.items() for w, _ in succs
-    }
+    kept_pairs = {(ctx, w) for ctx, succs in bigrams.items() for w, _ in succs}
     trigram_counts = {}
-    for path in corpora:
-        for run in word_runs(path, canonical):
-            for a, b, c in zip(run, run[1:], run[2:]):
-                if (a, b) in kept_pairs and c is not None:
-                    trigram_counts.setdefault((a, b), Counter())[c] += 1
+    if not args.no_trigrams:
+        for path in corpora:
+            for run in word_runs(path, canonical):
+                for a, b, c in zip(run, run[1:], run[2:]):
+                    if (a, b) in kept_pairs and c is not None:
+                        trigram_counts.setdefault((a, b), Counter())[c] += 1
     raw_trigram_contexts = len(trigram_counts)
     trigrams = prune(trigram_counts, args.trigram_min_succ, args.k_trigram)
     del trigram_counts
@@ -498,9 +704,26 @@ def main():
           f"({sum(len(s) for s in trigrams.values()):,} successors)",
           file=sys.stderr)
 
-    data, vocab_count, raw_size = build_model(bigrams, trigrams)
+    data, vocab_count, raw_size, vocab = build_model(bigrams, trigrams)
     with open(out, "wb") as f:
         f.write(data)
+    if not args.test_fixture:
+        audit_out = args.audit_out or DEFAULT_AUDIT_OUT
+        gate.write_audit(audit_out, vocab)
+        review_out = args.review_out or DEFAULT_REVIEW_OUT
+        write_review(review_out, bigrams, trigrams)
+        print(
+            f"gate: rejected {len(gate.rejected):,} unknown normalized tokens; "
+            f"audit {audit_out}; review {review_out}",
+            file=sys.stderr,
+        )
+        if args.held_out:
+            quality = evaluate_top3(args.held_out, canonical, bigrams, trigrams)
+            quality_out = args.quality_out or DEFAULT_QUALITY_OUT
+            with open(quality_out, "w", encoding="utf-8", newline="\n") as output:
+                json.dump(quality, output, sort_keys=True, separators=(",", ":"))
+                output.write("\n")
+            print(f"quality: {quality} -> {quality_out}", file=sys.stderr)
     print(f"wrote {out}")
     print(f"  vocab: {vocab_count:,}")
     print(f"  raw: {raw_size:,} bytes, gzip: {len(data):,} bytes")

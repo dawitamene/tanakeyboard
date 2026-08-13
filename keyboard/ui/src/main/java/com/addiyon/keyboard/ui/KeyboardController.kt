@@ -65,6 +65,8 @@ interface KeyboardController : EmojiUiController {
 
 data class OptionalKeyboardUi(
     val toolbarAction: KeyboardToolbarAction? = null,
+    val contextualRowVisible: Boolean = false,
+    val contextualRow: @Composable () -> Unit = {},
     val panelVisible: Boolean = false,
     val panelHeightScale: Float = 1f,
     val panel: @Composable (Dp) -> Unit = {}

@@ -17,7 +17,9 @@ configure<LanguageDictionariesExtension> {
     dictionaries.register("amharic") {
         wordsDat.set(layout.projectDirectory.file("src/dictionary/amharic_words.dat"))
         lexemesDat.set(layout.projectDirectory.file("src/dictionary/amharic_lexemes.dat"))
+        surfaceStatsDat.set(layout.projectDirectory.file("src/dictionary/amharic_surface_stats.dat"))
         ngramsDat.set(layout.projectDirectory.file("src/dictionary/amharic_ngrams.dat"))
+        ngramAudit.set(layout.projectDirectory.file("src/dictionary/amharic_ngram_audit.tsv"))
         outputDb.set(layout.buildDirectory.file("intermediates/dictionaryAssets/amharic.db"))
         normalization.set(GenerateDictionaryDatabase.NORMALIZATION_ETHIOPIC)
         maxPrefixLength.set(1)
@@ -36,6 +38,6 @@ dependencies {
 
 tasks.configureEach {
     if (name == "testDebugUnitTest") {
-        dependsOn("generateAmharicDictionaryDb")
+        dependsOn("packageDictionaryAssets")
     }
 }

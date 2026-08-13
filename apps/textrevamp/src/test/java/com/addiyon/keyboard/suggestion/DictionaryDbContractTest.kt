@@ -89,7 +89,11 @@ class DictionaryDbContractTest {
         val db = dbFile("amharic.db")
         assumeTrue("amharic.db not built", db != null)
         DriverManager.getConnection("jdbc:sqlite:${db!!.absolutePath}").use { conn ->
-            assertEquals(0, scalar(conn, "SELECT count(*) FROM words WHERE ngram_id IS NOT NULL"))
+            assertEquals(40, scalar(conn, "SELECT count(*) FROM ngram_vocab"))
+            assertEquals(
+                EthiopicNormalizer.normalize("ሃገር"),
+                loadVocabKey(conn, "ሃገር"),
+            )
         }
         val en = dbFile("english.db")
         assumeTrue("english.db not built", en != null)
@@ -144,7 +148,9 @@ class DictionaryDbContractTest {
                 assertEquals(
                     setOf(
                         "words",
+                        "ngram_vocab",
                         "morph_lexemes",
+                        "morph_surface_stats",
                         "prefix_top",
                         "fuzzy_top",
                         "bigrams",
@@ -152,20 +158,20 @@ class DictionaryDbContractTest {
                     ),
                     tables
                 )
-                assertFalse("vocab table should be folded into words", "vocab" in tables)
+                assertFalse("legacy vocab table must stay removed", "vocab" in tables)
                 assertEquals(0, scalar(conn, """
                     SELECT count(*)
                     FROM bigrams n
-                    LEFT JOIN words context ON context.ngram_id = n.ctx
-                    LEFT JOIN words successor ON successor.ngram_id = n.succ
+                    LEFT JOIN ngram_vocab context ON context.id = n.ctx
+                    LEFT JOIN ngram_vocab successor ON successor.id = n.succ
                     WHERE context.key IS NULL OR successor.key IS NULL
                 """.trimIndent()))
                 assertEquals(0, scalar(conn, """
                     SELECT count(*)
                     FROM trigrams n
-                    LEFT JOIN words previous2 ON previous2.ngram_id = (n.ctx >> 32)
-                    LEFT JOIN words previous1 ON previous1.ngram_id = (n.ctx & 4294967295)
-                    LEFT JOIN words successor ON successor.ngram_id = n.succ
+                    LEFT JOIN ngram_vocab previous2 ON previous2.id = (n.ctx >> 32)
+                    LEFT JOIN ngram_vocab previous1 ON previous1.id = (n.ctx & 4294967295)
+                    LEFT JOIN ngram_vocab successor ON successor.id = n.succ
                     WHERE previous2.key IS NULL OR previous1.key IS NULL OR successor.key IS NULL
                 """.trimIndent()))
                 assertEquals(15, scalar(
@@ -181,17 +187,36 @@ class DictionaryDbContractTest {
         val db = dbFile("amharic.db")
         assumeTrue("amharic.db not built", db != null)
         DriverManager.getConnection("jdbc:sqlite:${db!!.absolutePath}").use { conn ->
+            assertEquals(11, scalar(conn, "PRAGMA user_version"))
             assertEquals(18_867, scalar(conn, "SELECT count(*) FROM morph_lexemes"))
+            assertEquals(18_867, scalar(conn, "SELECT count(DISTINCT lexeme_id) FROM morph_lexemes"))
             assertEquals(1_832, scalar(conn, "SELECT count(*) FROM morph_lexemes WHERE kind = 4"))
             assertEquals(18_251, scalar(conn, "SELECT count(*) FROM words"))
             assertEquals(
                 17_035,
                 scalar(conn, "SELECT count(*) FROM morph_lexemes WHERE key IS NOT NULL")
             )
+            assertEquals(0, scalar(conn, "SELECT count(*) FROM morph_lexemes WHERE kind = 4 AND morph_bits != 0"))
+            assertEquals(0, scalar(conn, "SELECT count(*) FROM morph_lexemes WHERE stem_class NOT IN (0, 1, 2)"))
+            val columns = conn.createStatement().executeQuery("PRAGMA table_info(morph_lexemes)").use { result ->
+                buildSet {
+                    while (result.next()) add(result.getString("name"))
+                }
+            }
+            assertEquals(
+                setOf("lexeme_id", "kind", "form", "features", "key", "morph_bits", "stem_class"),
+                columns,
+            )
             assertNotNull(loadKey(conn, "ሰው"))
             assertNull(loadKey(conn, "የሰው"))
             assertNull(loadKey(conn, "ሰውን"))
-            assertEquals(0, scalar(conn, "SELECT count(*) FROM bigrams"))
+            assertEquals(481, scalar(conn, "SELECT count(*) FROM morph_surface_stats"))
+            assertEquals(17_483, surfaceFrequency(conn, "የሰው"))
+            assertEquals(2_447, surfaceFrequency(conn, "ሰውን"))
+            assertEquals(17_206, surfaceFrequency(conn, "ቤቶች"))
+            assertEquals(0, surfaceFrequency(conn, "ሃሃሃ"))
+            assertEquals(40, scalar(conn, "SELECT count(*) FROM ngram_vocab"))
+            assertEquals(50, scalar(conn, "SELECT count(*) FROM bigrams"))
             assertEquals(0, scalar(conn, "SELECT count(*) FROM trigrams"))
         }
     }
@@ -206,11 +231,18 @@ class DictionaryDbContractTest {
 
     private fun loadVocabKey(conn: java.sql.Connection, word: String): String? =
         conn.prepareStatement(
-            "SELECT key FROM words " +
-                "WHERE COALESCE(ngram_display, display, key) = ? AND ngram_id IS NOT NULL"
+            "SELECT key FROM ngram_vocab WHERE display = ?"
         ).use { ps ->
             ps.setString(1, word)
             ps.executeQuery().use { rs -> if (rs.next()) rs.getString(1) else null }
+        }
+
+    private fun surfaceFrequency(conn: java.sql.Connection, word: String): Int =
+        conn.prepareStatement(
+            "SELECT frequency FROM morph_surface_stats WHERE key = ?"
+        ).use { ps ->
+            ps.setString(1, EthiopicNormalizer.normalize(word))
+            ps.executeQuery().use { rs -> if (rs.next()) rs.getInt(1) else 0 }
         }
 
     private fun scalar(conn: java.sql.Connection, sql: String): Int =
