@@ -1,4 +1,4 @@
-# HornMorpho nominal oracle
+# HornMorpho build-time oracle
 
 These tools reproduce build-time analysis and generation with HornMorpho
 5.3.6 at commit `7e3d93af760e27ea6dbc3b7a078d2d9c3335f618`. They are developer tools,
@@ -84,3 +84,51 @@ context review. See
 checksums, provenance decision, quality metric, and fluent-review gate. This
 workflow remains developer-only; Android loads a generated SQLite database and
 does not run Python or HornMorpho.
+
+`verb_spike.py` implements the Phase 7 verb architecture gate. The `oracle`
+command selects 100 regular roots, 12 irregular roots, and 20 light-verb
+lexemes, then requires every selected feature row to survive a HornMorpho
+generate-and-analyze round trip. `artifacts` writes the full-coverage `AHVA`
+version-1 automaton and the pruned Option B comparison. `verify` requires a
+byte-identical rebuild and all three source classes. `benchmark` records the
+same-workload size, graph, cold-open, exact, prefix, allocation, and coverage
+measurements in `verb_spike_metrics.json`.
+
+```sh
+/private/tmp/addiyon-hornmorpho-oracle/bin/python \
+  /Users/dev/code/addiyon-keyboard/tools/hornmorpho/verb_spike.py oracle
+/opt/homebrew/bin/python3 \
+  /Users/dev/code/addiyon-keyboard/tools/hornmorpho/verb_spike.py artifacts
+/opt/homebrew/bin/python3 \
+  /Users/dev/code/addiyon-keyboard/tools/hornmorpho/verb_spike.py verify
+/opt/homebrew/bin/python3 \
+  /Users/dev/code/addiyon-keyboard/tools/hornmorpho/verb_spike.py benchmark
+```
+
+The selected artifact is a test resource during Phase 7. The Android app does
+not load it until Phase 8 provides the production feature slice and runtime
+integration. See `docs/adr/amharic-verb-morphology-artifact.md` for the
+decision, schema, measurements, and fallback behavior.
+
+`verb_spike.py production-oracle` expands the accepted representation into
+the reviewed Phase 8 feature slice using the pinned generator. It writes a
+deterministic gzipped developer corpus and a bounded JVM golden fixture.
+`production-artifact` emits the shipped version-2 automaton, manifest, and
+metrics; `verify-production` rebuilds it in memory and checks byte identity,
+manifest integrity, class/feature coverage, and systematic negative exact
+lookups. `phase9-review` creates the grouped fluent-review worksheet.
+
+```sh
+/private/tmp/addiyon-hornmorpho-oracle/bin/python \
+  /Users/dev/code/addiyon-keyboard/tools/hornmorpho/verb_spike.py production-oracle
+/opt/homebrew/bin/python3 \
+  /Users/dev/code/addiyon-keyboard/tools/hornmorpho/verb_spike.py production-artifact
+/opt/homebrew/bin/python3 \
+  /Users/dev/code/addiyon-keyboard/tools/hornmorpho/verb_spike.py verify-production
+/opt/homebrew/bin/python3 \
+  /Users/dev/code/addiyon-keyboard/tools/hornmorpho/verb_spike.py phase9-review
+```
+
+Only `amharic_verbs.ahva` and its integrity manifest are Android runtime
+inputs. The Python environment, oracle corpora, review sheet, and HornMorpho
+transducer are developer-side inputs and are never opened by the app.

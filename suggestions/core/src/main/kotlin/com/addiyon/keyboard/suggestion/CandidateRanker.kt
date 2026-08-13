@@ -248,7 +248,8 @@ object CandidateRanker {
         val bestByWord = LinkedHashMap<String, ScoredSuggestion>(scored.size)
         for (scoredCandidate in scored) {
             val candidate = scoredCandidate.ranked
-            val current = bestByWord[candidate.candidate.word]?.ranked
+            val normalizedWord = normalize(candidate.candidate.word)
+            val current = bestByWord[normalizedWord]?.ranked
             if (
                 current == null ||
                 candidate.score > current.score ||
@@ -258,7 +259,7 @@ object CandidateRanker {
                     sourceRank(candidate.candidate.source) == sourceRank(current.candidate.source) &&
                     candidate.structuralIndex < current.structuralIndex
             ) {
-                bestByWord[candidate.candidate.word] = scoredCandidate
+                bestByWord[normalizedWord] = scoredCandidate
             }
         }
         val ranked = bestByWord.values

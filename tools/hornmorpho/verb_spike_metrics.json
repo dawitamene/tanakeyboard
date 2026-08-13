@@ -1,0 +1,73 @@
+{
+  "budgets": {
+    "compressed_bytes": 3145728,
+    "eager_heap_bytes": 5242880,
+    "exact_ms_p95": 10,
+    "prefix_ms_p95": 25
+  },
+  "decision": "option_a_compact_automaton",
+  "option_a_compact_automaton": {
+    "cold_open_ms_p50": 0.034208,
+    "cold_open_ms_p95": 0.042292,
+    "compressed_bytes": 12006,
+    "coverage": 1.0,
+    "exact_ms_p50": 0.003542,
+    "exact_ms_p95": 0.005208,
+    "installed_bytes": 39394,
+    "prefix_ms_p50": 0.005208,
+    "prefix_ms_p95": 0.014125,
+    "reference_peak_allocated_bytes": 171320,
+    "root_entries": 132,
+    "sha256": "a72950884fdfa6c76cd7a9f6e37e05bf7ca2f51b4ddd67e6386f17433feee963",
+    "source_rows": 407,
+    "states": 922,
+    "terminal_analyses": 407,
+    "terminal_surfaces": 402,
+    "transitions": 921
+  },
+  "option_b_pruned_dafsa": {
+    "cold_open_ms_p50": 0.032333,
+    "cold_open_ms_p95": 0.042791,
+    "compressed_bytes": 11685,
+    "coverage": 0.972973,
+    "exact_ms_p50": 0.003583,
+    "exact_ms_p95": 0.0055,
+    "installed_bytes": 38423,
+    "prefix_ms_p50": 0.00525,
+    "prefix_ms_p95": 0.014541,
+    "reference_peak_allocated_bytes": 170285,
+    "root_entries": 132,
+    "sha256": "4a8dcb347c6a0c8a9fa3b5907f169704865041c144067c183e120af0883f6210",
+    "source_rows": 396,
+    "states": 896,
+    "terminal_analyses": 396,
+    "terminal_surfaces": 391,
+    "transitions": 895
+  },
+  "option_c_mechanical_rule_graph": {
+    "compressed_bytes": 34631,
+    "coverage": 0.0,
+    "exact_ms_p50": null,
+    "exact_ms_p95": null,
+    "installed_bytes": 242349,
+    "lexical_declarations": 6,
+    "parsed_transition_lines": 268,
+    "prefix_ms_p50": null,
+    "prefix_ms_p95": null,
+    "resolved_cascade_components": 20,
+    "source_files": 34,
+    "status": "dependency-complete parser only; unification execution not implemented"
+  },
+  "oracle": {
+    "commit": "7e3d93af760e27ea6dbc3b7a078d2d9c3335f618",
+    "corpus_sha256": "9d48b215d264ade3d2bb7c67a9e868ddc31586f9c1cc4f98c2f22971bb789110",
+    "hornmorpho_version": "5.3.6",
+    "lexemes_by_class": {
+      "irregular": 12,
+      "light": 20,
+      "regular": 100
+    },
+    "rows": 407
+  },
+  "schema_version": 1
+}

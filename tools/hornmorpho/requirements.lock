@@ -3,5 +3,5 @@ charset-normalizer==3.5.0
 conllu==6.0.0
 HornMorpho @ https://github.com/hltdi/HornMorpho/raw/7e3d93af760e27ea6dbc3b7a078d2d9c3335f618/dist/hornmorpho-5.3.6-py3-none-any.whl#sha256=e1b0e4ed616d6640e57a440ce63051366c2aba4b29149893bf450fb6b5576fa7
 idna==3.18
-requests==2.34.2
-urllib3==2.7.0
+requests==2.32.5
+urllib3==2.6.3

@@ -1,6 +1,7 @@
 package com.addiyon.keyboard.language.amharic
 
 import com.addiyon.keyboard.suggestion.AmharicNounMorphology
+import com.addiyon.keyboard.suggestion.AmharicVerbLexicon
 import com.addiyon.keyboard.suggestion.CandidateRanker
 import com.addiyon.keyboard.suggestion.NominalFeatureBits
 import com.addiyon.keyboard.suggestion.NominalFeatureParser
@@ -16,6 +17,74 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AmharicSuggestionEngineIntegrationTest {
+    @Test
+    fun generatedVerbCandidatesUseMorphologyTierWithoutSQLiteSurfaceRows() =
+        withDatabase { connection ->
+            val lexicon = productionVerbLexicon()
+            val expected = requireNotNull(lexicon.exact("ለመደ"))
+            assertNull(word(connection, expected.surface))
+            val suggestions = complete(connection, "lemede", lexicon)
+
+            assertTrue(expected.surface in suggestions)
+        }
+
+    @Test
+    fun mixedVowelOrderReadingAppearsOnlyWhenVerbArtifactValidatesIt() =
+        withDatabase { connection ->
+            assertNull(word(connection, "ሄደ"))
+
+            assertFalse("ሄደ" in complete(connection, "hede", AmharicVerbLexicon.EMPTY))
+            assertTrue("ሄደ" in complete(connection, "hede", productionVerbLexicon()))
+        }
+
+    @Test
+    fun exactLexemeStillBeatsVerbAndNominalGeneration() = withDatabase { connection ->
+        val suggestions = complete(connection, "sew", productionVerbLexicon())
+
+        assertEquals("ሰው", suggestions.first())
+    }
+
+    @Test
+    fun verbArtifactFailureLeavesNominalPipelineOperational() = withDatabase { connection ->
+        val suggestions = complete(connection, "sewn", AmharicVerbLexicon.EMPTY)
+
+        assertTrue("ሰውን" in suggestions)
+    }
+
+    @Test
+    fun nounSuggestionLatencyDoesNotMateriallyRegressWithVerbProvider() =
+        withDatabase { connection ->
+            val lexicon = productionVerbLexicon()
+            val inputs = listOf("sewn", "yesewn", "betoch", "bietu")
+            repeat(5) {
+                inputs.forEach { raw ->
+                    complete(connection, raw, AmharicVerbLexicon.EMPTY)
+                    complete(connection, raw, lexicon)
+                }
+            }
+            val withoutVerb = ArrayList<Double>()
+            val withVerb = ArrayList<Double>()
+            repeat(40) { index ->
+                val raw = inputs[index % inputs.size]
+                if (index % 2 == 0) {
+                    withoutVerb += measured { complete(connection, raw, AmharicVerbLexicon.EMPTY) }
+                    withVerb += measured { complete(connection, raw, lexicon) }
+                } else {
+                    withVerb += measured { complete(connection, raw, lexicon) }
+                    withoutVerb += measured { complete(connection, raw, AmharicVerbLexicon.EMPTY) }
+                }
+            }
+            val baselineP95 = percentile95(withoutVerb)
+            val verbP95 = percentile95(withVerb)
+
+            println("PHASE8_METRIC nominal_baseline_p95_ms=$baselineP95 nominal_with_verbs_p95_ms=$verbP95")
+            assertTrue("nominal with verb p95=${verbP95}ms", verbP95 <= 75.0)
+            assertTrue(
+                "nominal regression baseline=${baselineP95}ms with_verbs=${verbP95}ms",
+                verbP95 <= maxOf(5.0, baselineP95 * 2.5),
+            )
+        }
+
     @Test
     fun exactLexemeBeatsGeneratedCompletions() = withDatabase { connection ->
         val suggestions = complete(connection, "sew")
@@ -37,14 +106,23 @@ class AmharicSuggestionEngineIntegrationTest {
     fun contaminatedAlternatesRequireLexicalOrMorphologicalValidation() = withDatabase { connection ->
         assertFalse("ሌ" in complete(connection, "le"))
         assertFalse("ርዕ" in complete(connection, "rE"))
-        assertTrue("ርዕስ" in complete(connection, "rEs"))
+        assertTrue(
+            complete(connection, "rEs").any {
+                EthiopicNormalizer.normalize(it) == EthiopicNormalizer.normalize("ርዕስ")
+            }
+        )
     }
 
     @Test
     fun duplicateNameAndPlaceAnalysesProduceOneChip() = withDatabase { connection ->
         val suggestions = complete(connection, "hana")
 
-        assertEquals(1, suggestions.count { it == "ሀና" })
+        assertEquals(
+            1,
+            suggestions.count {
+                EthiopicNormalizer.normalize(it) == EthiopicNormalizer.normalize("ሀና")
+            },
+        )
     }
 
     @Test
@@ -171,7 +249,11 @@ class AmharicSuggestionEngineIntegrationTest {
         assertTrue("warm suggestion max=${maximum}ms", maximum <= 200.0)
     }
 
-    private fun complete(connection: Connection, raw: String): List<String> {
+    private fun complete(
+        connection: Connection,
+        raw: String,
+        verbLexicon: AmharicVerbLexicon = AmharicVerbLexicon.EMPTY,
+    ): List<String> {
         val pipeline = AmharicSuggestionPipeline.prepare(raw)
         val frequencies = pipeline.readings.associateWith { reading ->
             connection.prepareStatement("SELECT freq FROM words WHERE key = ?").use { statement ->
@@ -189,15 +271,38 @@ class AmharicSuggestionEngineIntegrationTest {
                     val direct = directCompletions(connection, prefix, limit)
                     val query = AmharicNounMorphology.query(prefix)
                     val lexemes = nounLexemes(connection, query, 48)
-                    direct + AmharicNounMorphology.complete(
+                    val nominal = AmharicNounMorphology.complete(
                         prefix,
                         lexemes,
                         limit,
                         direct,
                     ) { surfaceFrequencies(connection, it) }
+                    val seen = (direct + nominal).mapTo(HashSet()) {
+                        EthiopicNormalizer.normalize(it.word)
+                    }
+                    val verbs = verbLexicon.complete(prefix, limit).mapNotNull { terminal ->
+                        if (!seen.add(EthiopicNormalizer.normalize(terminal.surface))) {
+                            return@mapNotNull null
+                        }
+                        CandidateRanker.AmharicCandidate(
+                            word = terminal.surface,
+                            source = CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY,
+                            lexicalFrequency = terminal.bestAnalysis.rootFrequency,
+                            morphologyCost = 1,
+                        )
+                    }
+                    direct + nominal + verbs
                 }
             },
         )
+    }
+
+    private fun productionVerbLexicon(): AmharicVerbLexicon {
+        val artifact = listOf(
+            File("src/main/assets/amharic_verbs.ahva"),
+            File("language/amharic/src/main/assets/amharic_verbs.ahva"),
+        ).first(File::isFile)
+        return AmharicVerbLexicon.fromBytes(artifact.readBytes())
     }
 
     private fun directCompletions(
@@ -314,6 +419,12 @@ class AmharicSuggestionEngineIntegrationTest {
         val query = AmharicNounMorphology.query(surface)
         val lexemes = nounLexemes(connection, query, 48)
         AmharicNounMorphology.completeCandidates(surface, lexemes, 15)
+        return (System.nanoTime() - start) / 1_000_000.0
+    }
+
+    private fun measured(block: () -> Unit): Double {
+        val start = System.nanoTime()
+        block()
         return (System.nanoTime() - start) / 1_000_000.0
     }
 

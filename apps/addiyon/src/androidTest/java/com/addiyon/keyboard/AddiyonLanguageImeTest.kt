@@ -9,6 +9,7 @@ import com.addiyon.keyboard.ui.SuggestionUiState
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -186,6 +187,137 @@ class AddiyonLanguageImeTest {
         }
     }
 
+    @Test
+    fun warmVerbSuggestionPublicationMeetsLatencyAndStabilityBudgets() {
+        ActivityScenario.launch(AddiyonImeHostActivity::class.java).use { scenario ->
+            waitUntil { PackKeyboardService.currentInstance != null }
+            moveToLanguage("am-ET")
+            val raw = "lemede"
+            val expected = "ለመደ"
+            scenario.clearAndFocus()
+            typeWord(raw)
+            waitUntil { expected in requireService().suggestions }
+
+            val samples = buildList {
+                repeat(20) {
+                    scenario.clearAndFocus()
+                    typeWord(raw.dropLast(1))
+                    waitUntil { requireService().suggestionUiState is SuggestionUiState.WordCompletions }
+                    val previousGeneration = requireService().suggestionPublicationGeneration
+                    val start = SystemClock.elapsedRealtimeNanos()
+                    runService { it.onCharacter(raw.last().toString()) }
+                    waitUntilFast {
+                        requireService().suggestionPublicationGeneration > previousGeneration &&
+                            expected in requireService().suggestions
+                    }
+                    add((SystemClock.elapsedRealtimeNanos() - start) / 1_000_000.0)
+                }
+            }.sorted()
+            val p95 = samples[((samples.size * 95 + 99) / 100 - 1).coerceIn(samples.indices)]
+            val maximum = samples.last()
+
+            scenario.clearAndFocus()
+            val shortPrefixGeneration = requireService().suggestionPublicationGeneration
+            val shortPrefixStart = SystemClock.elapsedRealtimeNanos()
+            typeWord("l")
+            waitUntilFast {
+                requireService().suggestionPublicationGeneration > shortPrefixGeneration &&
+                    requireService().suggestionUiState is SuggestionUiState.WordCompletions
+            }
+            val shortPrefixMillis = (SystemClock.elapsedRealtimeNanos() - shortPrefixStart) / 1_000_000.0
+
+            scenario.clearAndFocus()
+            typeWord(raw)
+            waitUntil { expected in requireService().suggestions }
+            repeat(20) {
+                val deleteGeneration = requireService().suggestionPublicationGeneration
+                runService(PackKeyboardService::onDelete)
+                waitUntilFast {
+                    requireService().suggestionPublicationGeneration > deleteGeneration
+                }
+                val retypeGeneration = requireService().suggestionPublicationGeneration
+                runService { it.onCharacter(raw.last().toString()) }
+                waitUntilFast {
+                    requireService().suggestionPublicationGeneration > retypeGeneration &&
+                        expected in requireService().suggestions
+                }
+            }
+            runService(PackKeyboardService::toggleLanguage)
+            waitForLanguage("en-US")
+            runService(PackKeyboardService::toggleLanguage)
+            waitForLanguage("am-ET")
+            scenario.clearAndFocus()
+            typeWord(raw)
+            waitUntil { expected in requireService().suggestions }
+
+            println(
+                "PHASE8_METRIC connected_verb_publication_p95_ms=$p95 " +
+                    "max_ms=$maximum short_prefix_ms=$shortPrefixMillis"
+            )
+            assertTrue("warm verb publication p95=${p95}ms samples=$samples", p95 <= 75.0)
+            assertTrue("warm verb publication max=${maximum}ms", maximum <= 200.0)
+            assertTrue("one-character verb prefix=${shortPrefixMillis}ms", shortPrefixMillis <= 200.0)
+        }
+    }
+
+    @Test
+    fun sustainedMorphologyTypingKeepsMemoryBounded() {
+        val requestedDuration = InstrumentationRegistry.getArguments().getString("phase9SoakMillis")
+            ?.toLongOrNull()
+            ?.coerceAtLeast(1L)
+        assumeTrue("Run with phase9SoakMillis=600000 for the release soak", requestedDuration != null)
+        ActivityScenario.launch(AddiyonImeHostActivity::class.java).use { scenario ->
+            waitUntil { PackKeyboardService.currentInstance != null }
+            moveToLanguage("am-ET")
+            val cases = listOf(
+                "lemede" to "ለመደ",
+                "sewn" to "ሰውን",
+                "yesewn" to "የሰውን",
+            )
+            cases.forEach { (raw, expected) ->
+                scenario.clearAndFocus()
+                typeWord(raw)
+                waitUntil { expected in requireService().suggestions }
+            }
+            scenario.clearAndFocus()
+            Runtime.getRuntime().gc()
+            SystemClock.sleep(100)
+            val initialHeap = usedHeapBytes()
+            val initialPss = android.os.Debug.getPss() * 1_024L
+            var maximumHeap = initialHeap
+            var maximumPss = initialPss
+            var iterations = 0
+            val deadline = SystemClock.uptimeMillis() + requireNotNull(requestedDuration)
+            while (SystemClock.uptimeMillis() < deadline) {
+                val (raw, expected) = cases[iterations % cases.size]
+                if (iterations > 0 && iterations % 50 == 0) scenario.clearAndFocus()
+                typeWord(raw)
+                waitUntil { expected in requireService().suggestions }
+                runService(PackKeyboardService::onDelete)
+                runService { it.onCharacter(raw.last().toString()) }
+                waitUntil { expected in requireService().suggestions }
+                runService(PackKeyboardService::onSpace)
+                if (iterations % 20 == 0) {
+                    maximumHeap = maxOf(maximumHeap, usedHeapBytes())
+                    maximumPss = maxOf(maximumPss, android.os.Debug.getPss() * 1_024L)
+                }
+                iterations++
+            }
+            Runtime.getRuntime().gc()
+            SystemClock.sleep(100)
+            val finalHeap = usedHeapBytes()
+            val finalPss = android.os.Debug.getPss() * 1_024L
+
+            println(
+                "PHASE9_METRIC soak_ms=$requestedDuration iterations=$iterations " +
+                    "heap_initial=$initialHeap heap_max=$maximumHeap heap_final=$finalHeap " +
+                    "pss_initial=$initialPss pss_max=$maximumPss pss_final=$finalPss"
+            )
+            assertTrue("heap grew from $initialHeap to $finalHeap", finalHeap <= initialHeap + 8L * 1_024 * 1_024)
+            assertTrue("PSS grew from $initialPss to $finalPss", finalPss <= initialPss + 32L * 1_024 * 1_024)
+        }
+    }
+
     private fun moveToLanguage(target: String) {
         repeat(4) {
             if (currentLanguageId() == target) return
@@ -272,6 +404,9 @@ class AddiyonLanguageImeTest {
             .bufferedReader()
             .use { it.readText() }
     }
+
+    private fun usedHeapBytes(): Long =
+        Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
 
     private companion object {
         const val POLL_MILLIS = 50L

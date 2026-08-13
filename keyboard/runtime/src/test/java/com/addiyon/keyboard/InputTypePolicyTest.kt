@@ -1,6 +1,7 @@
 package com.addiyon.keyboard
 
 import android.text.InputType
+import android.view.inputmethod.EditorInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,6 +15,34 @@ import org.junit.Test
  * suggestion pipeline from a properly-declared email field.
  */
 class InputTypePolicyTest {
+
+    @Test
+    fun personalizedLearningHonorsPasswordNoSuggestionAndImePrivacyFlags() {
+        assertTrue(
+            InputTypePolicy.disablesPersonalizedLearning(
+                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                0,
+            )
+        )
+        assertTrue(
+            InputTypePolicy.disablesPersonalizedLearning(
+                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
+                0,
+            )
+        )
+        assertTrue(
+            InputTypePolicy.disablesPersonalizedLearning(
+                InputType.TYPE_CLASS_TEXT,
+                EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING,
+            )
+        )
+        assertFalse(
+            InputTypePolicy.disablesPersonalizedLearning(
+                InputType.TYPE_CLASS_TEXT,
+                0,
+            )
+        )
+    }
 
     private fun typeClassAndVariation(@Suppress("SameParameter") cls: Int, variation: Int): Int =
         cls or variation

@@ -1,0 +1,211 @@
+source_group	surface	context_or_analysis	provenance	reviewer	verdict	canonicality	notes
+generated_verb	ልንበር	jussive_imperative *DERAGI;*MAIN;1;JUS;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ትነብሪአለሽ	imperfective *DERAGI;*MAIN;2;FEM;IPFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ትነብሪያለሽ	imperfective *DERAGI;*MAIN;2;FEM;IPFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ትነብራለህ	imperfective *DERAGI;*MAIN;2;IPFV;MASC;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ትነብራለች	imperfective *DERAGI;*MAIN;3;FEM;IPFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ትነብራላችሁ	imperfective *DERAGI;*MAIN;2;IPFV;PL;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ትንበር	jussive_imperative *DERAGI;*MAIN;3;FEM;JUS;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበረ	perfective *DERAGI;*MAIN;3;MASC;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበረች	perfective *DERAGI;*MAIN;3;FEM;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበሩ	perfective *DERAGI;*MAIN;3;PFV;PL;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበራችሁ	perfective *DERAGI;*MAIN;2;PFV;PL;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበር	perfective *DERAGI;*MAIN;3;MASC;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበርሁ	perfective *DERAGI;*MAIN;1;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበርህ	perfective *DERAGI;*MAIN;2;MASC;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበርሽ	perfective *DERAGI;*MAIN;2;FEM;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበርን	perfective *DERAGI;*MAIN;1;PFV;PL;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበርኩ	perfective *DERAGI;*MAIN;1;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ነበርክ	perfective *DERAGI;*MAIN;2;MASC;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ንበሩ	jussive_imperative *DERAGI;*MAIN;2;IMP;PL;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ንበሪ	jussive_imperative *DERAGI;*MAIN;2;FEM;IMP;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ንበር	jussive_imperative *DERAGI;*MAIN;2;IMP;MASC;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	አልነበረም	perfective *DERAGI;*MAIN;3;MASC;NEG;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	አልነበረችም	perfective *DERAGI;*MAIN;3;FEM;NEG;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	አልነበሩም	perfective *DERAGI;*MAIN;3;NEG;PFV;PL;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	አልነበራችሁም	perfective *DERAGI;*MAIN;2;NEG;PFV;PL;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	አልነበርሁም	perfective *DERAGI;*MAIN;1;NEG;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	አልነበርህም	perfective *DERAGI;*MAIN;2;MASC;NEG;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	አልነበርሽም	perfective *DERAGI;*MAIN;2;FEM;NEG;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	አልነበርንም	perfective *DERAGI;*MAIN;1;NEG;PFV;PL;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	አልነበርኩም	perfective *DERAGI;*MAIN;1;NEG;PFV;SG;V	HornMorpho 5.3.6 regular:ንብር:A				
+generated_verb	ሆነ	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ህውን:A				
+generated_verb	አልሆነም	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:ህውን:A				
+generated_verb	አይሆንም	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:ህውን:A				
+generated_verb	ይሁን	jussive_imperative Gender=Masc|Mood=Jus|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ህውን:A				
+generated_verb	ይሆናል	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ህውን:A				
+generated_verb	አለ	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ብእል:A				
+generated_verb	አላለም	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:ብእል:A				
+generated_verb	አይልም	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:ብእል:A				
+generated_verb	ይላል	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ብእል:A				
+generated_verb	ይበል	jussive_imperative Gender=Masc|Mood=Jus|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ብእል:A				
+generated_verb	ሄደ	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ህይድ:A				
+generated_verb	አልሄደም	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:ህይድ:A				
+generated_verb	አይሄድም	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:ህይድ:A				
+generated_verb	ይሂድ	jussive_imperative Gender=Masc|Mood=Jus|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ህይድ:A				
+generated_verb	ይሄዳል	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ህይድ:A				
+generated_verb	አላወቀም	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:እውቅ:A				
+generated_verb	አወቀ	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:እውቅ:A				
+generated_verb	አያውቅም	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:እውቅ:A				
+generated_verb	ያውቃል	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:እውቅ:A				
+generated_verb	ይወቅ	jussive_imperative Gender=Masc|Mood=Jus|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:እውቅ:A				
+generated_verb	አልዋለም	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:ውእል:A				
+generated_verb	አይውልም	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:ውእል:A				
+generated_verb	ዋለ	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ውእል:A				
+generated_verb	ይዋል	jussive_imperative Gender=Masc|Mood=Jus|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ውእል:A				
+generated_verb	ይውላል	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ውእል:A				
+generated_verb	ማረ	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3	HornMorpho 5.3.6 irregular:ምእር:A				
+generated_verb	አልማረም	perfective Aspect=Perf|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:ምእር:A				
+generated_verb	አይምርም	imperfective Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg	HornMorpho 5.3.6 irregular:ምእር:A				
+generated_verb	ይማር	jussive_imperative Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass	HornMorpho 5.3.6 irregular:ምእር:A				
+generated_verb	ይማር	jussive_imperative Gender=Masc|Mood=Jus|Number=Sing|Person=3|Voice=Pass	HornMorpho 5.3.6 irregular:ምእር:A				
+generated_verb	ብር ልበል	jussive_imperative *DERAGI;*MAIN;1;JUS;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር በሉ	jussive_imperative *DERAGI;*MAIN;2;IMP;PL;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር በል	jussive_imperative *DERAGI;*MAIN;2;IMP;MASC;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር በዪ	jussive_imperative *DERAGI;*MAIN;2;FEM;IMP;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር በይ	jussive_imperative *DERAGI;*MAIN;2;FEM;IMP;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር ትላለህ	imperfective *DERAGI;*MAIN;2;IPFV;MASC;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር ትላለች	imperfective *DERAGI;*MAIN;3;FEM;IPFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር ትላላችሁ	imperfective *DERAGI;*MAIN;2;IPFV;PL;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር ትበል	jussive_imperative *DERAGI;*MAIN;3;FEM;JUS;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር ትዪአለሽ	imperfective *DERAGI;*MAIN;2;FEM;IPFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር ትዪያለሽ	imperfective *DERAGI;*MAIN;2;FEM;IPFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር ትያለሽ	imperfective *DERAGI;*MAIN;2;FEM;IPFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር ትይአለሽ	imperfective *DERAGI;*MAIN;2;FEM;IPFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር ትይያለሽ	imperfective *DERAGI;*MAIN;2;FEM;IPFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አለ	perfective *DERAGI;*MAIN;3;MASC;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አለች	perfective *DERAGI;*MAIN;3;FEM;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አሉ	perfective *DERAGI;*MAIN;3;PFV;PL;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላለም	perfective *DERAGI;*MAIN;3;MASC;NEG;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላለችም	perfective *DERAGI;*MAIN;3;FEM;NEG;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላሉም	perfective *DERAGI;*MAIN;3;NEG;PFV;PL;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላላችሁም	perfective *DERAGI;*MAIN;2;NEG;PFV;PL;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላልሁም	perfective *DERAGI;*MAIN;1;NEG;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላልህም	perfective *DERAGI;*MAIN;2;MASC;NEG;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላልሽም	perfective *DERAGI;*MAIN;2;FEM;NEG;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላልንም	perfective *DERAGI;*MAIN;1;NEG;PFV;PL;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላልኩም	perfective *DERAGI;*MAIN;1;NEG;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላልክም	perfective *DERAGI;*MAIN;2;MASC;NEG;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አላችሁ	perfective *DERAGI;*MAIN;2;PFV;PL;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አልሁ	perfective *DERAGI;*MAIN;1;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+generated_verb	ብር አልህ	perfective *DERAGI;*MAIN;2;MASC;PFV;SG;V	HornMorpho 5.3.6 light:ብር:ብእል				
+exact_base	ሀ	frequency=3	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀሁ	frequency=8	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀለብ	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀለፎም	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀሊማ	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀሊድ	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀሊፋክስ	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀላፊ	frequency=604	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀላፊነት	frequency=639	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀመል	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀመልማል	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀመረ	frequency=2	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀመር	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀመሮ	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀሙሲት	frequency=2	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀሙስ	frequency=35	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀሚተኛ	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀሚና	frequency=1	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀሚድ	frequency=5	language/amharic/src/dictionary/amharic_words.dat				
+exact_base	ሀማ	frequency=14	language/amharic/src/dictionary/amharic_words.dat				
+generated_nominal	ሰው	base | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውን	accusative | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውኑ	accepted alternate accusative | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውም	conjunctive m | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውስ	adverbial s | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውማ	adverbial ma | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውሳ	adverbial sa | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውና	conjunctive na | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውኮ	adverbial ko | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውጋ	postposition ga | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውንም	accusative then conjunctive | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ሰውንጋ	accusative then postposition | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	የሰው	adposition የ | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ለሰው	adposition ለ | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	በሰው	adposition በ | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ከሰው	adposition ከ | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	እንደሰው	adposition እንደ | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ስለሰው	adposition ስለ | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	ወደሰው	adposition ወደ | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+generated_nominal	እስከሰው	adposition እስከ | '' [g=m,pos=N]	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+surface_stat	የኢትዮጵያ	frequency=45615	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	በኢትዮጵያ	frequency=24270	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	የስራ	frequency=23136	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ቤቱ	frequency=19680	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	የሰው	frequency=17483	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ቤቶች	frequency=17206	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ለምሳሌ	frequency=14423	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	የትምህርት	frequency=11941	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	የመጽሀፍ	frequency=9799	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ራሱን	frequency=8903	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ራሱ	frequency=7349	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ኢትዮጵያን	frequency=6563	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ከኢትዮጵያ	frequency=6495	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ቦታዎች	frequency=6461	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	የቤት	frequency=6322	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ስራው	frequency=6242	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	በስራ	frequency=6210	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	አመቱ	frequency=5951	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ቅዱስን	frequency=5780	language/amharic/src/dictionary/amharic_surface_stats.dat				
+surface_stat	ስራውን	frequency=5779	language/amharic/src/dictionary/amharic_surface_stats.dat				
+ngram_prediction	ትልቅ	bigram context=ሃገር rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ነው	bigram context=ሃገር rank=2	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ሰዎች	bigram context=ሁለት rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ቤቶች	bigram context=ሁለት rank=2	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ነው	bigram context=ልጅ rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ነው	bigram context=መጽሀፍ rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ደራሲ	bigram context=ምሁር rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ነው	bigram context=ሰው rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	በጣም	bigram context=ስራ rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ነው	bigram context=ስራ rank=2	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ቦታ	bigram context=ቅዱስ rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ነው	bigram context=በቤት rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	አስፈላጊ	bigram context=በጣም rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ነው	bigram context=ቤታችን rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ነው	bigram context=ቤት rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	መምህራን	bigram context=ብዙ rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ሰዎች	bigram context=ብዙ rank=2	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ቤቶች	bigram context=ብዙ rank=3	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ከተማ	bigram context=ትልቅ rank=1	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+ngram_prediction	ሃገር	bigram context=ትልቅ rank=2	language/amharic/src/dictionary/amharic_ngram_review.tsv				
+orthographic_alternate	ሰውኑ	accepted alternate accusative | lemma=ሰው	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ቤትኑ	accepted alternate accusative | lemma=ቤት	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ቦታኑ	accepted alternate accusative | lemma=ቦታ	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ሀገርኑ	accepted alternate accusative | lemma=ሀገር	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ልጅኑ	accepted alternate accusative | lemma=ልጅ	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	መኪናኑ	accepted alternate accusative | lemma=መኪና	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ስራኑ	accepted alternate accusative | lemma=ስራ	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ሴትኑ	accepted alternate accusative | lemma=ሴት	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ቀንኑ	accepted alternate accusative | lemma=ቀን	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ትምህርትኑ	accepted alternate accusative | lemma=ትምህርት	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ወንበርኑ	accepted alternate accusative | lemma=ወንበር	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	አበባኑ	accepted alternate accusative | lemma=አበባ	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ወንድኑ	accepted alternate accusative | lemma=ወንድ	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	አመትኑ	accepted alternate accusative | lemma=አመት	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	መጽሀፍኑ	accepted alternate accusative | lemma=መጽሀፍ	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ላምኑ	accepted alternate accusative | lemma=ላም	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ሚስትኑ	accepted alternate accusative | lemma=ሚስት	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	እህትኑ	accepted alternate accusative | lemma=እህት	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	እናትኑ	accepted alternate accusative | lemma=እናት	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+orthographic_alternate	ጨረቃኑ	accepted alternate accusative | lemma=ጨረቃ	language/amharic/src/test/resources/hornmorpho_nominal_phase4.tsv				
+fuzzy_correction	ሄደ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ሆነ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ልንበር	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ማረ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር ልበል	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር በሉ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር በል	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር በዪ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር በይ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር ትላለህ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር ትላለች	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር ትላላችሁ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር ትበል	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር ትዪአለሽ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር ትዪያለሽ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር ትያለሽ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር ትይአለሽ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር ትይያለሽ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር አለ	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				
+fuzzy_correction	ብር አለች	analyzer-backed target; reviewer supplies natural typo context	amharic_verbs.ahva				

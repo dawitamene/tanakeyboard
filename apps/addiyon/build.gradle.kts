@@ -53,6 +53,18 @@ val verifyDebugProductContents by tasks.registering {
             val names = zip.entries().asSequence().map { it.name }.toList()
             require(names.any { it.endsWith("english.db") }) { "English dictionary is missing" }
             require(names.any { it.endsWith("amharic.db") }) { "Amharic dictionary is missing" }
+            require(names.any { it.endsWith("amharic_verbs.ahva") }) {
+                "Amharic verb morphology artifact is missing"
+            }
+            require(names.any { it.endsWith("amharic_verbs_manifest.properties") }) {
+                "Amharic verb morphology manifest is missing"
+            }
+            require(names.any { it.endsWith("hornmorpho_LICENSE.txt") }) {
+                "HornMorpho license is missing"
+            }
+            require(names.none { it.contains("amharic_verb_phase8.tsv") }) {
+                "Developer-side verb oracle corpus must not be packaged"
+            }
             require(names.none { it.endsWith("_words.dat") || it.endsWith("_ngrams.dat") }) {
                 "Addiyon must not package dictionary build inputs"
             }

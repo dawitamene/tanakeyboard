@@ -1,0 +1,408 @@
+source_class	lexeme_id	root	root_class	feature_id	feature_name	features	surface	normalized_key	oracle_root	oracle_lemma	oracle_udfeats
+regular	regular:ልምን:B	ልምን	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ለመነ	ለመነ	ልምን	ለመነ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልምን:B	ልምን	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይለምናል	ይለምናል	ልምን	ለመነ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልምን:B	ልምን	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ለምን	ለምን	ልምን	ለመነ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ልምድ:A	ልምድ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ለመደ	ለመደ	ልምድ	ለመደ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልምድ:A	ልምድ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይለምዳል	ይለምዳል	ልምድ	ለመደ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልምድ:A	ልምድ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ልመድ	ልመድ	ልምድ	ለመደ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ለመጠጠ	ለመጠጠ	ልምጥጥ	ለመጠጠ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይለመጥጣል	ይለመጥጣል	ልምጥጥ	ለመጠጠ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ለምጥጥ	ለምጥጥ	ልምጥጥ	ለመጠጠ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ልቅም:A	ልቅም	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ለቀመ	ለቀመ	ልቅም	ለቀመ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልቅም:A	ልቅም	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይለቅማል	ይለቅማል	ልቅም	ለቀመ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልቅም:A	ልቅም	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ልቀም	ልቀም	ልቅም	ለቀመ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ልቅስ:A	ልቅስ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ለቀሰ	ለቀሰ	ልቅስ	ለቀሰ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልቅስ:A	ልቅስ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይለቅሳል	ይለቅሳል	ልቅስ	ለቀሰ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልቅስ:A	ልቅስ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ልቀስ	ልቀስ	ልቅስ	ለቀሰ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ልብስ:A	ልብስ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ለበሰ	ለበሰ	ልብስ	ለበሰ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልብስ:A	ልብስ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይለብሳል	ይለብሳል	ልብስ	ለበሰ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልብስ:A	ልብስ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ልበስ	ልበስ	ልብስ	ለበሰ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ልክእ:B	ልክእ	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ለካ	ለካ	ልክእ	ለካ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልክእ:B	ልክእ	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይለካል	ይለካል	ልክእ	ለካ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልክእ:B	ልክእ	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ለካ	ለካ	ልክእ	ለካ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልጉድ:B	ልጉድ	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ለጎደ	ለጎደ	ልጉድ	ለጎደ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልጉድ:B	ልጉድ	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይለጉዳል	ይለጉዳል	ልጉድ	ለጎደ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልጉድ:B	ልጉድ	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ለጉድ	ለጉድ	ልጉድ	ለጎደ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ልጥፍ:B	ልጥፍ	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ለጠፈ	ለጠፈ	ልጥፍ	ለጠፈ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልጥፍ:B	ልጥፍ	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይለጥፋል	ይለጥፋል	ልጥፍ	ለጠፈ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ልጥፍ:B	ልጥፍ	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ለጥፍ	ለጥፍ	ልጥፍ	ለጠፈ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ሙልእ:A	ሙልእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሞላ	ሞላ	ሙልእ	ሞላ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ሙልእ:A	ሙልእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሞላል	ይሞላል	ሙልእ	ሞላ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ሙልእ:A	ሙልእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሙላ	ሙላ	ሙልእ	ሞላ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ሙግድ:B	ሙግድ	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሞገደ	ሞገደ	ሙግድ	ሞገደ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ሙግድ:B	ሙግድ	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሞግዳል	ይሞግዳል	ሙግድ	ሞገደ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ሙግድ:B	ሙግድ	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሞግድ	ሞግድ	ሙግድ	ሞገደ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ሙጭር:B	ሙጭር	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሞጨረ	ሞጨረ	ሙጭር	ሞጨረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ሙጭር:B	ሙጭር	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሟጨረ	ሟጨረ	ሙጭር	ሟጨረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ሙጭር:B	ሙጭር	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሞጭራል	ይሞጭራል	ሙጭር	ሞጨረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ሙጭር:B	ሙጭር	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሟጭራል	ይሟጭራል	ሙጭር	ሟጨረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ሙጭር:B	ሙጭር	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሞጭር	ሞጭር	ሙጭር	ሞጨረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ሙጭር:B	ሙጭር	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሟጭር	ሟጭር	ሙጭር	ሟጨረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ምርእ:A	ምርእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	መራ	መራ	ምርእ	መራ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ምርእ:A	ምርእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይመራል	ይመራል	ምርእ	መራ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ምርእ:A	ምርእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ምራ	ምራ	ምርእ	መራ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ምስል:A	ምስል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	መሰለ	መሰለ	ምስል	መሰለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ምስል:A	ምስል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይመስላል	ይመስላል	ምስል	መሰለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ምስል:A	ምስል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ምሰል	ምሰል	ምስል	መሰለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ምትእ:A	ምትእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	መታ	መታ	ምትእ	መታ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ምትእ:A	ምትእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይመታል	ይመታል	ምትእ	መታ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ምትእ:A	ምትእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ምታ	ምታ	ምትእ	መታ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ምውቅ:A	ምውቅ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሞቀ	ሞቀ	ምውቅ	ሞቀ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ምውቅ:A	ምውቅ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሞቃል	ይሞቃል	ምውቅ	ሞቀ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ምውቅ:A	ምውቅ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሙቅ	ሙቅ	ምውቅ	ሞቀ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ምውት:A	ምውት	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሞተ	ሞተ	ምውት	ሞተ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ምውት:A	ምውት	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሞታል	ይሞታል	ምውት	ሞተ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ምውት:A	ምውት	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሙት	ሙት	ምውት	ሞተ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ርስእ:A	ርስእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ረሳ	ረሳ	ርስእ	ረሳ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርስእ:A	ርስእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይረሳል	ይረሳል	ርስእ	ረሳ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርስእ:A	ርስእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ርሳ	ርሳ	ርስእ	ረሳ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ርትእ:A	ርትእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ረታ	ረታ	ርትእ	ረታ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርትእ:A	ርትእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይረታል	ይረታል	ርትእ	ረታ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርትእ:A	ርትእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ርታ	ርታ	ርትእ	ረታ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ርውጥ:A	ርውጥ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሮጠ	ሮጠ	ርውጥ	ሮጠ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርውጥ:A	ርውጥ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሮጣል	ይሮጣል	ርውጥ	ሮጠ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርውጥ:A	ርውጥ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሩጥ	ሩጥ	ርውጥ	ሮጠ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ርድእ:A	ርድእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ረዳ	ረዳ	ርድእ	ረዳ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርድእ:A	ርድእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይረዳል	ይረዳል	ርድእ	ረዳ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርድእ:A	ርድእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ርዳ	ርዳ	ርድእ	ረዳ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ርግም:A	ርግም	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ረገመ	ረገመ	ርግም	ረገመ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርግም:A	ርግም	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይረግማል	ይረግማል	ርግም	ረገመ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርግም:A	ርግም	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ርገም	ርገም	ርግም	ረገመ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ርግጥ:A	ርግጥ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ረገጠ	ረገጠ	ርግጥ	ረገጠ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርግጥ:A	ርግጥ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይረግጣል	ይረግጣል	ርግጥ	ረገጠ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርግጥ:A	ርግጥ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ርገጥ	ርገጥ	ርግጥ	ረገጠ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ርግፍ:A	ርግፍ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ረገፈ	ረገፈ	ርግፍ	ረገፈ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርግፍ:A	ርግፍ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይረግፋል	ይረግፋል	ርግፍ	ረገፈ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርግፍ:A	ርግፍ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ርገፍ	ርገፍ	ርግፍ	ረገፈ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ርጭይ:A	ርጭይ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ረጨ	ረጨ	ርጭይ	ረጨ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርጭይ:A	ርጭይ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይረጫል	ይረጫል	ርጭይ	ረጨ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርጭይ:A	ርጭይ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ርጭ	ርጭ	ርጭይ	ረጨ	Gender=Fem|Mood=Imp|Number=Sing|Person=2
+regular	regular:ርፍድ:A	ርፍድ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ረፈደ	ረፈደ	ርፍድ	ረፈደ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርፍድ:A	ርፍድ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይረፍዳል	ይረፍዳል	ርፍድ	ረፈደ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ርፍድ:A	ርፍድ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ርፈድ	ርፈድ	ርፍድ	ረፈደ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ስልችይ:E	ስልችይ	E	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሰለቸ	ሰለቸ	ስልችይ	ሰለቸ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስልችይ:E	ስልችይ	E	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሰለቻል	ይሰለቻል	ስልችይ	ሰለቸ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስልችይ:E	ስልችይ	E	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሰልች	ሰልች	ስልችይ	ሰለቸ	Gender=Fem|Mood=Imp|Number=Sing|Person=2
+regular	regular:ስርር:A	ስርር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሰረረ	ሰረረ	ስርር	ሰረረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስርር:A	ስርር	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሰራል	ይሰራል	ስርር	ሰረረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስርር:A	ስርር	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ስረር	ስረር	ስርር	ሰረረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ስርቅ:A	ስርቅ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሰረቀ	ሰረቀ	ስርቅ	ሰረቀ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስርቅ:A	ስርቅ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሰርቃል	ይሰርቃል	ስርቅ	ሰረቀ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስርቅ:A	ስርቅ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ስረቅ	ስረቅ	ስርቅ	ሰረቀ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ስርእ:A	ስርእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሰራ	ሰራ	ስርእ	ሰራ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስርእ:A	ስርእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሰራል	ይሰራል	ስርእ	ሰራ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስርእ:A	ስርእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ስራ	ስራ	ስርእ	ሰራ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ስቅቅ:B	ስቅቅ	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሰቀቀ	ሰቀቀ	ስቅቅ	ሰቀቀ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስቅቅ:B	ስቅቅ	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሰቅቃል	ይሰቅቃል	ስቅቅ	ሰቀቀ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስቅቅ:B	ስቅቅ	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሰቅቅ	ሰቅቅ	ስቅቅ	ሰቀቀ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ስንብት:E	ስንብት	E	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሰነበተ	ሰነበተ	ስንብት	ሰነበተ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስንብት:E	ስንብት	E	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሰነብታል	ይሰነብታል	ስንብት	ሰነበተ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስንብት:E	ስንብት	E	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሰንብት	ሰንብት	ስንብት	ሰነበተ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ስድብ:A	ስድብ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሰደበ	ሰደበ	ስድብ	ሰደበ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስድብ:A	ስድብ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሰድባል	ይሰድባል	ስድብ	ሰደበ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስድብ:A	ስድብ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ስደብ	ስደብ	ስድብ	ሰደበ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ስፍር:A	ስፍር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሰፈረ	ሰፈረ	ስፍር	ሰፈረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስፍር:A	ስፍር	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሰፍራል	ይሰፍራል	ስፍር	ሰፈረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስፍር:A	ስፍር	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ስፈር	ስፈር	ስፍር	ሰፈረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ስፍእ:A	ስፍእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሰፋ	ሰፋ	ስፍእ	ሰፋ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስፍእ:A	ስፍእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሰፋል	ይሰፋል	ስፍእ	ሰፋ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ስፍእ:A	ስፍእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ስፋ	ስፋ	ስፍእ	ሰፋ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ቁርጥ:A	ቁርጥ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ቆረጠ	ቆረጠ	ቁርጥ	ቆረጠ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቁርጥ:A	ቁርጥ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይቆርጣል	ይቆርጣል	ቁርጥ	ቆረጠ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቁርጥ:A	ቁርጥ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ቁረጥ	ቁረጥ	ቁርጥ	ቆረጠ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ቁፍር:B	ቁፍር	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ቆፈረ	ቆፈረ	ቁፍር	ቆፈረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቁፍር:B	ቁፍር	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይቆፍራል	ይቆፍራል	ቁፍር	ቆፈረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቁፍር:B	ቁፍር	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ቆፍር	ቆፍር	ቁፍር	ቆፈረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ቅብር:A	ቅብር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ቀበረ	ቀበረ	ቅብር	ቀበረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅብር:A	ቅብር	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይቀብራል	ይቀብራል	ቅብር	ቀበረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅብር:A	ቅብር	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ቅበር	ቅበር	ቅብር	ቀበረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ቅብእ:B	ቅብእ	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ቀባ	ቀባ	ቅብእ	ቀባ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅብእ:B	ቅብእ	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይቀባል	ይቀባል	ቅብእ	ቀባ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅብእ:B	ቅብእ	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ቀባ	ቀባ	ቅብእ	ቀባ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅንዝር:E	ቅንዝር	E	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ቀነዘረ	ቀነዘረ	ቅንዝር	ቀነዘረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅንዝር:E	ቅንዝር	E	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይቀነዝራል	ይቀነዝራል	ቅንዝር	ቀነዘረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅንዝር:E	ቅንዝር	E	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ቀንዝር	ቀንዝር	ቅንዝር	ቀነዘረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ቅውም:A	ቅውም	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ቆመ	ቆመ	ቅውም	ቆመ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅውም:A	ቅውም	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይቆማል	ይቆማል	ቅውም	ቆመ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅውም:A	ቅውም	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ቁም	ቁም	ቅውም	ቆመ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ቅድእ:A	ቅድእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ቀዳ	ቀዳ	ቅድእ	ቀዳ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅድእ:A	ቅድእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይቀዳል	ይቀዳል	ቅድእ	ቀዳ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅድእ:A	ቅድእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ቅዳ	ቅዳ	ቅድእ	ቀዳ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ቅጥር:A	ቅጥር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ቀጠረ	ቀጠረ	ቅጥር	ቀጠረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅጥር:A	ቅጥር	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይቀጥራል	ይቀጥራል	ቅጥር	ቀጠረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅጥር:A	ቅጥር	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ቅጠር	ቅጠር	ቅጥር	ቀጠረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ቅጥእ:A	ቅጥእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ቀጣ	ቀጣ	ቅጥእ	ቀጣ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅጥእ:A	ቅጥእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይቀጣል	ይቀጣል	ቅጥእ	ቀጣ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ቅጥእ:A	ቅጥእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ቅጣ	ቅጣ	ቅጥእ	ቀጣ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ብልእ:A	ብልእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	በላ	በላ	ብልእ	በላ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ብልእ:A	ብልእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይበላል	ይበላል	ብልእ	በላ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ብልእ:A	ብልእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ብላ	ብላ	ብልእ	በላ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ብልጥ:A	ብልጥ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	በለጠ	በለጠ	ብልጥ	በለጠ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ብልጥ:A	ብልጥ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይበልጣል	ይበልጣል	ብልጥ	በለጠ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ብልጥ:A	ብልጥ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ብለጥ	ብለጥ	ብልጥ	በለጠ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ብቅእ:A	ብቅእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	በቃ	በቃ	ብቅእ	በቃ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ብቅእ:A	ብቅእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይበቃል	ይበቃል	ብቅእ	በቃ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ብቅእ:A	ብቅእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ብቃ	ብቃ	ብቅእ	በቃ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ብጅይ:B	ብጅይ	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	በጀ	በጀ	ብጅይ	በጀ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ብጅይ:B	ብጅይ	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይበጃል	ይበጃል	ብጅይ	በጀ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ብጅይ:B	ብጅይ	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	በጅ	በጅ	ብጅይ	በጀ	Gender=Fem|Mood=Imp|Number=Sing|Person=2
+regular	regular:ትግል:C	ትግል	C	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ታገለ	ታገለ	ትግል	ታገለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ትግል:C	ትግል	C	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይታግላል	ይታግላል	ትግል	ታገለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ትግል:C	ትግል	C	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ታግል	ታግል	ትግል	ታገለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንስእ:A	ንስእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነሳ	ነሳ	ንስእ	ነሳ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንስእ:A	ንስእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነሳል	ይነሳል	ንስእ	ተነሳ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንስእ:A	ንስእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንሳ	ንሳ	ንስእ	ነሳ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንቅል:A	ንቅል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነቀለ	ነቀለ	ንቅል	ነቀለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንቅል:A	ንቅል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነቅላል	ይነቅላል	ንቅል	ነቀለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንቅል:A	ንቅል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንቀል	ንቀል	ንቅል	ነቀለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንቅእ:A	ንቅእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነቃ	ነቃ	ንቅእ	ነቃ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንቅእ:A	ንቅእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነቃል	ይነቃል	ንቅእ	ተነቃ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ንቅእ:A	ንቅእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንቃ	ንቃ	ንቅእ	ነቃ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንብር:A	ንብር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነበረ	ነበረ	ንብር	አለː	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንብር:A	ንብር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነበር	ነበር	ንብር	አለː	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንብር:A	ንብር	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነብራል	ይነብራል	ንብር	አለː	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንብር:A	ንብር	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንበር	ንበር	ንብር	አለː	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንብብ:A	ንብብ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነበበ	ነበበ	ንብብ	ነበበ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንብብ:A	ንብብ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነባል	ይነባል	ንብብ	ነበበ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንብብ:A	ንብብ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንበብ	ንበብ	ንብብ	ነበበ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንብእ:A	ንብእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነባ	ነባ	ንብእ	ነባ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንብእ:A	ንብእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነባል	ይነባል	ንብእ	ተነባ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ንብእ:A	ንብእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንባ	ንባ	ንብእ	ነባ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንእቅ:A	ንእቅ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ናቀ	ናቀ	ንእቅ	ናቀ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንእቅ:A	ንእቅ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይንቃል	ይንቃል	ንእቅ	ናቀ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንእቅ:A	ንእቅ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ናቅ	ናቅ	ንእቅ	ናቀ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንዝእ:A	ንዝእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነዛ	ነዛ	ንዝእ	ነዛ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንዝእ:A	ንዝእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነዛል	ይነዛል	ንዝእ	ተነዛ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ንዝእ:A	ንዝእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንዛ	ንዛ	ንዝእ	ነዛ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንድእ:A	ንድእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነዳ	ነዳ	ንድእ	ነዳ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንድእ:A	ንድእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነዳል	ይነዳል	ንድእ	ተነዳ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ንድእ:A	ንድእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንዳ	ንዳ	ንድእ	ነዳ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንጥር:A	ንጥር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነጠረ	ነጠረ	ንጥር	ነጠረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንጥር:A	ንጥር	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነጥራል	ይነጥራል	ንጥር	ነጠረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንጥር:A	ንጥር	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንጠር	ንጠር	ንጥር	ነጠረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንጥቅ:A	ንጥቅ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነጠቀ	ነጠቀ	ንጥቅ	ነጠቀ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንጥቅ:A	ንጥቅ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነጥቃል	ይነጥቃል	ንጥቅ	ነጠቀ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንጥቅ:A	ንጥቅ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንጠቅ	ንጠቅ	ንጥቅ	ነጠቀ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንፍስ:A	ንፍስ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነፈሰ	ነፈሰ	ንፍስ	ነፈሰ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንፍስ:A	ንፍስ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነፍሳል	ይነፍሳል	ንፍስ	ነፈሰ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንፍስ:A	ንፍስ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንፈስ	ንፈስ	ንፍስ	ነፈሰ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ንፍእ:A	ንፍእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነፋ	ነፋ	ንፍእ	ነፋ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ንፍእ:A	ንፍእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነፋል	ይነፋል	ንፍእ	ተነፋ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ንፍእ:A	ንፍእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ንፋ	ንፋ	ንፍእ	ነፋ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:እይይ:A	እይይ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	አየ	አየ	እይይ	አየ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:እይይ:A	እይይ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ያያል	ያያል	እይይ	አየ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:እይይ:A	እይይ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እይ	እይ	እይይ	አየ	Gender=Fem|Mood=Imp|Number=Sing|Person=2
+regular	regular:ኩርፍ:A	ኩርፍ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ኮረፈ	ኮረፈ	ኩርፍ	ኮረፈ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ኩርፍ:A	ኩርፍ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይኮርፋል	ይኮርፋል	ኩርፍ	ኮረፈ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ኩርፍ:A	ኩርፍ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ኩረፍ	ኩረፍ	ኩርፍ	ኮረፈ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ኩንን:B	ኩንን	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ኮነነ	ኮነነ	ኩንን	ኮነነ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ኩንን:B	ኩንን	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይኮንናል	ይኮንናል	ኩንን	ኮነነ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ኩንን:B	ኩንን	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ኮንን	ኮንን	ኩንን	ኮነነ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ክብብ:A	ክብብ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ከበበ	ከበበ	ክብብ	ከበበ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ክብብ:A	ክብብ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይከባል	ይከባል	ክብብ	ከበበ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ክብብ:A	ክብብ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ክበብ	ክበብ	ክብብ	ከበበ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ክውን:B	ክውን	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ከወነ	ከወነ	ክውን	ከወነ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ክውን:B	ክውን	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይከውናል	ይከውናል	ክውን	ከወነ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ክውን:B	ክውን	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ከውን	ከውን	ክውን	ከወነ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ክድእ:A	ክድእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ከዳ	ከዳ	ክድእ	ከዳ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ክድእ:A	ክድእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይከዳል	ይከዳል	ክድእ	ተከዳ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ክድእ:A	ክድእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ክዳ	ክዳ	ክድእ	ከዳ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ክጅል:B	ክጅል	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ከጀለ	ከጀለ	ክጅል	ከጀለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ክጅል:B	ክጅል	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይከጅላል	ይከጅላል	ክጅል	ከጀለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ክጅል:B	ክጅል	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ከጅል	ከጅል	ክጅል	ከጀለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ክፍል:A	ክፍል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ከፈለ	ከፈለ	ክፍል	ከፈለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ክፍል:A	ክፍል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይከፍላል	ይከፍላል	ክፍል	ከፈለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ክፍል:A	ክፍል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ክፈል	ክፈል	ክፍል	ከፈለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ክፍእ:A	ክፍእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ከፋ	ከፋ	ክፍእ	ከፋ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ክፍእ:A	ክፍእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይከፋል	ይከፋል	ክፍእ	ተከፋ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ክፍእ:A	ክፍእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ክፋ	ክፋ	ክፍእ	ከፋ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ውልቅ:A	ውልቅ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ወለቀ	ወለቀ	ውልቅ	ወለቀ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውልቅ:A	ውልቅ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይወልቃል	ይወልቃል	ውልቅ	ወለቀ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውልቅ:A	ውልቅ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ውለቅ	ውለቅ	ውልቅ	ወለቀ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ውርእ:A	ውርእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ወራ	ወራ	ውርእ	ወራ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውርእ:A	ውርእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይወራል	ይወራል	ውርእ	ተወራ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ውርእ:A	ውርእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ውራ	ውራ	ውርእ	ወራ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ውርድ:A	ውርድ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ወረደ	ወረደ	ውርድ	ወረደ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውርድ:A	ውርድ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይወርዳል	ይወርዳል	ውርድ	ወረደ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውርድ:A	ውርድ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ውረድ	ውረድ	ውርድ	ወረደ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ውሽም:B	ውሽም	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ወሸመ	ወሸመ	ውሽም	ወሸመ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውሽም:B	ውሽም	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይወሽማል	ይወሽማል	ውሽም	ወሸመ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውሽም:B	ውሽም	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ወሽም	ወሽም	ውሽም	ወሸመ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ውቅር:A	ውቅር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ወቀረ	ወቀረ	ውቅር	ወቀረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውቅር:A	ውቅር	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይወቅራል	ይወቅራል	ውቅር	ወቀረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውቅር:A	ውቅር	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ውቀር	ውቀር	ውቅር	ወቀረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ውቅስ:A	ውቅስ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ወቀሰ	ወቀሰ	ውቅስ	ወቀሰ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውቅስ:A	ውቅስ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይወቅሳል	ይወቅሳል	ውቅስ	ወቀሰ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውቅስ:A	ውቅስ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ውቀስ	ውቀስ	ውቅስ	ወቀሰ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ውጥእ:A	ውጥእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ወጣ	ወጣ	ውጥእ	ወጣ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ውጥእ:A	ውጥእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይወጣል	ይወጣል	ውጥእ	ተወጣ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ውጥእ:A	ውጥእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ውጣ	ውጣ	ውጥእ	ወጣ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ዝንእ:A	ዝንእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ዘና	ዘና	ዝንእ	ዘና	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ዝንእ:A	ዝንእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይዘናል	ይዘናል	ዝንእ	ተዘና	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ዝንእ:A	ዝንእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ዝና	ዝና	ዝንእ	ዘና	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ዝውር:B	ዝውር	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ዘወረ	ዘወረ	ዝውር	ዘወረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ዝውር:B	ዝውር	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ዞረ	ዞረ	ዝውር	ዞረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ዝውር:B	ዝውር	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይዘውራል	ይዘውራል	ዝውር	ዘወረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ዝውር:B	ዝውር	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይዞራል	ይዞራል	ዝውር	ተዞረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ዝውር:B	ዝውር	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ዘውር	ዘውር	ዝውር	ዘወረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ዝውር:B	ዝውር	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ዙር	ዙር	ዝውር	ዞረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ዝግእ:A	ዝግእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ዘጋ	ዘጋ	ዝግእ	ዘጋ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ዝግእ:A	ዝግእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይዘጋል	ይዘጋል	ዝግእ	ተዘጋ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ዝግእ:A	ዝግእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ዝጋ	ዝጋ	ዝግእ	ዘጋ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ድልእ:A	ድልእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ደላ	ደላ	ድልእ	ደላ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድልእ:A	ድልእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይደላል	ይደላል	ድልእ	ተደላ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ድልእ:A	ድልእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ድላ	ድላ	ድልእ	ደላ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ድምር:B	ድምር	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ደመረ	ደመረ	ድምር	ደመረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድምር:B	ድምር	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይደምራል	ይደምራል	ድምር	ደመረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድምር:B	ድምር	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ደምር	ደምር	ድምር	ደመረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ድምጥ:A	ድምጥ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ዳመጠ	ዳመጠ	ድምጥ	ዳመጠ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድምጥ:A	ድምጥ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይዳምጣል	ይዳምጣል	ድምጥ	ዳመጠ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድምጥ:A	ድምጥ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ዳምጥ	ዳምጥ	ድምጥ	ዳመጠ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ድርቅ:A	ድርቅ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ደረቀ	ደረቀ	ድርቅ	ደረቀ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድርቅ:A	ድርቅ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይደርቃል	ይደርቃል	ድርቅ	ደረቀ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድርቅ:A	ድርቅ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ድረቅ	ድረቅ	ድርቅ	ደረቀ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ድንብር:E	ድንብር	E	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ደነበረ	ደነበረ	ድንብር	ደነበረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድንብር:E	ድንብር	E	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይደነብራል	ይደነብራል	ድንብር	ደነበረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድንብር:E	ድንብር	E	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ደንብር	ደንብር	ድንብር	ደነበረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ድውል:B	ድውል	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ደወለ	ደወለ	ድውል	ደወለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድውል:B	ድውል	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ዶለ	ዶለ	ድውል	ዶለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድውል:B	ድውል	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይደውላል	ይደውላል	ድውል	ደወለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድውል:B	ድውል	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይዶላል	ይዶላል	ድውል	ተዶለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ድውል:B	ድውል	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ደውል	ደውል	ድውል	ደወለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ድውል:B	ድውል	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ዱል	ዱል	ድውል	ዶለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ድግም:A	ድግም	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ደገመ	ደገመ	ድግም	ደገመ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድግም:A	ድግም	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይደግማል	ይደግማል	ድግም	ደገመ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድግም:A	ድግም	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ድገም	ድገም	ድግም	ደገመ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ድፍር:A	ድፍር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ደፈረ	ደፈረ	ድፍር	ደፈረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድፍር:A	ድፍር	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይደፍራል	ይደፍራል	ድፍር	ደፈረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድፍር:A	ድፍር	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ድፈር	ድፈር	ድፍር	ደፈረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ድፍእ:A	ድፍእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ደፋ	ደፋ	ድፍእ	ደፋ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ድፍእ:A	ድፍእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይደፋል	ይደፋል	ድፍእ	ተደፋ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ድፍእ:A	ድፍእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ድፋ	ድፋ	ድፍእ	ደፋ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ግልብጥ:E	ግልብጥ	E	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ገለበጠ	ገለበጠ	ግልብጥ	ገለበጠ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ግልብጥ:E	ግልብጥ	E	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይገለብጣል	ይገለብጣል	ግልብጥ	ገለበጠ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ግልብጥ:E	ግልብጥ	E	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ገልብጥ	ገልብጥ	ግልብጥ	ገለበጠ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ግምእ:A	ግምእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ገማ	ገማ	ግምእ	ገማ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ግምእ:A	ግምእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይገማል	ይገማል	ግምእ	ገማ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ግምእ:A	ግምእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ግማ	ግማ	ግምእ	ገማ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ግዝእ:A	ግዝእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ገዛ	ገዛ	ግዝእ	ገዛ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ግዝእ:A	ግዝእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይገዛል	ይገዛል	ግዝእ	ተገዛ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ግዝእ:A	ግዝእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ግዛ	ግዛ	ግዝእ	ገዛ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ጥልእ:A	ጥልእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጠላ	ጠላ	ጥልእ	ጠላ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ጥልእ:A	ጥልእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይጠላል	ይጠላል	ጥልእ	ተጠላ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ጥልእ:A	ጥልእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጥላ	ጥላ	ጥልእ	ጠላ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ጥምር:B	ጥምር	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጠመረ	ጠመረ	ጥምር	ጠመረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ጥምር:B	ጥምር	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይጠምራል	ይጠምራል	ጥምር	ጠመረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ጥምር:B	ጥምር	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጠምር	ጠምር	ጥምር	ጠመረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ጥርእ:A	ጥርእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጠራ	ጠራ	ጥርእ	ጠራ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ጥርእ:A	ጥርእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይጠራል	ይጠራል	ጥርእ	ተጠራ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ጥርእ:A	ጥርእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጥራ	ጥራ	ጥርእ	ጠራ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ጥይቅ:B	ጥይቅ	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጠየቀ	ጠየቀ	ጥይቅ	ጠየቀ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ጥይቅ:B	ጥይቅ	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይጠይቃል	ይጠይቃል	ጥይቅ	ጠየቀ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ጥይቅ:B	ጥይቅ	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጠይቅ	ጠይቅ	ጥይቅ	ጠየቀ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ጽልይ:B	ጽልይ	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጸለየ	ጸለየ	ጽልይ	ጸለየ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ጽልይ:B	ጽልይ	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይጸልያል	ይጸልያል	ጽልይ	ጸለየ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+regular	regular:ጽልይ:B	ጽልይ	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጸልይ	ጸልይ	ጽልይ	ጸለየ	Gender=Fem|Mood=Imp|Number=Sing|Person=2
+regular	regular:ፍርእ:A	ፍርእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ፈራ	ፈራ	ፍርእ	ፈራ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ፍርእ:A	ፍርእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይፈራል	ይፈራል	ፍርእ	ተፈራ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ፍርእ:A	ፍርእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ፍራ	ፍራ	ፍርእ	ፈራ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+regular	regular:ፍትእ:A	ፍትእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ፈታ	ፈታ	ፍትእ	ፈታ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+regular	regular:ፍትእ:A	ፍትእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይፈታል	ይፈታል	ፍትእ	ተፈታ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+regular	regular:ፍትእ:A	ፍትእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ፍታ	ፍታ	ፍትእ	ፈታ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:ህውን:A	ህውን	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሆነ	ሆነ	ህውን	ሆነ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ህውን:A	ህውን	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሆናል	ይሆናል	ህውን	ሆነ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ህውን:A	ህውን	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሁን	ሁን	ህውን	ሆነ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:ህይድ:A	ህይድ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሄደ	ሄደ	ህይድ	ሄደ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ህይድ:A	ህይድ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሄዳል	ይሄዳል	ህይድ	ሄደ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ህይድ:A	ህይድ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሂድ	ሂድ	ህይድ	ሄደ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:ምእር:A	ምእር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ማረ	ማረ	ምእር	ማረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ምእር:A	ምእር	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይምራል	ይምራል	ምእር	ማረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ምእር:A	ምእር	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ማር	ማር	ምእር	ማረ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:ሽእ:A	ሽእ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ሻ	ሻ	ሽእ	ሻ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ሽእ:A	ሽእ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይሻል	ይሻል	ሽእ	ሻ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ሽእ:A	ሽእ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ሻ	ሻ	ሽእ	ሻ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ብእል:A	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	አለ	አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ብእል:A	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይላል	ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ብእል:A	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	በል	በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:ትትው:A	ትትው	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ተወ	ተወ	ትትው	ተወ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ትትው:A	ትትው	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይተዋል	ይተዋል	ትትው	ተተወ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+irregular	irregular:ትትው:A	ትትው	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ተው	ተው	ትትው	ተወ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:ንግድ:B	ንግድ	B	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ነገደ	ነገደ	ንግድ	ነገደ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ንግድ:B	ንግድ	B	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይነግዳል	ይነግዳል	ንግድ	ነገደ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ንግድ:B	ንግድ	B	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ነግድ	ነግድ	ንግድ	ነገደ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:እምር:A	እምር	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	አማረ	አማረ	እምር	አማረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:እምር:A	እምር	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ያምራል	ያምራል	እምር	አማረ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:እምር:A	እምር	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	አምር	አምር	እምር	አማረ	Aspect=Imp|Number=Sing|Person=1
+irregular	irregular:እብይ:A	እብይ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	አበየ	አበየ	እብይ	አበየ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:እብይ:A	እብይ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ያብያል	ያብያል	እብይ	አበየ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:እብይ:A	እብይ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እበይ	እበይ	እብይ	አበየ	Gender=Fem|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:እክል:A	እክል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	አከለ	አከለ	እክል	አከለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:እክል:A	እክል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ያክላል	ያክላል	እክል	አከለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:እክል:A	እክል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	አክል	አክል	እክል	አከለ	Aspect=Imp|Number=Sing|Person=1
+irregular	irregular:እክል:A	እክል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እከል	እከል	እክል	አከለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:እውቅ:A	እውቅ	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	አወቀ	አወቀ	እውቅ	አወቀ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:እውቅ:A	እውቅ	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ያውቃል	ያውቃል	እውቅ	አወቀ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:እውቅ:A	እውቅ	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እወቅ	እወቅ	እውቅ	አወቀ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:ውእል:A	ውእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ዋለ	ዋለ	ውእል	ዋለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ውእል:A	ውእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ይውላል	ይውላል	ውእል	ዋለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ውእል:A	ውእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ዋል	ዋል	ውእል	ዋለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ብድግ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ብድግ አለ	ብድግ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ብድግ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ብድግ ይላል	ብድግ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ብድግ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ብድግ በል	ብድግ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:አፈፍ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	አፈፍ አለ	አፈፍ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:አፈፍ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	አፈፍ ይላል	አፈፍ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:አፈፍ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	አፈፍ በል	አፈፍ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ኡኡ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ኡኡ አለ	ኡኡ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ኡኡ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ኡኡ ይላል	ኡኡ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ኡኡ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ኡኡ በል	ኡኡ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:እልም:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	እልም አለ	እልም አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:እልም:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	እልም ይላል	እልም ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:እልም:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እልም በል	እልም በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:እልቅ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	እልቅ አለ	እልቅ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:እልቅ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	እልቅ ይላል	እልቅ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:እልቅ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እልቅ በል	እልቅ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:እምቧ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	እምቧ አለ	እምቧ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:እምቧ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	እምቧ ይላል	እምቧ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:እምቧ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እምቧ በል	እምቧ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:እርይ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	እርይ አለ	እርይ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:እርይ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	እርይ ይላል	እርይ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:እርይ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እርይ በል	እርይ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:እንኮኮ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	እንኮኮ አለ	እንኮኮ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:እንኮኮ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	እንኮኮ ይላል	እንኮኮ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:እንኮኮ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እንኮኮ በል	እንኮኮ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:እንዘጥ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	እንዘጥ አለ	እንዘጥ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:እንዘጥ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	እንዘጥ ይላል	እንዘጥ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:እንዘጥ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እንዘጥ በል	እንዘጥ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:እፍ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	እፍ አለ	እፍ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:እፍ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	እፍ ይላል	እፍ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:እፍ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እፍ በል	እፍ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:እፎይ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	እፎይ አለ	እፎይ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:እፎይ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	እፎይ ይላል	እፎይ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:እፎይ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	እፎይ በል	እፎይ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ዠረር:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ዠረር አለ	ዠረር አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ዠረር:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ዠረር ይላል	ዠረር ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ዠረር:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ዠረር በል	ዠረር በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ጢም:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጢም አለ	ጢም አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ጢም:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ጢም ይላል	ጢም ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ጢም:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጢም በል	ጢም በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ጢቅ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጢቅ አለ	ጢቅ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ጢቅ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ጢቅ ይላል	ጢቅ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ጢቅ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጢቅ በል	ጢቅ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ጥምጥም:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጥምጥም አለ	ጥምጥም አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ጥምጥም:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ጥምጥም ይላል	ጥምጥም ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ጥምጥም:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጥምጥም በል	ጥምጥም በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ጦሽ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጦሽ አለ	ጦሽ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ጦሽ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ጦሽ ይላል	ጦሽ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ጦሽ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጦሽ በል	ጦሽ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ጧ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጧ አለ	ጧ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ጧ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ጧ ይላል	ጧ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ጧ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጧ በል	ጧ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ጩር:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጩር አለ	ጩር አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ጩር:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ጩር ይላል	ጩር ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ጩር:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጩር በል	ጩር በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ጫን:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጫን አለ	ጫን አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ጫን:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ጫን ይላል	ጫን ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ጫን:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጫን በል	ጫን በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ጸጥ:ብእል	ብእል	A	0	perfective_3ms	[t=p,sp=3,sn=1,sg=m]	ጸጥ አለ	ጸጥ አለ	ብእል	አለ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+light	light:ጸጥ:ብእል	ብእል	A	1	imperfective_3ms	[t=i,sp=3,sn=1,sg=m]	ጸጥ ይላል	ጸጥ ይላል	ብእል	አለ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+light	light:ጸጥ:ብእል	ብእል	A	2	imperative_2ms	[t=j,sp=2,sn=1,sg=m]	ጸጥ በል	ጸጥ በል	ብእል	አለ	Gender=Masc|Mood=Imp|Number=Sing|Person=2

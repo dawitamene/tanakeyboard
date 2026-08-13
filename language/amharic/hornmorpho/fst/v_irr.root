@@ -1,0 +1,194 @@
+*<ህ ው ን>	c=A,tmp=[1=X],base=0
+[a=0,v=0,t=p|i|c];[a=0,v=p,t=p|c];[a=0,v=p,t=j,sp=2,-neg]
+ሆ   ን
+
+[a=0,v=0,t=j]
+ሁ   ን
+
+[a=0,v=p,t=i];[a=0,v=p,t=j,sp=1|3];[a=0,v=p,t=j,sp=2,+neg]
+ኮ	ን
+
+# others also possible, according to Kane: ኋኋን ኳሆን ኳኳን
+[a=i,v=p]
+ኳ	ኋ	ን
+
+*<ብ እ ል>	c=A,gl=say,base=0
+
+[a=0,t=p,v=0,tmp=[1=L]]
+ኣ	ል
+
+[a=0,t=p|i|j,v=p,tmp=[1=X]]
+ባ	ል
+
+[a=0,t=i,v=0,tmp=[1=X]]
+ል
+
+[a=0,t=j,v=0,tmp=[1=X]]
+በ	ል
+
+[a=0,t=c,v=0|p,tmp=[1=X]]
+ብ	ል
+
+[a=i,t=p|i|j,v=p,tmp=[1=X]]
+ባ	ባ	ል
+
+[a=i,t=c,v=p,tmp=[1=X]]
+ባ	ብ	ል
+
+*<ት ት ው>	c=A,a=0,tmp=[1=X],base=0
+
+[t=p|i|j,v=0|p|as]
+ተ	ው
+
+[t=c,v=0|p|as]
+ት	ት
+
+*<እ ም ር> c=A,tmp=[1=እ],base=0
+# አማረ: be beautiful
+
+[a=0,t=p,v=0]
+ኣ	ማ	ር
+
+[a=0,t=p,v=as]
+ኣ	/መ	ር
+
+[a=0,t=i|j|c,v=0]
+ኣ	ም	ር
+
+[a=0,t=i|j|c,v=as]
+ኣ	/ም	ር
+
+[a=i,v=0,t=p|i|j]
+ኣ	ማ	ማ	ር
+
+[a=i,v=p,t=p|i|j]
+ማ	ማ	ር
+
+[a=i,v=0,t=c]
+ኣ	ማ	ም	ር
+
+[a=i,v=p,t=c]
+ማ	ም	ር
+
+*<ም እ ር>	c=A,tmp=[1=X],s=2,base=p
+
+[a=0,v=test,t=p|i|j]
+ማ	ር
+
+[a=0,v=test,t=c]
+ም	ር
+
+*<ው እ ል> c=A,tmp=[1=X],s=2,base=0
+
+[a=0,v=test,t=p|i|j]
+ዋ	ል
+
+[a=0,v=test,t=c]
+ው	ል
+
+*<ን ግ ድ> c=B,base=0
+
+[a=a,v=test,t=p|i]
+ና   /ገ	 ድ
+
+[a=a,v=test,t=j]
+ና	ገ	ድ
+
+[a=a,v=test,t=c]
+ና	ግ	ድ
+
+*<እ ክ ል> c=A,base=0
+
+[a=i,v=test,t=p|i]
+ካ	/ከ	ል
+
+[a=i,v=test,t=j]
+ካ	ከ	ል
+
+[a=i,v=test,t=c]
+ካ	ክ	ል
+
+*<ሽ እ>	c=A,tmp=[1=X],base=0
+
+[a=0,t=p|i|j,v=0|p|as]
+ሻ
+
+[a=0,t=c,v=0|p|as]
+ሽ	ት
+
+[a=i,t=p]
+ሻ	/ሻ
+
+[a=i,t=i|j]
+ሻ	ሻ
+
+[a=i,t=c]
+ሻ	ሽ	ት
+
+*<ህ ይ ድ>		c=A,tmp=[1=X,2=ይ],base=0
+
+[a=0,t=p|i|c,v=0]
+ሄ	ድ
+
+[a=0,t=j,v=0]
+ሂ	ድ
+
+# skip for generation
+[a=0,t=c,v=0]
+ሂ	ድ
+
+[a=0,t=p|i|c,v=p|as]
+ኬ	ድ
+
+[a=0,t=j,v=p|as]
+ኪ	ድ
+
+[a=i,t=p|i|c,v=p|a]
+ካ	ሄ	ድ
+
+[a=i,t=j|c,v=p|a]
+ካ	ሂ	ድ
+
+# skip for generation
+*<እ ው ቅ>	c=A,tmp=[1=X],base=0
+[a=0,v=0,t=i]
+ኣ	ቅ
+
+*<እ ብ ይ>		c=A,tmp=[1=እ,3=X],base=0
+[a=0,v=0|p|ast,t=p];[a=0,v=p,t=i]
+ኣ	/በ	ይ
+
+[a=0,v=p,t=j]
+ኣ	በ	ይ
+
+[a=0,v=0,t=i|c];[a=0,v=p,t=j|c]
+ኣ	ብ	ይ
+
+[a=0,v=0,t=j]
+እ	በ	ይ
+
+*<ግ ኝ ይ>	c=A,base=a,tmp=[1=X]
+[a=i,v=a|p,t=p]
+ገ	ና	/ኘ
+
+[a=i,v=a|p,t=i]
+ገ	ና	/ኝ
+
+[a=i,v=a|p,t=j]
+ገ	ና	ኝ
+
+[a=i,v=a|p,t=c]
+ገ	ና	ኝ	ት
+
+*<ግ ብ እ>	c=A,base=0
+
+[a=a,v=test,t=p|i]
+ጋ	/ባ
+
+[a=a,v=test,t=j]
+ጋ	ባ
+
+[a=a,v=test,t=c]
+ጋ	ብ	ት
+
+

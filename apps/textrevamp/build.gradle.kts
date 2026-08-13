@@ -139,6 +139,9 @@ val verifyDebugProductContents = tasks.register("verifyDebugProductContents") {
             check(entries.none { it.contains("amharic", ignoreCase = true) }) {
                 "TextRevamp unexpectedly packages Amharic assets"
             }
+            check(entries.none { it.endsWith("hornmorpho_LICENSE.txt") }) {
+                "TextRevamp unexpectedly packages HornMorpho assets"
+            }
         }
         val components = configurations.getByName("debugRuntimeClasspath")
             .incoming.resolutionResult.allComponents.map { it.id.displayName }

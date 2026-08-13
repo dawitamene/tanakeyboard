@@ -28,6 +28,21 @@ packages the license in the Amharic Android language module.
 - `fst/n.mtx` and `fst/nM.mtx`: nominal morphotactics
 - `fst/n_aff_bound.fst` and `fst/n_aff_boundM.fst`: nominal boundary rewrites
 - `fst/misc.fst` and `fst/miscM.fst`: nominal-cascade normalization
+- `cas/v.cas`, `cas/v0.cas`, `cas/vM.cas`, and `cas/vMG.cas`: single-word and
+  multiword verb cascade composition order
+- `cas/v_stem.cas`, `cas/v_stem0.cas`, `cas/v_stemM.cas`, and
+  `cas/v_light_stem.cas`: ordinary, alternate, multiword, and light-verb stem
+  compilation order
+- `fst/v.mtx`, `fst/v0.mtx`, `fst/vM.mtx`, and `fst/vMG.mtx`: verb
+  morphotactics
+- `fst/v.root`, `fst/v_irr.root`, `fst/v_light.root`, and
+  `fst/v_light_irr.root`: regular, irregular, and light-verb root patterns
+- `fst/v.tmp`, `fst/v_light.tmp`, `fst/v_stem.lextr`, `fst/tt.fst`,
+  `fst/aff_bound.fst`, `fst/v_light_aff_bound.fst`, `fst/misc_v.fst`,
+  `fst/y2i.fst`, `fst/y2iM.fst`, `fst/iya.fst`, and `fst/kh_sS.fst`: direct
+  verb-stem and surface-cascade dependencies
+- `lex/vroot0.lex`, `lex/v_light.lex`, and `lex/irr_vstem.lex`: alternate
+  roots, light-verb preverbs, and irregular verb stems
 
 Every control file above is an unmodified copy from commit
 `7e3d93af760e27ea6dbc3b7a078d2d9c3335f618`. The cascade files establish
@@ -35,6 +50,38 @@ that nominal analysis composes `misc`, `n_aff_bound`, and `n.mtx` in that
 order, with the corresponding `M` files used for multiword analysis. The
 boundary string sets are defined in `a.lg`; no rule is inferred from a newer
 upstream branch.
+
+## Phase 7 verb architecture decision
+
+Phase 7 vendors the complete direct verb-cascade source set above from the
+same commit and license. The reproducible oracle fixture contains 407
+HornMorpho-generated and analyzer-round-tripped rows: 100 regular roots, 12
+irregular roots, and 20 light-verb lexemes. Its SHA-256 is
+`9d48b215d264ade3d2bb7c67a9e868ddc31586f9c1cc4f98c2f22971bb789110`.
+
+The accepted `AHVA` version-1 compact automaton prototype contains 922 states,
+921 transitions, 402 terminal surfaces, and 407 terminal analyses. It is
+39,394 installed bytes, 12,006 deterministic gzip bytes, and has SHA-256
+`a72950884fdfa6c76cd7a9f6e37e05bf7ca2f51b4ddd67e6386f17433feee963`.
+It remains a test-only Phase 7 artifact; no verb suggestions are shipped yet.
+The three-option benchmark, schema, fallback policy, raw commands, and
+licensing obligations are recorded in
+`docs/adr/amharic-verb-morphology-artifact.md`.
+
+## Phase 8/9 production artifact
+
+Phase 8 promotes the selected representation to the version-2 production
+artifact `src/main/assets/amharic_verbs.ahva`. The declared verb slice,
+stable identity scheme, exact transformation commands, fallback behavior, and
+unsupported branches are recorded in `PHASE8_VERBS.md`. The paired manifest
+pins its byte length, SHA-256, HornMorpho version, and upstream commit. The
+gzipped oracle corpus and JVM golden subset stay outside product assets.
+
+Phase 9's local morphology identity, bounded analyzer-backed correction,
+privacy policy, reproducibility checks, release tests, and pending fluent
+review are recorded in `PHASE9_RELEASE.md`. `hornmorpho_LICENSE.txt` continues
+to ship with Addiyon, while TextRevamp remains English-only and contains no
+HornMorpho artifact or license asset.
 
 `tools/build_amharic_dict.py` transforms this snapshot into two deterministic
 inputs:

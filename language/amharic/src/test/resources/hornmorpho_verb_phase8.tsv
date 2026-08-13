@@ -1,0 +1,273 @@
+source_class	lexeme_id	root	root_class	root_frequency	feature_id	feature_name	features	surface	normalized_key	oracle_udfeats
+irregular	irregular:ህውን:A	ህውን	A	20636	62375	imperfective	[t=i,del=sp|sn|sg|neg]	ይሆናል	ይሆናል	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ህይድ:A	ህይድ	A	1644	62375	imperfective	[t=i,del=sp|sn|sg|neg]	ይሄዳል	ይሄዳል	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ምእር:A	ምእር	A	259	62375	imperfective	[t=i,del=sp|sn|sg|neg]	ይምራል	ይምራል	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ህውን:A	ህውን	A	20636	63896	imperfective	[t=i,del=sp|sn|sg|neg]	አይሆንም	አይሆንም	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg
+irregular	irregular:ህይድ:A	ህይድ	A	1644	63896	imperfective	[t=i,del=sp|sn|sg|neg]	አይሄድም	አይሄድም	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg
+irregular	irregular:ምእር:A	ምእር	A	259	63896	imperfective	[t=i,del=sp|sn|sg|neg]	አይምርም	አይምርም	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg
+irregular	irregular:ሽእ:A	ሽእ	A	48	14375	imperfective	[t=i,del=sp|sn|sg|neg]	አይሻም	አይሻም	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg|Voice=Pass
+irregular	irregular:ትትው:A	ትትው	A	253	14375	imperfective	[t=i,del=sp|sn|sg|neg]	አይተውም	አይተውም	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Polarity=Neg|Voice=Pass
+irregular	irregular:ሽእ:A	ሽእ	A	48	14891	imperfective	[t=i,del=sp|sn|sg|neg]	ይሻል	ይሻል	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+irregular	irregular:ትትው:A	ትትው	A	253	14891	imperfective	[t=i,del=sp|sn|sg|neg]	ይተዋል	ይተዋል	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+irregular	irregular:ምእር:A	ምእር	A	259	62375	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይማር	ይማር	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ሽእ:A	ሽእ	A	48	62375	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይሻ	ይሻ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ትትው:A	ትትው	A	253	62375	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይተው	ይተው	Aspect=Imp|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ምእር:A	ምእር	A	259	14891	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይማር	ይማር	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+irregular	irregular:ሽእ:A	ሽእ	A	48	14891	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይሻ	ይሻ	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+irregular	irregular:ትትው:A	ትትው	A	253	14891	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይተው	ይተው	Aspect=Imp|Gender=Masc|Number=Sing|Person=3|Voice=Pass
+irregular	irregular:ህውን:A	ህውን	A	20636	33529	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይሁን	ይሁን	Gender=Masc|Mood=Jus|Number=Sing|Person=3
+irregular	irregular:ህይድ:A	ህይድ	A	1644	33529	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይሂድ	ይሂድ	Gender=Masc|Mood=Jus|Number=Sing|Person=3
+irregular	irregular:ምእር:A	ምእር	A	259	33529	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይማር	ይማር	Gender=Masc|Mood=Jus|Number=Sing|Person=3
+irregular	irregular:ምእር:A	ምእር	A	259	18458	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይማር	ይማር	Gender=Masc|Mood=Jus|Number=Sing|Person=3|Voice=Pass
+irregular	irregular:ሽእ:A	ሽእ	A	48	18458	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይሻ	ይሻ	Gender=Masc|Mood=Jus|Number=Sing|Person=3|Voice=Pass
+irregular	irregular:ትትው:A	ትትው	A	253	18458	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይተው	ይተው	Gender=Masc|Mood=Jus|Number=Sing|Person=3|Voice=Pass
+irregular	irregular:ሽእ:A	ሽእ	A	48	16352	perfective	[t=p,del=sp|sn|sg|neg]	አልሻም	አልሻም	Aspect=Imp|Number=Sing|Person=1|Polarity=Neg
+irregular	irregular:ሽእ:A	ሽእ	A	48	50237	perfective	[t=p,del=sp|sn|sg|neg]	አልሻም	አልሻም	Aspect=Imp|Number=Sing|Person=1|Polarity=Neg|Voice=Pass
+irregular	irregular:ህውን:A	ህውን	A	20636	51924	perfective	[t=p,del=sp|sn|sg|neg]	ሆነ	ሆነ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ህይድ:A	ህይድ	A	1644	51924	perfective	[t=p,del=sp|sn|sg|neg]	ሄደ	ሄደ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ምእር:A	ምእር	A	259	51924	perfective	[t=p,del=sp|sn|sg|neg]	ማረ	ማረ	Aspect=Perf|Gender=Masc|Number=Sing|Person=3
+irregular	irregular:ህውን:A	ህውን	A	20636	5470	perfective	[t=p,del=sp|sn|sg|neg]	አልሆነም	አልሆነም	Aspect=Perf|Gender=Masc|Number=Sing|Person=3|Polarity=Neg
+irregular	irregular:ህይድ:A	ህይድ	A	1644	5470	perfective	[t=p,del=sp|sn|sg|neg]	አልሄደም	አልሄደም	Aspect=Perf|Gender=Masc|Number=Sing|Person=3|Polarity=Neg
+irregular	irregular:ምእር:A	ምእር	A	259	5470	perfective	[t=p,del=sp|sn|sg|neg]	አልማረም	አልማረም	Aspect=Perf|Gender=Masc|Number=Sing|Person=3|Polarity=Neg
+irregular	irregular:ሽእ:A	ሽእ	A	48	36310	perfective	[t=p,del=sp|sn|sg|neg]	ሻ	ሻ	Gender=Fem|Mood=Imp|Number=Sing|Person=2
+irregular	irregular:ሽእ:A	ሽእ	A	48	65490	perfective	[t=p,del=sp|sn|sg|neg]	ሻ	ሻ	Gender=Masc|Mood=Imp|Number=Sing|Person=2
+light	light:ልክ:ድርግ	ድርግ	A	6435	44777	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ አንዳርግም	ልክ አንዳርግም	*DERAGI;*MAIN;1;IPFV;NEG;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	44777	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ አንዳርግም	ልክስክስ አንዳርግም	*DERAGI;*MAIN;1;IPFV;NEG;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	44777	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል አንልም	ምስቅልቅል አንልም	*DERAGI;*MAIN;1;IPFV;NEG;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	25333	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ አልዳርግም	ልክ አልዳርግም	*DERAGI;*MAIN;1;IPFV;NEG;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	25333	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ አልዳርግም	ልክስክስ አልዳርግም	*DERAGI;*MAIN;1;IPFV;NEG;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	25333	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል አልልም	ምስቅልቅል አልልም	*DERAGI;*MAIN;1;IPFV;NEG;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	34922	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ እንዳርጋለን	ልክ እንዳርጋለን	*DERAGI;*MAIN;1;IPFV;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	34922	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ እንዳርጋለን	ልክስክስ እንዳርጋለን	*DERAGI;*MAIN;1;IPFV;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	34922	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል እንላለን	ምስቅልቅል እንላለን	*DERAGI;*MAIN;1;IPFV;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	36387	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ እዳርጋለሁ	ልክ እዳርጋለሁ	*DERAGI;*MAIN;1;IPFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	36387	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ እዳርጋለሁ	ልክስክስ እዳርጋለሁ	*DERAGI;*MAIN;1;IPFV;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	36387	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል እላለሁ	ምስቅልቅል እላለሁ	*DERAGI;*MAIN;1;IPFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	18814	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ አትዳርጊም	ልክ አትዳርጊም	*DERAGI;*MAIN;2;FEM;IPFV;NEG;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	18814	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ አትዳርጊም	ልክስክስ አትዳርጊም	*DERAGI;*MAIN;2;FEM;IPFV;NEG;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	18814	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል አትዪም	ምስቅልቅል አትዪም	*DERAGI;*MAIN;2;FEM;IPFV;NEG;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	5626	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ ትዳርጊአለሽ	ልክ ትዳርጊአለሽ	*DERAGI;*MAIN;2;FEM;IPFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	5626	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ ትዳርጊያለሽ	ልክ ትዳርጊያለሽ	*DERAGI;*MAIN;2;FEM;IPFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	5626	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ ትዳርጊአለሽ	ልክስክስ ትዳርጊአለሽ	*DERAGI;*MAIN;2;FEM;IPFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	15403	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ አትዳርግም	ልክ አትዳርግም	*DERAGI;*MAIN;2;IPFV;MASC;NEG;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	15403	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ አትዳርግም	ልክስክስ አትዳርግም	*DERAGI;*MAIN;2;IPFV;MASC;NEG;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	15403	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል አትልም	ምስቅልቅል አትልም	*DERAGI;*MAIN;2;IPFV;MASC;NEG;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	14383	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ ትዳርጋለህ	ልክ ትዳርጋለህ	*DERAGI;*MAIN;2;IPFV;MASC;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	14383	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ ትዳርጋለህ	ልክስክስ ትዳርጋለህ	*DERAGI;*MAIN;2;IPFV;MASC;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	14383	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል ትላለህ	ምስቅልቅል ትላለህ	*DERAGI;*MAIN;2;IPFV;MASC;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	27189	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ አትዳርጉም	ልክ አትዳርጉም	*DERAGI;*MAIN;2;IPFV;NEG;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	27189	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ አትዳርጉም	ልክስክስ አትዳርጉም	*DERAGI;*MAIN;2;IPFV;NEG;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	27189	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል አትሉም	ምስቅልቅል አትሉም	*DERAGI;*MAIN;2;IPFV;NEG;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	62456	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ ትዳርጋላችሁ	ልክ ትዳርጋላችሁ	*DERAGI;*MAIN;2;IPFV;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	62456	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ ትዳርጋላችሁ	ልክስክስ ትዳርጋላችሁ	*DERAGI;*MAIN;2;IPFV;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	62456	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል ትላላችሁ	ምስቅልቅል ትላላችሁ	*DERAGI;*MAIN;2;IPFV;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	63975	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ አትዳርግም	ልክ አትዳርግም	*DERAGI;*MAIN;3;FEM;IPFV;NEG;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	63975	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ አትዳርግም	ልክስክስ አትዳርግም	*DERAGI;*MAIN;3;FEM;IPFV;NEG;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	63975	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል አትልም	ምስቅልቅል አትልም	*DERAGI;*MAIN;3;FEM;IPFV;NEG;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	35951	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ ትዳርጋለች	ልክ ትዳርጋለች	*DERAGI;*MAIN;3;FEM;IPFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	35951	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ ትዳርጋለች	ልክስክስ ትዳርጋለች	*DERAGI;*MAIN;3;FEM;IPFV;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	35951	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል ትላለች	ምስቅልቅል ትላለች	*DERAGI;*MAIN;3;FEM;IPFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	43736	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ አይዳርግም	ልክ አይዳርግም	*DERAGI;*MAIN;3;IPFV;MASC;NEG;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	43736	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ አይዳርግም	ልክስክስ አይዳርግም	*DERAGI;*MAIN;3;IPFV;MASC;NEG;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	43736	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል አይልም	ምስቅልቅል አይልም	*DERAGI;*MAIN;3;IPFV;MASC;NEG;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	5179	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ ይዳርጋል	ልክ ይዳርጋል	*DERAGI;*MAIN;3;IPFV;MASC;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	5179	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ ይዳርጋል	ልክስክስ ይዳርጋል	*DERAGI;*MAIN;3;IPFV;MASC;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	5179	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል ይላል	ምስቅልቅል ይላል	*DERAGI;*MAIN;3;IPFV;MASC;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	58350	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ አይዳርጉም	ልክ አይዳርጉም	*DERAGI;*MAIN;3;IPFV;NEG;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	58350	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ አይዳርጉም	ልክስክስ አይዳርጉም	*DERAGI;*MAIN;3;IPFV;NEG;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	58350	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል አይሉም	ምስቅልቅል አይሉም	*DERAGI;*MAIN;3;IPFV;NEG;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	24517	imperfective	[t=i,del=sp|sn|sg|neg]	ልክ ይዳርጋሉ	ልክ ይዳርጋሉ	*DERAGI;*MAIN;3;IPFV;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	24517	imperfective	[t=i,del=sp|sn|sg|neg]	ልክስክስ ይዳርጋሉ	ልክስክስ ይዳርጋሉ	*DERAGI;*MAIN;3;IPFV;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	24517	imperfective	[t=i,del=sp|sn|sg|neg]	ምስቅልቅል ይላሉ	ምስቅልቅል ይላሉ	*DERAGI;*MAIN;3;IPFV;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	13099	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክ እንዳርግ	ልክ እንዳርግ	*DERAGI;*MAIN;1;JUS;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	13099	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክስክስ እንዳርግ	ልክስክስ እንዳርግ	*DERAGI;*MAIN;1;JUS;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	13099	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ምስቅልቅል እንበል	ምስቅልቅል እንበል	*DERAGI;*MAIN;1;JUS;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	1243	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክ ልዳርግ	ልክ ልዳርግ	*DERAGI;*MAIN;1;JUS;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	1243	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክስክስ ልዳርግ	ልክስክስ ልዳርግ	*DERAGI;*MAIN;1;JUS;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	1243	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ምስቅልቅል ልበል	ምስቅልቅል ልበል	*DERAGI;*MAIN;1;JUS;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	37904	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክ ዳርጊ	ልክ ዳርጊ	*DERAGI;*MAIN;2;FEM;IMP;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	37904	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክስክስ ዳርጊ	ልክስክስ ዳርጊ	*DERAGI;*MAIN;2;FEM;IMP;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	37904	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ምስቅልቅል በዪ	ምስቅልቅል በዪ	*DERAGI;*MAIN;2;FEM;IMP;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	45888	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክ ዳርግ	ልክ ዳርግ	*DERAGI;*MAIN;2;IMP;MASC;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	45888	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክስክስ ዳርግ	ልክስክስ ዳርግ	*DERAGI;*MAIN;2;IMP;MASC;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	45888	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ምስቅልቅል በል	ምስቅልቅል በል	*DERAGI;*MAIN;2;IMP;MASC;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	27537	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክ ዳርጉ	ልክ ዳርጉ	*DERAGI;*MAIN;2;IMP;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	27537	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክስክስ ዳርጉ	ልክስክስ ዳርጉ	*DERAGI;*MAIN;2;IMP;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	27537	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ምስቅልቅል በሉ	ምስቅልቅል በሉ	*DERAGI;*MAIN;2;IMP;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	35164	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክ ትዳርግ	ልክ ትዳርግ	*DERAGI;*MAIN;3;FEM;JUS;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	35164	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክስክስ ትዳርግ	ልክስክስ ትዳርግ	*DERAGI;*MAIN;3;FEM;JUS;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	35164	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ምስቅልቅል ትበል	ምስቅልቅል ትበል	*DERAGI;*MAIN;3;FEM;JUS;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	10073	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክ ይዳርግ	ልክ ይዳርግ	*DERAGI;*MAIN;3;JUS;MASC;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	10073	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክስክስ ይዳርግ	ልክስክስ ይዳርግ	*DERAGI;*MAIN;3;JUS;MASC;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	10073	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ምስቅልቅል ይበል	ምስቅልቅል ይበል	*DERAGI;*MAIN;3;JUS;MASC;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	5886	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክ ይዳርጉ	ልክ ይዳርጉ	*DERAGI;*MAIN;3;JUS;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	5886	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልክስክስ ይዳርጉ	ልክስክስ ይዳርጉ	*DERAGI;*MAIN;3;JUS;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	5886	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ምስቅልቅል ይበሉ	ምስቅልቅል ይበሉ	*DERAGI;*MAIN;3;JUS;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	20228	perfective	[t=p,del=sp|sn|sg|neg]	ልክ አልዳረግንም	ልክ አልዳረግንም	*DERAGI;*MAIN;1;NEG;PFV;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	20228	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ አልዳረግንም	ልክስክስ አልዳረግንም	*DERAGI;*MAIN;1;NEG;PFV;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	20228	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አላልንም	ምስቅልቅል አላልንም	*DERAGI;*MAIN;1;NEG;PFV;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	31346	perfective	[t=p,del=sp|sn|sg|neg]	ልክ አልዳረግሁም	ልክ አልዳረግሁም	*DERAGI;*MAIN;1;NEG;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	31346	perfective	[t=p,del=sp|sn|sg|neg]	ልክ አልዳረግኩም	ልክ አልዳረግኩም	*DERAGI;*MAIN;1;NEG;PFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	31346	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ አልዳረግሁም	ልክስክስ አልዳረግሁም	*DERAGI;*MAIN;1;NEG;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	11517	perfective	[t=p,del=sp|sn|sg|neg]	ልክ ዳረግን	ልክ ዳረግን	*DERAGI;*MAIN;1;PFV;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	11517	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ ዳረግን	ልክስክስ ዳረግን	*DERAGI;*MAIN;1;PFV;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	11517	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አልን	ምስቅልቅል አልን	*DERAGI;*MAIN;1;PFV;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	25462	perfective	[t=p,del=sp|sn|sg|neg]	ልክ ዳረግሁ	ልክ ዳረግሁ	*DERAGI;*MAIN;1;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	25462	perfective	[t=p,del=sp|sn|sg|neg]	ልክ ዳረግኩ	ልክ ዳረግኩ	*DERAGI;*MAIN;1;PFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	25462	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ ዳረግሁ	ልክስክስ ዳረግሁ	*DERAGI;*MAIN;1;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	10126	perfective	[t=p,del=sp|sn|sg|neg]	ልክ አልዳረግሽም	ልክ አልዳረግሽም	*DERAGI;*MAIN;2;FEM;NEG;PFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	10126	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ አልዳረግሽም	ልክስክስ አልዳረግሽም	*DERAGI;*MAIN;2;FEM;NEG;PFV;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	10126	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አላልሽም	ምስቅልቅል አላልሽም	*DERAGI;*MAIN;2;FEM;NEG;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	4869	perfective	[t=p,del=sp|sn|sg|neg]	ልክ ዳረግሽ	ልክ ዳረግሽ	*DERAGI;*MAIN;2;FEM;PFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	4869	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ ዳረግሽ	ልክስክስ ዳረግሽ	*DERAGI;*MAIN;2;FEM;PFV;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	4869	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አልሽ	ምስቅልቅል አልሽ	*DERAGI;*MAIN;2;FEM;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	51097	perfective	[t=p,del=sp|sn|sg|neg]	ልክ አልዳረግህም	ልክ አልዳረግህም	*DERAGI;*MAIN;2;MASC;NEG;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	51097	perfective	[t=p,del=sp|sn|sg|neg]	ልክ አልዳረግክም	ልክ አልዳረግክም	*DERAGI;*MAIN;2;MASC;NEG;PFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	51097	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ አልዳረግህም	ልክስክስ አልዳረግህም	*DERAGI;*MAIN;2;MASC;NEG;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	41030	perfective	[t=p,del=sp|sn|sg|neg]	ልክ ዳረግህ	ልክ ዳረግህ	*DERAGI;*MAIN;2;MASC;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	41030	perfective	[t=p,del=sp|sn|sg|neg]	ልክ ዳረግክ	ልክ ዳረግክ	*DERAGI;*MAIN;2;MASC;PFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	41030	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ ዳረግህ	ልክስክስ ዳረግህ	*DERAGI;*MAIN;2;MASC;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	46921	perfective	[t=p,del=sp|sn|sg|neg]	ልክ አልዳረጋችሁም	ልክ አልዳረጋችሁም	*DERAGI;*MAIN;2;NEG;PFV;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	46921	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ አልዳረጋችሁም	ልክስክስ አልዳረጋችሁም	*DERAGI;*MAIN;2;NEG;PFV;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	46921	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አላላችሁም	ምስቅልቅል አላላችሁም	*DERAGI;*MAIN;2;NEG;PFV;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	53961	perfective	[t=p,del=sp|sn|sg|neg]	ልክ ዳረጋችሁ	ልክ ዳረጋችሁ	*DERAGI;*MAIN;2;PFV;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	53961	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ ዳረጋችሁ	ልክስክስ ዳረጋችሁ	*DERAGI;*MAIN;2;PFV;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	53961	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አላችሁ	ምስቅልቅል አላችሁ	*DERAGI;*MAIN;2;PFV;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	24060	perfective	[t=p,del=sp|sn|sg|neg]	ልክ አልዳረገችም	ልክ አልዳረገችም	*DERAGI;*MAIN;3;FEM;NEG;PFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	24060	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ አልዳረገችም	ልክስክስ አልዳረገችም	*DERAGI;*MAIN;3;FEM;NEG;PFV;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	24060	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አላለችም	ምስቅልቅል አላለችም	*DERAGI;*MAIN;3;FEM;NEG;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	52883	perfective	[t=p,del=sp|sn|sg|neg]	ልክ ዳረገች	ልክ ዳረገች	*DERAGI;*MAIN;3;FEM;PFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	52883	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ ዳረገች	ልክስክስ ዳረገች	*DERAGI;*MAIN;3;FEM;PFV;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	52883	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አለች	ምስቅልቅል አለች	*DERAGI;*MAIN;3;FEM;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	30695	perfective	[t=p,del=sp|sn|sg|neg]	ልክ አልዳረገም	ልክ አልዳረገም	*DERAGI;*MAIN;3;MASC;NEG;PFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	30695	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ አልዳረገም	ልክስክስ አልዳረገም	*DERAGI;*MAIN;3;MASC;NEG;PFV;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	30695	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አላለም	ምስቅልቅል አላለም	*DERAGI;*MAIN;3;MASC;NEG;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	13071	perfective	[t=p,del=sp|sn|sg|neg]	ልክ ዳረገ	ልክ ዳረገ	*DERAGI;*MAIN;3;MASC;PFV;SG;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	13071	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ ዳረገ	ልክስክስ ዳረገ	*DERAGI;*MAIN;3;MASC;PFV;SG;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	13071	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አለ	ምስቅልቅል አለ	*DERAGI;*MAIN;3;MASC;PFV;SG;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	60674	perfective	[t=p,del=sp|sn|sg|neg]	ልክ አልዳረጉም	ልክ አልዳረጉም	*DERAGI;*MAIN;3;NEG;PFV;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	60674	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ አልዳረጉም	ልክስክስ አልዳረጉም	*DERAGI;*MAIN;3;NEG;PFV;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	60674	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አላሉም	ምስቅልቅል አላሉም	*DERAGI;*MAIN;3;NEG;PFV;PL;V
+light	light:ልክ:ድርግ	ድርግ	A	6435	51498	perfective	[t=p,del=sp|sn|sg|neg]	ልክ ዳረጉ	ልክ ዳረጉ	*DERAGI;*MAIN;3;PFV;PL;V
+light	light:ልክስክስ:ድርግ	ድርግ	A	6072	51498	perfective	[t=p,del=sp|sn|sg|neg]	ልክስክስ ዳረጉ	ልክስክስ ዳረጉ	*DERAGI;*MAIN;3;PFV;PL;V
+light	light:ምስቅልቅል:ብእል	ብእል	A	10442	51498	perfective	[t=p,del=sp|sn|sg|neg]	ምስቅልቅል አሉ	ምስቅልቅል አሉ	*DERAGI;*MAIN;3;PFV;PL;V
+regular	regular:ልምን:B	ልምን	B	70	44777	imperfective	[t=i,del=sp|sn|sg|neg]	አንለምንም	አንለምንም	*DERAGI;*MAIN;1;IPFV;NEG;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	44777	imperfective	[t=i,del=sp|sn|sg|neg]	አንለምድም	አንለምድም	*DERAGI;*MAIN;1;IPFV;NEG;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	44777	imperfective	[t=i,del=sp|sn|sg|neg]	አንለመጥጥም	አንለመጥጥም	*DERAGI;*MAIN;1;IPFV;NEG;PL;V
+regular	regular:ልምን:B	ልምን	B	70	25333	imperfective	[t=i,del=sp|sn|sg|neg]	አልለምንም	አልለምንም	*DERAGI;*MAIN;1;IPFV;NEG;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	25333	imperfective	[t=i,del=sp|sn|sg|neg]	አልለምድም	አልለምድም	*DERAGI;*MAIN;1;IPFV;NEG;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	25333	imperfective	[t=i,del=sp|sn|sg|neg]	አልለመጥጥም	አልለመጥጥም	*DERAGI;*MAIN;1;IPFV;NEG;SG;V
+regular	regular:ልምን:B	ልምን	B	70	34922	imperfective	[t=i,del=sp|sn|sg|neg]	እንለምናለን	እንለምናለን	*DERAGI;*MAIN;1;IPFV;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	34922	imperfective	[t=i,del=sp|sn|sg|neg]	እንለምዳለን	እንለምዳለን	*DERAGI;*MAIN;1;IPFV;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	34922	imperfective	[t=i,del=sp|sn|sg|neg]	እንለመጥጣለን	እንለመጥጣለን	*DERAGI;*MAIN;1;IPFV;PL;V
+regular	regular:ልምን:B	ልምን	B	70	36387	imperfective	[t=i,del=sp|sn|sg|neg]	እለምናለሁ	እለምናለሁ	*DERAGI;*MAIN;1;IPFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	36387	imperfective	[t=i,del=sp|sn|sg|neg]	እለምዳለሁ	እለምዳለሁ	*DERAGI;*MAIN;1;IPFV;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	36387	imperfective	[t=i,del=sp|sn|sg|neg]	እለመጥጣለሁ	እለመጥጣለሁ	*DERAGI;*MAIN;1;IPFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	18814	imperfective	[t=i,del=sp|sn|sg|neg]	አትለምኚም	አትለምኚም	*DERAGI;*MAIN;2;FEM;IPFV;NEG;SG;V
+regular	regular:ልምን:B	ልምን	B	70	18814	imperfective	[t=i,del=sp|sn|sg|neg]	አትለምኝም	አትለምኝም	*DERAGI;*MAIN;2;FEM;IPFV;NEG;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	18814	imperfective	[t=i,del=sp|sn|sg|neg]	አትለምጂም	አትለምጂም	*DERAGI;*MAIN;2;FEM;IPFV;NEG;SG;V
+regular	regular:ልምን:B	ልምን	B	70	5626	imperfective	[t=i,del=sp|sn|sg|neg]	ትለምኚአለሽ	ትለምኚአለሽ	*DERAGI;*MAIN;2;FEM;IPFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	5626	imperfective	[t=i,del=sp|sn|sg|neg]	ትለምኚያለሽ	ትለምኚያለሽ	*DERAGI;*MAIN;2;FEM;IPFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	5626	imperfective	[t=i,del=sp|sn|sg|neg]	ትለምኛለሽ	ትለምኛለሽ	*DERAGI;*MAIN;2;FEM;IPFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	15403	imperfective	[t=i,del=sp|sn|sg|neg]	አትለምንም	አትለምንም	*DERAGI;*MAIN;2;IPFV;MASC;NEG;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	15403	imperfective	[t=i,del=sp|sn|sg|neg]	አትለምድም	አትለምድም	*DERAGI;*MAIN;2;IPFV;MASC;NEG;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	15403	imperfective	[t=i,del=sp|sn|sg|neg]	አትለመጥጥም	አትለመጥጥም	*DERAGI;*MAIN;2;IPFV;MASC;NEG;SG;V
+regular	regular:ልምን:B	ልምን	B	70	14383	imperfective	[t=i,del=sp|sn|sg|neg]	ትለምናለህ	ትለምናለህ	*DERAGI;*MAIN;2;IPFV;MASC;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	14383	imperfective	[t=i,del=sp|sn|sg|neg]	ትለምዳለህ	ትለምዳለህ	*DERAGI;*MAIN;2;IPFV;MASC;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	14383	imperfective	[t=i,del=sp|sn|sg|neg]	ትለመጥጣለህ	ትለመጥጣለህ	*DERAGI;*MAIN;2;IPFV;MASC;SG;V
+regular	regular:ልምን:B	ልምን	B	70	27189	imperfective	[t=i,del=sp|sn|sg|neg]	አትለምኑም	አትለምኑም	*DERAGI;*MAIN;2;IPFV;NEG;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	27189	imperfective	[t=i,del=sp|sn|sg|neg]	አትለምዱም	አትለምዱም	*DERAGI;*MAIN;2;IPFV;NEG;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	27189	imperfective	[t=i,del=sp|sn|sg|neg]	አትለመጥጡም	አትለመጥጡም	*DERAGI;*MAIN;2;IPFV;NEG;PL;V
+regular	regular:ልምን:B	ልምን	B	70	62456	imperfective	[t=i,del=sp|sn|sg|neg]	ትለምናላችሁ	ትለምናላችሁ	*DERAGI;*MAIN;2;IPFV;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	62456	imperfective	[t=i,del=sp|sn|sg|neg]	ትለምዳላችሁ	ትለምዳላችሁ	*DERAGI;*MAIN;2;IPFV;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	62456	imperfective	[t=i,del=sp|sn|sg|neg]	ትለመጥጣላችሁ	ትለመጥጣላችሁ	*DERAGI;*MAIN;2;IPFV;PL;V
+regular	regular:ልምን:B	ልምን	B	70	63975	imperfective	[t=i,del=sp|sn|sg|neg]	አትለምንም	አትለምንም	*DERAGI;*MAIN;3;FEM;IPFV;NEG;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	63975	imperfective	[t=i,del=sp|sn|sg|neg]	አትለምድም	አትለምድም	*DERAGI;*MAIN;3;FEM;IPFV;NEG;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	63975	imperfective	[t=i,del=sp|sn|sg|neg]	አትለመጥጥም	አትለመጥጥም	*DERAGI;*MAIN;3;FEM;IPFV;NEG;SG;V
+regular	regular:ልምን:B	ልምን	B	70	35951	imperfective	[t=i,del=sp|sn|sg|neg]	ትለምናለች	ትለምናለች	*DERAGI;*MAIN;3;FEM;IPFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	35951	imperfective	[t=i,del=sp|sn|sg|neg]	ትለምዳለች	ትለምዳለች	*DERAGI;*MAIN;3;FEM;IPFV;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	35951	imperfective	[t=i,del=sp|sn|sg|neg]	ትለመጥጣለች	ትለመጥጣለች	*DERAGI;*MAIN;3;FEM;IPFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	43736	imperfective	[t=i,del=sp|sn|sg|neg]	አይለምንም	አይለምንም	*DERAGI;*MAIN;3;IPFV;MASC;NEG;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	43736	imperfective	[t=i,del=sp|sn|sg|neg]	አይለምድም	አይለምድም	*DERAGI;*MAIN;3;IPFV;MASC;NEG;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	43736	imperfective	[t=i,del=sp|sn|sg|neg]	አይለመጥጥም	አይለመጥጥም	*DERAGI;*MAIN;3;IPFV;MASC;NEG;SG;V
+regular	regular:ልምን:B	ልምን	B	70	5179	imperfective	[t=i,del=sp|sn|sg|neg]	ይለምናል	ይለምናል	*DERAGI;*MAIN;3;IPFV;MASC;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	5179	imperfective	[t=i,del=sp|sn|sg|neg]	ይለምዳል	ይለምዳል	*DERAGI;*MAIN;3;IPFV;MASC;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	5179	imperfective	[t=i,del=sp|sn|sg|neg]	ይለመጥጣል	ይለመጥጣል	*DERAGI;*MAIN;3;IPFV;MASC;SG;V
+regular	regular:ልምን:B	ልምን	B	70	58350	imperfective	[t=i,del=sp|sn|sg|neg]	አይለምኑም	አይለምኑም	*DERAGI;*MAIN;3;IPFV;NEG;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	58350	imperfective	[t=i,del=sp|sn|sg|neg]	አይለምዱም	አይለምዱም	*DERAGI;*MAIN;3;IPFV;NEG;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	58350	imperfective	[t=i,del=sp|sn|sg|neg]	አይለመጥጡም	አይለመጥጡም	*DERAGI;*MAIN;3;IPFV;NEG;PL;V
+regular	regular:ልምን:B	ልምን	B	70	24517	imperfective	[t=i,del=sp|sn|sg|neg]	ይለምናሉ	ይለምናሉ	*DERAGI;*MAIN;3;IPFV;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	24517	imperfective	[t=i,del=sp|sn|sg|neg]	ይለምዳሉ	ይለምዳሉ	*DERAGI;*MAIN;3;IPFV;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	24517	imperfective	[t=i,del=sp|sn|sg|neg]	ይለመጥጣሉ	ይለመጥጣሉ	*DERAGI;*MAIN;3;IPFV;PL;V
+regular	regular:ልምን:B	ልምን	B	70	13099	jussive_imperative	[t=j,del=sp|sn|sg|neg]	እንለምን	እንለምን	*DERAGI;*MAIN;1;JUS;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	13099	jussive_imperative	[t=j,del=sp|sn|sg|neg]	እንልመድ	እንልመድ	*DERAGI;*MAIN;1;JUS;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	13099	jussive_imperative	[t=j,del=sp|sn|sg|neg]	እንለምጥጥ	እንለምጥጥ	*DERAGI;*MAIN;1;JUS;PL;V
+regular	regular:ልምን:B	ልምን	B	70	1243	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልለምን	ልለምን	*DERAGI;*MAIN;1;JUS;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	1243	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልልመድ	ልልመድ	*DERAGI;*MAIN;1;JUS;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	1243	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልለምጥጥ	ልለምጥጥ	*DERAGI;*MAIN;1;JUS;SG;V
+regular	regular:ልምን:B	ልምን	B	70	37904	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ለምኚ	ለምኚ	*DERAGI;*MAIN;2;FEM;IMP;SG;V
+regular	regular:ልምን:B	ልምን	B	70	37904	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ለምኝ	ለምኝ	*DERAGI;*MAIN;2;FEM;IMP;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	37904	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልመጂ	ልመጂ	*DERAGI;*MAIN;2;FEM;IMP;SG;V
+regular	regular:ልምን:B	ልምን	B	70	45888	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ለምን	ለምን	*DERAGI;*MAIN;2;IMP;MASC;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	45888	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልመድ	ልመድ	*DERAGI;*MAIN;2;IMP;MASC;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	45888	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ለምጥጥ	ለምጥጥ	*DERAGI;*MAIN;2;IMP;MASC;SG;V
+regular	regular:ልምን:B	ልምን	B	70	27537	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ለምኑ	ለምኑ	*DERAGI;*MAIN;2;IMP;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	27537	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ልመዱ	ልመዱ	*DERAGI;*MAIN;2;IMP;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	27537	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ለምጥጡ	ለምጥጡ	*DERAGI;*MAIN;2;IMP;PL;V
+regular	regular:ልምን:B	ልምን	B	70	35164	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ትለምን	ትለምን	*DERAGI;*MAIN;3;FEM;JUS;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	35164	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ትልመድ	ትልመድ	*DERAGI;*MAIN;3;FEM;JUS;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	35164	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ትለምጥጥ	ትለምጥጥ	*DERAGI;*MAIN;3;FEM;JUS;SG;V
+regular	regular:ልምን:B	ልምን	B	70	10073	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይለምን	ይለምን	*DERAGI;*MAIN;3;JUS;MASC;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	10073	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይልመድ	ይልመድ	*DERAGI;*MAIN;3;JUS;MASC;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	10073	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይለምጥጥ	ይለምጥጥ	*DERAGI;*MAIN;3;JUS;MASC;SG;V
+regular	regular:ልምን:B	ልምን	B	70	5886	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይለምኑ	ይለምኑ	*DERAGI;*MAIN;3;JUS;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	5886	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይልመዱ	ይልመዱ	*DERAGI;*MAIN;3;JUS;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	5886	jussive_imperative	[t=j,del=sp|sn|sg|neg]	ይለምጥጡ	ይለምጥጡ	*DERAGI;*MAIN;3;JUS;PL;V
+regular	regular:ልምን:B	ልምን	B	70	20228	perfective	[t=p,del=sp|sn|sg|neg]	አልለመንንም	አልለመንንም	*DERAGI;*MAIN;1;NEG;PFV;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	20228	perfective	[t=p,del=sp|sn|sg|neg]	አልለመድንም	አልለመድንም	*DERAGI;*MAIN;1;NEG;PFV;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	20228	perfective	[t=p,del=sp|sn|sg|neg]	አልለመጠጥንም	አልለመጠጥንም	*DERAGI;*MAIN;1;NEG;PFV;PL;V
+regular	regular:ልምን:B	ልምን	B	70	31346	perfective	[t=p,del=sp|sn|sg|neg]	አልለመንሁም	አልለመንሁም	*DERAGI;*MAIN;1;NEG;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	31346	perfective	[t=p,del=sp|sn|sg|neg]	አልለመንኩም	አልለመንኩም	*DERAGI;*MAIN;1;NEG;PFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	31346	perfective	[t=p,del=sp|sn|sg|neg]	አልለመድሁም	አልለመድሁም	*DERAGI;*MAIN;1;NEG;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	11517	perfective	[t=p,del=sp|sn|sg|neg]	ለመንን	ለመንን	*DERAGI;*MAIN;1;PFV;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	11517	perfective	[t=p,del=sp|sn|sg|neg]	ለመድን	ለመድን	*DERAGI;*MAIN;1;PFV;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	11517	perfective	[t=p,del=sp|sn|sg|neg]	ለመጠጥን	ለመጠጥን	*DERAGI;*MAIN;1;PFV;PL;V
+regular	regular:ልምን:B	ልምን	B	70	25462	perfective	[t=p,del=sp|sn|sg|neg]	ለመንሁ	ለመንሁ	*DERAGI;*MAIN;1;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	25462	perfective	[t=p,del=sp|sn|sg|neg]	ለመንኩ	ለመንኩ	*DERAGI;*MAIN;1;PFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	25462	perfective	[t=p,del=sp|sn|sg|neg]	ለመድሁ	ለመድሁ	*DERAGI;*MAIN;1;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	10126	perfective	[t=p,del=sp|sn|sg|neg]	አልለመንሽም	አልለመንሽም	*DERAGI;*MAIN;2;FEM;NEG;PFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	10126	perfective	[t=p,del=sp|sn|sg|neg]	አልለመድሽም	አልለመድሽም	*DERAGI;*MAIN;2;FEM;NEG;PFV;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	10126	perfective	[t=p,del=sp|sn|sg|neg]	አልለመጠጥሽም	አልለመጠጥሽም	*DERAGI;*MAIN;2;FEM;NEG;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	4869	perfective	[t=p,del=sp|sn|sg|neg]	ለመንሽ	ለመንሽ	*DERAGI;*MAIN;2;FEM;PFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	4869	perfective	[t=p,del=sp|sn|sg|neg]	ለመድሽ	ለመድሽ	*DERAGI;*MAIN;2;FEM;PFV;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	4869	perfective	[t=p,del=sp|sn|sg|neg]	ለመጠጥሽ	ለመጠጥሽ	*DERAGI;*MAIN;2;FEM;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	51097	perfective	[t=p,del=sp|sn|sg|neg]	አልለመንህም	አልለመንህም	*DERAGI;*MAIN;2;MASC;NEG;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	51097	perfective	[t=p,del=sp|sn|sg|neg]	አልለመንክም	አልለመንክም	*DERAGI;*MAIN;2;MASC;NEG;PFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	51097	perfective	[t=p,del=sp|sn|sg|neg]	አልለመድህም	አልለመድህም	*DERAGI;*MAIN;2;MASC;NEG;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	41030	perfective	[t=p,del=sp|sn|sg|neg]	ለመንህ	ለመንህ	*DERAGI;*MAIN;2;MASC;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	41030	perfective	[t=p,del=sp|sn|sg|neg]	ለመንክ	ለመንክ	*DERAGI;*MAIN;2;MASC;PFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	41030	perfective	[t=p,del=sp|sn|sg|neg]	ለመድህ	ለመድህ	*DERAGI;*MAIN;2;MASC;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	46921	perfective	[t=p,del=sp|sn|sg|neg]	አልለመናችሁም	አልለመናችሁም	*DERAGI;*MAIN;2;NEG;PFV;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	46921	perfective	[t=p,del=sp|sn|sg|neg]	አልለመዳችሁም	አልለመዳችሁም	*DERAGI;*MAIN;2;NEG;PFV;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	46921	perfective	[t=p,del=sp|sn|sg|neg]	አልለመጠጣችሁም	አልለመጠጣችሁም	*DERAGI;*MAIN;2;NEG;PFV;PL;V
+regular	regular:ልምን:B	ልምን	B	70	53961	perfective	[t=p,del=sp|sn|sg|neg]	ለመናችሁ	ለመናችሁ	*DERAGI;*MAIN;2;PFV;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	53961	perfective	[t=p,del=sp|sn|sg|neg]	ለመዳችሁ	ለመዳችሁ	*DERAGI;*MAIN;2;PFV;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	53961	perfective	[t=p,del=sp|sn|sg|neg]	ለመጠጣችሁ	ለመጠጣችሁ	*DERAGI;*MAIN;2;PFV;PL;V
+regular	regular:ልምን:B	ልምን	B	70	24060	perfective	[t=p,del=sp|sn|sg|neg]	አልለመነችም	አልለመነችም	*DERAGI;*MAIN;3;FEM;NEG;PFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	24060	perfective	[t=p,del=sp|sn|sg|neg]	አልለመደችም	አልለመደችም	*DERAGI;*MAIN;3;FEM;NEG;PFV;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	24060	perfective	[t=p,del=sp|sn|sg|neg]	አልለመጠጠችም	አልለመጠጠችም	*DERAGI;*MAIN;3;FEM;NEG;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	52883	perfective	[t=p,del=sp|sn|sg|neg]	ለመነች	ለመነች	*DERAGI;*MAIN;3;FEM;PFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	52883	perfective	[t=p,del=sp|sn|sg|neg]	ለመደች	ለመደች	*DERAGI;*MAIN;3;FEM;PFV;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	52883	perfective	[t=p,del=sp|sn|sg|neg]	ለመጠጠች	ለመጠጠች	*DERAGI;*MAIN;3;FEM;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	30695	perfective	[t=p,del=sp|sn|sg|neg]	አልለመነም	አልለመነም	*DERAGI;*MAIN;3;MASC;NEG;PFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	30695	perfective	[t=p,del=sp|sn|sg|neg]	አልለመደም	አልለመደም	*DERAGI;*MAIN;3;MASC;NEG;PFV;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	30695	perfective	[t=p,del=sp|sn|sg|neg]	አልለመጠጠም	አልለመጠጠም	*DERAGI;*MAIN;3;MASC;NEG;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	13071	perfective	[t=p,del=sp|sn|sg|neg]	ለመነ	ለመነ	*DERAGI;*MAIN;3;MASC;PFV;SG;V
+regular	regular:ልምድ:A	ልምድ	A	239	13071	perfective	[t=p,del=sp|sn|sg|neg]	ለመደ	ለመደ	*DERAGI;*MAIN;3;MASC;PFV;SG;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	13071	perfective	[t=p,del=sp|sn|sg|neg]	ለመጠጠ	ለመጠጠ	*DERAGI;*MAIN;3;MASC;PFV;SG;V
+regular	regular:ልምን:B	ልምን	B	70	60674	perfective	[t=p,del=sp|sn|sg|neg]	አልለመኑም	አልለመኑም	*DERAGI;*MAIN;3;NEG;PFV;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	60674	perfective	[t=p,del=sp|sn|sg|neg]	አልለመዱም	አልለመዱም	*DERAGI;*MAIN;3;NEG;PFV;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	60674	perfective	[t=p,del=sp|sn|sg|neg]	አልለመጠጡም	አልለመጠጡም	*DERAGI;*MAIN;3;NEG;PFV;PL;V
+regular	regular:ልምን:B	ልምን	B	70	51498	perfective	[t=p,del=sp|sn|sg|neg]	ለመኑ	ለመኑ	*DERAGI;*MAIN;3;PFV;PL;V
+regular	regular:ልምድ:A	ልምድ	A	239	51498	perfective	[t=p,del=sp|sn|sg|neg]	ለመዱ	ለመዱ	*DERAGI;*MAIN;3;PFV;PL;V
+regular	regular:ልምጥጥ:E	ልምጥጥ	E	0	51498	perfective	[t=p,del=sp|sn|sg|neg]	ለመጠጡ	ለመጠጡ	*DERAGI;*MAIN;3;PFV;PL;V

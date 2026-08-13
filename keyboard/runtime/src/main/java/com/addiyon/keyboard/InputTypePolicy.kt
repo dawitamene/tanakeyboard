@@ -1,6 +1,7 @@
 package com.addiyon.keyboard
 
 import android.text.InputType
+import android.view.inputmethod.EditorInfo
 
 /**
  * Centralizes the EditorInfo -> keyboard-behavior classification used by
@@ -48,6 +49,11 @@ object InputTypePolicy {
             else -> false
         }
     }
+
+    fun disablesPersonalizedLearning(inputType: Int, imeOptions: Int): Boolean =
+        isPrivateInputType(inputType) ||
+            inputType and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS != 0 ||
+            imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING != 0
 }
 
 private val NO_AUTOCAP_VARIATIONS = setOf(

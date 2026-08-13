@@ -38,6 +38,69 @@ class PersonalDictionaryTest {
     }
 
     @Test
+    fun morphologyIdentityRoundTripsWithoutChangingExactSurfaceLearning() {
+        val dictionary = PersonalDictionary.decode(null)
+        dictionary.learn(
+            "am-ET",
+            "ለመደ",
+            MorphologyIdentity("verb:a1", "verb:a1:f2"),
+        )
+
+        val restored = PersonalDictionary.decode(dictionary.encode())
+        val entry = restored.completionEntries("am-ET", "ለ", 3).single()
+
+        assertEquals("ለመደ", entry.word)
+        assertEquals("verb:a1", entry.lemmaId)
+        assertEquals("verb:a1:f2", entry.analysisId)
+    }
+
+    @Test
+    fun analyzerValidatedLightVerbKeepsItsExactMultiwordSurface() {
+        val dictionary = PersonalDictionary.decode(null)
+        dictionary.learn(
+            "am-ET",
+            "አፈፍ አለ",
+            MorphologyIdentity("verb:b2", "verb:b2:f3"),
+        )
+
+        val entry = PersonalDictionary.decode(dictionary.encode())
+            .completionEntries("am-ET", "አፈፍ", 3)
+            .single()
+
+        assertEquals("አፈፍ አለ", entry.word)
+        assertEquals("verb:b2:f3", entry.analysisId)
+    }
+
+    @Test
+    fun malformedMorphologyIdentityCannotAuthorizeMultiwordLearning() {
+        val dictionary = PersonalDictionary.decode(null)
+        dictionary.learn(
+            "am-ET",
+            "not analyzer backed",
+            MorphologyIdentity("verb:bad\tlemma", "verb:analysis"),
+        )
+        val decoded = PersonalDictionary.decode(
+            "addiyon-personal-dictionary-v3\nlanguage:am-ET\t1\talso invalid\tbad id\tverb:analysis"
+        )
+
+        assertTrue(dictionary.allWords().isEmpty())
+        assertTrue(decoded.allWords().isEmpty())
+    }
+
+    @Test
+    fun versionTwoEncodingMigratesWithoutMorphologyMetadata() {
+        val dictionary = PersonalDictionary.decode(
+            "addiyon-personal-dictionary-v2\nlanguage:am-ET\t3\tለመደ"
+        )
+
+        val entry = dictionary.completionEntries("am-ET", "ለ", 3).single()
+
+        assertEquals(3, entry.count)
+        assertEquals(null, entry.lemmaId)
+        assertEquals(null, entry.analysisId)
+    }
+
+    @Test
     fun oldFormatMigratesWordsIntoLanguageAndEmailBuckets() {
         val dictionary = PersonalDictionary.decode(
             "2\tHello\n3\tሰላም\n4\tme@example.com\n1\t---"

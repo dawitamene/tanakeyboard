@@ -524,6 +524,28 @@ class CandidateRankerTest {
     }
 
     @Test
+    fun normalizedNominalAndVerbAmbiguityKeepsOneBestSource() {
+        val ranked = CandidateRanker.rankAmharicDetailed(
+            readings = listOf("ሀ"),
+            limit = 10,
+            frequencyOf = { null },
+            completionsForPrefix = { _, _ ->
+                listOf(
+                    candidate("ሃገር", 100, CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY),
+                    candidate("ሀገር", 100, CandidateRanker.CandidateSource.EXACT_LEXEME),
+                )
+            },
+            normalize = EthiopicNormalizer::normalize,
+        )
+
+        val normalized = ranked.filter {
+            EthiopicNormalizer.normalize(it.candidate.word) == EthiopicNormalizer.normalize("ሀገር")
+        }
+        assertEquals(1, normalized.size)
+        assertEquals(CandidateRanker.CandidateSource.EXACT_LEXEME, normalized.single().candidate.source)
+    }
+
+    @Test
     fun preferGreedyLeavesAnAlreadyLeadingReadingUnchanged() {
         val ranked = CandidateRanker.rankAmharic(
             readings = listOf("ሀ", "ሁ"),

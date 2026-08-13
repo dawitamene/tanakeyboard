@@ -375,6 +375,7 @@ abstract class PackKeyboardService : BaseKeyboardService(),
 
     final override var isPrivateField by mutableStateOf(false)
         private set
+    private var personalizedLearningDisabled = false
 
     // Tracked manually instead of relying on Compose's isSystemInDarkTheme(),
     // because an InputMethodService's window doesn't reliably deliver
@@ -536,8 +537,12 @@ abstract class PackKeyboardService : BaseKeyboardService(),
     private lateinit var personalDictionary: PersonalDictionary
 
     private fun rememberWord(word: String) {
-        if (!::personalDictionary.isInitialized || isPrivateField || isNumberMode) return
-        personalDictionary.learn(activeLanguageId.value, word)
+        if (!::personalDictionary.isInitialized || personalizedLearningDisabled || isNumberMode) return
+        personalDictionary.learn(
+            activeLanguageId.value,
+            word,
+            activeSuggestionEngine.morphologyIdentity(word),
+        )
         try {
             val before = editorGateway.textBeforeCursor(ResumableWord.LOOKBEHIND, optional = true)?.value
             val after = editorGateway.textAfterCursor(1, optional = true)?.value ?: ""
@@ -2250,6 +2255,10 @@ abstract class PackKeyboardService : BaseKeyboardService(),
             fieldAllowsAutoCap = InputTypePolicy.allowsAutoCap(inputType)
             isEmailField = InputTypePolicy.isEmailInputType(inputType)
             isPrivateField = InputTypePolicy.isPrivateInputType(inputType)
+            personalizedLearningDisabled = InputTypePolicy.disablesPersonalizedLearning(
+                inputType,
+                editorInfo?.imeOptions ?: 0,
+            )
         }
     }
 

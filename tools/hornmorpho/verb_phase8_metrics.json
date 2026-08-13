@@ -1,0 +1,23 @@
+{
+  "budgets": {
+    "compressed_bytes": 3145728,
+    "eager_heap_bytes": 5242880
+  },
+  "compressed_bytes": 194597,
+  "corpus_sha256": "15e581631098a4533cb5249cfe236fdc69d9525c46c5668eff2e9720c05b3826",
+  "feature_signatures": 52,
+  "installed_bytes": 770172,
+  "lexemes_by_class": {
+    "irregular": 12,
+    "light": 64,
+    "regular": 100
+  },
+  "root_entries": 176,
+  "schema_version": 2,
+  "sha256": "8a1f683873f9972d6444f4b969a1acb3af0fc86d4f1d5e945601bbcf94456927",
+  "source_rows": 7931,
+  "states": 17046,
+  "terminal_analyses": 7931,
+  "terminal_surfaces": 7666,
+  "transitions": 17045
+}

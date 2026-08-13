@@ -2,13 +2,35 @@ package com.addiyon.keyboard.suggestion
 
 /** Versioned, language-tagged dictionary for words learned only on this device. */
 class PersonalDictionary private constructor(
-    private val buckets: LinkedHashMap<String, LinkedHashMap<String, Int>>
+    private val buckets: LinkedHashMap<String, LinkedHashMap<String, Entry>>
 ) {
-    fun learn(languageId: String, word: String) {
+    data class Entry(
+        val count: Int,
+        val lemmaId: String? = null,
+        val analysisId: String? = null,
+    )
+
+    fun learn(
+        languageId: String,
+        word: String,
+        morphologyIdentity: MorphologyIdentity? = null,
+    ) {
         val value = word.trim()
-        if (value.isEmpty() || value.any { it.isWhitespace() }) return
+        val validIdentity = morphologyIdentity?.takeIf {
+            validMetadataId(it.lemmaId) && validMetadataId(it.analysisId)
+        }
+        if (
+            value.isEmpty() ||
+            value.any { it == '\t' || it == '\n' || it == '\r' } ||
+            validIdentity == null && value.any(Char::isWhitespace)
+        ) return
         val counts = buckets.getOrPut(languageBucket(languageId)) { LinkedHashMap() }
-        counts[value] = (counts.remove(value) ?: 0) + 1
+        val current = counts.remove(value)
+        counts[value] = Entry(
+            count = (current?.count ?: 0) + 1,
+            lemmaId = validIdentity?.lemmaId ?: current?.lemmaId,
+            analysisId = validIdentity?.analysisId ?: current?.analysisId,
+        )
         trimToLimit()
     }
 
@@ -16,7 +38,7 @@ class PersonalDictionary private constructor(
         val value = address.trim()
         if ('@' !in value || value.any { it.isWhitespace() }) return
         val counts = buckets.getOrPut(EMAIL_BUCKET) { LinkedHashMap() }
-        counts[value] = (counts.remove(value) ?: 0) + 1
+        counts[value] = Entry((counts.remove(value)?.count ?: 0) + 1)
         trimToLimit()
     }
 
@@ -32,13 +54,15 @@ class PersonalDictionary private constructor(
         val recencyByWord = entries.mapIndexed { index, entry -> entry.key to index }.toMap()
         return entries.asSequence()
             .filter { it.key.startsWith(prefix, ignoreCase = true) }
-            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+            .sortedWith(compareByDescending<Map.Entry<String, Entry>> { it.value.count }.thenBy { it.key })
             .take(limit)
             .map {
                 PersonalCompletion(
                     word = it.key,
-                    count = it.value,
+                    count = it.value.count,
                     recency = recencyByWord.getValue(it.key),
+                    lemmaId = it.value.lemmaId,
+                    analysisId = it.value.analysisId,
                 )
             }
             .toList()
@@ -59,7 +83,7 @@ class PersonalDictionary private constructor(
 
     fun emailAddresses(): List<String> = buckets[EMAIL_BUCKET]
         ?.entries
-        ?.sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+        ?.sortedWith(compareByDescending<Map.Entry<String, Entry>> { it.value.count }.thenBy { it.key })
         ?.map { it.key }
         .orEmpty()
 
@@ -67,7 +91,7 @@ class PersonalDictionary private constructor(
         buckets[languageBucket(languageId)].orEmpty().entries
         .asSequence()
         .filter { it.key.startsWith(prefix, ignoreCase = true) }
-        .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+        .sortedWith(compareByDescending<Map.Entry<String, Entry>> { it.value.count }.thenBy { it.key })
         .take(limit)
         .map { it.key }
         .toList()
@@ -75,13 +99,17 @@ class PersonalDictionary private constructor(
     fun encode(): String = buildString {
         append(VERSION_HEADER)
         for ((bucket, counts) in buckets) {
-            for ((word, count) in counts) {
+            for ((word, entry) in counts) {
                 append('\n')
                 append(bucket)
                 append('\t')
-                append(count)
+                append(entry.count)
                 append('\t')
                 append(word)
+                append('\t')
+                append(entry.lemmaId.orEmpty())
+                append('\t')
+                append(entry.analysisId.orEmpty())
             }
         }
     }
@@ -96,7 +124,8 @@ class PersonalDictionary private constructor(
 
     companion object {
         private const val MAX_WORDS = 512
-        private const val VERSION_HEADER = "addiyon-personal-dictionary-v2"
+        private const val VERSION_HEADER = "addiyon-personal-dictionary-v3"
+        private const val VERSION_TWO_HEADER = "addiyon-personal-dictionary-v2"
         private const val EMAIL_BUCKET = "email"
         private const val LEGACY_BUCKET = "legacy"
 
@@ -104,8 +133,31 @@ class PersonalDictionary private constructor(
 
         fun decode(encoded: String?): PersonalDictionary {
             val lines = encoded.orEmpty().lineSequence().toList()
-            val result = LinkedHashMap<String, LinkedHashMap<String, Int>>()
+            val result = LinkedHashMap<String, LinkedHashMap<String, Entry>>()
             if (lines.firstOrNull() == VERSION_HEADER) {
+                lines.drop(1).forEach { line ->
+                    val parts = line.split('\t', limit = 5)
+                    if (parts.size != 5) return@forEach
+                    val bucket = parts[0].takeIf {
+                        it == EMAIL_BUCKET || it == LEGACY_BUCKET || it.startsWith("language:")
+                    } ?: return@forEach
+                    val count = parts[1].toIntOrNull()?.coerceAtLeast(1) ?: return@forEach
+                    val lemmaId = parts[3].ifBlank { null }?.takeIf(::validMetadataId)
+                    val analysisId = parts[4].ifBlank { null }?.takeIf(::validMetadataId)
+                    val hasIdentity = lemmaId != null && analysisId != null
+                    val word = parts[2].trim().takeIf {
+                        it.isNotEmpty() &&
+                            it.none { character -> character == '\t' || character == '\n' || character == '\r' } &&
+                            (hasIdentity || it.none(Char::isWhitespace))
+                    } ?: return@forEach
+                    result.getOrPut(bucket) { LinkedHashMap() }[word] =
+                        Entry(
+                            count,
+                            lemmaId.takeIf { hasIdentity },
+                            analysisId.takeIf { hasIdentity },
+                        )
+                }
+            } else if (lines.firstOrNull() == VERSION_TWO_HEADER) {
                 lines.drop(1).forEach { line ->
                     val parts = line.split('\t', limit = 3)
                     if (parts.size != 3) return@forEach
@@ -116,7 +168,7 @@ class PersonalDictionary private constructor(
                     val word = parts[2].trim().takeIf {
                         it.isNotEmpty() && it.none(Char::isWhitespace)
                     } ?: return@forEach
-                    result.getOrPut(bucket) { LinkedHashMap() }[word] = count
+                    result.getOrPut(bucket) { LinkedHashMap() }[word] = Entry(count)
                 }
             } else {
                 lines.forEach { line ->
@@ -132,10 +184,13 @@ class PersonalDictionary private constructor(
                         word.any(Char::isLetter) -> languageBucket("en-US")
                         else -> LEGACY_BUCKET
                     }
-                    result.getOrPut(bucket) { LinkedHashMap() }[word] = count
+                    result.getOrPut(bucket) { LinkedHashMap() }[word] = Entry(count)
                 }
             }
             return PersonalDictionary(result)
         }
+
+        private fun validMetadataId(value: String): Boolean =
+            value.length <= 128 && value.all { it.isLetterOrDigit() || it in ":_-" }
     }
 }

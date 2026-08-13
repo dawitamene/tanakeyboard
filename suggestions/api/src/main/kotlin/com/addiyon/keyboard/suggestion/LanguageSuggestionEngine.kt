@@ -6,6 +6,13 @@ data class PersonalCompletion(
     val word: String,
     val count: Int,
     val recency: Int,
+    val lemmaId: String? = null,
+    val analysisId: String? = null,
+)
+
+data class MorphologyIdentity(
+    val lemmaId: String,
+    val analysisId: String,
 )
 
 fun interface PersonalCompletionSource {
@@ -32,6 +39,7 @@ interface LanguageSuggestionEngine {
     fun predict(prev2: String?, prev1: String, limit: Int): List<EngineSuggestion>
     fun topFrequentWords(limit: Int): List<EngineSuggestion>
     fun normalize(word: String): String
+    fun morphologyIdentity(word: String): MorphologyIdentity? = null
     fun clearCaches()
     fun release()
 }

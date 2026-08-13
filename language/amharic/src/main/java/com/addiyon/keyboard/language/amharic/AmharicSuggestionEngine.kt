@@ -3,10 +3,12 @@ package com.addiyon.keyboard.language.amharic
 import android.content.Context
 import com.addiyon.keyboard.suggestion.AmharicCommitPolicy
 import com.addiyon.keyboard.suggestion.AmharicNounMorphology
+import com.addiyon.keyboard.suggestion.AmharicVerbLexicon
 import com.addiyon.keyboard.suggestion.CandidateRanker
 import com.addiyon.keyboard.suggestion.CompletionQuery
 import com.addiyon.keyboard.suggestion.EngineSuggestion
 import com.addiyon.keyboard.suggestion.LanguageSuggestionEngine
+import com.addiyon.keyboard.suggestion.MorphologyIdentity
 import com.addiyon.keyboard.suggestion.SQLiteDictionary
 import com.addiyon.keyboard.suggestion.SQLiteLanguageStore
 import com.addiyon.keyboard.suggestion.SQLiteMorphLexicon
@@ -46,6 +48,7 @@ class AmharicSuggestionEngine(
     private val dictionary = SQLiteDictionary(store, 1, EthiopicNormalizer::normalize)
     private val ngrams = SQLiteNgramModel(store, EthiopicNormalizer::normalize)
     private val morphLexicon = SQLiteMorphLexicon(store, EthiopicNormalizer::normalize)
+    private val verbLexicon = AmharicVerbLexicon.load(context.assets, onWarning)
     private val suggestionCache = Collections.synchronizedMap(
         object : LinkedHashMap<SuggestionCacheKey, List<String>>(CACHE_SIZE, 0.75f, true) {
             override fun removeEldestEntry(
@@ -162,6 +165,22 @@ class AmharicSuggestionEngine(
             ).forEach { match ->
                 fuzzy += CandidateRanker.FuzzyWord(match.word, match.frequency, match.editDistance)
             }
+            if (fuzzy.size < SUGGESTION_LIMIT) {
+                verbLexicon.fuzzy(
+                    surface = reading,
+                    maxEdits = budget,
+                    limit = SUGGESTION_LIMIT - fuzzy.size,
+                    substitutionCost = FIDEL_COST,
+                    insertCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
+                    deleteCost = AmharicTable.DIFFERENT_CONSONANT_SUBSTITUTION_COST,
+                ).forEach { match ->
+                    fuzzy += CandidateRanker.FuzzyWord(
+                        match.word,
+                        match.frequency,
+                        match.editDistance,
+                    )
+                }
+            }
         }
         val rankedFuzzy = SuggestionTrace.section("candidate_ranking") {
             AmharicSuggestionPipeline.rank(
@@ -196,6 +215,11 @@ class AmharicSuggestionEngine(
         ngrams.topFrequentWords(limit).map { EngineSuggestion(it.word, it.weight) }
 
     override fun normalize(word: String): String = EthiopicNormalizer.normalize(word)
+
+    override fun morphologyIdentity(word: String): MorphologyIdentity? =
+        verbLexicon.exact(word)?.bestAnalysis?.let {
+            MorphologyIdentity(it.lemmaId, it.analysisId)
+        }
 
     override fun clearCaches() {
         suggestionCache.clear()
@@ -275,13 +299,34 @@ class AmharicSuggestionEngine(
             }
         }
         if (Thread.currentThread().isInterrupted) return emptyList()
-        return SuggestionTrace.section("nominal_rule_graph") {
+        val nominal = SuggestionTrace.section("nominal_rule_graph") {
             AmharicNounMorphology.complete(typed, lexemes, limit, alreadyFound) { keys ->
                 SuggestionTrace.section("surface_stats_lookup") {
                     morphLexicon.surfaceFrequencies(keys)
                 }
             }
         }
+        if (Thread.currentThread().isInterrupted) return emptyList()
+        val seen = (alreadyFound.asSequence() + nominal.asSequence())
+            .mapTo(HashSet()) { EthiopicNormalizer.normalize(it.word) }
+        val verbs = SuggestionTrace.section("verb_automaton") {
+            verbLexicon.complete(typed, limit).mapNotNull { terminal ->
+                val key = EthiopicNormalizer.normalize(terminal.surface)
+                if (!seen.add(key)) return@mapNotNull null
+                val analysis = terminal.bestAnalysis
+                CandidateRanker.AmharicCandidate(
+                    word = terminal.surface,
+                    source = CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY,
+                    lexicalFrequency = analysis.rootFrequency,
+                    morphologyCost = when (analysis.sourceClass) {
+                        com.addiyon.keyboard.suggestion.AmharicVerbSourceClass.REGULAR -> 1
+                        com.addiyon.keyboard.suggestion.AmharicVerbSourceClass.IRREGULAR -> 2
+                        com.addiyon.keyboard.suggestion.AmharicVerbSourceClass.LIGHT -> 3
+                    },
+                )
+            }
+        }
+        return nominal + verbs
     }
 
     private fun pinPreferredAlternate(
@@ -299,7 +344,7 @@ class AmharicSuggestionEngine(
         const val ID = "am-ET"
         private const val SUGGESTION_LIMIT = 15
         private const val CACHE_SIZE = 64
-        private const val RANKING_MODEL_VERSION = 1
+        private const val RANKING_MODEL_VERSION = 2
         private const val MAX_FUZZY_READING_LENGTH = 12
         private const val MAX_FUZZY_READINGS = 6
         private const val MORPH_LEXEME_LIMIT = 48

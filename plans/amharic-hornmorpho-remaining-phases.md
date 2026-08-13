@@ -264,9 +264,9 @@ raw slash/gemination notation in the source record for reproducibility.
 | 4 — complete | Reach practical HornMorpho noun/adjective parity | Compact symmetric nominal analyzer/generator | Robust nominal suggestions |
 | 5 — complete | Make ranking provenance-aware | Explicit source tiers and sparse surface statistics | Correct ranking without wordlist bloat |
 | 6 — complete | Restore clean Amharic next-word prediction | Morphology-gated corpus and n-grams | Useful predictions with no garbage leakage |
-| 7 | Decide the verb artifact architecture | Benchmarked ADR/prototype | No verb implementation until decision passes |
-| 8 | Add high-value verb generation and validation | Compact verb artifact and runtime lookup | Common verbs without paradigm explosion |
-| 9 | Add morphology-aware learning/correction and production gates | Personal weighting, fuzz validation, QA/perf suite | Production-ready system |
+| 7 — complete | Decide the verb artifact architecture | Benchmarked ADR/prototype | No verb implementation until decision passes |
+| 8 — complete | Add high-value verb generation and validation | Compact verb artifact and runtime lookup | Common verbs without paradigm explosion |
+| 9 — implementation complete; release review pending | Add morphology-aware learning/correction and production gates | Personal weighting, fuzz validation, QA/perf suite | Technical gates complete; external linguistic/GPL sign-off pending |
 
 Phases should be delivered sequentially. Phase 6 may be developed alongside
 Phase 5 after the validity API is stable. Do not begin Phase 8 before Phase 7
@@ -830,7 +830,7 @@ successors for a representative sample before enabling the model by default.
 - Combined database stays within the agreed size budget.
 - Prediction queries stay indexed and within existing latency limits.
 
-## 10. Phase 7 — verb architecture spike and decision
+## 10. Phase 7 — complete: verb architecture spike and decision
 
 ### Goal
 
@@ -1029,6 +1029,13 @@ pinned oracle and review high-frequency user-facing examples.
 - Total Amharic morphology assets stay inside the ADR budget.
 - Failure to open the verb artifact leaves noun/base suggestions operational.
 
+Implementation status (2026-08-13): the version-2 production artifact and
+pure-Kotlin fail-closed reader are implemented. The checked-in corpus contains
+100 regular, 12 irregular, and 64 light roots across 7,666 terminal surfaces
+and 7,931 analyses. Exact, prefix, negative, irregular/light, normalized
+ambiguity, split-vowel validation, corruption, and latency gates are covered.
+Fluent-speaker review remains a Phase 9 release gate, not an automated claim.
+
 ## 12. Phase 9 — adaptive learning, morphology-aware correction, and release
 
 ### Goal
@@ -1154,6 +1161,19 @@ Also verify:
 - release build/R8 does not remove artifact readers or serializers;
 - failure/corruption paths fall back safely.
 
+Implementation status (2026-08-13): morphology-aware local learning and
+version-3 migration, analyzer-backed weighted fuzzy correction, low-RAM and
+private/no-learning policy, connected publication/stability benchmarks,
+opt-in 10-minute heap/PSS soak, grouped review sheet, packaging boundaries,
+and deterministic regeneration checks are implemented. Final release remains
+gated on a completed fluent-Amharic review sheet and release-owner GPL
+distribution/source-offer approval. The Android 15 `TanaLowRam` warm
+publication test passed at 69.258334 ms p95 (82.454167 ms max; 20.349375 ms
+for a one-character prefix). The isolated 600,000 ms soak passed 1,606 typing
+iterations; post-GC heap changed from 7,457,856 to 7,461,984 bytes and PSS
+changed from 205,794,304 to 204,076,032 bytes, with bounded sampled peaks of
+21,937,280 and 219,596,800 bytes respectively.
+
 ## 13. Cross-phase test matrix
 
 The following is a minimum matrix. Oracle-derived cases should expand it.
@@ -1189,7 +1209,7 @@ size test.
 | Phase 4 full practical nouns | < 3 MiB |
 | Phase 5 sparse surface stats | 2,477-byte asset; 16,384-byte DB delta observed; 2,048-row cap |
 | Phase 6 n-grams | 454-byte asset; schema 11 DB is 2,506,752 bytes, 32,768 bytes smaller than Phase 5 |
-| Phase 7/8 verb artifact | Target < 3 MiB compressed delta |
+| Phase 7 verb spike | 12,006-byte selected prototype; target < 3 MiB compressed delta retained for Phase 8 |
 | Runtime eager morphology heap | Target < 5 MiB incremental |
 
 Do not optimize only for APK size. Record database/artifact size, compressed
@@ -1302,6 +1322,9 @@ Append entries here instead of rewriting the historical snapshot.
 | 2026-08-12 | 4 | Uncommitted | Practical nominal parity implemented | Shared bounded forward/reverse rule graph with structured analyses; schema 9 stable lexeme IDs, feature bits, stem classes, and indexed nominal filtering; deterministic 1,060-case Phase 4 oracle corpus (948 supported, 17 explicit exclusions, 95 negatives) across 42 lexemes; combined Phase 3/4 coverage is 1,270 supported and 215 negative cases. SQLite DB is 2,523,136 bytes and byte-deterministic (`461ae3a2f1627b0f3ab117b0fd592e278d9e1f564e15baa343339e930b76f604`). JVM p95: 0.44 ms nominal lookup and 7.24 ms complete pipeline. Connected Android 16 Medium Phone AVD p95: 67.13 ms from final key to publication, max 92.64 ms; the requested `TanaLowRam` AVD was not available on this machine. |
 | 2026-08-13 | 5 | Uncommitted | Provenance-aware ranking and sparse statistics implemented | Exact lexeme, greedy literal, attested surface, generated morphology, personal evidence, and fuzzy provenance are explicit with invariant-tested source bands and deterministic canonical ties. Schema 10 adds 481 analyzer-gated surface counts as ranking metadata only; the 2,477-byte gzip is capped at 2,048 rows and byte-deterministic (`25491607220c2a6ffd622e6903f835c741f3a46f9c448e685990cd9c919ae331`). The Amharic DB is 2,539,520 bytes, a 16,384-byte delta from Phase 4, and byte-deterministic (`b9d30ca9c1cb8767b7125cc9dd698074c19db8de2bb91799890947dac4bb6f6a`). JVM p95: 0.60 ms nominal lookup and 7.22 ms complete pipeline. Connected Android 15 `TanaLowRam` p95: 71.02 ms from final key to publication, max 73.27 ms. All Phase 5 affected suites, including the existing English ranking tests, remain green. |
 | 2026-08-13 | 6 | Uncommitted | Conservative morphology-gated prediction baseline implemented | A project-authored 31-line corpus produces a deterministic 454-byte bigram-only model with 40 validated surface entries, 33 contexts, and 50 successor rows. Schema 11 separates `ngram_vocab` from base `words`, allowing analyzer-valid inflections without dictionary leakage. The preselected held-out metric is 11/14 top-3 hits (`0.785714`) versus zero for the empty baseline. The 2,506,752-byte DB is deterministic (`6df9462b48a876953d9fbd7b18421db4f848cc9f0431989b90b6d4b2c9367d03`); warm JVM prediction p95 is 0.106 ms. Focused/full affected suites, both APK assemblies, Addiyon install, and a connected Android 15 `TanaLowRam` inflected-prediction smoke test pass. The product gate still reports the two unrelated pre-existing architecture-contract failures for Addiyon manual-screen placement and shared `aiTone*` design tokens. Broader corpus import and trigrams remain gated on documented corpus provenance and fluent-speaker context review. |
+| 2026-08-13 | 7 | Uncommitted | Compact verb automaton selected and architecture gate passed | Vendored the pinned direct verb cascade and fixed two invalid developer-oracle dependency pins. A deterministic 407-row oracle corpus round-trips 100 regular roots, 12 irregular roots, and 20 light-verb lexemes across three high-value feature probes. The accepted test-only `AHVA` version-1 artifact has 922 states, 921 transitions, 402 surfaces, and 407 analyses; it is 39,394 bytes installed and 12,006 bytes under deterministic gzip (`a72950884fdfa6c76cd7a9f6e37e05bf7ca2f51b4ddd67e6386f17433feee963`). Reference p95 is 0.0052 ms exact and 0.0141 ms prefix with 171,320 peak allocated bytes. The pruned DAFSA saves only 971 installed bytes while losing 2.7% of oracle rows, and the mechanical rule-graph prototype cannot execute HornMorpho unification. A clean second oracle/artifact build was byte-identical; the full JVM suite, both APK assemblies, and Addiyon install on Android 15 `TanaLowRam` pass. Both APKs retain the HornMorpho license and exclude the test-only verb artifacts. `checkKeyboardProducts` reaches only the two unrelated pre-existing architecture-contract failures from section 2.3. The accepted ADR is `docs/adr/amharic-verb-morphology-artifact.md`; runtime verb integration remains Phase 8. |
+| 2026-08-13 | 8 | Uncommitted | Production high-value verb morphology implemented | A deterministic `AHVA` version-2 asset ships 100 regular, 12 irregular, and 64 light roots with 7,666 terminal surfaces and 7,931 analyses across perfective, imperfective, and jussive/imperative forms. The 770,172-byte artifact is 194,597 bytes under deterministic gzip and has SHA-256 `8a1f683873f9972d6444f4b969a1acb3af0fc86d4f1d5e945601bbcf94456927`. The pure-Kotlin reader validates manifest/SHA, schema, CRC, offsets, records, and string bounds; failures preserve noun/base suggestions. Runtime merges normalized noun/verb candidates before provenance-aware ranking, and analyzer-backed split-vowel forms are admitted only when a terminal exists. |
+| 2026-08-13 | 9 | Uncommitted | Adaptive morphology and technical release gates implemented | Personal dictionary version 3 retains exact surfaces plus stable optional verb lemma/analysis IDs with v2/legacy migration and on-device-only storage. Password, no-suggestions, and no-personalized-learning fields do not learn. Weighted fuzzy traversal can return only exact analyzer terminals and stays disabled on low-RAM paths. Android 15 `TanaLowRam` warm publication passed at 69.258334 ms p95 (82.454167 ms max), and the isolated 600,000 ms soak passed 1,606 iterations with post-GC heap 7,457,856 → 7,461,984 bytes and PSS 205,794,304 → 204,076,032 bytes. A deterministic 210-row seven-source review sheet is ready; fluent-Amharic verdicts and release-owner GPL distribution/source-offer sign-off remain external release blockers. |
 
 ## 19. Primary references
 
