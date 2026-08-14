@@ -6,6 +6,7 @@ import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
@@ -20,20 +21,15 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         }
         extensions.configure<ApplicationAndroidComponentsExtension> {
             onVariants(selector().all()) { variant ->
-                val output = variant.outputs.single()
                 val productName = name
                 val variantName = variant.name.replaceFirstChar { it.uppercase() }
                 val copyTask = tasks.register<Copy>("copy${variantName}ApkToShared") {
                     from(variant.artifacts.get(SingleArtifact.APK))
                     include("*.apk")
                     into("/Users/dev/Sync/addiyon-keyboard")
+                    outputs.upToDateWhen { false }
                     rename {
-                        val timestamp = SimpleDateFormat(
-                            "yyyy-MM-dd-hh-mm-a",
-                            Locale.US
-                        ).format(Date())
-                        "$productName-${variant.name}-v${output.versionName.get()}-" +
-                            "${output.versionCode.get()}-$timestamp.apk"
+                        sharedApkFileName(productName, Date())
                     }
                 }
                 tasks.matching { it.name == "assemble$variantName" }.configureEach {
@@ -42,4 +38,15 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             }
         }
     }
+}
+
+internal fun sharedApkFileName(
+    productName: String,
+    date: Date,
+    timeZone: TimeZone = TimeZone.getDefault()
+): String {
+    val timestamp = SimpleDateFormat("hh:mma", Locale.US).apply {
+        this.timeZone = timeZone
+    }.format(date)
+    return "$productName-$timestamp.apk"
 }
