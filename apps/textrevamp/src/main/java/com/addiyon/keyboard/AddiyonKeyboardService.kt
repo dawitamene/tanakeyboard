@@ -11,7 +11,6 @@ class AddiyonKeyboardService : PackKeyboardService() {
     override val appShellActivityClass: Class<out KeyboardAppShellActivity> = MainActivity::class.java
 
     private lateinit var aiFeature: AiKeyboardFeature
-    private var completionEditorInfo: EditorInfo? = null
 
     override val configuredLanguagePackProviders = TextRevampLanguagePackProviders
 
@@ -22,16 +21,8 @@ class AddiyonKeyboardService : PackKeyboardService() {
             editor = AiEditorAdapter(editorGateway),
             strings = EnglishTextRevampStrings.asAiUiStrings(),
             isPrivateFieldProvider = { isPrivateField },
-            isCompletionFieldEligibleProvider = {
-                AiCompletionFieldPolicy.isEligible(completionEditorInfo) &&
-                    !isPrivateField &&
-                    !isEmailField &&
-                    !isNumberMode &&
-                    !showEmojiPanel
-            },
             prepareForPanel = ::prepareForOptionalPanel,
             onTextReplaced = ::onOptionalFeatureTextReplaced,
-            onCompletionAccepted = ::onOptionalFeatureTextCommitted,
             openAuth = { openAiAccount(AiAccountActivity.MODE_AUTH) },
             openDashboard = { openAiAccount(AiAccountActivity.MODE_DASHBOARD) }
         )
@@ -42,20 +33,17 @@ class AddiyonKeyboardService : PackKeyboardService() {
         if (::aiFeature.isInitialized) aiFeature.optionalKeyboardUi() else OptionalKeyboardUi()
 
     override fun onStartInput(editorInfo: EditorInfo?, restarting: Boolean) {
-        completionEditorInfo = editorInfo
         super.onStartInput(editorInfo, restarting)
         if (::aiFeature.isInitialized) aiFeature.onStartInput()
     }
 
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
-        completionEditorInfo = editorInfo
         super.onStartInputView(editorInfo, restarting)
         if (::aiFeature.isInitialized) aiFeature.onStartInputView()
     }
 
     override fun onFinishInput() {
         if (::aiFeature.isInitialized) aiFeature.onFinishInput()
-        completionEditorInfo = null
         super.onFinishInput()
     }
 

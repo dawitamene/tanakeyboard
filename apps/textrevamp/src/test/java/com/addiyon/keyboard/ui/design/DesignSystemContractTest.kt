@@ -11,33 +11,42 @@ import org.junit.Test
 
 class DesignSystemContractTest {
     @Test
-    fun phraseCompletionRowUsesTheFixedImeContract() {
+    fun toneActionRowUsesTheFixedImeContractWhilePhraseCompletionIsSuspended() {
         val root = projectRoot()
-        val bar = root.resolve(
-            "features/ai/src/main/java/com/addiyon/keyboard/ui/ai/AiCompletionBar.kt"
+        val panel = root.resolve(
+            "features/ai/src/main/java/com/addiyon/keyboard/ui/ai/AiPanel.kt"
+        ).readText()
+        val feature = root.resolve(
+            "features/ai/src/main/java/com/addiyon/keyboard/ai/AiKeyboardFeature.kt"
+        ).readText()
+        val dashboard = root.resolve(
+            "features/ai/src/main/java/com/addiyon/keyboard/ui/ai/AiDashboardContent.kt"
         ).readText()
         val screen = root.resolve(
             "keyboard/ui/src/main/java/com/addiyon/keyboard/ui/KeyboardScreen.kt"
         ).readText()
-        val strings = root.resolve(
-            "apps/textrevamp/src/main/java/com/addiyon/keyboard/TextRevampStrings.kt"
-        ).readText()
         val designSystem = root.resolve("docs/DESIGN_SYSTEM.md").readText()
 
-        assertTrue(bar.contains("height(AddiyonSizes.keyboardAction)"))
-        assertTrue(bar.contains("MaterialTheme.colorScheme.surfaceVariant"))
-        assertTrue(bar.contains("maxLines = 1"))
-        assertTrue(bar.contains("private fun CompletionIdleStatus"))
-        assertTrue(bar.contains("horizontalArrangement = Arrangement.Center"))
-        assertTrue(bar.contains("private fun CompletionLoadingDots"))
-        assertTrue(bar.contains("rememberInfiniteTransition"))
-        assertTrue(bar.contains("repeat(3)"))
-        assertTrue(bar.contains("contentDescription = label"))
-        assertTrue(strings.contains("Type something to complete the phrase"))
+        assertTrue(panel.contains("fun AiToneRow("))
+        assertTrue(panel.contains("height(AddiyonSizes.keyboardAction)"))
+        assertTrue(panel.contains("horizontalScroll(rememberScrollState())"))
+        assertTrue(panel.contains("enabled = enabled"))
+        assertTrue(panel.contains("DISABLED_TONE_ALPHA"))
+        assertTrue(feature.contains("contextualRowVisible = !uiState.isVisible"))
+        assertTrue(feature.contains("AiToneRow("))
+        assertTrue(feature.contains("enabled = toneActionsEnabled"))
+        assertTrue(feature.contains("onTabSelected = ::onKeyboardToneSelected"))
+        assertTrue(feature.contains("controller.captureInput().text.isNotBlank()"))
+        assertTrue(!feature.contains("AiCompletionController"))
+        assertTrue(!feature.contains("AiCompletionBar"))
+        assertTrue(!feature.contains("createCompletion("))
+        assertTrue(feature.contains("store.setPhraseCompletionsEnabled(false)"))
+        assertTrue(!dashboard.contains("Switch("))
+        assertTrue(!dashboard.contains("aiPhraseCompletionTitle"))
         assertTrue(screen.contains("optionalUi.contextualRow()"))
-        assertTrue(designSystem.contains("optional phrase-completion row"))
+        assertTrue(designSystem.contains("horizontally scrollable tone-action row"))
         assertTrue(designSystem.contains("44 dp"))
-        assertTrue(designSystem.contains("animated three-dot indicator"))
+        assertTrue(designSystem.contains("Phrase completion is currently suspended"))
     }
 
     @Test

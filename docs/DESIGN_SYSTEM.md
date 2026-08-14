@@ -222,18 +222,21 @@ halo sweeps and pulses; the treatment returns to the static gradient when the
 request finishes. The selected semantics and glow treatment identify selection
 without changing the chip fill.
 
-TextRevamp may expose one optional phrase-completion row immediately above the
-standard suggestion strip. The row is exactly `AddiyonSizes.keyboardAction`
-(44 dp), uses `CustomKeyboardTheme` semantic surface/content roles, remains
-one line and non-scrolling, and keeps the same height across idle, debounce,
-loading, and ready states. It is absent when the opted-in feature or editor is
-ineligible, when an optional full panel replaces the keyboard, and in Addiyon.
-Its idle and debounce states center the AI icon with the instruction “Type
-something to complete the phrase.” Loading replaces that prompt with a centered,
-animated three-dot indicator that retains an accessible loading description.
-The completion body and dismiss action are separate controls; displayed text
-may omit a leading separator for readability, while insertion preserves the
-exact suffix.
+TextRevamp exposes the horizontally scrollable tone-action row immediately above
+the standard suggestion strip. The row is exactly `AddiyonSizes.keyboardAction`
+(44 dp), uses `CustomKeyboardTheme` semantic surface/content roles, and reuses
+the same pill controls and semantic tone icons as the AI panel. Every tone stays
+visible but is disabled with reduced emphasis until the editor contains text;
+private fields also keep the actions disabled. Choosing an enabled tone opens
+the AI panel and starts that transformation. The row is absent while the full
+AI panel replaces the keyboard and is never included in Addiyon. During a
+request, the selected tone's animated magenta-to-blue halo uses a substantially
+stronger pulse so the loading state remains obvious at keyboard scale.
+
+Phrase completion is currently suspended: TextRevamp does not create its
+completion controller, render the phrase-completion bar, or expose its account
+dashboard switch. The dormant completion implementation may remain in source
+for future iteration, but it must not be reachable from the product runtime.
 
 ## Component patterns
 

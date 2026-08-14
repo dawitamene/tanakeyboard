@@ -217,6 +217,7 @@ class AiUiTest {
         compose.onNodeWithText("AI account").assertIsDisplayed()
         compose.onNodeWithText("Your AI workspace").assertIsDisplayed()
         compose.onNodeWithText(EnglishTextRevampStrings.aiSignInAction).assertIsDisplayed()
+        compose.onNodeWithText(EnglishTextRevampStrings.aiPhraseCompletionTitle).assertDoesNotExist()
     }
 
     @Test

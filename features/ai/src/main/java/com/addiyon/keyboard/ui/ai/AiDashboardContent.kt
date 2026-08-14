@@ -17,15 +17,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.Button
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,11 +37,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.ai.AiQuota
-import com.addiyon.keyboard.ai.CURRENT_PHRASE_COMPLETION_CONSENT_VERSION
 import com.addiyon.keyboard.features.appshell.KeyboardPageTopBar
 import com.addiyon.keyboard.ui.design.AddiyonRadii
 import com.addiyon.keyboard.ui.design.AddiyonSizes
-import com.addiyon.keyboard.ui.design.AddiyonSpacing
 import java.util.Locale
 import java.util.TimeZone
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +47,6 @@ import kotlinx.coroutines.withContext
 
 const val AI_DASHBOARD_USAGE_TAG = "ai.dashboard.usage"
 const val AI_DASHBOARD_ACCOUNT_TAG = "ai.dashboard.account"
-const val AI_DASHBOARD_COMPLETION_TAG = "ai.dashboard.completion"
 
 @Composable
 fun AiDashboardContent(
@@ -66,10 +60,6 @@ fun AiDashboardContent(
     val locale = Locale.ENGLISH
     var jwt by remember(accountStore) { mutableStateOf(accountStore.jwt()) }
     var quota by remember(accountStore) { mutableStateOf(accountStore.quota()) }
-    var phraseCompletionsEnabled by remember(accountStore) {
-        mutableStateOf(accountStore.phraseCompletionsEnabled())
-    }
-    var showCompletionDisclosure by remember { mutableStateOf(false) }
     val email = accountStore.email()
     val isLoggedIn = !jwt.isNullOrBlank()
     val limit = quota.limit
@@ -140,55 +130,6 @@ fun AiDashboardContent(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(AI_DASHBOARD_COMPLETION_TAG)
-                    .padding(vertical = AddiyonSpacing.xs)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            strings.aiPhraseCompletionTitle,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            if (isLoggedIn) {
-                                strings.aiPhraseCompletionDescription
-                            } else {
-                                strings.aiPhraseCompletionSignedOut
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = AddiyonSpacing.xxs)
-                        )
-                    }
-                    Spacer(Modifier.width(AddiyonSpacing.sm))
-                    Switch(
-                        checked = phraseCompletionsEnabled && isLoggedIn,
-                        enabled = isLoggedIn,
-                        onCheckedChange = { enabled ->
-                            if (!enabled) {
-                                accountStore.setPhraseCompletionsEnabled(false)
-                                phraseCompletionsEnabled = false
-                            } else if (
-                                accountStore.phraseCompletionConsentVersion() >=
-                                CURRENT_PHRASE_COMPLETION_CONSENT_VERSION
-                            ) {
-                                accountStore.setPhraseCompletionsEnabled(true)
-                                phraseCompletionsEnabled = true
-                            } else {
-                                showCompletionDisclosure = true
-                            }
-                        }
                     )
                 }
             }
@@ -285,7 +226,6 @@ fun AiDashboardContent(
                 OutlinedButton(
                     onClick = {
                         accountStore.setPhraseCompletionsEnabled(false)
-                        phraseCompletionsEnabled = false
                         accountStore.clearJwt()
                         jwt = null
                         onLogout()
@@ -318,30 +258,4 @@ fun AiDashboardContent(
         }
     }
 
-    if (showCompletionDisclosure) {
-        AlertDialog(
-            onDismissRequest = { showCompletionDisclosure = false },
-            title = { Text(strings.aiPhraseCompletionDisclosureTitle) },
-            text = { Text(strings.aiPhraseCompletionDisclosureMessage) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        accountStore.setPhraseCompletionConsentVersion(
-                            CURRENT_PHRASE_COMPLETION_CONSENT_VERSION
-                        )
-                        accountStore.setPhraseCompletionsEnabled(true)
-                        phraseCompletionsEnabled = true
-                        showCompletionDisclosure = false
-                    }
-                ) {
-                    Text(strings.aiPhraseCompletionEnable)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCompletionDisclosure = false }) {
-                    Text(strings.aiPhraseCompletionNotNow)
-                }
-            }
-        )
-    }
 }

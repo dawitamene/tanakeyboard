@@ -39,12 +39,13 @@ class AiPanelDesignSystemContractTest {
                 panel.contains("isLoading = state.isLoading") &&
                 panel.contains("val toneGlowVisuals = toneGlowVisuals(isLoading)") &&
                 panel.contains("selected = selected") &&
-                panel.contains("val glowModifier = if (selected)") &&
+                panel.contains("val glowModifier = if (selected && enabled)") &&
                 panel.contains("modifier = glowModifier") &&
                 panel.contains("color = MaterialTheme.colorScheme.surface") &&
-                panel.contains("contentColor = MaterialTheme.colorScheme.onSurfaceVariant") &&
+                panel.contains("val contentColor = MaterialTheme.colorScheme.onSurfaceVariant") &&
+                panel.contains("contentColor = contentColor") &&
                 panel.contains("shadow = toneGlowVisuals.glow") &&
-                panel.contains("border = if (selected) toneGlowVisuals.border else null") &&
+                panel.contains("border = if (selected && enabled) toneGlowVisuals.border else null") &&
                 !panel.contains("aiToneSelectedContainer") &&
                 !panel.contains("onAiToneSelectedContainer") &&
                 panel.contains(".padding(horizontal = AddiyonSpacing.xs)") &&
@@ -65,7 +66,7 @@ class AiPanelDesignSystemContractTest {
                 panel.contains("strings.aiToneLabel")
         )
         val toolbar = panel.substringAfter("private fun AiPanelToolbar")
-            .substringBefore("private fun AiToneRow")
+            .substringBefore("fun AiToneRow")
         assertTrue(
             "The AI toolbar back action must have a transparent 44 dp target with 6 dp around its arrow.",
             panel.contains("SuggestionChevronLeftButton(") &&
@@ -109,7 +110,16 @@ class AiPanelDesignSystemContractTest {
                 toneGlowVisuals.contains("animatedToneGradient(colors, phase)") &&
                 toneGlowVisuals.contains("it.copy(alpha = glowAlpha)") &&
                 toneGlowVisuals.contains("colors.start.copy(alpha = glowAlpha)") &&
-                toneGlowVisuals.contains("colors.end.copy(alpha = glowAlpha)")
+                toneGlowVisuals.contains("colors.end.copy(alpha = glowAlpha)") &&
+                toneGlowVisuals.contains("0.64f") &&
+                toneGlowVisuals.contains("0.56f")
+        )
+        assertTrue(
+            "Tone actions must remain visible at 44 dp and disable as a group when the editor is empty.",
+            panel.contains("height(AddiyonSizes.keyboardAction)") &&
+                panel.contains("testTag(AI_TONE_ACTION_ROW_TAG)") &&
+                panel.contains("enabled = enabled") &&
+                panel.contains("DISABLED_TONE_ALPHA")
         )
     }
 

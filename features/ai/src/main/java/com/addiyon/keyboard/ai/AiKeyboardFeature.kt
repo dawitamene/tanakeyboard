@@ -14,8 +14,8 @@ import androidx.compose.runtime.setValue
 import com.addiyon.keyboard.ui.KeyboardToolbarAction
 import com.addiyon.keyboard.ui.OptionalKeyboardUi
 import com.addiyon.keyboard.ui.ai.AiAccountStore
-import com.addiyon.keyboard.ui.ai.AiCompletionBar
 import com.addiyon.keyboard.ui.ai.AiPanel
+import com.addiyon.keyboard.ui.ai.AiToneRow
 import com.addiyon.keyboard.ui.ai.AiUiStrings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +37,6 @@ class AiKeyboardFeature internal constructor(
     private val openAuth: () -> Unit,
     private val openDashboard: () -> Unit,
     private val copyResult: (label: String, text: String) -> Unit,
-    private val completionController: AiCompletionController,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 ) {
     var uiState by mutableStateOf(
@@ -49,6 +48,7 @@ class AiKeyboardFeature internal constructor(
         private set
 
     private var requestJob: Job? = null
+    private var toneActionsEnabled by mutableStateOf(false)
 
     @Composable
     fun optionalKeyboardUi(): OptionalKeyboardUi = OptionalKeyboardUi(
@@ -57,13 +57,14 @@ class AiKeyboardFeature internal constructor(
             contentDescription = strings.aiToolbarDescription,
             onClick = ::onToolbarAction
         ),
-        contextualRowVisible = completionController.uiState !is AiCompletionUiState.Hidden,
+        contextualRowVisible = !uiState.isVisible,
         contextualRow = {
-            AiCompletionBar(
-                state = completionController.uiState,
+            AiToneRow(
+                selectedTab = null,
+                isLoading = false,
+                enabled = toneActionsEnabled,
                 strings = strings,
-                onInsert = { completionController.accept() },
-                onDismiss = completionController::dismiss
+                onTabSelected = ::onKeyboardToneSelected
             )
         },
         panelVisible = uiState.isVisible,
@@ -71,6 +72,7 @@ class AiKeyboardFeature internal constructor(
         panel = {
             AiPanel(
                 state = uiState,
+                tonesEnabled = toneActionsEnabled,
                 strings = strings,
                 onDismiss = ::dismissPanel,
                 onTabSelected = ::onTabSelected,
@@ -82,7 +84,6 @@ class AiKeyboardFeature internal constructor(
     )
 
     fun onToolbarAction() {
-        completionController.reset()
         if (uiState.isVisible) {
             dismissPanel()
             return
@@ -94,6 +95,7 @@ class AiKeyboardFeature internal constructor(
         }
         val privateField = isPrivateFieldProvider()
         val captured = if (privateField) null else controller.captureInput()
+        toneActionsEnabled = captured?.text?.isNotBlank() == true
         cancelRequest()
         uiState = AiUiState(
             isVisible = true,
@@ -137,6 +139,7 @@ class AiKeyboardFeature internal constructor(
             isLoading = false,
             isQuotaLoading = false
         )
+        refreshToneActionsEnabled()
     }
 
     fun onTabSelected(tab: AiToneTab) {
@@ -159,6 +162,7 @@ class AiKeyboardFeature internal constructor(
             return
         }
         val input = controller.captureInput()
+        toneActionsEnabled = input.text.isNotBlank()
         uiState = uiState.copy(input = input)
         if (input.text.isBlank()) {
             uiState = uiState.copy(error = AiError.NoText)
@@ -246,9 +250,15 @@ class AiKeyboardFeature internal constructor(
         }
     }
 
-    fun onStartInput() = resetForLifecycle()
+    fun onStartInput() {
+        resetForLifecycle()
+        refreshToneActionsEnabled()
+    }
 
-    fun onStartInputView() = resetForLifecycle()
+    fun onStartInputView() {
+        resetForLifecycle()
+        refreshToneActionsEnabled()
+    }
 
     fun onFinishInput() = resetForLifecycle()
 
@@ -260,7 +270,17 @@ class AiKeyboardFeature internal constructor(
     }
 
     fun onEditorContextChanged() {
-        completionController.onEditorContextChanged(uiState.isVisible)
+        if (!uiState.isVisible) refreshToneActionsEnabled()
+    }
+
+    private fun onKeyboardToneSelected(tab: AiToneTab) {
+        if (!toneActionsEnabled) return
+        onToolbarAction()
+        if (uiState.isVisible) onTabSelected(tab)
+    }
+
+    private fun refreshToneActionsEnabled() {
+        toneActionsEnabled = !isPrivateFieldProvider() && controller.captureInput().text.isNotBlank()
     }
 
     private fun selectVariant(strength: AiStrength): AiResult? {
@@ -273,8 +293,8 @@ class AiKeyboardFeature internal constructor(
 
     private fun resetForLifecycle() {
         cancelRequest()
-        completionController.reset()
         controller.invalidateEditorCaptures()
+        toneActionsEnabled = false
         uiState = AiUiState(
             quota = store.quota(),
             authEmail = store.email().orEmpty()
@@ -292,15 +312,14 @@ class AiKeyboardFeature internal constructor(
             editor: AiEditor,
             strings: AiUiStrings,
             isPrivateFieldProvider: () -> Boolean,
-            isCompletionFieldEligibleProvider: () -> Boolean,
             prepareForPanel: () -> Unit,
             onTextReplaced: () -> Unit,
-            onCompletionAccepted: (String) -> Boolean,
             openAuth: () -> Unit,
             openDashboard: () -> Unit
         ): AiKeyboardFeature {
             val appContext = context.applicationContext
             val store = AiPreferences(appContext)
+            store.setPhraseCompletionsEnabled(false)
             val repository = AiRepository(
                 AiServiceFactory.create(
                     debug = appContext.applicationInfo.flags and
@@ -316,19 +335,6 @@ class AiKeyboardFeature internal constructor(
                 isPrivateFieldProvider = isPrivateFieldProvider
             )
             val featureScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-            val completionController = AiCompletionController(
-                editor = editor,
-                source = AiCompletionRepository(
-                    AiServiceFactory.createCompletion(
-                        debug = appContext.applicationInfo.flags and
-                            ApplicationInfo.FLAG_DEBUGGABLE != 0
-                    )
-                ),
-                store = store,
-                isFieldEligible = isCompletionFieldEligibleProvider,
-                commitText = onCompletionAccepted,
-                scope = featureScope
-            )
             return AiKeyboardFeature(
                 controller = controller,
                 store = store,
@@ -338,7 +344,6 @@ class AiKeyboardFeature internal constructor(
                 onTextReplaced = onTextReplaced,
                 openAuth = openAuth,
                 openDashboard = openDashboard,
-                completionController = completionController,
                 scope = featureScope,
                 copyResult = { label, text ->
                     runCatching {

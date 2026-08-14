@@ -87,6 +87,7 @@ fun aiPanelVariantTag(strength: AiStrength): String = "ai.panel.variant.${streng
 fun aiPanelCopyTag(strength: AiStrength): String = "ai.panel.copy.${strength.name.lowercase()}"
 fun aiPanelReplaceTag(strength: AiStrength): String = "ai.panel.replace.${strength.name.lowercase()}"
 fun aiPanelToneIconTag(tab: AiToneTab): String = "ai.panel.tone.icon.${tab.name.lowercase()}"
+const val AI_TONE_ACTION_ROW_TAG = "ai.tone.action.row"
 const val AI_PANEL_BACK_ACTION_TAG = "ai.panel.back.action"
 const val AI_PANEL_SKELETON_TAG = "ai.panel.skeleton"
 const val AI_PANEL_EMPTY_ACTION_TAG = "ai.panel.empty.action"
@@ -96,6 +97,7 @@ private const val AI_RESULT_VARIANT_COUNT = 3
 @Composable
 fun AiPanel(
     state: AiUiState,
+    tonesEnabled: Boolean = state.hasInput,
     strings: AiUiStrings,
     onDismiss: () -> Unit,
     onTabSelected: (AiToneTab) -> Unit,
@@ -111,6 +113,7 @@ fun AiPanel(
     ) {
         AiPanelToolbar(
             state = state,
+            tonesEnabled = tonesEnabled,
             onDismiss = onDismiss,
             onTabSelected = onTabSelected,
             strings = strings
@@ -274,6 +277,7 @@ private fun AiPanelSelectToneState(
 @Composable
 private fun AiPanelToolbar(
     state: AiUiState,
+    tonesEnabled: Boolean,
     onDismiss: () -> Unit,
     onTabSelected: (AiToneTab) -> Unit,
     strings: AiUiStrings
@@ -302,6 +306,7 @@ private fun AiPanelToolbar(
             AiToneRow(
                 selectedTab = state.selectedTab,
                 isLoading = state.isLoading,
+                enabled = tonesEnabled,
                 onTabSelected = onTabSelected,
                 strings = strings,
                 modifier = Modifier.weight(1f)
@@ -311,9 +316,10 @@ private fun AiPanelToolbar(
 }
 
 @Composable
-private fun AiToneRow(
+fun AiToneRow(
     selectedTab: AiToneTab?,
     isLoading: Boolean,
+    enabled: Boolean,
     onTabSelected: (AiToneTab) -> Unit,
     strings: AiUiStrings,
     modifier: Modifier = Modifier
@@ -322,14 +328,19 @@ private fun AiToneRow(
     val toneGlowVisuals = toneGlowVisuals(isLoading)
     Row(
         modifier = modifier
+            .height(AddiyonSizes.keyboardAction)
             .horizontalScroll(rememberScrollState())
-            .padding(start = AddiyonSpacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm)
+            .padding(horizontal = AddiyonSpacing.xs)
+            .testTag(AI_TONE_ACTION_ROW_TAG),
+        horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         AiToneTab.DefaultTabs.forEach { tab ->
             val selected = selectedTab == tab
-            val iconColor = toneIconColor(tab)
-            val glowModifier = if (selected) {
+            val contentAlpha = if (enabled) 1f else DISABLED_TONE_ALPHA
+            val iconColor = toneIconColor(tab).copy(alpha = contentAlpha)
+            val contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha)
+            val glowModifier = if (selected && enabled) {
                 Modifier.dropShadow(
                     shape = toneShape,
                     shadow = toneGlowVisuals.glow
@@ -341,10 +352,11 @@ private fun AiToneRow(
                 modifier = glowModifier,
                 selected = selected,
                 onClick = { onTabSelected(tab) },
+                enabled = enabled,
                 shape = toneShape,
                 color = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                border = if (selected) toneGlowVisuals.border else null
+                contentColor = contentColor,
+                border = if (selected && enabled) toneGlowVisuals.border else null
             ) {
                 Row(
                     modifier = Modifier
@@ -364,7 +376,7 @@ private fun AiToneRow(
                     Text(
                         text = toneLabel(tab, strings),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = contentColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -401,7 +413,7 @@ private fun toneGlowVisuals(isLoading: Boolean): ToneGlowVisuals {
         0f
     }
     val glowAlpha = if (isLoading) {
-        if (phase <= 0.5f) 0.36f + phase * 0.4f else 0.76f - phase * 0.4f
+        if (phase <= 0.5f) 0.64f + phase * 0.56f else 1.2f - phase * 0.56f
     } else {
         0.48f
     }
@@ -433,6 +445,8 @@ private fun toneGlowVisuals(isLoading: Boolean): ToneGlowVisuals {
         )
     )
 }
+
+private const val DISABLED_TONE_ALPHA = 0.38f
 
 private fun animatedToneGradient(
     colors: AddiyonAiToneGlowColors,

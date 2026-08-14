@@ -60,6 +60,24 @@ class AiRequestLifecycleContractTest {
     }
 
     @Test
+    fun `phrase completion is unreachable and editor text controls tone actions`() {
+        val feature = featureSource()
+        val service = serviceSource()
+
+        assertTrue(feature.contains("AiToneRow("))
+        assertTrue(feature.contains("enabled = toneActionsEnabled"))
+        assertTrue(feature.contains("private fun onKeyboardToneSelected"))
+        assertTrue(feature.contains("private fun refreshToneActionsEnabled"))
+        assertTrue(feature.contains("controller.captureInput().text.isNotBlank()"))
+        assertFalse(feature.contains("AiCompletionController"))
+        assertFalse(feature.contains("AiCompletionBar"))
+        assertFalse(feature.contains("createCompletion("))
+        assertTrue(feature.contains("store.setPhraseCompletionsEnabled(false)"))
+        assertFalse(service.contains("AiCompletionFieldPolicy"))
+        assertFalse(service.contains("onOptionalFeatureTextCommitted"))
+    }
+
+    @Test
     fun `AI replacement is cursor relative and never sets an absolute composing region`() {
         val adapter = projectRoot()
             .resolve("apps/textrevamp/src/main/java/com/addiyon/keyboard/AiEditorAdapter.kt")
