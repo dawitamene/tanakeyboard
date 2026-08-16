@@ -10,39 +10,71 @@ class AiRequestLifecycleContractTest {
     @Test
     fun `tone selection captures current editor text and starts a fresh request`() {
         val feature = featureSource()
-        val selection = feature.substringAfter("fun onTabSelected(tab: AiToneTab)")
-            .substringBefore("fun onCopyVariant")
+        val selection = feature.substringAfter("private fun startToneRequest(tab: AiToneTab?, custom: CustomTone?)")
+            .substringBefore("fun onReplaceVariant")
 
         assertTrue(selection.contains("cancelRequest()"))
         assertTrue(selection.contains("val input = controller.captureInput()"))
         assertTrue(selection.contains("isLoading = true"))
-        assertTrue(selection.contains("controller.revampVariants(input, tab)"))
+        assertTrue(selection.contains("val loadResultsInPlace = uiState.hasResult || uiState.isResultLoading"))
+        assertTrue(selection.contains("isResultLoading = loadResultsInPlace"))
+        assertTrue(selection.contains("isLoading = false"))
+        assertTrue(selection.contains("isResultLoading = false"))
+        assertTrue(selection.contains("controller.revampVariants(input, checkNotNull(tab))"))
+        assertTrue(selection.contains("controller.revampCustomVariants(input, custom.instruction)"))
         assertTrue(selection.contains("controller.loadQuota().getOrNull()"))
+        assertTrue(selection.contains("firstError.copy(remaining = refreshedQuota.remaining)"))
         assertFalse(selection.contains("consumeRequest"))
         assertFalse(selection.contains("if (uiState.isQuotaLoading) return"))
         assertFalse(selection.contains("val input = uiState.input"))
     }
 
     @Test
-    fun `opening the panel clears the selected tone`() {
+    fun `custom tone chip opens the AI screen and runs the saved instruction`() {
         val feature = featureSource()
-        val open = feature.substringAfter("fun onToolbarAction()")
-            .substringBefore("fun dismissPanel()")
 
-        assertTrue(open.contains("selectedTab = null"))
+        assertTrue(feature.contains("customTones = customTones"))
+        assertTrue(feature.contains("selectedCustomToneId = uiState.selectedCustomToneId"))
+        assertTrue(feature.contains("onCustomToneSelected = ::onKeyboardCustomToneSelected"))
+        assertTrue(feature.contains("onAddCustomTone = ::onAddCustomTone"))
+        assertTrue(feature.contains("fun onAddCustomTone()"))
+        assertTrue(feature.contains("openCustomTone()"))
+        assertTrue(feature.contains("private fun onKeyboardCustomToneSelected"))
+        assertTrue(feature.contains("store.customTones()"))
+        assertTrue(feature.contains("store.registerCustomToneChangeListener"))
+        assertTrue(feature.contains("store.unregisterCustomToneChangeListener"))
     }
 
     @Test
-    fun `optional AI panel is forty percent taller than the keyboard`() {
+    fun `toolbar opens account access instead of an AI panel`() {
+        val feature = featureSource()
+        val action = feature.substringAfter("fun onToolbarAction()")
+            .substringBefore("fun dismissResponse()")
+
+        assertTrue(action.contains("openAuth()"))
+        assertTrue(action.contains("openDashboard()"))
+        assertFalse(action.contains("AiUiState("))
+    }
+
+    @Test
+    fun `every request loading shows the result skeleton and back control`() {
         val feature = featureSource()
         val keyboardScreen = projectRoot()
             .resolve("keyboard/ui/src/main/java/com/addiyon/keyboard/ui/KeyboardScreen.kt")
             .readText()
 
-        assertTrue(feature.contains("AI_PANEL_HEIGHT_SCALE = 1.4f"))
-        assertTrue(feature.contains("panelHeightScale = AI_PANEL_HEIGHT_SCALE"))
-        assertTrue(keyboardScreen.contains("scaledKeyboardPanelHeight("))
-        assertTrue(keyboardScreen.contains("scale = optionalUi.panelHeightScale"))
+        assertTrue(feature.contains("contentOverlayVisible = uiState.isLoading"))
+        assertFalse(feature.contains("contentDimmed ="))
+        assertFalse(feature.contains("contentLoadingVisible ="))
+        assertFalse(feature.contains("contentLoadingIndicator ="))
+        assertFalse(feature.contains("AiLoadingIndicator"))
+        assertTrue(feature.contains("AiResultsOverlay("))
+        assertTrue(feature.contains("uiState.isLoading ||"))
+        assertFalse(feature.contains("AiPanel("))
+        assertFalse(feature.contains("panelVisible ="))
+        assertTrue(keyboardScreen.contains("if (optionalUi.contentOverlayVisible)"))
+        assertTrue(keyboardScreen.contains("optionalUi.contentOverlay()"))
+        assertTrue(keyboardScreen.contains("return@keyboardContent"))
     }
 
     @Test

@@ -107,6 +107,9 @@ error, success, or other status roles.
 `aiToneGlow` exposes the fixed magenta-to-blue gradient used by the selected AI
 tone's outline and outward halo. Its two endpoints are sampled from the approved
 neon reference and remain stable across light and dark keyboard appearances.
+`aiCustomToneColors` exposes the predefined eight-color palette (teal, indigo,
+orange, purple, green, rose, blue, amber) that user-created tones pick from for
+their chip identity; each color id has a distinct light and dark value.
 `resultSurface` and `onResultSurface` provide a flat white reading canvas and
 fixed ink text; this pair intentionally remains light in
 both appearances so generated versions have one quiet, shadow-free treatment.
@@ -151,7 +154,7 @@ Use the public tokens in `ui/design/AddiyonDesignTokens.kt`:
 | --- | --- | --- |
 | `AddiyonSpacing` | 4, 8, 12, 16, 20, 24, 32 dp | gaps, insets, and page rhythm |
 | `AddiyonRadii` | 8, 12, 16, 20, 28 dp, pill | controls, cards, groups, chips |
-| `AddiyonSizes` | 40 compact, 44 keyboard action, 48 minimum touch, 56 form control, 64 app header; 16/24/32/44 icon sizes | controls, bars, icons |
+| `AddiyonSizes` | 10 loading dot; 40 compact, 44 keyboard action, 48 minimum touch, 56 form control, 64 app header; 16/24/32/44 icon sizes | controls, bars, icons, loading indicators |
 | `AddiyonBorders` | 1 dp tone glow | neon AI tone outlines |
 | `AddiyonElevation` | none, low, raised, overlay | surfaces and overlays |
 | `AddiyonMotion` | 150, 250, 400, 500 ms | feedback, standard transitions, emphasis |
@@ -191,26 +194,38 @@ must not redefine these common window styles.
 The signed-in profile icon is a direct navigation control: it opens
 the AI account screen without an intermediate logout menu.
 
-IME surfaces are the exception: keyboard rows, suggestion strips, and AI/emoji
-panels have a measured-height contract. Keep keyboard rows and emoji-panel
-height stable during state changes. The TextRevamp AI panel is intentionally
-40% taller than the configured keyboard height while it is open. The root panel
-must not scroll. A bounded inner content region may scroll when persistent
-header and primary actions remain visible.
+IME surfaces are the exception: keyboard rows, suggestion strips, and the emoji
+panel have a measured-height contract. Keep keyboard rows and emoji-panel height
+stable during state changes. TextRevamp AI never replaces or enlarges the
+keyboard. Tone requests, loading, results, and errors remain within the normal
+keyboard shell.
 
-The canonical AI assistant panel keeps a 44 dp tap area for the suggestion
-bar's chevron-left control with a 32 dp arrow. It has no container fill and
-uses the themed background content color, leaving 6 dp within the tap area.
-It does not show a toolbar title or usage control. Compact pill-shaped
-tones with leading semantic icons sit directly beside the back action in the
-same persistent row. The toolbar uses compact 8 dp top and 12 dp bottom insets,
-gives the state and result region the bounded scroll, omits a duplicate input
-preview, and stacks the three generated versions vertically. It does not show
-the AI mark, a close icon, a separate “Tone” label, strength selectors, or pinned
-global actions. Generated versions use rounded `resultSurface` surfaces without
-card elevation and provide compact per-result Copy and Replace controls. Loading
-uses three rounded result-shaped placeholders with an animated directional shimmer
-rather than a spinner or status sentence.
+While any tone request loads, the persistent tone row remains at full opacity and
+the selected tone's outline and halo animate. A fixed-height AI result surface
+immediately replaces both the standard 40 dp suggestion row and every keyboard
+key row while the tone row remains visible above it. The replacement occupies
+exactly the same measured height as those removed regions, so the IME does not
+resize. Its three equally weighted result cards render pulsing three-line
+skeletons until the generated versions arrive. The active dismiss control is
+available during loading. The completed versions remain equally weighted and
+vertically stacked with no duplicate tone label or result header, and their text
+wraps without an ellipsis; an individual card scrolls vertically when its full
+text cannot fit within the fixed-height surface. Choosing another tone from an
+existing result keeps this result surface and its active dismiss control mounted
+while the skeletons return.
+The dismiss control appears at the leading edge of the persistent tone row while
+a result, result skeleton, or error is visible. It is layered above the full-width
+tone scroller as a dense, high-opacity frosted white `resultSurface` liquid-glass
+control with a vertical sheen and soft shadow but no border. An initial 8 dp gap separates
+it from the first tone, but the scroll viewport
+continues beneath the control: the selected tone's glow can draw into that gap, and
+tones remain only faintly visible beneath the frosted control while scrolling. The result root does not scroll.
+Tapping a version replaces the captured text using the cursor-relative editor
+contract. Typing or moving the caret while a request is loading dismisses stale
+AI state. The regular suggestion row and keys return after a replacement or
+dismissal. The AI toolbar icon opens authentication when signed out and the
+account dashboard when signed in.
+
 Tone icons use distinct semantic theme accents to make the actions easier to
 scan. Every tone keeps the standard chip background. Unselected tones are
 borderless and have no halo. Only the selected tone uses the static
@@ -223,15 +238,47 @@ request finishes. The selected semantics and glow treatment identify selection
 without changing the chip fill.
 
 TextRevamp exposes the horizontally scrollable tone-action row immediately above
-the standard suggestion strip. The row is exactly `AddiyonSizes.keyboardAction`
-(44 dp), uses `CustomKeyboardTheme` semantic surface/content roles, and reuses
-the same pill controls and semantic tone icons as the AI panel. Every tone stays
+the standard suggestion strip. The row is 56 dp tall so its 40 dp tone chips
+retain their full height inside 8 dp vertical and horizontal outer insets.
+The chips use 8 dp horizontal content padding and 8 dp horizontal gaps. Tone
+icons are 16 dp, and labels use the full semantic `labelSmall` size. The row uses
+`CustomKeyboardTheme` semantic surface/content roles and reuses
+the same pill controls and semantic tone icons throughout the AI flow. Every tone stays
 visible but is disabled with reduced emphasis until the editor contains text;
-private fields also keep the actions disabled. Choosing an enabled tone opens
-the AI panel and starts that transformation. The row is absent while the full
-AI panel replaces the keyboard and is never included in Addiyon. During a
-request, the selected tone's animated magenta-to-blue halo uses a substantially
-stronger pulse so the loading state remains obvious at keyboard scale.
+private fields also keep the actions disabled. Fix grammar is first and Casual
+is second. Choosing an enabled tone starts that transformation without hiding
+the keys. During a request, the selected tone's animated magenta-to-blue halo
+uses a restrained but still visible pulse so the loading state remains obvious
+at keyboard scale. The row is never included in Addiyon.
+
+The tone row ends with an always-enabled "Add custom" chip (standard chip fill,
+primary icon, no selection halo). Tapping it opens the custom-instructions
+destination on the AI account screen, where the user gives a tone a short
+title (for example "Romantic") and a free-form instruction (for example "Make
+it sound more romantic") and saves it. Saved custom tones render as standard
+tone chips after the built-in tones and before the add chip, labelled by their
+short title; selecting one behaves like any tone — the instruction is sent
+verbatim as the rewrite prompt while the tone field stays on a valid built-in
+value so the server contract is unchanged. The custom-instructions screen is a
+flat branded AI screen (no content-section containers) using the shared input
+fields and pill primary action. Its form labels the Title and Instruction
+fields, offers a four-row icon grid (a curated thirty-two-icon set) shown in a
+muted gray until an icon is selected; selecting an icon reveals a floating
+color popup anchored to that icon (mirroring the keyboard's skin-tone chooser)
+with the eight-color palette, and the chosen color tints the selected icon. A
+new tone combines a short title, a free-form instruction, and a chosen icon
+and color identity. Editing swaps the primary action row to Cancel and Save
+changes as equal-width pill buttons with Cancel on the left. Saved tones are
+listed as white cards with edit and remove controls (the remove control
+matches the personal dictionary's delete button), and a new-tone form, so
+users can add, change, and delete them. Saving navigates back so the full tone
+list is visible again; custom tone changes apply to the keyboard immediately
+through preference observation.
+
+TextRevamp's settings menu exposes the AI workspace as a "Usage" entry that
+opens authentication when signed out and the account dashboard when signed in,
+and a separate "Custom instructions" entry that opens the custom-instructions
+destination. Neither entry carries a badge.
 
 Phrase completion is currently suspended: TextRevamp does not create its
 completion controller, render the phrase-completion bar, or expose its account

@@ -8,6 +8,9 @@ plugins {
 
 android {
     namespace = "com.addiyon.keyboard.language.amharic"
+    androidResources {
+        noCompress += "ahrf"
+    }
 }
 
 configure<LanguageDictionariesExtension> {

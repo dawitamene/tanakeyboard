@@ -226,6 +226,7 @@ class AmharicSuggestionEngine(
         commitCache.clear()
         dictionary.clearCache()
         morphLexicon.clearCache()
+        verbLexicon.clearCache()
     }
 
     override fun release() {
@@ -318,7 +319,7 @@ class AmharicSuggestionEngine(
                     word = terminal.surface,
                     source = CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY,
                     lexicalFrequency = analysis.rootFrequency,
-                    morphologyCost = when (analysis.sourceClass) {
+                    morphologyCost = analysis.morphologyCost + when (analysis.sourceClass) {
                         com.addiyon.keyboard.suggestion.AmharicVerbSourceClass.REGULAR -> 1
                         com.addiyon.keyboard.suggestion.AmharicVerbSourceClass.IRREGULAR -> 2
                         com.addiyon.keyboard.suggestion.AmharicVerbSourceClass.LIGHT -> 3

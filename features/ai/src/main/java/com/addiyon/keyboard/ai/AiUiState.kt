@@ -4,14 +4,15 @@ import androidx.compose.runtime.Immutable
 
 @Immutable
 data class AiUiState(
-    val isVisible: Boolean = false,
     val selectedTab: AiToneTab? = null,
+    val selectedCustomToneId: String? = null,
     @Deprecated("Use variantResults; strength selection removed")
     val strength: AiStrength = AiStrength.Balanced,
     val input: AiInput? = null,
     val result: AiResult? = null,
     val alternatives: List<String> = emptyList(),
     val isLoading: Boolean = false,
+    val isResultLoading: Boolean = false,
     val isQuotaLoading: Boolean = false,
     val error: AiError? = null,
     val quota: AiQuota = AiQuota(0, 50_000, 50_000, todayIso()),
@@ -25,7 +26,7 @@ data class AiUiState(
     val selectedVariant: AiStrength? = null
 ) {
     val canRevamp: Boolean
-        get() = selectedTab != null && !isPrivateField && !needsAuth &&
+        get() = (selectedTab != null || selectedCustomToneId != null) && !isPrivateField && !needsAuth &&
             (input?.wordCount ?: 0) > 0 && quota.remaining > 0 && !isLoading && !isQuotaLoading
 
     val inputWordCount: Int get() = input?.wordCount ?: 0

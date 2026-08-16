@@ -61,17 +61,19 @@ design-system document and contract test in the same change.
 
 ### Suggestion pipeline (service-owned)
 - `updateSuggestions()` derives the strip's UI state from the controller. The strip's row shape never changes mid-keystroke: completion and prediction lookups carry the previous chip-bearing state forward while the new one computes, instead of dropping to the toolbar (which swaps a row of icons for a row of chips and is the flash the user sees). The completion path also short-circuits a re-schedule when the same `(raw, amharic)` is already in flight or done (`activeCompletionKey`), so the selection-change echo that follows every keystroke doesn't double the lookup latency.
+- **Amharic morphology invariant:** production assets may contain base lexemes, roots, root-ranking evidence, compiled HornMorpho transitions, and unification constraints. They must never contain an enumerated or pre-generated list of inflected verb surfaces. `AmharicVerbLexicon` memory-maps `amharic_verbs.ahrf` and executes the weighted rule graph on device; `generatedSurfaces=0` is a build and runtime contract.
 
 ## Planning
 
 When the user asks to create a plan or plan something, write a detailed plan as a Markdown file in `plans/` (e.g. `plans/feature-name.md`). Do NOT execute or write any code — only the plan file. The plan should cover the approach, affected files, step-by-step breakdown, and any risks or open questions.
 
-## After every code change
+## After every change
 - Run the relevant test(s) for the changed behavior. Prefer the focused test class/target when possible; broaden the test run when shared behavior is affected.
 - When adding a new feature, add or update tests that cover that feature.
 - Build and install Addiyon on emulator: `/Users/dev/code/addiyon-keyboard/gradlew :apps:addiyon:installDebug`
 - Assemble all product APKs: `/Users/dev/code/addiyon-keyboard/gradlew :apps:addiyon:assembleDebug :apps:textrevamp:assembleDebug`
 - Generate timestamped product APKs in `/Users/dev/Sync/addiyon-keyboard`: `/Users/dev/code/addiyon-keyboard/gradlew :apps:addiyon:assembleDebug :apps:textrevamp:assembleDebug`
+- Send every affected APK to the phone through the standalone local APK Drop receiver at `/Users/dev/code/apkdrop` before finishing. Use `/Users/dev/code/addiyon-keyboard/gradlew :apps:addiyon:sendDebugToPhone` for Addiyon and `/Users/dev/code/addiyon-keyboard/gradlew :apps:textrevamp:sendDebugToPhone` for TextRevamp; run both after shared keyboard changes. The sender automatically targets the phone hotspot gateway; `APK_DROP_HOST` overrides the address and `APK_DROP_CLI` overrides the CLI path when needed.
 
 ## Conventions
 - kotlin.code.style=official
@@ -80,6 +82,8 @@ When the user asks to create a plan or plan something, write a detailed plan as 
 - No absolute document offsets in the composing layer; everything cursor-relative. New code that needs to identify a region must go through `EditorGateway` and use cursor-relative calls (`setComposingText`, `commitText`, `finishComposingText`, `deleteBeforeCursor`, `recomposeBeforeCursor`).
 
 ## Related repositories
+
+- **`apkdrop`** — `/Users/dev/code/apkdrop` is the standalone local APK transfer receiver and macOS CLI. Build or install its Android app with `/Users/dev/code/apkdrop/gradlew :app:assembleDebug` or `/Users/dev/code/apkdrop/gradlew :app:installDebug`. Its reusable sender is `/Users/dev/code/apkdrop/bin/apkdrop`.
 
 TextRevamp AI Keyboard's AI feature (`features/ai/.../AiApi.kt` → `https://api.textrevamp.com`) is not self-contained. Addiyon does not include this module. Two sibling repos on this machine own the backend and its deployment:
 

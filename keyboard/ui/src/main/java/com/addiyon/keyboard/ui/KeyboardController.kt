@@ -2,7 +2,6 @@ package com.addiyon.keyboard.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.Dp
 import com.addiyon.keyboard.emoji.EmojiUiController
 import com.addiyon.keyboard.language.LanguagePack
 import com.addiyon.keyboard.model.EnterAction
@@ -67,14 +66,12 @@ data class OptionalKeyboardUi(
     val toolbarAction: KeyboardToolbarAction? = null,
     val contextualRowVisible: Boolean = false,
     val contextualRow: @Composable () -> Unit = {},
-    val panelVisible: Boolean = false,
-    val panelHeightScale: Float = 1f,
-    val panel: @Composable (Dp) -> Unit = {}
-) {
-    init {
-        require(panelHeightScale > 0f)
-    }
-}
+    val contentDimmed: Boolean = false,
+    val contentLoadingVisible: Boolean = false,
+    val contentLoadingIndicator: @Composable () -> Unit = {},
+    val contentOverlayVisible: Boolean = false,
+    val contentOverlay: @Composable () -> Unit = {}
+)
 
 data class KeyboardToolbarAction(
     val icon: ImageVector,

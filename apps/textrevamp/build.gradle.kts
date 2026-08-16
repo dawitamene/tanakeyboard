@@ -179,3 +179,26 @@ tasks.register<Exec>("verifyReleaseArtifact") {
     dependsOn("bundleRelease")
     commandLine(rootProject.file("plans/verify-release-artifact.sh"))
 }
+
+tasks.register<Exec>("sendDebugToPhone") {
+    group = "distribution"
+    description = "Build and send the TextRevamp debug APK to the local APK Drop receiver."
+    dependsOn("assembleDebug")
+
+    val apk = layout.buildDirectory.file("outputs/apk/debug/textrevamp-debug.apk")
+    inputs.file(apk)
+
+    doFirst {
+        val apkFile = apk.get().asFile
+        check(apkFile.isFile) { "TextRevamp debug APK was not built at ${apkFile.absolutePath}." }
+        val apkDropCli = System.getenv("APK_DROP_CLI")
+            ?: rootProject.file("../apkdrop/bin/apkdrop").absolutePath
+        check(file(apkDropCli).canExecute()) {
+            "APK Drop CLI is not executable at $apkDropCli. Set APK_DROP_CLI to override it."
+        }
+        commandLine(
+            apkDropCli,
+            apkFile.absolutePath
+        )
+    }
+}

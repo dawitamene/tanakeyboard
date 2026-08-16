@@ -68,14 +68,15 @@ The three-option benchmark, schema, fallback policy, raw commands, and
 licensing obligations are recorded in
 `docs/adr/amharic-verb-morphology-artifact.md`.
 
-## Phase 8/9 production artifact
+## Production verb runtime
 
-Phase 8 promotes the selected representation to the version-2 production
-artifact `src/main/assets/amharic_verbs.ahva`. The declared verb slice,
-stable identity scheme, exact transformation commands, fallback behavior, and
-unsupported branches are recorded in `PHASE8_VERBS.md`. The paired manifest
-pins its byte length, SHA-256, HornMorpho version, and upstream commit. The
-gzipped oracle corpus and JVM golden subset stay outside product assets.
+The generated-surface Phase 8 artifact has been retired. Production now ships
+`src/main/assets/amharic_verbs.ahrf`, a weighted rule runtime with the complete
+ordinary-verb FST, 1,832 roots, constraint pages, and root-ranking evidence.
+It contains zero generated surfaces; Kotlin executes the HornMorpho graph on
+device. `PHASE8_VERBS.md` and
+`docs/adr/amharic-verb-runtime-fst.md` record the format, reproduction command,
+resource bounds, and fail-closed behavior.
 
 Phase 9's local morphology identity, bounded analyzer-backed correction,
 privacy policy, reproducibility checks, release tests, and pending fluent

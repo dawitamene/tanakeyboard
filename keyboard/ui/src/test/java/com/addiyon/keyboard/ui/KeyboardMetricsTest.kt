@@ -73,11 +73,6 @@ class KeyboardMetricsTest {
     }
 
     @Test
-    fun optionalPanelHeightCanGrowThirtyPercent() {
-        assertEquals(390.dp, scaledKeyboardPanelHeight(300.dp, 1.3f))
-    }
-
-    @Test
     fun nonCharacterControlsDoNotAffectReferenceWidth() {
         val rows = listOf(
             listOf(KeyData.Character("A"), KeyData.Character("B"), KeyData.Character("C")),

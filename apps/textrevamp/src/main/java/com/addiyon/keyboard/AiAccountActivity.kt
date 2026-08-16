@@ -19,6 +19,7 @@ import com.addiyon.keyboard.ai.AiServiceFactory
 import com.addiyon.keyboard.features.appshell.R as AppShellR
 import com.addiyon.keyboard.ui.ai.AiAuthBottomSheet
 import com.addiyon.keyboard.ui.ai.AuthStep
+import com.addiyon.keyboard.ui.ai.AiCustomToneContent
 import com.addiyon.keyboard.ui.ai.AiDashboardContent
 import com.addiyon.keyboard.ui.theme.AddiyonBrandTheme
 import kotlinx.coroutines.launch
@@ -70,6 +71,28 @@ class AiAccountActivity : ComponentActivity() {
                                         },
                                         onSwitchToAuth = { mode = MODE_AUTH },
                                         quotaLoader = { jwt, anonId -> repo.quota(jwt, anonId) }
+                                    )
+                                }
+                                MODE_CUSTOM_TONE -> {
+                                    var customTones by remember {
+                                        mutableStateOf(aiPreferences.customTones())
+                                    }
+                                    AiCustomToneContent(
+                                        customTones = customTones,
+                                        strings = aiStrings,
+                                        onBack = { finish() },
+                                        onSave = { title, instruction, icon, color ->
+                                            aiPreferences.addCustomTone(title, instruction, icon, color)
+                                            finish()
+                                        },
+                                        onUpdate = { id, title, instruction, icon, color ->
+                                            aiPreferences.updateCustomTone(id, title, instruction, icon, color)
+                                            finish()
+                                        },
+                                        onRemove = { id ->
+                                            aiPreferences.removeCustomTone(id)
+                                            customTones = aiPreferences.customTones()
+                                        }
                                     )
                                 }
                                 else -> {
@@ -324,5 +347,6 @@ class AiAccountActivity : ComponentActivity() {
         const val EXTRA_TOKEN = "ai_token"
         const val MODE_AUTH = "auth"
         const val MODE_DASHBOARD = "dashboard"
+        const val MODE_CUSTOM_TONE = "custom_tone"
     }
 }

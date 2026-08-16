@@ -40,6 +40,7 @@ import com.addiyon.keyboard.ai.AiQuota
 import com.addiyon.keyboard.features.appshell.KeyboardPageTopBar
 import com.addiyon.keyboard.ui.design.AddiyonRadii
 import com.addiyon.keyboard.ui.design.AddiyonSizes
+import com.addiyon.keyboard.ui.design.AddiyonSpacing
 import java.util.Locale
 import java.util.TimeZone
 import kotlinx.coroutines.Dispatchers
@@ -62,8 +63,6 @@ fun AiDashboardContent(
     var quota by remember(accountStore) { mutableStateOf(accountStore.quota()) }
     val email = accountStore.email()
     val isLoggedIn = !jwt.isNullOrBlank()
-    val limit = quota.limit
-    val remaining = quota.remaining
     val remainingPercent = aiRemainingPercentage(quota)
     val progress = remainingPercent / 100f
     val resetDescription = formatAiUsageReset(
@@ -150,7 +149,7 @@ fun AiDashboardContent(
                         .fillMaxWidth()
                         .padding(top = 14.dp),
                     verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.xs)
                 ) {
                     Text(
                         "$remainingPercent%",
@@ -173,18 +172,9 @@ fun AiDashboardContent(
                         .height(8.dp)
                         .clip(RoundedCornerShape(4.dp)),
                     color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-                Text(
-                    String.format(
-                        locale,
-                        strings.aiUsageTokensRemainingFormat,
-                        remaining,
-                        limit
-                    ),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    gapSize = 0.dp,
+                    drawStopIndicator = {}
                 )
                 Text(
                     resetDescription,

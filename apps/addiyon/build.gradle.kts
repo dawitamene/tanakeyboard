@@ -1,3 +1,4 @@
+import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import com.addiyon.buildlogic.configureVerifiedReleaseSigning
 import com.addiyon.buildlogic.loadProductReleaseConfig
@@ -11,6 +12,9 @@ val productRelease = loadProductReleaseConfig(rootProject.file("version.properti
 
 android {
     namespace = "com.addiyon.keyboard"
+    androidResources {
+        noCompress += "ahrf"
+    }
     defaultConfig {
         applicationId = "com.addiyon.keyboard"
         versionCode = productRelease.versionCode.get()
@@ -53,8 +57,17 @@ val verifyDebugProductContents by tasks.registering {
             val names = zip.entries().asSequence().map { it.name }.toList()
             require(names.any { it.endsWith("english.db") }) { "English dictionary is missing" }
             require(names.any { it.endsWith("amharic.db") }) { "Amharic dictionary is missing" }
-            require(names.any { it.endsWith("amharic_verbs.ahva") }) {
-                "Amharic verb morphology artifact is missing"
+            val verbRuntime = zip.entries().asSequence().firstOrNull {
+                it.name.endsWith("amharic_verbs.ahrf")
+            }
+            require(verbRuntime != null) {
+                "Amharic HornMorpho runtime is missing"
+            }
+            require(verbRuntime.method == ZipEntry.STORED) {
+                "Amharic HornMorpho runtime must be uncompressed for memory mapping"
+            }
+            require(names.none { it.endsWith("amharic_verbs.ahva") }) {
+                "Pre-generated Amharic verb surfaces must not be packaged"
             }
             require(names.any { it.endsWith("amharic_verbs_manifest.properties") }) {
                 "Amharic verb morphology manifest is missing"
@@ -86,5 +99,28 @@ val verifyDebugProductContents by tasks.registering {
         require("android.permission.INTERNET" !in manifest) {
             "Addiyon product must not request network access"
         }
+    }
+}
+
+tasks.register<Exec>("sendDebugToPhone") {
+    group = "distribution"
+    description = "Build and send the Addiyon debug APK to the local APK Drop receiver."
+    dependsOn("assembleDebug")
+
+    val apk = layout.buildDirectory.file("outputs/apk/debug/addiyon-debug.apk")
+    inputs.file(apk)
+
+    doFirst {
+        val apkFile = apk.get().asFile
+        check(apkFile.isFile) { "Addiyon debug APK was not built at ${apkFile.absolutePath}." }
+        val apkDropCli = System.getenv("APK_DROP_CLI")
+            ?: rootProject.file("../apkdrop/bin/apkdrop").absolutePath
+        check(file(apkDropCli).canExecute()) {
+            "APK Drop CLI is not executable at $apkDropCli. Set APK_DROP_CLI to override it."
+        }
+        commandLine(
+            apkDropCli,
+            apkFile.absolutePath
+        )
     }
 }

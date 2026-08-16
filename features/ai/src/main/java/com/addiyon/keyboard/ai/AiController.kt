@@ -33,7 +33,20 @@ class AiController(
         return repository.revamp(input.text, tab, strength, jwt, anonId)
     }
 
-    suspend fun revampVariants(input: AiInput, tab: AiToneTab): Map<AiStrength, Result<AiResult>> {
+    suspend fun revampVariants(input: AiInput, tab: AiToneTab): Map<AiStrength, Result<AiResult>> =
+        requestVariants(input, tab.tone, tab.instruction)
+
+    suspend fun revampCustomVariants(
+        input: AiInput,
+        instruction: String
+    ): Map<AiStrength, Result<AiResult>> =
+        requestVariants(input, CUSTOM_TONE_DEFAULT_TONE, instruction)
+
+    private suspend fun requestVariants(
+        input: AiInput,
+        tone: String,
+        instruction: String?
+    ): Map<AiStrength, Result<AiResult>> {
         if (isPrivateFieldProvider()) {
             val err = Result.failure<AiResult>(Exception(AiError.PrivateField.toString()))
             return AiStrength.entries.associateWith { err }
@@ -49,7 +62,7 @@ class AiController(
         }
         val jwt = jwtProvider()
         val anonId = anonIdProvider()
-        return repository.revampVariants(input.text, tab, jwt, anonId).fold(
+        return repository.revampVariants(input.text, tone, instruction, jwt, anonId).fold(
             onSuccess = { variants ->
                 AiStrength.entries.associateWith { strength ->
                     variants[strength]
@@ -81,7 +94,8 @@ class AiController(
             msg.contains("PrivateField") -> AiError.PrivateField
             msg.contains("NoText") -> AiError.NoText
             msg.contains("NeedsAuth") -> AiError.NeedsAuth
-            msg.contains("QuotaExceeded") -> AiError.QuotaExceeded()
+            msg.contains("QuotaExceeded") ->
+                AiError.QuotaExceeded(quotaRemainingFromError(msg) ?: 0)
             msg.contains("Offline") -> AiError.Offline
             msg.contains("Unknown") -> AiError.Unknown
             else -> repository.parseAiError(t)

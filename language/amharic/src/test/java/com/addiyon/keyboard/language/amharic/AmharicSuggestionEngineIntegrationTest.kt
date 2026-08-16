@@ -299,8 +299,8 @@ class AmharicSuggestionEngineIntegrationTest {
 
     private fun productionVerbLexicon(): AmharicVerbLexicon {
         val artifact = listOf(
-            File("src/main/assets/amharic_verbs.ahva"),
-            File("language/amharic/src/main/assets/amharic_verbs.ahva"),
+            File("src/main/assets/amharic_verbs.ahrf"),
+            File("language/amharic/src/main/assets/amharic_verbs.ahrf"),
         ).first(File::isFile)
         return AmharicVerbLexicon.fromBytes(artifact.readBytes())
     }

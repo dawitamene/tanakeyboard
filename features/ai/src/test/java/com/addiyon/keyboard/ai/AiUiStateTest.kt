@@ -7,7 +7,7 @@ import org.junit.Test
 
 class AiUiStateTest {
     @Test
-    fun `new panel state has no selected tone`() {
+    fun `new keyboard AI state has no selected tone`() {
         val state = AiUiState(
             input = AiInput("Text to rewrite", 3, AiSource.Sentence, null)
         )
@@ -24,5 +24,16 @@ class AiUiStateTest {
         )
 
         assertTrue(state.canRevamp)
+    }
+
+    @Test
+    fun `selected custom tone enables request without a built-in tab`() {
+        val state = AiUiState(
+            selectedCustomToneId = "custom-1",
+            input = AiInput("Text to rewrite", 3, AiSource.Sentence, null)
+        )
+
+        assertTrue(state.canRevamp)
+        assertNull(state.selectedTab)
     }
 }

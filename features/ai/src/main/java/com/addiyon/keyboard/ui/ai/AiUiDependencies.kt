@@ -1,6 +1,7 @@
 package com.addiyon.keyboard.ui.ai
 
 import com.addiyon.keyboard.ai.AiQuota
+import com.addiyon.keyboard.ai.CustomTone
 
 interface AiUiStrings {
     val back: String
@@ -45,6 +46,64 @@ interface AiUiStrings {
     val aiToneProfessional: String
     val aiToneShorten: String
     val aiToneSummarize: String
+    val aiAddCustomTone: String
+    val aiCustomToneTitle: String
+    val aiCustomToneDescription: String
+    val aiCustomToneNewHeading: String
+    val aiCustomToneEditHeading: String
+    val aiCustomToneTitleLabel: String
+    val aiCustomToneInstructionLabel: String
+    val aiCustomToneIconLabel: String
+    val aiCustomToneTitleFieldPlaceholder: String
+    val aiCustomToneFieldPlaceholder: String
+    val aiCustomToneSave: String
+    val aiCustomToneSaveChanges: String
+    val aiCustomToneCancel: String
+    val aiCustomToneEdit: String
+    val aiCustomToneListHeading: String
+    val aiCustomToneEmpty: String
+    val aiCustomToneRemove: String
+    val aiCustomToneError: String
+    val aiCustomToneIconAutoAwesome: String
+    val aiCustomToneIconFace: String
+    val aiCustomToneIconFavorite: String
+    val aiCustomToneIconStar: String
+    val aiCustomToneIconBolt: String
+    val aiCustomToneIconPalette: String
+    val aiCustomToneIconMusicNote: String
+    val aiCustomToneIconEmojiEmotions: String
+    val aiCustomToneIconSentimentSatisfied: String
+    val aiCustomToneIconThumbUp: String
+    val aiCustomToneIconWbSunny: String
+    val aiCustomToneIconLocalFireDepartment: String
+    val aiCustomToneIconWaterDrop: String
+    val aiCustomToneIconEco: String
+    val aiCustomToneIconPets: String
+    val aiCustomToneIconSchool: String
+    val aiCustomToneIconWorkOutline: String
+    val aiCustomToneIconAccountBalance: String
+    val aiCustomToneIconSpellcheck: String
+    val aiCustomToneIconShorten: String
+    val aiCustomToneIconSummarize: String
+    val aiCustomToneIconVerified: String
+    val aiCustomToneIconDiamond: String
+    val aiCustomToneIconRocket: String
+    val aiCustomToneIconCastle: String
+    val aiCustomToneIconTerrain: String
+    val aiCustomToneIconFlight: String
+    val aiCustomToneIconCoffee: String
+    val aiCustomToneIconIcecream: String
+    val aiCustomToneIconNightlight: String
+    val aiCustomToneIconQuestionAnswer: String
+    val aiCustomToneIconAutoStories: String
+    val aiCustomToneColorTeal: String
+    val aiCustomToneColorIndigo: String
+    val aiCustomToneColorOrange: String
+    val aiCustomToneColorPurple: String
+    val aiCustomToneColorGreen: String
+    val aiCustomToneColorRose: String
+    val aiCustomToneColorBlue: String
+    val aiCustomToneColorAmber: String
     val aiTruncated: String
     val aiUsageRemaining: String
     val aiUsageTokensRemainingFormat: String
@@ -88,4 +147,16 @@ interface AiAccountStore {
     fun setPhraseCompletionsEnabled(enabled: Boolean)
     fun phraseCompletionConsentVersion(): Int
     fun setPhraseCompletionConsentVersion(version: Int)
+    fun customTones(): List<CustomTone>
+    fun addCustomTone(title: String, instruction: String, icon: String, color: String): CustomTone?
+    fun updateCustomTone(
+        id: String,
+        title: String,
+        instruction: String,
+        icon: String,
+        color: String
+    ): CustomTone?
+    fun removeCustomTone(id: String)
+    fun registerCustomToneChangeListener(listener: () -> Unit)
+    fun unregisterCustomToneChangeListener(listener: () -> Unit)
 }

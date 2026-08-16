@@ -28,24 +28,71 @@ class DesignSystemContractTest {
         val designSystem = root.resolve("docs/DESIGN_SYSTEM.md").readText()
 
         assertTrue(panel.contains("fun AiToneRow("))
-        assertTrue(panel.contains("height(AddiyonSizes.keyboardAction)"))
+        assertTrue(panel.contains(".height(rowHeight)"))
+        assertTrue(panel.contains("AddiyonSizes.compact + AddiyonSpacing.xs * 2"))
+        assertTrue(panel.contains(".height(AddiyonSizes.compact)"))
         assertTrue(panel.contains("horizontalScroll(rememberScrollState())"))
+        assertTrue(panel.contains("horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.xs)"))
+        assertTrue(panel.contains(".padding(horizontal = AddiyonSpacing.xs)"))
+        assertTrue(panel.contains("onBack: (() -> Unit)? = null"))
+        assertTrue(panel.contains("testTag = AI_RESULTS_DISMISS_TAG"))
+        assertTrue(panel.contains("Spacer(Modifier.width(AddiyonSizes.compact))"))
+        assertTrue(panel.contains("Brush.verticalGradient("))
+        assertTrue(panel.contains("containerColor = Color.Transparent"))
         assertTrue(panel.contains("enabled = enabled"))
         assertTrue(panel.contains("DISABLED_TONE_ALPHA"))
-        assertTrue(feature.contains("contextualRowVisible = !uiState.isVisible"))
+        assertTrue(feature.contains("contextualRowVisible = true"))
         assertTrue(feature.contains("AiToneRow("))
         assertTrue(feature.contains("enabled = toneActionsEnabled"))
+        assertTrue(feature.contains("useKeyboardTopRowSpacing = true"))
+        assertTrue(!feature.contains("contentDimmed ="))
+        assertTrue(!feature.contains("contentLoadingVisible ="))
+        assertTrue(!feature.contains("contentLoadingIndicator ="))
+        assertTrue(feature.contains("::dismissResponse"))
         assertTrue(feature.contains("onTabSelected = ::onKeyboardToneSelected"))
+        assertTrue(feature.contains("AiResultsOverlay("))
+        assertTrue(feature.contains("contentOverlayVisible = uiState.isLoading"))
+        assertTrue(feature.contains("val loadResultsInPlace = uiState.hasResult || uiState.isResultLoading"))
+        assertTrue(panel.contains("if (state.isLoading)"))
+        assertTrue(panel.contains("AiResultsSkeleton()"))
+        assertTrue(!feature.contains("AiPanel("))
+        assertTrue(!feature.contains("panelHeightScale"))
         assertTrue(feature.contains("controller.captureInput().text.isNotBlank()"))
         assertTrue(!feature.contains("AiCompletionController"))
         assertTrue(!feature.contains("AiCompletionBar"))
         assertTrue(!feature.contains("createCompletion("))
         assertTrue(feature.contains("store.setPhraseCompletionsEnabled(false)"))
+        assertTrue(feature.contains("openCustomTone"))
+        assertTrue(feature.contains("onAddCustomTone = ::onAddCustomTone"))
+        assertTrue(panel.contains("customTones.forEach"))
+        assertTrue(panel.contains("onAddCustomTone"))
         assertTrue(!dashboard.contains("Switch("))
         assertTrue(!dashboard.contains("aiPhraseCompletionTitle"))
         assertTrue(screen.contains("optionalUi.contextualRow()"))
+        assertTrue(screen.contains("if (optionalUi.contentOverlayVisible)"))
+        assertTrue(screen.contains("optionalUi.contentOverlay()"))
+        assertTrue(screen.contains("OPTIONAL_CONTENT_DIMMED_ALPHA = 0.15f"))
+        assertTrue(screen.contains("if (optionalUi.contentLoadingVisible)"))
+        assertTrue(screen.contains("optionalUi.contentLoadingIndicator()"))
         assertTrue(designSystem.contains("horizontally scrollable tone-action row"))
-        assertTrue(designSystem.contains("44 dp"))
+        assertTrue(designSystem.contains("56 dp tall"))
+        assertTrue(designSystem.contains("40 dp tone chips"))
+        assertTrue(designSystem.contains("8 dp vertical and horizontal outer insets"))
+        assertTrue(designSystem.contains("8 dp horizontal content padding and 8 dp horizontal gaps"))
+        assertTrue(designSystem.contains("icons are 16 dp"))
+        assertTrue(designSystem.contains("labels use the full semantic `labelSmall` size"))
+        assertTrue(designSystem.contains("Fix grammar is first and Casual"))
+        assertTrue(designSystem.contains("persistent tone row remains at full opacity"))
+        assertTrue(designSystem.contains("immediately replaces both the standard 40 dp suggestion row"))
+        assertTrue(designSystem.contains("no duplicate tone label or result header"))
+        assertTrue(designSystem.contains("leading edge of the persistent tone row"))
+        assertTrue(designSystem.contains("dense, high-opacity frosted white `resultSurface` liquid-glass"))
+        assertTrue(designSystem.contains("vertical sheen and soft shadow but no border"))
+        assertTrue(designSystem.contains("selected tone's glow can draw into that gap"))
+        assertTrue(designSystem.contains("tones remain only faintly visible beneath the frosted control"))
+        assertTrue(designSystem.contains("render pulsing three-line"))
+        assertTrue(designSystem.contains("wraps without an ellipsis"))
+        assertTrue(designSystem.contains("individual card scrolls vertically"))
         assertTrue(designSystem.contains("Phrase completion is currently suspended"))
     }
 
@@ -159,6 +206,7 @@ class DesignSystemContractTest {
             "onBrandPrimary",
             "aiToneIcons",
             "aiToneGlow",
+            "aiCustomToneColors",
             "resultSurface",
             "onResultSurface",
             "successContainer",
@@ -252,6 +300,25 @@ class DesignSystemContractTest {
     }
 
     @Test
+    fun aiCustomToneColorsDefineTheFullPaletteInBothAppearances() {
+        val tokens = projectRoot().resolve(
+            "keyboard/ui/src/main/java/com/addiyon/keyboard/ui/design/AddiyonDesignTokens.kt"
+        ).readText()
+        val ids = listOf("teal", "indigo", "orange", "purple", "green", "rose", "blue", "amber")
+        val appearances = listOf(
+            tokens.substringAfter("fun addiyonLightColors").substringBefore("fun addiyonDarkColors"),
+            tokens.substringAfter("fun addiyonDarkColors").substringBefore("val LocalAddiyonColors")
+        )
+
+        appearances.forEach { appearance ->
+            assertTrue(appearance.contains("aiCustomToneColors = mapOf("))
+            ids.forEach { id ->
+                assertTrue("Appearance is missing custom tone color \"$id\".", appearance.contains("\"$id\""))
+            }
+        }
+    }
+
+    @Test
     fun brandColorIsDeclaredOnceAndThemesUseDerivedRoles() {
         val root = projectRoot()
         val tokens = root.resolve(
@@ -305,6 +372,7 @@ class DesignSystemContractTest {
         val root = projectRoot()
         val inputConsumers = listOf(
             "features/ai/src/main/java/com/addiyon/keyboard/ui/ai/AiAuthBottomSheet.kt",
+            "features/ai/src/main/java/com/addiyon/keyboard/ui/ai/AiCustomToneContent.kt",
             "features/app-shell/src/main/java/com/addiyon/keyboard/features/appshell/KeyboardSetupActivity.kt",
             "features/app-shell/src/main/java/com/addiyon/keyboard/features/appshell/KeyboardSettingsComponents.kt"
         )
@@ -339,12 +407,17 @@ class DesignSystemContractTest {
         ).readText()
         assertTrue(!header.contains("AddiyonDropdownMenu("))
         assertTrue(header.contains("AiAccountActivity.MODE_DASHBOARD"))
+        assertTrue(header.contains("label = strings.aiUsage"))
+        assertTrue(header.contains("label = strings.aiCustomInstructions"))
+        assertTrue(header.contains("AiAccountActivity.MODE_CUSTOM_TONE"))
+        assertTrue(!header.contains("aiNewBadge"))
         assertTrue(dashboard.contains("shape = RoundedCornerShape(AddiyonRadii.small)"))
         assertTrue(components.contains("containerColor = MaterialTheme.colorScheme.surface"))
         assertTrue(components.contains("shape = RoundedCornerShape(AddiyonRadii.group)"))
         assertTrue(components.contains("tonalElevation = AddiyonElevation.none"))
         listOf(
             "features/ai/src/main/java/com/addiyon/keyboard/ui/ai/AiAuthBottomSheet.kt",
+            "features/ai/src/main/java/com/addiyon/keyboard/ui/ai/AiCustomToneContent.kt",
             "features/ai/src/main/java/com/addiyon/keyboard/ui/ai/AiDashboardContent.kt"
         ).forEach { relative ->
             assertTrue(

@@ -40,3 +40,7 @@ keystore.properties
 # separate, destructive operation).
 testers.csv
 .kotlin/
+
+# Python bytecode
+__pycache__/
+*.pyc

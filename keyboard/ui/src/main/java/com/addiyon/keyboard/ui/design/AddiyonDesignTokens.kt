@@ -32,6 +32,7 @@ object AddiyonRadii {
 }
 
 object AddiyonSizes {
+    val loadingDot = 10.dp
     val compact = 40.dp
     val keyboardAction = 44.dp
     val minimumTouchTarget = 48.dp
@@ -117,6 +118,7 @@ data class AddiyonColors(
     val onBrandPrimary: Color,
     val aiToneIcons: AddiyonAiToneColors,
     val aiToneGlow: AddiyonAiToneGlowColors,
+    val aiCustomToneColors: Map<String, Color>,
     val resultSurface: Color,
     val onResultSurface: Color,
     val success: Color,
@@ -142,6 +144,16 @@ fun addiyonLightColors(brand: AddiyonBrand) = AddiyonColors(
         start = Color(0xFFD05398),
         end = Color(0xFF5980F0)
     ),
+    aiCustomToneColors = mapOf(
+        "teal" to brand.primary,
+        "indigo" to Color(0xFF3F51B5),
+        "orange" to Color(0xFFEF6C00),
+        "purple" to Color(0xFF6A1B9A),
+        "green" to Color(0xFF2E7D32),
+        "rose" to Color(0xFFC2185B),
+        "blue" to Color(0xFF0277BD),
+        "amber" to Color(0xFFF9A825)
+    ),
     resultSurface = brand.surface,
     onResultSurface = brand.ink,
     success = Color(0xFF2E7D32),
@@ -166,6 +178,16 @@ fun addiyonDarkColors(brand: AddiyonBrand) = AddiyonColors(
     aiToneGlow = AddiyonAiToneGlowColors(
         start = Color(0xFFD05398),
         end = Color(0xFF5980F0)
+    ),
+    aiCustomToneColors = mapOf(
+        "teal" to brand.primaryLight,
+        "indigo" to Color(0xFF9FA8DA),
+        "orange" to Color(0xFFFFB74D),
+        "purple" to Color(0xFFCE93D8),
+        "green" to Color(0xFF81C784),
+        "rose" to Color(0xFFF48FB1),
+        "blue" to Color(0xFF4FC3F7),
+        "amber" to Color(0xFFFFD54F)
     ),
     resultSurface = brand.surface,
     onResultSurface = brand.ink,

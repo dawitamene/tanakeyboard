@@ -21,10 +21,11 @@ class AddiyonKeyboardService : PackKeyboardService() {
             editor = AiEditorAdapter(editorGateway),
             strings = EnglishTextRevampStrings.asAiUiStrings(),
             isPrivateFieldProvider = { isPrivateField },
-            prepareForPanel = ::prepareForOptionalPanel,
+            prepareForAiAction = ::prepareForOptionalAction,
             onTextReplaced = ::onOptionalFeatureTextReplaced,
             openAuth = { openAiAccount(AiAccountActivity.MODE_AUTH) },
-            openDashboard = { openAiAccount(AiAccountActivity.MODE_DASHBOARD) }
+            openDashboard = { openAiAccount(AiAccountActivity.MODE_DASHBOARD) },
+            openCustomTone = { openAiAccount(AiAccountActivity.MODE_CUSTOM_TONE) }
         )
     }
 

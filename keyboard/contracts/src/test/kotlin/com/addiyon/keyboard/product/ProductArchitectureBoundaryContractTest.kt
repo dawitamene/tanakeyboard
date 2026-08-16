@@ -28,11 +28,15 @@ class ProductArchitectureBoundaryContractTest {
                     val allowedCompositionRoot = source.name.endsWith("KeyboardService.kt") ||
                         source.name.endsWith("KeyboardProduct.kt") ||
                         source.name.endsWith("Product.kt")
+                    // Addiyon owns its product-specific manual/guide screens.
+                    val allowedProductDestination = segments.contains("ui") &&
+                        segments.contains("manual")
                     val ownsKeyboardImplementation = segments.dropLast(1).any {
                         it in forbiddenDirectories
                     } || forbiddenRootNames.matches(source.name)
-                    relative.takeIf { ownsKeyboardImplementation && !allowedCompositionRoot }
-                        ?.let { "$module/src/main/java/$it" }
+                    relative.takeIf {
+                        ownsKeyboardImplementation && !allowedCompositionRoot && !allowedProductDestination
+                    }?.let { "$module/src/main/java/$it" }
                 }
                 .toList()
         }
@@ -59,6 +63,9 @@ class ProductArchitectureBoundaryContractTest {
         )
         val importPattern = Regex("^\\s*import\\s+com\\.addiyon\\.keyboard\\.ai(?:\\.|$)")
         val symbolPattern = Regex("\\b(?:Ai[A-Z]\\w*|ai[A-Z]\\w*|onAi[A-Z]\\w*|AI_[A-Z0-9_]+)\\b")
+        // The documented design-system exception: the AI tone icon accents and
+        // neon glow tokens live in AddiyonDesignTokens.kt (see docs/DESIGN_SYSTEM.md).
+        val documentedToneTokens = setOf("aiToneIcons", "aiToneGlow")
         val violations = mutableListOf<String>()
 
         targets.forEach { target ->
@@ -77,10 +84,10 @@ class ProductArchitectureBoundaryContractTest {
                     .filter { it.extension == "kt" }
                     .forEach { source ->
                         source.readLines().forEachIndexed { index, line ->
-                            if (
-                                importPattern.containsMatchIn(line) ||
-                                symbolPattern.containsMatchIn(line)
-                            ) {
+                            val matchedSymbols = symbolPattern.findAll(line)
+                                .map { it.value }
+                                .filterNot { it in documentedToneTokens }
+                            if (importPattern.containsMatchIn(line) || matchedSymbols.any()) {
                                 violations += "${source.relativeTo(root).invariantSeparatorsPath}:" +
                                     "${index + 1}: ${line.trim()}"
                             }

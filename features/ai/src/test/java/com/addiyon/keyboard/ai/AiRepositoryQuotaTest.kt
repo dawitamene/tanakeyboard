@@ -43,6 +43,20 @@ class AiRepositoryQuotaTest {
         assertEquals(49_000, quota.remaining)
     }
 
+    @Test
+    fun `quota error retains the server remaining token count`() {
+        assertEquals(
+            25_500,
+            quotaRemainingFromError(
+                "{\"code\":\"DAILY_TOKEN_LIMIT_REACHED\",\"remaining\":25500}"
+            )
+        )
+        assertEquals(
+            25_500,
+            quotaRemainingFromError(AiError.QuotaExceeded(25_500).toString())
+        )
+    }
+
     private fun apiReturning(response: QuotaResponse): AiApi = Proxy.newProxyInstance(
         AiApi::class.java.classLoader,
         arrayOf(AiApi::class.java)

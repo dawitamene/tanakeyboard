@@ -325,16 +325,16 @@ internal object NominalRuleGraph {
             return@sequence
         }
         if (tier == 3) {
-        conjunctions.forEachIndexed { index, suffix ->
-            val state = State(
-                core.surface + suffix,
-                core.affixes + NominalAffix.Conjunctive(suffix),
-                core.cost + 2 + index,
-            )
-            if (surfaceCompatible(state.surface, normalizedTyped)) yield(state)
-        }
-        val ga = State(core.surface + "ጋ", core.affixes + NominalAffix.PostpositionGa, core.cost + 2)
-        if (surfaceCompatible(ga.surface, normalizedTyped)) yield(ga)
+            conjunctions.forEachIndexed { index, suffix ->
+                val state = State(
+                    core.surface + suffix,
+                    core.affixes + NominalAffix.Conjunctive(suffix),
+                    core.cost + 2 + index,
+                )
+                if (surfaceCompatible(state.surface, normalizedTyped)) yield(state)
+            }
+            val ga = State(core.surface + "ጋ", core.affixes + NominalAffix.PostpositionGa, core.cost + 2)
+            if (surfaceCompatible(ga.surface, normalizedTyped)) yield(ga)
             return@sequence
         }
         accusatives.forEach { accusative ->

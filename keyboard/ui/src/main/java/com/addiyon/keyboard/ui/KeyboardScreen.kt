@@ -14,7 +14,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
@@ -33,6 +35,7 @@ import com.addiyon.keyboard.ui.emoji.EmojiPanel
 import com.addiyon.keyboard.ui.emoji.EmojiSearchHeader
 
 private val KEY_ROWS_VERTICAL_PADDING = 9.dp
+private const val OPTIONAL_CONTENT_DIMMED_ALPHA = 0.15f
 
 private fun keyboardRows(
     layout: KeyboardLayout,
@@ -148,6 +151,11 @@ fun KeyboardScreen(
         NumbersMode.KEYPAD -> StandardKeypadLayout
         NumbersMode.OFF -> service.activePack.letterLayout
     }
+    val optionalContentAlpha = if (optionalUi.contentDimmed) {
+        OPTIONAL_CONTENT_DIMMED_ALPHA
+    } else {
+        1f
+    }
 
     // Outer Box lets the feedback sheet overlay the whole keyboard; it wraps
     // the keyboard Column and sizes to it, so the overlay's matchParentSize
@@ -176,27 +184,6 @@ fun KeyboardScreen(
                 // rendered by the shared key-rows block at the bottom of this
                 // Column, with the layout forced to English.
                 val emojiSearching = service.showEmojiPanel && service.emojiSearchQuery != null
-
-                if (optionalUi.panelVisible) {
-                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        val rows = remember(layout, service.numbersMode, service.showNumberRow) {
-                            keyboardRows(layout = layout, numbersMode = service.numbersMode, numberRowEnabled = service.showNumberRow, emojiSearching = false)
-                        }
-                        val metrics = remember(rows, maxWidth, heightScale, isLandscape) {
-                            computeKeyboardMetrics(rows = rows, availableWidth = maxWidth - 4.dp, columns = layout.columns, heightScale = heightScale, isLandscape = isLandscape)
-                        }
-                        val targetRowCount = remember(service.showNumberRow) { keyboardRowCount(service.showNumberRow) }
-                        val basePanelHeight = 40.dp + keyboardRowsHeight(keyHeight = metrics.keyHeight, rowCount = targetRowCount, rowSpacing = standardRowSpacing) + KEY_ROWS_VERTICAL_PADDING * 2
-                        val panelHeight = scaledKeyboardPanelHeight(
-                            baseHeight = basePanelHeight,
-                            scale = optionalUi.panelHeightScale
-                        )
-                        Box(modifier = Modifier.height(panelHeight)) {
-                            optionalUi.panel(panelHeight)
-                        }
-                    }
-                    return@keyboardContent
-                }
 
                 // The emoji panel replaces BOTH the suggestion strip and the key
                 // rows at exactly their combined height (computed below from the
@@ -253,11 +240,50 @@ fun KeyboardScreen(
                     if (optionalUi.contextualRowVisible) {
                         optionalUi.contextualRow()
                     }
+                    if (optionalUi.contentOverlayVisible) {
+                        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                            val rows = remember(
+                                layout,
+                                service.numbersMode,
+                                service.showNumberRow
+                            ) {
+                                keyboardRows(
+                                    layout = layout,
+                                    numbersMode = service.numbersMode,
+                                    numberRowEnabled = service.showNumberRow,
+                                    emojiSearching = false
+                                )
+                            }
+                            val metrics = remember(rows, maxWidth, heightScale, isLandscape) {
+                                computeKeyboardMetrics(
+                                    rows = rows,
+                                    availableWidth = maxWidth - 4.dp,
+                                    columns = layout.columns,
+                                    heightScale = heightScale,
+                                    isLandscape = isLandscape
+                                )
+                            }
+                            val targetRowCount = remember(service.showNumberRow) {
+                                keyboardRowCount(service.showNumberRow)
+                            }
+                            val contentHeight = 40.dp + keyboardRowsHeight(
+                                keyHeight = metrics.keyHeight,
+                                rowCount = targetRowCount,
+                                rowSpacing = standardRowSpacing
+                            ) + KEY_ROWS_VERTICAL_PADDING * 2
+                            Box(modifier = Modifier.height(contentHeight)) {
+                                optionalUi.contentOverlay()
+                            }
+                        }
+                        return@keyboardContent
+                    }
                     // Always present -- across letter AND number/symbol layouts. When
                     // there's nothing to suggest (always the case on the numeric pages,
                     // where no word composes) it's the quick-action toolbar with the
                     // logo; otherwise the suggestion strip.
-                    KeyboardSuggestionArea(service, isAmharic, optionalUi)
+                    Box(modifier = Modifier.alpha(optionalContentAlpha)) {
+                        KeyboardSuggestionArea(service, isAmharic, optionalUi)
+                    }
                 }
 
                 Box(
@@ -271,6 +297,7 @@ fun KeyboardScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .wrapContentHeight()
+                            .alpha(optionalContentAlpha)
                             .padding(horizontal = 2.dp, vertical = KEY_ROWS_VERTICAL_PADDING)
                     ) {
 
@@ -376,7 +403,9 @@ fun KeyboardScreen(
                     visible = showExpanded && expandedWords.isNotEmpty(),
                     enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
                     exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
-                    modifier = Modifier.matchParentSize()
+                    modifier = Modifier
+                        .matchParentSize()
+                        .alpha(optionalContentAlpha)
                 ) {
                     Box(
                         modifier = Modifier
@@ -435,6 +464,14 @@ fun KeyboardScreen(
                                 }
                             }
                         }
+                    }
+                }
+                if (optionalUi.contentLoadingVisible) {
+                    Box(
+                        modifier = Modifier.matchParentSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        optionalUi.contentLoadingIndicator()
                     }
                 }
             }

@@ -1219,8 +1219,6 @@ def main():
             "benchmark",
             "verify",
             "production-oracle",
-            "production-artifact",
-            "verify-production",
             "phase9-review",
         ),
     )
@@ -1237,9 +1235,6 @@ def main():
     pruned_output = args.pruned_output or args.repo / "tools/hornmorpho/fixtures/amharic_verb_pruned_dafsa_v1.bin"
     metrics_output = args.metrics_output or args.repo / "tools/hornmorpho/verb_spike_metrics.json"
     production_corpus = args.repo / "tools/hornmorpho/fixtures/amharic_verb_phase8.tsv.gz"
-    production_output = args.repo / "language/amharic/src/main/assets/amharic_verbs.ahva"
-    production_manifest = args.repo / "language/amharic/src/main/assets/amharic_verbs_manifest.properties"
-    production_metrics = args.repo / "tools/hornmorpho/verb_phase8_metrics.json"
     production_golden = args.repo / "language/amharic/src/test/resources/hornmorpho_verb_phase8.tsv"
     phase9_review = args.repo / "tools/hornmorpho/fixtures/amharic_phase9_review.tsv"
     if args.command == "oracle":
@@ -1256,21 +1251,7 @@ def main():
             args.corpus or production_corpus,
             args.golden_output or production_golden,
         )
-    elif args.command == "production-artifact":
-        write_production_artifact(
-            args.repo,
-            args.corpus or production_corpus,
-            args.selected_output or production_output,
-            args.manifest_output or production_manifest,
-            args.metrics_output or production_metrics,
-        )
-    elif args.command == "verify-production":
-        verify_production(
-            args.corpus or production_corpus,
-            args.selected_output or production_output,
-            args.manifest_output or production_manifest,
-        )
-    else:
+    elif args.command == "phase9-review":
         write_phase9_review(
             args.repo,
             args.corpus or production_corpus,

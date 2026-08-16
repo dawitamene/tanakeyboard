@@ -1,10 +1,7 @@
 package com.addiyon.keyboard.ai
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
-import android.widget.Toast
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.runtime.Composable
@@ -14,7 +11,7 @@ import androidx.compose.runtime.setValue
 import com.addiyon.keyboard.ui.KeyboardToolbarAction
 import com.addiyon.keyboard.ui.OptionalKeyboardUi
 import com.addiyon.keyboard.ui.ai.AiAccountStore
-import com.addiyon.keyboard.ui.ai.AiPanel
+import com.addiyon.keyboard.ui.ai.AiResultsOverlay
 import com.addiyon.keyboard.ui.ai.AiToneRow
 import com.addiyon.keyboard.ui.ai.AiUiStrings
 import kotlinx.coroutines.CoroutineScope
@@ -25,18 +22,16 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-internal const val AI_PANEL_HEIGHT_SCALE = 1.4f
-
 class AiKeyboardFeature internal constructor(
     private val controller: AiController,
     private val store: AiAccountStore,
     private val strings: AiUiStrings,
     private val isPrivateFieldProvider: () -> Boolean,
-    private val prepareForPanel: () -> Unit,
+    private val prepareForAiAction: () -> Unit,
     private val onTextReplaced: () -> Unit,
     private val openAuth: () -> Unit,
     private val openDashboard: () -> Unit,
-    private val copyResult: (label: String, text: String) -> Unit,
+    private val openCustomTone: () -> Unit,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 ) {
     var uiState by mutableStateOf(
@@ -47,8 +42,12 @@ class AiKeyboardFeature internal constructor(
     )
         private set
 
+    var customTones by mutableStateOf(emptyList<CustomTone>())
+        private set
+
     private var requestJob: Job? = null
     private var toneActionsEnabled by mutableStateOf(false)
+    private var customToneChangeListener: (() -> Unit)? = null
 
     @Composable
     fun optionalKeyboardUi(): OptionalKeyboardUi = OptionalKeyboardUi(
@@ -57,95 +56,73 @@ class AiKeyboardFeature internal constructor(
             contentDescription = strings.aiToolbarDescription,
             onClick = ::onToolbarAction
         ),
-        contextualRowVisible = !uiState.isVisible,
+        contextualRowVisible = true,
         contextualRow = {
             AiToneRow(
-                selectedTab = null,
-                isLoading = false,
+                selectedTab = uiState.selectedTab,
+                customTones = customTones,
+                selectedCustomToneId = uiState.selectedCustomToneId,
+                isLoading = uiState.isLoading,
                 enabled = toneActionsEnabled,
                 strings = strings,
-                onTabSelected = ::onKeyboardToneSelected
+                useKeyboardTopRowSpacing = true,
+                onBack = if (
+                    uiState.isLoading ||
+                    uiState.hasResult ||
+                    (uiState.selectedTab != null && uiState.error != null) ||
+                    (uiState.selectedCustomToneId != null && uiState.error != null)
+                ) {
+                    ::dismissResponse
+                } else {
+                    null
+                },
+                onTabSelected = ::onKeyboardToneSelected,
+                onCustomToneSelected = ::onKeyboardCustomToneSelected,
+                onAddCustomTone = ::onAddCustomTone
             )
         },
-        panelVisible = uiState.isVisible,
-        panelHeightScale = AI_PANEL_HEIGHT_SCALE,
-        panel = {
-            AiPanel(
+        contentOverlayVisible = uiState.isLoading ||
+            uiState.hasResult ||
+            (uiState.selectedTab != null && uiState.error != null) ||
+            (uiState.selectedCustomToneId != null && uiState.error != null),
+        contentOverlay = {
+            AiResultsOverlay(
                 state = uiState,
-                tonesEnabled = toneActionsEnabled,
                 strings = strings,
-                onDismiss = ::dismissPanel,
-                onTabSelected = ::onTabSelected,
-                onCopyVariant = ::onCopyVariant,
-                onReplaceVariant = ::onReplaceVariant,
-                onOpenDashboard = openDashboard
+                onReplaceVariant = ::onReplaceVariant
             )
         }
     )
 
     fun onToolbarAction() {
-        if (uiState.isVisible) {
-            dismissPanel()
-            return
-        }
-        prepareForPanel()
         if (store.jwt().isNullOrBlank()) {
             openAuth()
-            return
-        }
-        val privateField = isPrivateFieldProvider()
-        val captured = if (privateField) null else controller.captureInput()
-        toneActionsEnabled = captured?.text?.isNotBlank() == true
-        cancelRequest()
-        uiState = AiUiState(
-            isVisible = true,
-            selectedTab = null,
-            input = captured,
-            isQuotaLoading = true,
-            error = if (privateField) AiError.PrivateField else null,
-            quota = store.quota(),
-            isPrivateField = privateField,
-            needsAuth = false,
-            authEmail = store.email().orEmpty()
-        )
-        requestJob = scope.launch {
-            val result = withContext(Dispatchers.IO) { controller.loadQuota() }
-            if (!uiState.isVisible || uiState.selectedTab != null) return@launch
-            result.onSuccess { quota ->
-                store.saveQuota(quota)
-                uiState = uiState.copy(
-                    quota = quota,
-                    isQuotaLoading = false,
-                    error = if (isPrivateFieldProvider()) AiError.PrivateField else null
-                )
-            }.onFailure { throwable ->
-                uiState = uiState.copy(
-                    isQuotaLoading = false,
-                    error = if (isPrivateFieldProvider()) {
-                        AiError.PrivateField
-                    } else {
-                        controller.parseError(throwable)
-                    }
-                )
-            }
-            requestJob = null
+        } else {
+            openDashboard()
         }
     }
 
-    fun dismissPanel() {
+    fun dismissResponse() {
         cancelRequest()
-        uiState = uiState.copy(
-            isVisible = false,
-            isLoading = false,
-            isQuotaLoading = false
+        uiState = AiUiState(
+            quota = store.quota(),
+            authEmail = store.email().orEmpty()
         )
         refreshToneActionsEnabled()
     }
 
-    fun onTabSelected(tab: AiToneTab) {
+    fun onTabSelected(tab: AiToneTab) = startToneRequest(tab, null)
+
+    fun onCustomToneSelected(custom: CustomTone) = startToneRequest(null, custom)
+
+    private fun startToneRequest(tab: AiToneTab?, custom: CustomTone?) {
         cancelRequest()
+        val loadResultsInPlace = uiState.hasResult || uiState.isResultLoading
         uiState = uiState.copy(
             selectedTab = tab,
+            selectedCustomToneId = custom?.id,
+            isLoading = false,
+            isResultLoading = false,
             isQuotaLoading = false,
             result = null,
             error = null,
@@ -172,12 +149,25 @@ class AiKeyboardFeature internal constructor(
             uiState = uiState.copy(error = AiError.QuotaExceeded(uiState.quota.remaining))
             return
         }
-        uiState = uiState.copy(isLoading = true, error = null)
+        uiState = uiState.copy(
+            isLoading = true,
+            isResultLoading = loadResultsInPlace,
+            error = null
+        )
         requestJob = scope.launch {
             val results = withContext(Dispatchers.IO) {
-                controller.revampVariants(input, tab)
+                if (custom != null) {
+                    controller.revampCustomVariants(input, custom.instruction)
+                } else {
+                    controller.revampVariants(input, checkNotNull(tab))
+                }
             }
-            if (!uiState.isVisible || uiState.selectedTab != tab) return@launch
+            val stillCurrent = if (custom != null) {
+                uiState.selectedCustomToneId == custom.id
+            } else {
+                uiState.selectedTab == tab
+            }
+            if (!uiState.isLoading || !stillCurrent) return@launch
             val successes = results.mapNotNull { (strength, result) ->
                 result.getOrNull()?.let { strength to it }
             }.toMap()
@@ -197,6 +187,7 @@ class AiKeyboardFeature internal constructor(
                     selectedVariant = selected,
                     result = successes[selected],
                     isLoading = false,
+                    isResultLoading = false,
                     error = null
                 )
             } else {
@@ -207,21 +198,24 @@ class AiKeyboardFeature internal constructor(
                     null
                 }
                 refreshedQuota?.let(store::saveQuota)
+                val displayedError = if (
+                    firstError is AiError.QuotaExceeded && refreshedQuota != null
+                ) {
+                    firstError.copy(remaining = refreshedQuota.remaining)
+                } else {
+                    firstError
+                }
                 uiState = uiState.copy(
                     quota = refreshedQuota ?: uiState.quota,
                     variantResults = emptyMap(),
                     variantErrors = failures,
                     isLoading = false,
-                    error = firstError
+                    isResultLoading = false,
+                    error = displayedError
                 )
             }
             requestJob = null
         }
-    }
-
-    fun onCopyVariant(strength: AiStrength) {
-        val result = selectVariant(strength) ?: return
-        copyResult(strings.aiClipboardLabel, result.text)
     }
 
     fun onReplaceVariant(strength: AiStrength) {
@@ -234,18 +228,30 @@ class AiKeyboardFeature internal constructor(
         }
         when (controller.replaceIfCurrent(snapshot, result.text)) {
             AiEditorReplaceResult.Replaced -> {
-                uiState = uiState.copy(isVisible = false)
+                uiState = AiUiState(
+                    quota = store.quota(),
+                    authEmail = store.email().orEmpty()
+                )
                 controller.invalidateEditorCaptures()
                 onTextReplaced()
             }
             AiEditorReplaceResult.TextChanged -> {
-                uiState = uiState.copy(error = AiError.Server(strings.aiErrorTextChanged))
+                uiState = uiState.copy(
+                    error = AiError.Server(strings.aiErrorTextChanged),
+                    variantResults = emptyMap()
+                )
             }
             AiEditorReplaceResult.SelectionChanged -> {
-                uiState = uiState.copy(error = AiError.Server(strings.aiErrorSelectionChanged))
+                uiState = uiState.copy(
+                    error = AiError.Server(strings.aiErrorSelectionChanged),
+                    variantResults = emptyMap()
+                )
             }
             AiEditorReplaceResult.Failed -> {
-                uiState = uiState.copy(error = AiError.Server(strings.aiErrorReplaceFailed))
+                uiState = uiState.copy(
+                    error = AiError.Server(strings.aiErrorReplaceFailed),
+                    variantResults = emptyMap()
+                )
             }
         }
     }
@@ -266,21 +272,50 @@ class AiKeyboardFeature internal constructor(
 
     fun onDestroy() {
         resetForLifecycle()
+        customToneChangeListener?.let { store.unregisterCustomToneChangeListener(it) }
+        customToneChangeListener = null
         scope.cancel()
     }
 
     fun onEditorContextChanged() {
-        if (!uiState.isVisible) refreshToneActionsEnabled()
+        if (uiState.selectedTab != null || uiState.selectedCustomToneId != null) {
+            dismissResponse()
+        } else {
+            refreshToneActionsEnabled()
+        }
     }
 
     private fun onKeyboardToneSelected(tab: AiToneTab) {
         if (!toneActionsEnabled) return
-        onToolbarAction()
-        if (uiState.isVisible) onTabSelected(tab)
+        prepareForAiAction()
+        if (store.jwt().isNullOrBlank()) {
+            openAuth()
+            return
+        }
+        onTabSelected(tab)
+    }
+
+    private fun onKeyboardCustomToneSelected(custom: CustomTone) {
+        if (!toneActionsEnabled) return
+        prepareForAiAction()
+        if (store.jwt().isNullOrBlank()) {
+            openAuth()
+            return
+        }
+        onCustomToneSelected(custom)
+    }
+
+    fun onAddCustomTone() {
+        prepareForAiAction()
+        openCustomTone()
     }
 
     private fun refreshToneActionsEnabled() {
         toneActionsEnabled = !isPrivateFieldProvider() && controller.captureInput().text.isNotBlank()
+    }
+
+    private fun refreshCustomTones() {
+        customTones = store.customTones()
     }
 
     private fun selectVariant(strength: AiStrength): AiResult? {
@@ -295,10 +330,18 @@ class AiKeyboardFeature internal constructor(
         cancelRequest()
         controller.invalidateEditorCaptures()
         toneActionsEnabled = false
+        refreshCustomTones()
         uiState = AiUiState(
             quota = store.quota(),
             authEmail = store.email().orEmpty()
         )
+    }
+
+    private fun attachCustomToneStore() {
+        refreshCustomTones()
+        val listener = { customTones = store.customTones() }
+        customToneChangeListener = listener
+        store.registerCustomToneChangeListener(listener)
     }
 
     private fun cancelRequest() {
@@ -312,10 +355,11 @@ class AiKeyboardFeature internal constructor(
             editor: AiEditor,
             strings: AiUiStrings,
             isPrivateFieldProvider: () -> Boolean,
-            prepareForPanel: () -> Unit,
+            prepareForAiAction: () -> Unit,
             onTextReplaced: () -> Unit,
             openAuth: () -> Unit,
-            openDashboard: () -> Unit
+            openDashboard: () -> Unit,
+            openCustomTone: () -> Unit
         ): AiKeyboardFeature {
             val appContext = context.applicationContext
             val store = AiPreferences(appContext)
@@ -335,24 +379,20 @@ class AiKeyboardFeature internal constructor(
                 isPrivateFieldProvider = isPrivateFieldProvider
             )
             val featureScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-            return AiKeyboardFeature(
+            val feature = AiKeyboardFeature(
                 controller = controller,
                 store = store,
                 strings = strings,
                 isPrivateFieldProvider = isPrivateFieldProvider,
-                prepareForPanel = prepareForPanel,
+                prepareForAiAction = prepareForAiAction,
                 onTextReplaced = onTextReplaced,
                 openAuth = openAuth,
                 openDashboard = openDashboard,
-                scope = featureScope,
-                copyResult = { label, text ->
-                    runCatching {
-                        val clipboard = appContext.getSystemService(ClipboardManager::class.java)
-                        clipboard?.setPrimaryClip(ClipData.newPlainText(label, text))
-                        Toast.makeText(appContext, strings.aiCopiedMessage, Toast.LENGTH_SHORT).show()
-                    }
-                }
+                openCustomTone = openCustomTone,
+                scope = featureScope
             )
+            feature.attachCustomToneStore()
+            return feature
         }
     }
 }

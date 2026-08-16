@@ -186,7 +186,7 @@ abstract class PackKeyboardService : BaseKeyboardService(),
         SafeLog.w(message)
     }
 
-    protected fun prepareForOptionalPanel() {
+    protected fun prepareForOptionalAction() {
         closeEmojiPanel()
         leaveVoiceModeForKeyboardInput()
         hideExpandedSuggestions()

@@ -37,12 +37,29 @@ class AiRepository(private val api: AiApi) {
         tab: AiToneTab,
         jwt: String?,
         anonId: String
+    ): Result<Map<AiStrength, AiResult>> =
+        revampVariants(text, tab.tone, tab.instruction, jwt, anonId)
+
+    suspend fun revampCustomVariants(
+        text: String,
+        instruction: String,
+        jwt: String?,
+        anonId: String
+    ): Result<Map<AiStrength, AiResult>> =
+        revampVariants(text, CUSTOM_TONE_DEFAULT_TONE, instruction, jwt, anonId)
+
+    suspend fun revampVariants(
+        text: String,
+        tone: String,
+        instruction: String?,
+        jwt: String?,
+        anonId: String
     ): Result<Map<AiStrength, AiResult>> {
         val auth = jwt?.takeIf { it.isNotBlank() }?.let { "Bearer $it" }
         val req = RevampRequest(
             text = text,
-            tone = tab.tone,
-            instruction = tab.instruction
+            tone = tone,
+            instruction = instruction
         )
         return try {
             val res = api.revamp(req, auth, anonId)
@@ -205,7 +222,9 @@ class AiRepository(private val api: AiApi) {
         val msg = body?.takeIf { it.isNotBlank() } ?: e.message()
         return when (code) {
             401 -> Exception(AiError.NeedsAuth.toString())
-            429 -> Exception(AiError.QuotaExceeded().toString())
+            429 -> Exception(
+                AiError.QuotaExceeded(quotaRemainingFromError(msg) ?: 0).toString()
+            )
             400 -> Exception(AiError.Server(msg).toString())
             404 -> Exception(AiError.Server("Not found: $msg").toString())
             else -> Exception(AiError.Server("HTTP $code $msg").toString())
@@ -231,7 +250,8 @@ class AiRepository(private val api: AiApi) {
         val msg = exception.message ?: ""
         return when {
             msg.contains("NeedsAuth") -> AiError.NeedsAuth
-            msg.contains("QuotaExceeded") -> AiError.QuotaExceeded()
+            msg.contains("QuotaExceeded") ->
+                AiError.QuotaExceeded(quotaRemainingFromError(msg) ?: 0)
             msg.contains("RateLimited") -> {
                 val retry = Regex("retryAfter=(\\d+)").find(msg)?.groupValues?.get(1)?.toIntOrNull()
                     ?: Regex("wait (\\d+)s").find(msg)?.groupValues?.get(1)?.toIntOrNull()

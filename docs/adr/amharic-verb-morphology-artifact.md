@@ -1,6 +1,6 @@
 # ADR: Amharic verb morphology artifact
 
-- Status: accepted and implemented in Phase 8
+- Status: superseded by `amharic-verb-runtime-fst.md`
 - Date: 2026-08-13
 - Review: automated architecture, format, reproducibility, and budget gates passed; fluent Amharic review remains a Phase 9 release gate
 - Decision owner: Addiyon Keyboard

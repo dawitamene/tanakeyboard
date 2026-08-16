@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,20 +32,27 @@ private fun textRevampShellCustomization(): KeyboardAppShellCustomization {
     val context = LocalContext.current
     val strings = LocalTextRevampStrings.current
     val isLoggedIn = !AiPreferences(context).jwt().isNullOrBlank()
-    val aiEntry = KeyboardShellMenuEntry(
+    val usageEntry = KeyboardShellMenuEntry(
         icon = Icons.Default.AutoAwesome,
-        label = strings.ai,
+        label = strings.aiUsage,
         group = KeyboardSettingsGroup.PRIMARY,
         target = KeyboardShellMenuTarget.Action {
             context.openAiAccount(
                 if (isLoggedIn) AiAccountActivity.MODE_DASHBOARD else AiAccountActivity.MODE_AUTH
             )
-        },
-        badge = strings.aiNewBadge
+        }
+    )
+    val customInstructionsEntry = KeyboardShellMenuEntry(
+        icon = Icons.Outlined.Edit,
+        label = strings.aiCustomInstructions,
+        group = KeyboardSettingsGroup.PRIMARY,
+        target = KeyboardShellMenuTarget.Action {
+            context.openAiAccount(AiAccountActivity.MODE_CUSTOM_TONE)
+        }
     )
     return KeyboardAppShellCustomization(
         privacyPolicyUrl = TEXTREVAMP_PRIVACY_POLICY_URL,
-        featurePrimaryEntries = listOf(aiEntry),
+        featurePrimaryEntries = listOf(usageEntry, customInstructionsEntry),
         featureGuideSections = listOf(
             KeyboardGuideSection(strings.aiRephraseTitle, strings.aiRephraseSubtitle)
         ),

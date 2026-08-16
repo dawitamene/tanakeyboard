@@ -17,6 +17,7 @@ class AiPreferencesMigrationTest {
                 KEY_EMAIL to "person@example.com",
                 KEY_ANONYMOUS_ID to "anonymous",
                 KEY_USED_TODAY to 7_000,
+                KEY_REMAINING_TODAY to 18_000,
                 KEY_QUOTA_DAY to "2026-08-10",
                 KEY_DAILY_LIMIT to 50_000,
                 "palette" to "MIDNIGHT",
@@ -30,6 +31,7 @@ class AiPreferencesMigrationTest {
         assertEquals("person@example.com", destination.value(KEY_EMAIL))
         assertEquals("anonymous", destination.value(KEY_ANONYMOUS_ID))
         assertEquals(7_000, destination.value(KEY_USED_TODAY))
+        assertEquals(18_000, destination.value(KEY_REMAINING_TODAY))
         assertEquals("2026-08-10", destination.value(KEY_QUOTA_DAY))
         assertEquals(50_000, destination.value(KEY_DAILY_LIMIT))
         assertEquals(true, destination.value(KEY_LEGACY_MIGRATION_COMPLETE))
@@ -88,6 +90,13 @@ class AiPreferencesMigrationTest {
 
         assertEquals("current-jwt", destination.value(KEY_JWT))
         assertFalse(legacy.contains(KEY_JWT))
+    }
+
+    @Test
+    fun restoresTheExactServerRemainingQuota() {
+        assertEquals(25_500, restoredQuotaRemaining(50_000, 7_000, 25_500))
+        assertEquals(43_000, restoredQuotaRemaining(50_000, 7_000, null))
+        assertEquals(43_000, restoredQuotaRemaining(50_000, 7_000, 49_000))
     }
 }
 

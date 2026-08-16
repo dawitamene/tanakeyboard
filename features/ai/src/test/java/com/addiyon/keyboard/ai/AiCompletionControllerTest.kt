@@ -171,4 +171,21 @@ private class FakeAccountStore(
     override fun setPhraseCompletionConsentVersion(version: Int) {
         consentVersion = version
     }
+    override fun customTones(): List<CustomTone> = emptyList()
+    override fun addCustomTone(
+        title: String,
+        instruction: String,
+        icon: String,
+        color: String
+    ): CustomTone? = null
+    override fun updateCustomTone(
+        id: String,
+        title: String,
+        instruction: String,
+        icon: String,
+        color: String
+    ): CustomTone? = null
+    override fun removeCustomTone(id: String) = Unit
+    override fun registerCustomToneChangeListener(listener: () -> Unit) = Unit
+    override fun unregisterCustomToneChangeListener(listener: () -> Unit) = Unit
 }
