@@ -15,6 +15,9 @@ enum class PartOfSpeech(val hornMorphoValue: String) {
     NUMERAL("NUM"),
     VERBAL_NOUN("N_V"),
     ADVERB("ADV"),
+    VERB("V"),
+    COPULA("COP"),
+    PREVERB("PV"),
 }
 
 enum class Gender {

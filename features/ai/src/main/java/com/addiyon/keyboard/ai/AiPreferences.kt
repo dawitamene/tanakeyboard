@@ -107,6 +107,11 @@ class AiPreferences(context: Context) : AiAccountStore {
     override fun customTones(): List<CustomTone> =
         decodeCustomTones(string(KEY_CUSTOM_TONES, MAX_CUSTOM_TONES_STORAGE))
 
+    override fun setCustomTones(tones: List<CustomTone>) {
+        saveCustomTones(tones.take(MAX_CUSTOM_TONES))
+        normalizeToneOrderAfterCustomChange()
+    }
+
     override fun addCustomTone(
         title: String,
         instruction: String,
@@ -152,10 +157,11 @@ class AiPreferences(context: Context) : AiAccountStore {
 
     override fun removeCustomTone(id: String) {
         saveCustomTones(customTones().filterNot { it.id == id })
+        normalizeToneOrderAfterCustomChange()
     }
 
     override fun registerCustomToneChangeListener(listener: () -> Unit) {
-        if (customToneListeners.isEmpty()) {
+        if (customToneListeners.isEmpty() && toneOrderListeners.isEmpty()) {
             preferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
         }
         customToneListeners += listener
@@ -163,9 +169,45 @@ class AiPreferences(context: Context) : AiAccountStore {
 
     override fun unregisterCustomToneChangeListener(listener: () -> Unit) {
         customToneListeners -= listener
-        if (customToneListeners.isEmpty()) {
+        if (customToneListeners.isEmpty() && toneOrderListeners.isEmpty()) {
             preferences.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
         }
+    }
+
+    override fun toneOrder(): List<String> =
+        decodeToneOrder(string(KEY_TONE_ORDER, MAX_TONE_ORDER_STORAGE))
+
+    override fun setToneOrder(order: List<String>) {
+        val cleaned = order.map { it.trim() }.filter { it.isNotEmpty() }.distinct().take(MAX_TONE_ORDER_SIZE)
+        val raw = cleaned.joinToString(CUSTOM_TONE_RECORD_SEPARATOR)
+        edit {
+            if (raw.isEmpty()) remove(KEY_TONE_ORDER) else putString(KEY_TONE_ORDER, raw)
+        }
+    }
+
+    override fun registerToneOrderChangeListener(listener: () -> Unit) {
+        if (customToneListeners.isEmpty() && toneOrderListeners.isEmpty()) {
+            preferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+        }
+        toneOrderListeners += listener
+    }
+
+    override fun unregisterToneOrderChangeListener(listener: () -> Unit) {
+        toneOrderListeners -= listener
+        if (customToneListeners.isEmpty() && toneOrderListeners.isEmpty()) {
+            preferences.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
+        }
+    }
+
+    private fun normalizeToneOrderAfterCustomChange() {
+        val order = toneOrder()
+        if (order.isEmpty()) return
+        val validIds = buildSet {
+            addAll(AiToneTab.AllTabs.map { toneOrderIdForBuiltIn(it) })
+            addAll(customTones().map { toneOrderIdForCustom(it.id) })
+        }
+        val filtered = order.filter { it in validIds }
+        if (filtered.size != order.size) setToneOrder(filtered)
     }
 
     private fun cleanCustomToneText(value: String, maximumLength: Int): String =
@@ -196,9 +238,18 @@ class AiPreferences(context: Context) : AiAccountStore {
     }
 
     private val customToneListeners = CopyOnWriteArrayList<() -> Unit>()
+    private val toneOrderListeners = CopyOnWriteArrayList<() -> Unit>()
     private val preferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == KEY_CUSTOM_TONES) customToneListeners.forEach { it() }
+            if (key == KEY_TONE_ORDER) toneOrderListeners.forEach { it() }
+            if (key == KEY_CUSTOM_TONES) {
+                val order = decodeToneOrder(string(KEY_TONE_ORDER, MAX_TONE_ORDER_STORAGE))
+                if (order.isNotEmpty()) {
+                    normalizeToneOrderAfterCustomChange()
+                    toneOrderListeners.forEach { it() }
+                }
+            }
         }
 
     private companion object {
@@ -212,6 +263,8 @@ class AiPreferences(context: Context) : AiAccountStore {
         const val MAX_CUSTOM_TONE_TITLE_LENGTH = 40
         const val MAX_CUSTOM_TONE_INSTRUCTION_LENGTH = 120
         const val MAX_CUSTOM_TONES_STORAGE = 2_048
+        const val MAX_TONE_ORDER_STORAGE = 1_024
+        const val MAX_TONE_ORDER_SIZE = 18
     }
 }
 
@@ -283,6 +336,7 @@ internal const val KEY_PHRASE_COMPLETIONS_ENABLED = "ai_phrase_completions_enabl
 internal const val KEY_PHRASE_COMPLETION_CONSENT_VERSION =
     "ai_phrase_completion_consent_version"
 internal const val KEY_CUSTOM_TONES = "ai_custom_tones"
+internal const val KEY_TONE_ORDER = "ai_tone_order"
 internal const val CUSTOM_TONE_FIELD_SEPARATOR = "\u0001"
 internal const val CUSTOM_TONE_RECORD_SEPARATOR = "\u001F"
 private const val CUSTOM_TONE_FIELD_SEPARATOR_CHAR = '\u0001'
@@ -299,6 +353,48 @@ internal fun sanitizeStoredIcon(icon: String): String {
     }
     if (cleaned.isEmpty() || cleaned !in CustomToneIcon.All) return CustomToneIcon.Default
     return cleaned
+}
+
+fun toneOrderIdForBuiltIn(tab: AiToneTab): String = "builtIn:${tab.name}"
+fun toneOrderIdForCustom(id: String): String = "custom:$id"
+fun builtInTabIdForOrderId(orderId: String): AiToneTab? =
+    orderId.removePrefix("builtIn:").let { name -> AiToneTab.entries.firstOrNull { it.name == name } }
+fun customIdForOrderId(orderId: String): String? =
+    if (orderId.startsWith("custom:")) orderId.removePrefix("custom:") else null
+
+internal fun decodeToneOrder(raw: String?): List<String> {
+    if (raw.isNullOrBlank()) return emptyList()
+    return raw.split(CUSTOM_TONE_RECORD_SEPARATOR).map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+}
+
+fun orderedToneSequence(
+    toneOrder: List<String>,
+    customTones: List<CustomTone>
+): List<ToneOrderItem> {
+    val customById = customTones.associateBy { it.id }
+    val builtInIds = AiToneTab.AllTabs.map { toneOrderIdForBuiltIn(it) }
+    val customIds = customTones.map { toneOrderIdForCustom(it.id) }
+    val validIds = buildSet {
+        addAll(builtInIds)
+        addAll(customIds)
+    }
+    val filteredOrder = toneOrder.filter { it in validIds }
+    val missingBuiltIns = builtInIds.filterNot { it in filteredOrder }
+    val missingCustoms = customIds.filterNot { it in filteredOrder }
+    val fullOrder = filteredOrder + missingBuiltIns + missingCustoms
+    return fullOrder.mapNotNull { id ->
+        builtInTabIdForOrderId(id)?.let { ToneOrderItem.BuiltIn(it) }
+            ?: customIdForOrderId(id)?.let { cid -> customById[cid]?.let { ToneOrderItem.Custom(it) } }
+    }
+}
+
+sealed interface ToneOrderItem {
+    data class BuiltIn(val tab: AiToneTab) : ToneOrderItem
+    data class Custom(val tone: CustomTone) : ToneOrderItem
+    val orderId: String get() = when (this) {
+        is BuiltIn -> toneOrderIdForBuiltIn(tab)
+        is Custom -> toneOrderIdForCustom(tone.id)
+    }
 }
 
 const val CURRENT_PHRASE_COMPLETION_CONSENT_VERSION = 1

@@ -246,7 +246,10 @@ abstract class PackKeyboardService : BaseKeyboardService(),
         private set
 
     override val activePack: LanguagePack
-        get() = languageRegistry.activePack
+        get() {
+            activeLanguageId
+            return languageRegistry.activePack
+        }
 
     val installedPacks: List<LanguagePack>
         get() = languageRegistry.installedPacks
@@ -538,11 +541,16 @@ abstract class PackKeyboardService : BaseKeyboardService(),
 
     private fun rememberWord(word: String) {
         if (!::personalDictionary.isInitialized || personalizedLearningDisabled || isNumberMode) return
-        personalDictionary.learn(
-            activeLanguageId.value,
-            word,
-            activeSuggestionEngine.morphologyIdentity(word),
-        )
+        val isKnownWord = activeSuggestionEngine.isReady && activeSuggestionEngine.containsWord(word)
+        var learned = false
+        if (!isKnownWord) {
+            personalDictionary.learn(
+                activeLanguageId.value,
+                word,
+                activeSuggestionEngine.morphologyIdentity(word),
+            )
+            learned = true
+        }
         try {
             val before = editorGateway.textBeforeCursor(ResumableWord.LOOKBEHIND, optional = true)?.value
             val after = editorGateway.textAfterCursor(1, optional = true)?.value ?: ""
@@ -550,11 +558,14 @@ abstract class PackKeyboardService : BaseKeyboardService(),
                 val email = ResumableWord.emailWordEndingAtCursor(before, after)
                 if (email != null && email != word && '@' in email) {
                     personalDictionary.learnEmail(email)
+                    learned = true
                 }
             }
         } catch (_: Throwable) {
         }
-        KeyboardPrefs.setPersonalDictionary(this, personalDictionary.encode())
+        if (learned) {
+            KeyboardPrefs.setPersonalDictionary(this, personalDictionary.encode())
+        }
     }
 
     /**

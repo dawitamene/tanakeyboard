@@ -278,9 +278,9 @@ class AiUiTest {
         }
         compose.onNodeWithText("Sign in to AI").assertIsDisplayed()
         compose.onNodeWithText("Make every message sound like you").assertIsDisplayed()
-        compose.onNodeWithTag(AI_AUTH_GOOGLE_ACTION_TAG).assertHeightIsEqualTo(56.dp)
-        compose.onNodeWithTag(AI_AUTH_EMAIL_FIELD_TAG).assertHeightIsEqualTo(56.dp)
-        compose.onNodeWithTag(AI_AUTH_PRIMARY_ACTION_TAG).assertHeightIsEqualTo(56.dp)
+        compose.onNodeWithTag(AI_AUTH_GOOGLE_ACTION_TAG).assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag(AI_AUTH_EMAIL_FIELD_TAG).assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag(AI_AUTH_PRIMARY_ACTION_TAG).assertHeightIsEqualTo(48.dp)
     }
 
     @Test
@@ -312,6 +312,8 @@ class AiUiTest {
         compose.onNodeWithText(EnglishTextRevampStrings.aiCustomToneTitle).assertIsDisplayed()
         compose.onNodeWithText("Poetic").assertIsDisplayed()
         compose.onNodeWithText("Make it more poetic").assertIsDisplayed()
+        compose.onNodeWithTag(AI_CUSTOM_TONE_ADD_BUTTON_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(AI_CUSTOM_TONE_ADD_BUTTON_TAG).performClick()
         compose.onNodeWithText(EnglishTextRevampStrings.aiCustomToneTitleLabel).assertIsDisplayed()
         compose.onNodeWithText(EnglishTextRevampStrings.aiCustomToneInstructionLabel).assertIsDisplayed()
         compose.onNodeWithText(EnglishTextRevampStrings.aiCustomToneIconLabel).assertIsDisplayed()
@@ -389,8 +391,8 @@ class AiUiTest {
 
         compose.onNodeWithTag(aiCustomToneEditTag("c1")).performClick()
         compose.onNodeWithTag(AI_CUSTOM_TONE_CANCEL_TAG).performClick()
-        compose.onNodeWithText(EnglishTextRevampStrings.aiCustomToneNewHeading).assertIsDisplayed()
-        compose.onNodeWithText(EnglishTextRevampStrings.aiCustomToneSave).assertIsDisplayed()
+        compose.onNodeWithTag(AI_CUSTOM_TONE_ADD_BUTTON_TAG).assertIsDisplayed()
+        compose.onNodeWithText(EnglishTextRevampStrings.aiCustomToneListHeading).assertIsDisplayed()
     }
 
     @Test
@@ -413,11 +415,13 @@ class AiUiTest {
 
         compose.onNodeWithTag(aiCustomToneItemTag("c1")).assertIsDisplayed()
         compose.onNodeWithTag(aiCustomToneRemoveTag("c1")).performClick()
+        compose.onNodeWithTag(AI_CUSTOM_TONE_CONFIRM_DELETE_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(AI_CUSTOM_TONE_CONFIRM_DELETE_TAG).performClick()
         compose.runOnIdle { assertEquals("c1", removed) }
     }
 
     @Test
-    fun customToneScreenShowsEmptyStateAndRejectsBlankFields() {
+    fun customToneScreenShowsUnifiedInstructionsAndRejectsBlankFields() {
         var saved = false
         compose.setContent {
             TestAppHost {
@@ -432,7 +436,8 @@ class AiUiTest {
             }
         }
 
-        compose.onNodeWithText(EnglishTextRevampStrings.aiCustomToneEmpty).assertIsDisplayed()
+        compose.onNodeWithText(EnglishTextRevampStrings.aiToneFixGrammar).assertIsDisplayed()
+        compose.onNodeWithTag(AI_CUSTOM_TONE_ADD_BUTTON_TAG).performClick()
         compose.onNodeWithTag(AI_CUSTOM_TONE_SAVE_TAG).performClick()
         compose.onNodeWithText(EnglishTextRevampStrings.aiCustomToneError).assertIsDisplayed()
         compose.runOnIdle { assertEquals(false, saved) }

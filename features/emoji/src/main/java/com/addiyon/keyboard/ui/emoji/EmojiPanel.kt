@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -187,7 +188,7 @@ private fun SearchPill(
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = "Back to keyboard",
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                tint = Color(0xFF5E6B78),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -210,14 +211,14 @@ private fun SearchPill(
             Icon(
                 imageVector = Icons.Outlined.Search,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                tint = Color(0xFF5E6B78).copy(alpha = 0.65f),
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Search emoji",
                 fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                color = Color(0xFF5E6B78).copy(alpha = 0.65f)
             )
         }
     }
@@ -249,7 +250,7 @@ private fun BottomBar(
                 text = "ABC",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                color = Color(0xFF5E6B78)
             )
         }
 
@@ -266,7 +267,7 @@ private fun BottomBar(
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.Backspace,
                 contentDescription = "Backspace",
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                tint = Color(0xFF5E6B78),
                 modifier = Modifier.height(20.dp)
             )
         }

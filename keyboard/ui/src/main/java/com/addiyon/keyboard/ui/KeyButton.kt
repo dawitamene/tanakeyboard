@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.addiyon.keyboard.ui.design.addiyonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -175,7 +176,7 @@ fun KeyButton(
     icon: ImageVector? = null,
     isSpecial: Boolean = false,
     isHighlighted: Boolean = false,
-    iconTint: Color = MaterialTheme.colorScheme.onSurface,
+    iconTint: Color = MaterialTheme.addiyonColors.icon,
     iconSize: Dp = 20.dp,
     showLockIndicator: Boolean = false,
     repeatable: Boolean = false,
@@ -351,22 +352,18 @@ fun KeyButton(
                             text = it,
                             fontSize = primaryFontSize,
                             fontWeight = FontWeight.Normal,
-                            color = iconTint,
+                            color = MaterialTheme.colorScheme.onSurface,
                             style = tightText
                         )
 
                         if (showLockIndicator) {
-                            // Text bounding boxes have a natural descent area below the baseline.
-                            // We omit the spacer and apply a slight negative y-offset here so the
-                            // underline visually hugs the letter, matching the tight gap of the
-                            // shift icon's indicator.
                             Box(
                                 modifier = Modifier
                                     .offset(y = (-2).dp)
                                     .width(12.dp)
                                     .height(2.dp)
                                     .background(
-                                        color = iconTint,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         shape = RoundedCornerShape(1.dp)
                                     )
                             )
@@ -374,17 +371,12 @@ fun KeyButton(
                     }
                 }
 
-                // Tucked right into the empty space at the top of the key
-                // (which already exists because primaryText is vertically
-                // centered and doesn't fill the key's full height) -- flush
-                // to the top-right corner rather than pushed further down
-                // with extra padding.
                 secondaryText?.let {
                     Text(
                         text = it,
                         fontSize = secondaryFontSize,
                         fontWeight = FontWeight.Normal,
-                        color = iconTint.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
                         style = tightText,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -470,7 +462,7 @@ private fun KeyPressPreview(
                     Text(
                         text = it,
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        color = MaterialTheme.addiyonColors.icon.copy(alpha = 0.6f),
                         style = TextStyle(
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         )
@@ -480,7 +472,7 @@ private fun KeyPressPreview(
                     text = text,
                     fontSize = (fontSize.value * 1.5f).sp,
                     fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.addiyonColors.icon,
                     style = TextStyle(
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                     )

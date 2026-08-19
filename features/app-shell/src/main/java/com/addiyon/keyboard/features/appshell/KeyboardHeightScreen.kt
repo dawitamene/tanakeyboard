@@ -22,12 +22,12 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import com.addiyon.keyboard.ui.design.AddiyonButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -279,21 +279,19 @@ fun KeyboardHeightScreen(
                                     modifier = Modifier.align(Alignment.Center),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Button(
+                                    AddiyonButton(
                                         onClick = {
                                             scale = KEYBOARD_HEIGHT_SCALE_DEFAULT
                                             KeyboardPrefs.setKeyboardHeightScale(context, scale)
-                                        },
-                                        colors = controlColors
+                                        }
                                     ) {
                                         Text(copy.reset)
                                     }
-                                    Button(
+                                    AddiyonButton(
                                         onClick = {
                                             KeyboardPrefs.setKeyboardHeightScale(context, scale)
                                             onBack()
-                                        },
-                                        colors = controlColors
+                                        }
                                     ) {
                                         Text(copy.done)
                                     }

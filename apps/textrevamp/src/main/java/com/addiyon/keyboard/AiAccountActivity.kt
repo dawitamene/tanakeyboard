@@ -7,15 +7,18 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import java.util.UUID
 import com.addiyon.keyboard.ai.AiPreferences
 import com.addiyon.keyboard.ai.AiRepository
 import com.addiyon.keyboard.ai.AiServiceFactory
+import com.addiyon.keyboard.ai.toCustomTone
 import com.addiyon.keyboard.features.appshell.R as AppShellR
 import com.addiyon.keyboard.ui.ai.AiAuthBottomSheet
 import com.addiyon.keyboard.ui.ai.AuthStep
@@ -73,25 +76,93 @@ class AiAccountActivity : ComponentActivity() {
                                         quotaLoader = { jwt, anonId -> repo.quota(jwt, anonId) }
                                     )
                                 }
-                                MODE_CUSTOM_TONE -> {
+                                MODE_CUSTOM_TONE, MODE_REORDER -> {
+                                    val jwt = aiPreferences.jwt()
+                                    if (jwt.isNullOrBlank()) {
+                                        mode = MODE_AUTH
+                                    }
                                     var customTones by remember {
                                         mutableStateOf(aiPreferences.customTones())
                                     }
+                                    var toneOrder by remember { mutableStateOf(aiPreferences.toneOrder()) }
+
+                                    LaunchedEffect(jwt) {
+                                        if (!jwt.isNullOrBlank()) {
+                                            val res = withContext(Dispatchers.IO) { repo.listCustomTones(jwt) }
+                                            res.onSuccess { list ->
+                                                val mapped = list.map { it.toCustomTone() }
+                                                aiPreferences.setCustomTones(mapped)
+                                                customTones = mapped
+                                                toneOrder = aiPreferences.toneOrder()
+                                            }
+                                        }
+                                    }
+
                                     AiCustomToneContent(
                                         customTones = customTones,
                                         strings = aiStrings,
+                                        toneOrder = toneOrder,
                                         onBack = { finish() },
                                         onSave = { title, instruction, icon, color ->
-                                            aiPreferences.addCustomTone(title, instruction, icon, color)
-                                            finish()
+                                            val currentJwt = aiPreferences.jwt()
+                                            if (!currentJwt.isNullOrBlank()) {
+                                                val toneId = UUID.randomUUID().toString()
+                                                scope.launch {
+                                                    val res = withContext(Dispatchers.IO) {
+                                                        repo.upsertCustomTone(currentJwt, toneId, title, instruction, icon, color)
+                                                    }
+                                                    res.onSuccess { created ->
+                                                        val mapped = created.toCustomTone()
+                                                        val current = aiPreferences.customTones().filterNot { it.id == mapped.id } + mapped
+                                                        aiPreferences.setCustomTones(current)
+                                                        customTones = current
+                                                    }.onFailure {
+                                                        aiPreferences.addCustomTone(title, instruction, icon, color)
+                                                        customTones = aiPreferences.customTones()
+                                                    }
+                                                }
+                                            } else {
+                                                aiPreferences.addCustomTone(title, instruction, icon, color)
+                                                customTones = aiPreferences.customTones()
+                                            }
                                         },
                                         onUpdate = { id, title, instruction, icon, color ->
-                                            aiPreferences.updateCustomTone(id, title, instruction, icon, color)
-                                            finish()
+                                            val currentJwt = aiPreferences.jwt()
+                                            if (!currentJwt.isNullOrBlank()) {
+                                                scope.launch {
+                                                    val res = withContext(Dispatchers.IO) {
+                                                        repo.upsertCustomTone(currentJwt, id, title, instruction, icon, color)
+                                                    }
+                                                    res.onSuccess { updated ->
+                                                        val mapped = updated.toCustomTone()
+                                                        val current = aiPreferences.customTones().map { if (it.id == mapped.id) mapped else it }
+                                                        aiPreferences.setCustomTones(current)
+                                                        customTones = current
+                                                    }.onFailure {
+                                                        aiPreferences.updateCustomTone(id, title, instruction, icon, color)
+                                                        customTones = aiPreferences.customTones()
+                                                    }
+                                                }
+                                            } else {
+                                                aiPreferences.updateCustomTone(id, title, instruction, icon, color)
+                                                customTones = aiPreferences.customTones()
+                                            }
                                         },
                                         onRemove = { id ->
+                                            val currentJwt = aiPreferences.jwt()
+                                            if (!currentJwt.isNullOrBlank()) {
+                                                scope.launch {
+                                                    withContext(Dispatchers.IO) {
+                                                        repo.deleteCustomTone(currentJwt, id)
+                                                    }
+                                                }
+                                            }
                                             aiPreferences.removeCustomTone(id)
                                             customTones = aiPreferences.customTones()
+                                        },
+                                        onReorder = { newOrder ->
+                                            aiPreferences.setToneOrder(newOrder)
+                                            toneOrder = newOrder
                                         }
                                     )
                                 }
@@ -348,5 +419,6 @@ class AiAccountActivity : ComponentActivity() {
         const val MODE_AUTH = "auth"
         const val MODE_DASHBOARD = "dashboard"
         const val MODE_CUSTOM_TONE = "custom_tone"
+        const val MODE_REORDER = "reorder"
     }
 }

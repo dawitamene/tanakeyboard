@@ -38,8 +38,10 @@ class EnglishSuggestionEngine(
     override fun complete(query: CompletionQuery): List<String> {
         if (query.raw.isEmpty()) return emptyList()
         val key = query.raw.lowercase()
-        val pool = dictionary.suggestionEntries(key, COMPLETION_POOL)
+        val contractions = EnglishContractions.candidatesFor(key, dictionary::frequencyOf)
+        val entries = dictionary.suggestionEntries(key, COMPLETION_POOL)
             .map { CandidateRanker.DictionaryWord(it.word, it.frequency) }
+        val pool = (contractions + entries).distinctBy { it.word }
         val merged = ArrayList<String>(SUGGESTION_LIMIT)
         CandidateRanker.rankByContext(
             pool,
@@ -47,7 +49,10 @@ class EnglishSuggestionEngine(
             ::englishFold,
             SUGGESTION_LIMIT
         ).forEach { word ->
-            val cased = query.contextCasing[englishFold(word)] ?: word
+            val folded = englishFold(word)
+            val cased = query.contextCasing[folded]
+                ?: (if (folded.contains('\'')) query.contextCasing[folded.replace("'", "")] else null)
+                ?: word
             if (cased !in merged && merged.size < SUGGESTION_LIMIT) merged.add(cased)
         }
         if (merged.size < SUGGESTION_LIMIT && !query.lowMemory) {
@@ -75,6 +80,15 @@ class EnglishSuggestionEngine(
         ngrams.topFrequentWords(limit).map { EngineSuggestion(it.word, it.weight) }
 
     override fun normalize(word: String): String = englishFold(word)
+
+    override fun containsWord(word: String): Boolean {
+        if (!isReady) return false
+        val key = englishFold(word)
+        if (key.isEmpty()) return false
+        if (dictionary.frequencyOf(key) != null) return true
+        return EnglishContractions.candidatesFor(key, dictionary::frequencyOf)
+            .any { it.word.equals(word, ignoreCase = true) }
+    }
 
     override fun clearCaches() = dictionary.clearCache()
 

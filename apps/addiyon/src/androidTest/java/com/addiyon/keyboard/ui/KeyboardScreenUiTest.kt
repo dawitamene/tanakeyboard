@@ -94,7 +94,6 @@ class KeyboardScreenUiTest {
 
         compose.runOnIdle {
             controller.activePack = EnglishLanguagePack(NoOpLanguageSuggestionEngine)
-            controller.shiftState = ShiftState.SHIFT
         }
         compose.onNodeWithText("ቅ", useUnmergedTree = true).assertDoesNotExist()
 

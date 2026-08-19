@@ -97,7 +97,8 @@ fun AiToneRow(
     strings: AiUiStrings,
     onBack: (() -> Unit)? = null,
     useKeyboardTopRowSpacing: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    orderedItems: List<com.addiyon.keyboard.ai.ToneOrderItem>? = null
 ) {
     val toneShape = RoundedCornerShape(AddiyonRadii.pill)
     val toneGlowVisuals = toneGlowVisuals(isLoading)
@@ -129,31 +130,66 @@ fun AiToneRow(
             if (onBack != null) {
                 Spacer(Modifier.width(AddiyonSizes.compact))
             }
-            AiToneTab.DefaultTabs.forEach { tab ->
-                AiToneChip(
-                    icon = toneIcon(tab),
-                    label = toneLabel(tab, strings),
-                    selected = selectedTab == tab,
-                    enabled = enabled,
-                    iconColor = toneIconColor(tab),
-                    toneShape = toneShape,
-                    toneGlowVisuals = toneGlowVisuals,
-                    onClick = { onTabSelected(tab) },
-                    iconModifier = Modifier.testTag(aiPanelToneIconTag(tab))
-                )
-            }
-            customTones.forEach { custom ->
-                AiToneChip(
-                    icon = customToneIcon(custom.icon),
-                    label = custom.label,
-                    selected = selectedCustomToneId == custom.id,
-                    enabled = enabled,
-                    iconColor = customToneColor(custom.color),
-                    toneShape = toneShape,
-                    toneGlowVisuals = toneGlowVisuals,
-                    onClick = { onCustomToneSelected(custom) },
-                    iconModifier = Modifier.testTag(aiCustomToneChipTag(custom))
-                )
+            if (orderedItems != null) {
+                orderedItems.forEach { item ->
+                    when (item) {
+                        is com.addiyon.keyboard.ai.ToneOrderItem.BuiltIn -> {
+                            val tab = item.tab
+                            AiToneChip(
+                                icon = toneIcon(tab),
+                                label = toneLabel(tab, strings),
+                                selected = selectedTab == tab,
+                                enabled = enabled,
+                                iconColor = toneIconColor(tab),
+                                toneShape = toneShape,
+                                toneGlowVisuals = toneGlowVisuals,
+                                onClick = { onTabSelected(tab) },
+                                iconModifier = Modifier.testTag(aiPanelToneIconTag(tab))
+                            )
+                        }
+                        is com.addiyon.keyboard.ai.ToneOrderItem.Custom -> {
+                            val custom = item.tone
+                            AiToneChip(
+                                icon = customToneIcon(custom.icon),
+                                label = custom.label,
+                                selected = selectedCustomToneId == custom.id,
+                                enabled = enabled,
+                                iconColor = customToneColor(custom.color),
+                                toneShape = toneShape,
+                                toneGlowVisuals = toneGlowVisuals,
+                                onClick = { onCustomToneSelected(custom) },
+                                iconModifier = Modifier.testTag(aiCustomToneChipTag(custom))
+                            )
+                        }
+                    }
+                }
+            } else {
+                AiToneTab.DefaultTabs.forEach { tab ->
+                    AiToneChip(
+                        icon = toneIcon(tab),
+                        label = toneLabel(tab, strings),
+                        selected = selectedTab == tab,
+                        enabled = enabled,
+                        iconColor = toneIconColor(tab),
+                        toneShape = toneShape,
+                        toneGlowVisuals = toneGlowVisuals,
+                        onClick = { onTabSelected(tab) },
+                        iconModifier = Modifier.testTag(aiPanelToneIconTag(tab))
+                    )
+                }
+                customTones.forEach { custom ->
+                    AiToneChip(
+                        icon = customToneIcon(custom.icon),
+                        label = custom.label,
+                        selected = selectedCustomToneId == custom.id,
+                        enabled = enabled,
+                        iconColor = customToneColor(custom.color),
+                        toneShape = toneShape,
+                        toneGlowVisuals = toneGlowVisuals,
+                        onClick = { onCustomToneSelected(custom) },
+                        iconModifier = Modifier.testTag(aiCustomToneChipTag(custom))
+                    )
+                }
             }
             if (onAddCustomTone != null) {
                 AiToneChip(

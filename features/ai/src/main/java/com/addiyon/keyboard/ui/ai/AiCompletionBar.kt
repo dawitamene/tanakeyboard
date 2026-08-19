@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import com.addiyon.keyboard.ui.design.addiyonColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -115,7 +116,7 @@ fun AiCompletionBar(
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = strings.aiPhraseCompletionDismiss,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = MaterialTheme.addiyonColors.icon,
                         modifier = Modifier.size(AddiyonSizes.iconMedium)
                     )
                 }

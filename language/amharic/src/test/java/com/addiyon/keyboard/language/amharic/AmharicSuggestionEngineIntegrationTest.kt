@@ -104,7 +104,14 @@ class AmharicSuggestionEngineIntegrationTest {
 
     @Test
     fun contaminatedAlternatesRequireLexicalOrMorphologicalValidation() = withDatabase { connection ->
-        assertFalse("ሌ" in complete(connection, "le"))
+        val leSuggestions = complete(connection, "le")
+        assertFalse("ሌ" in leSuggestions)
+        assertFalse("ሌላ" in leSuggestions)
+        assertFalse("ሌሊት" in leSuggestions)
+        val beSuggestions = complete(connection, "be")
+        assertFalse("ቤ" in beSuggestions)
+        assertFalse("ቤት" in beSuggestions)
+        assertTrue("ቤት" in complete(connection, "bet"))
         assertFalse("ርዕ" in complete(connection, "rE"))
         assertTrue(
             complete(connection, "rEs").any {

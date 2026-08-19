@@ -2,6 +2,8 @@ package com.addiyon.keyboard.language.amharic
 
 import android.content.Context
 import com.addiyon.keyboard.suggestion.AmharicCommitPolicy
+import com.addiyon.keyboard.suggestion.AmharicGuesser
+import com.addiyon.keyboard.suggestion.AmharicLightVerb
 import com.addiyon.keyboard.suggestion.AmharicNounMorphology
 import com.addiyon.keyboard.suggestion.AmharicVerbLexicon
 import com.addiyon.keyboard.suggestion.CandidateRanker
@@ -88,7 +90,7 @@ class AmharicSuggestionEngine(
             pipeline.preferGreedy
         ) ?: readings.first()
         val directCompletions = dictionary.suggestionEntriesForPrefixes(
-            readings.distinct(),
+            (listOf(readings.first()) + quirkReadings).distinct(),
             SUGGESTION_LIMIT
         )
         if (Thread.currentThread().isInterrupted) return emptyList()
@@ -118,14 +120,19 @@ class AmharicSuggestionEngine(
                 )
             }
         }
+        val primaryReadings = readings.take(2).toSet()
         val completionsForPrefix = { prefix: String, limit: Int ->
             if (Thread.currentThread().isInterrupted) {
                 emptyList()
             } else completionCache.getOrPut(prefix) {
                 val direct = directCompletionCache[prefix] ?: dictionaryLookup(prefix, limit)
                 if (Thread.currentThread().isInterrupted) return@getOrPut emptyList()
-                val generated = morphologyCache.getOrPut(prefix) {
-                    morphologyCompletions(prefix, limit, direct)
+                val generated = if (prefix in primaryReadings) {
+                    morphologyCache.getOrPut(prefix) {
+                        morphologyCompletions(prefix, limit, direct)
+                    }
+                } else {
+                    emptyList()
                 }
                 direct + generated
             }
@@ -142,7 +149,8 @@ class AmharicSuggestionEngine(
         }
         if (
             ranked.size >= SUGGESTION_LIMIT ||
-            readings.none { it.length <= MAX_FUZZY_READING_LENGTH } ||
+            ranked.size >= 4 ||
+            readings.none { it.length in 3..MAX_FUZZY_READING_LENGTH } ||
             query.lowMemory
         ) {
             return cache(cacheKey, pinPreferredAlternate(ranked, preferredAlternate))
@@ -150,8 +158,8 @@ class AmharicSuggestionEngine(
         val fuzzy = ArrayList<CandidateRanker.FuzzyWord>(SUGGESTION_LIMIT)
         var fuzzyReadings = 0
         for (reading in readings) {
-            if (reading.length > MAX_FUZZY_READING_LENGTH) continue
-            if (fuzzyReadings >= MAX_FUZZY_READINGS || fuzzy.size >= SUGGESTION_LIMIT) break
+            if (reading.length > MAX_FUZZY_READING_LENGTH || reading.length < 3) continue
+            if (fuzzyReadings >= 2 || fuzzy.size >= SUGGESTION_LIMIT) break
             val budget = fuzzyEditBudget(reading.length)
                 .coerceAtMost(if (fuzzyReadings == 0) 2 else 1)
             fuzzyReadings++
@@ -208,8 +216,61 @@ class AmharicSuggestionEngine(
     override fun commitCandidate(raw: String): String =
         AmharicCommitPolicy.resolve(raw, commitCache[raw])
 
-    override fun predict(prev2: String?, prev1: String, limit: Int): List<EngineSuggestion> =
-        ngrams.predict(prev2, prev1, limit).map { EngineSuggestion(it.word, it.weight) }
+    override fun predict(prev2: String?, prev1: String, limit: Int): List<EngineSuggestion> {
+        val ngramPredictions = ngrams.predict(prev2, prev1, limit)
+        val multiwordContinuations = multiwordAuxiliaryContinuations(prev1)
+        if (multiwordContinuations.isEmpty()) {
+            return ngramPredictions.map { EngineSuggestion(it.word, it.weight) }
+        }
+        val existing = ngramPredictions.map { it.word }.toSet()
+        val combined = ArrayList<EngineSuggestion>(limit)
+        combined.addAll(ngramPredictions.map { EngineSuggestion(it.word, it.weight) })
+        for ((word, weight) in multiwordContinuations) {
+            if (word !in existing) {
+                combined.add(EngineSuggestion(word, weight))
+            }
+        }
+        return combined.take(limit)
+    }
+
+    private fun multiwordAuxiliaryContinuations(prev1: String): List<Pair<String, Int>> {
+        val norm = EthiopicNormalizer.normalize(prev1)
+        if (norm.startsWith("እየ")) {
+            return listOf(
+                "ነው" to 220,
+                "ነበር" to 200,
+                "አይደለም" to 180,
+                "ይሆናል" to 160,
+                "ናቸው" to 150,
+            )
+        }
+        if (norm.startsWith("ሊ")) {
+            return listOf(
+                "ነው" to 220,
+                "ነበር" to 200,
+                "ይችላል" to 190,
+                "አልቻለም" to 160,
+            )
+        }
+        if (norm.endsWith("ኦ") || norm.endsWith("አ") || norm.endsWith("ው") || norm.endsWith("ች")) {
+            return listOf(
+                "ነበር" to 210,
+                "ነው" to 200,
+                "አለ" to 180,
+                "አይደለም" to 150,
+            )
+        }
+        if (AmharicLightVerb.isPreverb(norm)) {
+            return listOf(
+                "አለ" to 240,
+                "ይላል" to 220,
+                "ብሎ" to 210,
+                "አትበል" to 190,
+                "አደረገ" to 180,
+            )
+        }
+        return emptyList()
+    }
 
     override fun topFrequentWords(limit: Int): List<EngineSuggestion> =
         ngrams.topFrequentWords(limit).map { EngineSuggestion(it.word, it.weight) }
@@ -220,6 +281,15 @@ class AmharicSuggestionEngine(
         verbLexicon.exact(word)?.bestAnalysis?.let {
             MorphologyIdentity(it.lemmaId, it.analysisId)
         }
+
+    override fun containsWord(word: String): Boolean {
+        if (!isReady) return false
+        val normalized = EthiopicNormalizer.normalize(word)
+        if (normalized.isEmpty()) return false
+        if (dictionary.frequencyOf(normalized) != null) return true
+        if (verbLexicon.exact(word) != null) return true
+        return morphLexicon.surfaceFrequencies(listOf(normalized)).isNotEmpty()
+    }
 
     override fun clearCaches() {
         suggestionCache.clear()
@@ -327,7 +397,21 @@ class AmharicSuggestionEngine(
                 )
             }
         }
-        return nominal + verbs
+        val lightVerbs = SuggestionTrace.section("light_verbs") {
+            AmharicLightVerb.complete(typed, limit).filter {
+                seen.add(EthiopicNormalizer.normalize(it.word))
+            }
+        }
+        val currentMorphology = nominal + verbs + lightVerbs
+        if (currentMorphology.isEmpty() && typed.length >= 2) {
+            val guessed = SuggestionTrace.section("guesser") {
+                AmharicGuesser.guess(typed, limit).filter {
+                    seen.add(EthiopicNormalizer.normalize(it.word))
+                }
+            }
+            return guessed
+        }
+        return currentMorphology
     }
 
     private fun pinPreferredAlternate(

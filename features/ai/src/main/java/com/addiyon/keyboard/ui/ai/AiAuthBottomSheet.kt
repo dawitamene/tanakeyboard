@@ -27,15 +27,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.addiyon.keyboard.ui.design.addiyonColors
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import com.addiyon.keyboard.ui.design.AddiyonButton
+import com.addiyon.keyboard.ui.design.AddiyonOutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -145,14 +146,11 @@ fun AiAuthBottomSheet(
             }
 
             if (step != AuthStep.Email) {
-                OutlinedButton(
+                AddiyonOutlinedButton(
                     onClick = onBackToEmail,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = AddiyonSizes.formControl),
-                    shape = RoundedCornerShape(AddiyonRadii.pill)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(17.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(17.dp), tint = MaterialTheme.addiyonColors.icon)
                     Spacer(Modifier.width(7.dp))
                     Text("Back to email")
                 }
@@ -209,16 +207,12 @@ private fun EmailStep(
     onContinueWithGoogle: () -> Unit,
     onContinueEmail: () -> Unit
 ) {
-    OutlinedButton(
+    AddiyonOutlinedButton(
         onClick = onContinueWithGoogle,
         enabled = !sending,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = AddiyonSizes.formControl)
-            .testTag(AI_AUTH_GOOGLE_ACTION_TAG),
-        shape = RoundedCornerShape(AddiyonRadii.pill),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        contentPadding = PaddingValues(horizontal = 16.dp)
+            .testTag(AI_AUTH_GOOGLE_ACTION_TAG)
     ) {
         Icon(
             painter = painterResource(id = R.drawable.ic_google_g),
@@ -371,13 +365,10 @@ private fun OtpStep(
     }
     MessageText(message)
     AuthActionButton(text = "Verify", sending = sending, onClick = onVerifyOtp)
-    OutlinedButton(
+    AddiyonOutlinedButton(
         onClick = onSendOtp,
         enabled = !sending,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = AddiyonSizes.formControl),
-        shape = RoundedCornerShape(AddiyonRadii.pill)
+        modifier = Modifier.fillMaxWidth()
     ) { Text("Resend code") }
 }
 
@@ -447,14 +438,12 @@ private fun MessageText(message: String?) {
 
 @Composable
 private fun AuthActionButton(text: String, sending: Boolean, onClick: () -> Unit) {
-    Button(
+    AddiyonButton(
         onClick = onClick,
         enabled = !sending,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = AddiyonSizes.formControl)
-            .testTag(AI_AUTH_PRIMARY_ACTION_TAG),
-        shape = RoundedCornerShape(AddiyonRadii.pill)
+            .testTag(AI_AUTH_PRIMARY_ACTION_TAG)
     ) {
         if (sending) {
             CircularProgressIndicator(

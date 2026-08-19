@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import com.addiyon.keyboard.ui.design.addiyonColors
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -118,7 +119,7 @@ fun KeyboardFeedbackOptions(
             Icon(
                 imageVector = Icons.Filled.Email,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.addiyonColors.icon
             )
             Spacer(Modifier.width(20.dp))
             Text(

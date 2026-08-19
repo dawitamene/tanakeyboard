@@ -33,35 +33,37 @@ import com.addiyon.keyboard.ui.design.addiyonDarkColors
 import com.addiyon.keyboard.ui.design.addiyonLightColors
 import com.addiyon.keyboard.ui.design.rememberAddiyonBrand
 
-val PlaypenSansBrand = FontFamily(Font(R.font.playpen_sans_extrabold))
-
-/** The keyboard's own typeface -- every key, suggestion, and toolbar label. */
-val PoppinsFamily = FontFamily(
-    Font(R.font.poppins_regular, FontWeight.Normal),
-    Font(R.font.poppins_medium, FontWeight.Medium),
-    Font(R.font.poppins_semibold, FontWeight.SemiBold),
-    Font(R.font.poppins_bold, FontWeight.Bold)
+val PublicSansFamily = FontFamily(
+    Font(R.font.public_sans_regular, FontWeight.Normal),
+    Font(R.font.public_sans_medium, FontWeight.Medium),
+    Font(R.font.public_sans_semibold, FontWeight.SemiBold),
+    Font(R.font.public_sans_bold, FontWeight.Bold),
+    Font(R.font.public_sans_extrabold, FontWeight.ExtraBold)
 )
+
+val PlaypenSansBrand = PublicSansFamily
+
+val PoppinsFamily = PublicSansFamily
 
 val LocalLowRamKeyboard = staticCompositionLocalOf { false }
 
 val AddiyonTypography = Typography().let { base ->
     Typography(
-        displayLarge = base.displayLarge.copy(fontFamily = PoppinsFamily),
-        displayMedium = base.displayMedium.copy(fontFamily = PoppinsFamily),
-        displaySmall = base.displaySmall.copy(fontFamily = PoppinsFamily),
-        headlineLarge = base.headlineLarge.copy(fontFamily = PoppinsFamily),
-        headlineMedium = base.headlineMedium.copy(fontFamily = PoppinsFamily),
-        headlineSmall = base.headlineSmall.copy(fontFamily = PoppinsFamily),
-        titleLarge = base.titleLarge.copy(fontFamily = PoppinsFamily),
-        titleMedium = base.titleMedium.copy(fontFamily = PoppinsFamily),
-        titleSmall = base.titleSmall.copy(fontFamily = PoppinsFamily),
-        bodyLarge = base.bodyLarge.copy(fontFamily = PoppinsFamily),
-        bodyMedium = base.bodyMedium.copy(fontFamily = PoppinsFamily),
-        bodySmall = base.bodySmall.copy(fontFamily = PoppinsFamily),
-        labelLarge = base.labelLarge.copy(fontFamily = PoppinsFamily),
-        labelMedium = base.labelMedium.copy(fontFamily = PoppinsFamily),
-        labelSmall = base.labelSmall.copy(fontFamily = PoppinsFamily)
+        displayLarge = base.displayLarge.copy(fontFamily = PublicSansFamily),
+        displayMedium = base.displayMedium.copy(fontFamily = PublicSansFamily),
+        displaySmall = base.displaySmall.copy(fontFamily = PublicSansFamily),
+        headlineLarge = base.headlineLarge.copy(fontFamily = PublicSansFamily),
+        headlineMedium = base.headlineMedium.copy(fontFamily = PublicSansFamily),
+        headlineSmall = base.headlineSmall.copy(fontFamily = PublicSansFamily),
+        titleLarge = base.titleLarge.copy(fontFamily = PublicSansFamily),
+        titleMedium = base.titleMedium.copy(fontFamily = PublicSansFamily),
+        titleSmall = base.titleSmall.copy(fontFamily = PublicSansFamily),
+        bodyLarge = base.bodyLarge.copy(fontFamily = PublicSansFamily),
+        bodyMedium = base.bodyMedium.copy(fontFamily = PublicSansFamily),
+        bodySmall = base.bodySmall.copy(fontFamily = PublicSansFamily),
+        labelLarge = base.labelLarge.copy(fontFamily = PublicSansFamily),
+        labelMedium = base.labelMedium.copy(fontFamily = PublicSansFamily),
+        labelSmall = base.labelSmall.copy(fontFamily = PublicSansFamily)
     )
 }
 

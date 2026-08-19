@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import com.addiyon.keyboard.ui.design.addiyonColors
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -96,7 +97,7 @@ fun KeyboardPageTopBar(
         title = { Text(title) },
         navigationIcon = {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backContentDescription)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backContentDescription, tint = MaterialTheme.addiyonColors.icon)
             }
         },
         modifier = modifier,
@@ -274,7 +275,7 @@ fun KeyboardPreferencesScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.addiyonColors.icon
                         )
                     }
                 }

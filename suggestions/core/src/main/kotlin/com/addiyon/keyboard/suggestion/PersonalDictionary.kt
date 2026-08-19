@@ -70,6 +70,12 @@ class PersonalDictionary private constructor(
 
     fun allWords(): List<String> = buckets.values.flatMap { it.keys }.distinct()
 
+    fun words(languageId: String): List<String> =
+        buckets[languageBucket(languageId)]?.keys?.toList().orEmpty()
+
+    fun hasWords(languageId: String): Boolean =
+        buckets[languageBucket(languageId)]?.isNotEmpty() == true
+
     fun remove(word: String): Boolean {
         var removed = false
         buckets.values.forEach { removed = it.remove(word) != null || removed }
@@ -77,8 +83,19 @@ class PersonalDictionary private constructor(
         return removed
     }
 
+    fun remove(languageId: String, word: String): Boolean {
+        val bucket = buckets[languageBucket(languageId)] ?: return false
+        val removed = bucket.remove(word) != null
+        if (bucket.isEmpty()) buckets.remove(languageBucket(languageId))
+        return removed
+    }
+
     fun clear() {
         buckets.clear()
+    }
+
+    fun clear(languageId: String) {
+        buckets.remove(languageBucket(languageId))
     }
 
     fun emailAddresses(): List<String> = buckets[EMAIL_BUCKET]

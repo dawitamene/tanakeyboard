@@ -71,19 +71,19 @@ fun KeyRow(
                         } else {
                             key
                         }
+                    val effectiveLatin = if (state.isShift) {
+                        effectiveKey.latin.uppercase()
+                    } else {
+                        effectiveKey.latin.lowercase()
+                    }
+                    val presentation = if (state.showLanguagePresentation && !state.isNumberMode) {
+                        state.characterPresentation(effectiveLatin)
+                    } else {
+                        com.addiyon.keyboard.ui.keys.CharacterKeyPresentation(effectiveLatin)
+                    }
                     CharacterKey(
                         key = effectiveKey,
-                        isShift = state.isShift,
-                        // Not raw isAmharic: on the numeric pages every key
-                        // commits its literal character (no transliteration),
-                        // so the fidel corner preview must be suppressed there
-                        // even while Amharic mode is on -- otherwise the ","
-                        // key would advertise ፣ but type ",".
-                        presentationProvider = if (state.showLanguagePresentation && !state.isNumberMode) {
-                            state.characterPresentation
-                        } else {
-                            { value -> com.addiyon.keyboard.ui.keys.CharacterKeyPresentation(value) }
-                        },
+                        presentation = presentation,
                         width = metrics.keyWidth,
                         height = metrics.keyHeight,
                         onCharacter = actions::character,

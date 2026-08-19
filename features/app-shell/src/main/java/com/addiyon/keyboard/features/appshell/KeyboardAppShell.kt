@@ -26,6 +26,7 @@ object KeyboardShellDestinations {
 }
 
 enum class KeyboardSettingsGroup {
+    AI,
     PRIMARY,
     STORE,
     SUPPORT
@@ -245,6 +246,7 @@ fun KeyboardAppShell(
                     }
                 KeyboardSettingsMenuScreen(
                     header = config.header,
+                    aiItems = items(KeyboardSettingsGroup.AI),
                     primaryItems = items(KeyboardSettingsGroup.PRIMARY),
                     storeItems = items(KeyboardSettingsGroup.STORE),
                     supportItems = items(KeyboardSettingsGroup.SUPPORT)

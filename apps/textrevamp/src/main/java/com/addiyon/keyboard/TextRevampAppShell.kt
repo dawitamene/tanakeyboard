@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import com.addiyon.keyboard.ui.design.addiyonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -35,7 +36,7 @@ private fun textRevampShellCustomization(): KeyboardAppShellCustomization {
     val usageEntry = KeyboardShellMenuEntry(
         icon = Icons.Default.AutoAwesome,
         label = strings.aiUsage,
-        group = KeyboardSettingsGroup.PRIMARY,
+        group = KeyboardSettingsGroup.AI,
         target = KeyboardShellMenuTarget.Action {
             context.openAiAccount(
                 if (isLoggedIn) AiAccountActivity.MODE_DASHBOARD else AiAccountActivity.MODE_AUTH
@@ -45,9 +46,11 @@ private fun textRevampShellCustomization(): KeyboardAppShellCustomization {
     val customInstructionsEntry = KeyboardShellMenuEntry(
         icon = Icons.Outlined.Edit,
         label = strings.aiCustomInstructions,
-        group = KeyboardSettingsGroup.PRIMARY,
+        group = KeyboardSettingsGroup.AI,
         target = KeyboardShellMenuTarget.Action {
-            context.openAiAccount(AiAccountActivity.MODE_CUSTOM_TONE)
+            context.openAiAccount(
+                if (isLoggedIn) AiAccountActivity.MODE_CUSTOM_TONE else AiAccountActivity.MODE_AUTH
+            )
         }
     )
     return KeyboardAppShellCustomization(
@@ -73,7 +76,7 @@ private fun textRevampShellCustomization(): KeyboardAppShellCustomization {
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
                         contentDescription = strings.aiAccountTitle,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.addiyonColors.icon
                     )
                 }
             }

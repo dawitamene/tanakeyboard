@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.SpaceBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.addiyon.keyboard.ui.design.addiyonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -78,8 +79,7 @@ import com.addiyon.keyboard.ui.icons.ShiftIconOutlined
 @Composable
 fun CharacterKey(
     key: KeyData.Character,
-    isShift: Boolean,
-    presentationProvider: (String) -> CharacterKeyPresentation,
+    presentation: CharacterKeyPresentation,
     width: Dp,
     height: Dp,
     onCharacter: (String) -> Unit,
@@ -88,18 +88,9 @@ fun CharacterKey(
     vibrateOnKeypress: Boolean,
     soundOnKeypress: Boolean
 ) {
-    val effectiveLatin = remember(key.latin, isShift) {
-        if (isShift) key.latin.uppercase() else key.latin.lowercase()
-    }
-    val presentation = presentationProvider(effectiveLatin)
     val isSpecialSlot = key.usesSpecialBackground()
-
-    // Uppercase Latin glyphs span the full cap height, so at the shared
-    // default size they read visibly bigger than lowercase ones -- shrink
-    // them a touch. Applies in both language modes (the Amharic key face is
-    // the same Latin letter); punctuation and digits are unaffected.
     val isUppercaseLetter =
-        effectiveLatin.length == 1 && effectiveLatin[0].isUpperCase()
+        presentation.primaryText.length == 1 && presentation.primaryText[0].isUpperCase()
 
     KeyButton(
         primaryText = presentation.primaryText,
@@ -170,7 +161,7 @@ fun RowScope.ShiftKey(
     }
 
     val tint = if (shiftState == ShiftState.OFF) {
-        MaterialTheme.colorScheme.onSurface
+        MaterialTheme.addiyonColors.icon
     } else {
         MaterialTheme.colorScheme.primary
     }
@@ -254,7 +245,7 @@ fun RowScope.SpaceKey(
         },
         icon = if (fixedWidth != null) Icons.Outlined.SpaceBar else null,
         primaryFontSize = 16.sp,
-        iconTint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+        iconTint = MaterialTheme.addiyonColors.iconMuted,
         modifier = fixedWidth?.let { Modifier.width(it) }
             ?: Modifier.weight(KeyWeights.SPACE),
         height = height,
@@ -461,7 +452,7 @@ fun RowScope.LanguageToggleKey(
                 Icon(
                     imageVector = Icons.Outlined.Language,
                     contentDescription = "Switch keyboard",
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = MaterialTheme.addiyonColors.icon
                 )
             } else {
                 Column(
@@ -479,7 +470,7 @@ fun RowScope.LanguageToggleKey(
                             .width(18.dp)
                             .height(1.dp)
                             .background(
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                color = MaterialTheme.addiyonColors.iconMuted,
                                 shape = RoundedCornerShape(1.dp)
                             )
                     )

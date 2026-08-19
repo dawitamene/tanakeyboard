@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,13 +17,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import com.addiyon.keyboard.ui.design.AddiyonButton
+import com.addiyon.keyboard.ui.design.AddiyonRadii
+import com.addiyon.keyboard.ui.design.AddiyonSizes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,8 +41,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.addiyon.keyboard.ai.AiQuota
 import com.addiyon.keyboard.features.appshell.KeyboardPageTopBar
-import com.addiyon.keyboard.ui.design.AddiyonRadii
-import com.addiyon.keyboard.ui.design.AddiyonSizes
 import com.addiyon.keyboard.ui.design.AddiyonSpacing
 import java.util.Locale
 import java.util.TimeZone
@@ -222,7 +223,7 @@ fun AiDashboardContent(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(AddiyonSizes.minimumTouchTarget),
+                        .heightIn(min = AddiyonSizes.formControl),
                     shape = RoundedCornerShape(AddiyonRadii.small)
                 ) {
                     Icon(
@@ -234,12 +235,9 @@ fun AiDashboardContent(
                     Text(strings.aiSignOut)
                 }
             } else {
-                Button(
+                AddiyonButton(
                     onClick = onSwitchToAuth,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(14.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(strings.aiSignInAction)
                 }

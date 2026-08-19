@@ -132,6 +132,14 @@ object CustomToneColor {
     const val ROSE = "rose"
     const val BLUE = "blue"
     const val AMBER = "amber"
+    const val CYAN = "cyan"
+    const val LIME = "lime"
+    const val PINK = "pink"
+    const val RED = "red"
+    const val YELLOW = "yellow"
+    const val BROWN = "brown"
+    const val GREY = "grey"
+    const val DEEP_PURPLE = "deep_purple"
     const val Default = TEAL
 
     val All = listOf(
@@ -142,7 +150,15 @@ object CustomToneColor {
         GREEN,
         ROSE,
         BLUE,
-        AMBER
+        AMBER,
+        CYAN,
+        LIME,
+        PINK,
+        RED,
+        YELLOW,
+        BROWN,
+        GREY,
+        DEEP_PURPLE
     )
 }
 

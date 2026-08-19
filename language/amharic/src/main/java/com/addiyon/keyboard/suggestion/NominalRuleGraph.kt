@@ -34,6 +34,7 @@ sealed interface NominalAffix {
     data class Possessive(val person: NominalPossessor) : NominalAffix
     data class Definite(val gender: Gender, val ituVariant: Boolean = false) : NominalAffix
     data class Accusative(val alternate: Boolean = false) : NominalAffix
+    data class Copula(val surface: String) : NominalAffix
     data class Conjunctive(val surface: String) : NominalAffix
     data object PostpositionGa : NominalAffix
 }
@@ -80,8 +81,21 @@ internal object NominalRuleGraph {
     private val conjunctions = listOf("ም", "ስ", "ማ", "ሳ", "ና", "ኮ")
     private val transformedPossessives = listOf("ችን", "ችሁ", "ቸው")
     private val directPossessives = listOf("ዎን", "ዎት", "ህ", "ሽ", "ዎ")
-    private const val MAX_REVERSE_STATES = 128
-    private const val MAX_REVERSE_DEPTH = 8
+    private val copulaClitics = listOf(
+        "ነው" to 1,
+        "ነኝ" to 2,
+        "ነህ" to 2,
+        "ነሽ" to 2,
+        "ናት" to 2,
+        "ነች" to 2,
+        "ነን" to 2,
+        "ናችሁ" to 2,
+        "ናቸው" to 2,
+        "ነበር" to 2,
+        "ነበረ" to 2,
+    )
+    private const val MAX_REVERSE_STATES = 64
+    private const val MAX_REVERSE_DEPTH = 5
 
     fun prefixContexts(typed: String): List<Pair<NominalPrefixContext, String>> {
         val candidates = buildList {
@@ -142,6 +156,9 @@ internal object NominalRuleGraph {
         val normalizedTyped = EthiopicNormalizer.normalize(typed)
         val partOfSpeech = when {
             lexeme.kind in 2..3 -> PartOfSpeech.PROPER_NOUN
+            lexeme.effectiveBits and NominalFeatureBits.POS_VERBAL_NOUN != 0L -> PartOfSpeech.VERBAL_NOUN
+            lexeme.effectiveBits and NominalFeatureBits.POS_PRONOUN != 0L -> PartOfSpeech.PRONOUN
+            lexeme.effectiveBits and NominalFeatureBits.POS_COPULA != 0L -> PartOfSpeech.COPULA
             lexeme.effectiveBits and NominalFeatureBits.POS_NOUN != 0L -> PartOfSpeech.NOUN
             else -> PartOfSpeech.ADJECTIVE
         }
@@ -153,29 +170,29 @@ internal object NominalRuleGraph {
         val coreStates = coreStates(lexeme, prefix, prefixAffixes, normalizedTyped)
         val candidates = ArrayList<MorphCandidate>(minOf(limit, 64))
         val identities = HashSet<Pair<String, List<NominalAffix>>>()
-        for (tier in 0..4) {
+        for (tier in 0..6) {
             for (core in coreStates) {
                 for (terminal in terminalStates(core, normalizedTyped, tier)) {
-                val normalized = EthiopicNormalizer.normalize(terminal.surface)
-                if (!normalized.startsWith(normalizedTyped)) continue
-                if (!identities.add(normalized to terminal.affixes)) continue
-                val analysis = MorphAnalysis(
-                    lexemeId = lexeme.lexemeId,
-                    lemma = lexeme.surface,
-                    surface = terminal.surface,
-                    partOfSpeech = partOfSpeech,
-                    features = lexeme.nominalFeatures,
-                    affixes = terminal.affixes,
-                    orthographicCost = terminal.cost,
-                )
-                candidates += MorphCandidate(
-                    word = terminal.surface,
-                    normalizedKey = normalized,
-                    analysis = analysis,
-                    source = MorphSource.GENERATED_MORPHOLOGY,
-                    lexicalFrequency = lexeme.frequency,
-                )
-                if (candidates.size >= limit) return candidates
+                    val normalized = EthiopicNormalizer.normalize(terminal.surface)
+                    if (!normalized.startsWith(normalizedTyped)) continue
+                    if (!identities.add(normalized to terminal.affixes)) continue
+                    val analysis = MorphAnalysis(
+                        lexemeId = lexeme.lexemeId,
+                        lemma = lexeme.surface,
+                        surface = terminal.surface,
+                        partOfSpeech = partOfSpeech,
+                        features = lexeme.nominalFeatures,
+                        affixes = terminal.affixes,
+                        orthographicCost = terminal.cost,
+                    )
+                    candidates += MorphCandidate(
+                        word = terminal.surface,
+                        normalizedKey = normalized,
+                        analysis = analysis,
+                        source = MorphSource.GENERATED_MORPHOLOGY,
+                        lexicalFrequency = lexeme.frequency,
+                    )
+                    if (candidates.size >= limit) return candidates
                 }
             }
         }
@@ -193,6 +210,9 @@ internal object NominalRuleGraph {
             if (prefix.marker == NominalPrefixMarker.COLLECTIVE) NominalNumber.COLLECTIVE else NominalNumber.SINGULAR
         )
         applyPrefix(lexeme.surface, prefix)?.let { stems += State(it, singularAffixes, 0) }
+        pronounContraction(prefix.adposition, lexeme.surface)?.let {
+            stems += State(it, singularAffixes, 0)
+        }
         if (prefix.marker != NominalPrefixMarker.COLLECTIVE &&
             lexeme.effectiveBits and NominalFeatureBits.ORDINARY_PLURAL != 0L
         ) {
@@ -337,21 +357,53 @@ internal object NominalRuleGraph {
             if (surfaceCompatible(ga.surface, normalizedTyped)) yield(ga)
             return@sequence
         }
-        accusatives.forEach { accusative ->
-            conjunctions.forEachIndexed { index, suffix ->
+        if (tier == 4) {
+            accusatives.forEach { accusative ->
+                conjunctions.forEachIndexed { index, suffix ->
+                    val state = State(
+                        accusative.surface + suffix,
+                        accusative.affixes + NominalAffix.Conjunctive(suffix),
+                        accusative.cost + 2 + index,
+                    )
+                    if (surfaceCompatible(state.surface, normalizedTyped)) yield(state)
+                }
                 val state = State(
-                    accusative.surface + suffix,
-                    accusative.affixes + NominalAffix.Conjunctive(suffix),
-                    accusative.cost + 2 + index,
+                    accusative.surface + "ጋ",
+                    accusative.affixes + NominalAffix.PostpositionGa,
+                    accusative.cost + 2,
                 )
                 if (surfaceCompatible(state.surface, normalizedTyped)) yield(state)
             }
-            val state = State(
-                accusative.surface + "ጋ",
-                accusative.affixes + NominalAffix.PostpositionGa,
-                accusative.cost + 2,
-            )
-            if (surfaceCompatible(state.surface, normalizedTyped)) yield(state)
+            return@sequence
+        }
+        if (tier == 5) {
+            copulaClitics.forEach { (copula, cost) ->
+                val state = State(
+                    core.surface + copula,
+                    core.affixes + NominalAffix.Copula(copula),
+                    core.cost + cost,
+                )
+                if (surfaceCompatible(state.surface, normalizedTyped)) yield(state)
+            }
+            return@sequence
+        }
+        if (tier == 6) {
+            copulaClitics.forEach { (copula, copulaCost) ->
+                val copulaState = State(
+                    core.surface + copula,
+                    core.affixes + NominalAffix.Copula(copula),
+                    core.cost + copulaCost,
+                )
+                conjunctions.forEachIndexed { index, suffix ->
+                    val state = State(
+                        copulaState.surface + suffix,
+                        copulaState.affixes + NominalAffix.Conjunctive(suffix),
+                        copulaState.cost + 2 + index,
+                    )
+                    if (surfaceCompatible(state.surface, normalizedTyped)) yield(state)
+                }
+            }
+            return@sequence
         }
     }
 
@@ -377,8 +429,115 @@ internal object NominalRuleGraph {
 
     private fun applyPrefix(stem: String, prefix: NominalPrefixContext): String? {
         if (!prefix.contractedInitial) return prefix.surface + stem
-        if (!stem.startsWith("አ")) return null
+        if (!stem.startsWith("አ") && !stem.startsWith("እ")) return null
         return prefix.surface + stem.drop(1)
+    }
+
+    private fun pronounContraction(adposition: String?, stem: String): String? {
+        if (adposition == null) return null
+        return when (stem) {
+            "እኔ" -> when (adposition) {
+                "የ" -> "የኔ"
+                "ለ" -> "ለኔ"
+                "በ" -> "በኔ"
+                "እንደ" -> "እንደኔ"
+                "ከ" -> "ከኔ"
+                "ስለ" -> "ስለኔ"
+                "ወደ" -> "ወደኔ"
+                else -> null
+            }
+            "አንተ" -> when (adposition) {
+                "የ" -> "ያንተ"
+                "ለ" -> "ላንተ"
+                "በ" -> "ባንተ"
+                "እንደ" -> "እንዳንተ"
+                "ከ" -> "ካንተ"
+                "ስለ" -> "ስላንተ"
+                "ወደ" -> "ወዳንተ"
+                else -> null
+            }
+            "አንቺ" -> when (adposition) {
+                "የ" -> "ያንቺ"
+                "ለ" -> "ላንቺ"
+                "በ" -> "ባንቺ"
+                "እንደ" -> "እንዳንቺ"
+                "ከ" -> "ካንቺ"
+                "ስለ" -> "ስላንቺ"
+                "ወደ" -> "ወዳንቺ"
+                else -> null
+            }
+            "እሱ" -> when (adposition) {
+                "የ" -> "የሱ"
+                "ለ" -> "ለሱ"
+                "በ" -> "በሱ"
+                "እንደ" -> "እንደሱ"
+                "ከ" -> "ከሱ"
+                "ስለ" -> "ስለሱ"
+                "ወደ" -> "ወደሱ"
+                else -> null
+            }
+            "እሷ" -> when (adposition) {
+                "የ" -> "የሷ"
+                "ለ" -> "ለሷ"
+                "በ" -> "በሷ"
+                "እንደ" -> "እንደሷ"
+                "ከ" -> "ከሷ"
+                "ስለ" -> "ስለሷ"
+                "ወደ" -> "ወደሷ"
+                else -> null
+            }
+            "እኛ" -> when (adposition) {
+                "የ" -> "የኛ"
+                "ለ" -> "ለኛ"
+                "በ" -> "በኛ"
+                "እንደ" -> "እንደኛ"
+                "ከ" -> "ከኛ"
+                "ስለ" -> "ስለኛ"
+                "ወደ" -> "ወደኛ"
+                else -> null
+            }
+            "እናንተ" -> when (adposition) {
+                "የ" -> "የናንተ"
+                "ለ" -> "ለናንተ"
+                "በ" -> "በናንተ"
+                "እንደ" -> "እንደናንተ"
+                "ከ" -> "ከናንተ"
+                "ስለ" -> "ስለናንተ"
+                "ወደ" -> "ወደናንተ"
+                else -> null
+            }
+            "እነሱ" -> when (adposition) {
+                "የ" -> "የነሱ"
+                "ለ" -> "ለነሱ"
+                "በ" -> "በነሱ"
+                "እንደ" -> "እንደነሱ"
+                "ከ" -> "ከነሱ"
+                "ስለ" -> "ስለነሱ"
+                "ወደ" -> "ወደነሱ"
+                else -> null
+            }
+            "ይህ", "ይሄ" -> when (adposition) {
+                "በ" -> "በዚህ"
+                "ከ" -> "ከዚህ"
+                "ስለ" -> "ስለዚህ"
+                "እንደ" -> "እንደዚህ"
+                "ወደ" -> "ወደዚህ"
+                "ለ" -> "ለዚህ"
+                "የ" -> "የዚህ"
+                else -> null
+            }
+            "ያ" -> when (adposition) {
+                "በ" -> "በዚያ"
+                "ከ" -> "ከዚያ"
+                "ስለ" -> "ስለዚያ"
+                "እንደ" -> "እንደዚያ"
+                "ወደ" -> "ወደዚያ"
+                "ለ" -> "ለዚያ"
+                "የ" -> "የዚያ"
+                else -> null
+            }
+            else -> null
+        }
     }
 
     private fun pluralForms(surface: String, stemClass: StemClass): List<Pair<String, Int>> {
@@ -461,6 +620,7 @@ internal object NominalRuleGraph {
         fun strip(suffix: String) {
             if (surface.endsWith(suffix) && surface.length > suffix.length) add(surface.dropLast(suffix.length))
         }
+        copulaClitics.forEach { (copula, _) -> strip(copula) }
         strip("ጋ")
         conjunctions.sortedByDescending(String::length).forEach(::strip)
         strip("ኑ")
@@ -499,6 +659,25 @@ internal object NominalRuleGraph {
         val finalOrder = AmharicTable.orderIndexOfFidel(surface.last())
         if (finalOrder == 1 || finalOrder == 4 || AmharicTable.labializedFormOfFidel(surface.last()) == surface.last()) {
             AmharicTable.bareFormOfFidel(surface.last())?.let { add(surface.dropLast(1) + it) }
+        }
+        when (surface) {
+            "የኔ", "ለኔ", "በኔ", "እንደኔ", "ከኔ", "ስለኔ", "ወደኔ" -> add("እኔ")
+            "ያንተ", "ላንተ", "ባንተ", "እንዳንተ", "ካንተ", "ስላንተ", "ወዳንተ" -> add("አንተ")
+            "ያንቺ", "ላንቺ", "ባንቺ", "እንዳንቺ", "ካንቺ", "ስላንቺ", "ወዳንቺ" -> add("አንቺ")
+            "የሱ", "ለሱ", "በሱ", "እንደሱ", "ከሱ", "ስለሱ", "ወደሱ" -> add("እሱ")
+            "የሷ", "ለሷ", "በሷ", "እንደሷ", "ከሷ", "ስለሷ", "ወደሷ" -> add("እሷ")
+            "የኛ", "ለኛ", "በኛ", "እንደኛ", "ከኛ", "ስለኛ", "ወደኛ" -> add("እኛ")
+            "የናንተ", "ለናንተ", "በናንተ", "እንደናንተ", "ከናንተ", "ስለናንተ" -> add("እናንተ")
+            "የነሱ", "ለነሱ", "በነሱ", "እንደነሱ", "ከነሱ", "ስለነሱ" -> add("እነሱ")
+            "በዚህ", "ከዚህ", "ስለዚህ", "እንደዚህ", "ወደዚህ", "ለዚህ", "የዚህ" -> {
+                add("ይህ")
+                add("ይሄ")
+                add("እዚህ")
+            }
+            "በዚያ", "ከዚያ", "ስለዚያ", "እንደዚያ", "ወደዚያ", "ለዚያ", "የዚያ" -> {
+                add("ያ")
+                add("እዚያ")
+            }
         }
     }
 

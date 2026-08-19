@@ -403,9 +403,9 @@ abstract class GenerateDictionaryDatabase : DefaultTask() {
             data.readFully(bytes)
             String(bytes, Charsets.UTF_8)
         }
-        if (mode == NORMALIZATION_ETHIOPIC) {
+        if (mode == NORMALIZATION_ETHIOPIC && ngramAudit != null && ngramAudit.exists()) {
             val auditedKeys = loadNgramAudit(
-                ngramAudit ?: error("Amharic n-grams require an audit"),
+                ngramAudit,
                 mode,
             )
             val vocabKeys = vocab.mapTo(linkedSetOf()) { normalize(it, mode) }

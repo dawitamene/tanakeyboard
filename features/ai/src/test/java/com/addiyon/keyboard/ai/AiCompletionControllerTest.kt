@@ -172,6 +172,7 @@ private class FakeAccountStore(
         consentVersion = version
     }
     override fun customTones(): List<CustomTone> = emptyList()
+    override fun setCustomTones(tones: List<CustomTone>) = Unit
     override fun addCustomTone(
         title: String,
         instruction: String,
@@ -188,4 +189,8 @@ private class FakeAccountStore(
     override fun removeCustomTone(id: String) = Unit
     override fun registerCustomToneChangeListener(listener: () -> Unit) = Unit
     override fun unregisterCustomToneChangeListener(listener: () -> Unit) = Unit
+    override fun toneOrder(): List<String> = emptyList()
+    override fun setToneOrder(order: List<String>) = Unit
+    override fun registerToneOrderChangeListener(listener: () -> Unit) = Unit
+    override fun unregisterToneOrderChangeListener(listener: () -> Unit) = Unit
 }

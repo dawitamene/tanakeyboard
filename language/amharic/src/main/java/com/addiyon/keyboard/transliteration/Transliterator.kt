@@ -224,7 +224,7 @@ object Transliterator {
                     ?: AmharicTable.singleCharConsonants
                         .firstOrNull { latin.startsWith(it, i, ignoreCase = true) }
                 if (splitConsonant != null) {
-                    options.add(consonantUnit(latin, i, splitConsonant, segRank = 2))
+                    options.add(consonantUnit(latin, i, splitConsonant, segRank = 2, isQuirk = true))
                 }
             }
             return options

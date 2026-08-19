@@ -194,3 +194,35 @@ fun AddiyonScreenColumn(
         content = content
     )
 }
+
+@Composable
+fun AddiyonButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    androidx.compose.material3.Button(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = AddiyonSizes.formControl),
+        enabled = enabled,
+        shape = RoundedCornerShape(AddiyonRadii.pill),
+        content = content
+    )
+}
+
+@Composable
+fun AddiyonOutlinedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    androidx.compose.material3.OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = AddiyonSizes.formControl),
+        enabled = enabled,
+        shape = RoundedCornerShape(AddiyonRadii.pill),
+        content = content
+    )
+}

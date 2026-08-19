@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.addiyon.keyboard.ui.design.addiyonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -262,7 +263,7 @@ fun SuggestionArea(
                                 Icon(
                                     imageVector = Icons.Outlined.MoreHoriz,
                                     contentDescription = "Show more suggestions",
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                    tint = MaterialTheme.addiyonColors.icon,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -451,7 +452,7 @@ fun SuggestionChevronLeftButton(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = contentDescription,
-                tint = iconTint ?: MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                tint = iconTint ?: MaterialTheme.addiyonColors.icon,
                 modifier = Modifier.size(iconSize)
             )
         }
@@ -470,7 +471,7 @@ private fun ToolbarIcon(
             imageVector = icon,
             contentDescription = description,
             tint = if (tinted) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            else MaterialTheme.addiyonColors.icon,
             modifier = Modifier.size(22.dp)
         )
     }
@@ -506,7 +507,7 @@ private fun MicToolbarIcon(
             imageVector = if (isListening) Icons.Filled.Mic else Icons.Outlined.Mic,
             contentDescription = if (isListening) "Stop voice input" else "Voice input",
             tint = if (isListening) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            else MaterialTheme.addiyonColors.icon,
             modifier = Modifier
                 .size(22.dp)
                 .scale(pulse)
@@ -581,15 +582,22 @@ private fun AmharicSuggestionText(
     word: String,
     isTop: Boolean
 ) {
-    Text(
+    BasicText(
         text = word,
-        fontSize = 16.sp,
-        fontWeight = if (isTop) FontWeight.Bold else FontWeight.Normal,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.padding(horizontal = 16.dp),
-        color = if (isTop) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.onSurface
+        autoSize = TextAutoSize.StepBased(
+            minFontSize = 9.5.sp,
+            maxFontSize = 14.5.sp,
+            stepSize = 0.5.sp
+        ),
+        style = TextStyle(
+            color = if (isTop) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurface,
+            fontWeight = if (isTop) FontWeight.Bold else FontWeight.Normal,
+            textAlign = TextAlign.Center
+        ),
+        modifier = Modifier.padding(horizontal = 4.dp)
     )
 }
 
@@ -630,24 +638,20 @@ private fun RowScope.EnglishSuggestionSlot(
         contentAlignment = Alignment.Center
     ) {
         if (word != null) {
-            // autoSize shrinks the font (only down to 15sp) when the word is
-            // too long to fit its slot at the normal 16sp -- short words stay
-            // full size, long ones scale down slightly and then ellipsize
-            // rather than shrinking to an unreadable size.
             BasicText(
                 text = word,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 autoSize = TextAutoSize.StepBased(
-                    minFontSize = 15.sp,
-                    maxFontSize = 16.sp,
-                    stepSize = 1.sp
+                    minFontSize = 9.5.sp,
+                    maxFontSize = 14.5.sp,
+                    stepSize = 0.5.sp
                 ),
                 style = TextStyle(
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 ),
-                modifier = Modifier.padding(horizontal = 6.dp)
+                modifier = Modifier.padding(horizontal = 4.dp)
             )
         }
     }
@@ -697,15 +701,15 @@ private fun RowScope.EmailSuggestionSlot(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 autoSize = TextAutoSize.StepBased(
-                    minFontSize = 14.sp,
-                    maxFontSize = 16.sp,
-                    stepSize = 1.sp
+                    minFontSize = 9.5.sp,
+                    maxFontSize = 14.5.sp,
+                    stepSize = 0.5.sp
                 ),
                 style = TextStyle(
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 ),
-                modifier = Modifier.padding(horizontal = 6.dp)
+                modifier = Modifier.padding(horizontal = 4.dp)
             )
         }
     }

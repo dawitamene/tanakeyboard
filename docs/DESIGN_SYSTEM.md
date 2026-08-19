@@ -43,9 +43,10 @@ Addiyon has two related but deliberately separate surfaces:
 
 Settings, onboarding, home, manual, feedback, account, and other Activity
 screens use `AddiyonBrandTheme`. This surface uses the fixed Addiyon brand
-palette, paper background treatment, Poppins typography, and the Playpen Sans
-brand face where a logo treatment calls for it. Brand teal is reserved
-for primary actions and meaningful emphasis.
+palette, paper background treatment, Public Sans typography for every text
+including headers, and the Public Sans brand face where a logo treatment calls
+for it. Brand teal is reserved for primary actions and meaningful emphasis.
+Text uses the grayish-black `ink` roles (`#23272F` light / `#E5E7EB` dark) instead of pure black, and icons use the gray `icon` roles (`#5E6B78` light / `#9CA3AF` dark) unless an explicit semantic accent is documented.
 
 ### User-themed IME
 
@@ -68,9 +69,8 @@ visible mark near 65% of the white tile and compensate
 the adaptive foreground for Android's mask zoom; do not crop, stretch, recolor,
 or redraw it with arbitrary text or emoji. The files in
 `new_design/exports`, `new_design/exports-1`, and the root `logo_*.svg` set are
-retained as legacy artwork, not as the current logo source. `PlaypenSansBrand`
-is the brand-display face;
-`PoppinsFamily` is the product UI face. The canonical brand primary is
+retained as legacy artwork, not as the current logo source. `PublicSansFamily` is the single product UI and brand-display face
+(legacy `PlaypenSansBrand` and `PoppinsFamily` aliases remain for compatibility and delegate to Public Sans). The canonical brand primary is
 `#009099`; it is declared once as `@color/addiyon_brand_primary`, loaded by
 `rememberAddiyonBrand`, and used to derive the branded light and dark roles.
 Brand color names describe intent, not permission to use a hex value in a
@@ -95,7 +95,7 @@ white for cards and `surfaceVariant` provides the light neutral fill used by
 muted controls.
 
 Status meaning uses the extended `MaterialTheme.addiyonColors` roles:
-`success`, `onSuccess`, `successContainer`, and `onSuccessContainer`. A
+`success`, `onSuccess`, `successContainer`, and `onSuccessContainer`, plus `icon` / `iconMuted` for the default gray icon tint. A
 success color is not a general green accent. Error, warning, and info states
 must use the corresponding Material roles or a future documented extension.
 `brandPrimary` and `onBrandPrimary` expose the fixed Addiyon primary pair for
@@ -133,11 +133,11 @@ avoid choosing a semantic role.
 
 ## Typography
 
-`AddiyonTypography` is the single Poppins-based `Typography` instance and is
-installed by both `AddiyonBrandTheme` and `CustomKeyboardTheme`. Use Material
-text styles (`titleLarge`, `titleMedium`, `bodyLarge`, `bodyMedium`,
-`labelLarge`, and so on) instead of inventing a one-off `sp` style. Keep
-`PlaypenSansBrand` for logo/display moments only. Do not stretch, outline, or
+`AddiyonTypography` is the single Public-Sans-based `Typography` instance and is
+installed by both `AddiyonBrandTheme` and `CustomKeyboardTheme`. Every text,
+including headers, uses Public Sans via `PublicSansFamily` at the root; do not
+introduce a second typeface. Use Material text styles (`titleLarge`, `titleMedium`, `bodyLarge`, `bodyMedium`,
+`labelLarge`, and so on) instead of inventing a one-off `sp` style. Legacy `PlaypenSansBrand` and `PoppinsFamily` remains as aliases to Public Sans for compatibility. Do not stretch, outline, or
 fake bold text to compensate for a missing font weight.
 
 User-facing TextRevamp text belongs in its English-only `ui/i18n/AppStrings.kt`.
@@ -275,10 +275,9 @@ users can add, change, and delete them. Saving navigates back so the full tone
 list is visible again; custom tone changes apply to the keyboard immediately
 through preference observation.
 
-TextRevamp's settings menu exposes the AI workspace as a "Usage" entry that
-opens authentication when signed out and the account dashboard when signed in,
-and a separate "Custom instructions" entry that opens the custom-instructions
-destination. Neither entry carries a badge.
+TextRevamp's settings menu exposes the AI workspace as "Usage" and "Instructions"
+entries following the primary keyboard preferences block (Themes, Preferences,
+Test keyboard, Personal dictionary). Neither entry carries a badge.
 
 Phrase completion is currently suspended: TextRevamp does not create its
 completion controller, render the phrase-completion bar, or expose its account

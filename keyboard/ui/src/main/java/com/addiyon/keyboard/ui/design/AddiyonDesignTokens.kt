@@ -36,7 +36,7 @@ object AddiyonSizes {
     val compact = 40.dp
     val keyboardAction = 44.dp
     val minimumTouchTarget = 48.dp
-    val formControl = 56.dp
+    val formControl = 48.dp
     val appHeader = 64.dp
     val iconSmall = 16.dp
     val iconMedium = 24.dp
@@ -72,18 +72,22 @@ data class AddiyonBrand(val primary: Color) {
     val primaryContainerDark = primary.mix(Color.Black, 0.25f)
     val onPrimary = Color.White
     val onPrimaryDark = Color.White
-    val ink = primary.mix(Color.Black, 0.88f)
-    val mutedInk = primary.mix(Color.Black, 0.58f)
-    val paper = Color.White.mix(Color.Black, 0.04f)
-    val paperTop = Color.White.mix(Color.Black, 0.02f)
+    val ink = Color(0xFF23272F)
+    val mutedInk = Color(0xFF5A6572)
+    val paper = Color.White.mix(Color.Black, 0.06f)
+    val paperTop = Color.White.mix(Color.Black, 0.03f)
     val surface = Color.White
     val surfaceVariant = Color.White.mix(Color.Black, 0.08f)
     val outline = primary.mix(Color.Black, 0.22f)
-    val darkInk = primary.mix(Color.White, 0.92f)
-    val darkMutedInk = primary.mix(Color.White, 0.72f)
+    val darkInk = Color(0xFFE5E7EB)
+    val darkMutedInk = Color(0xFF9CA3AF)
     val darkSurface = primary.mix(Color.Black, 0.76f)
     val darkSurfaceVariant = primary.mix(Color.Black, 0.58f)
     val darkOutline = primary.mix(Color.White, 0.48f)
+    val icon = Color(0xFF5E6B78)
+    val iconMuted = Color(0xFF7A8693)
+    val darkIcon = Color(0xFF9CA3AF)
+    val darkIconMuted = Color(0xFF6B7280)
 }
 
 private fun Color.mix(target: Color, fraction: Float): Color = lerp(this, target, fraction)
@@ -124,7 +128,10 @@ data class AddiyonColors(
     val success: Color,
     val onSuccess: Color,
     val successContainer: Color,
-    val onSuccessContainer: Color
+    val onSuccessContainer: Color,
+    val icon: Color,
+    val iconMuted: Color,
+    val cardBackground: Color = Color.White
 )
 
 fun addiyonLightColors(brand: AddiyonBrand) = AddiyonColors(
@@ -152,14 +159,25 @@ fun addiyonLightColors(brand: AddiyonBrand) = AddiyonColors(
         "green" to Color(0xFF2E7D32),
         "rose" to Color(0xFFC2185B),
         "blue" to Color(0xFF0277BD),
-        "amber" to Color(0xFFF9A825)
+        "amber" to Color(0xFFF9A825),
+        "cyan" to Color(0xFF00ACC1),
+        "lime" to Color(0xFF7CB342),
+        "pink" to Color(0xFFEC407A),
+        "red" to Color(0xFFE53935),
+        "yellow" to Color(0xFFFBC02D),
+        "brown" to Color(0xFF6D4C41),
+        "grey" to Color(0xFF546E7A),
+        "deep_purple" to Color(0xFF512DA8)
     ),
     resultSurface = brand.surface,
     onResultSurface = brand.ink,
     success = Color(0xFF2E7D32),
     onSuccess = Color(0xFFFFFFFF),
     successContainer = Color(0xFFC8E6C9),
-    onSuccessContainer = Color(0xFF1B5E20)
+    onSuccessContainer = Color(0xFF1B5E20),
+    icon = brand.icon,
+    iconMuted = brand.iconMuted,
+    cardBackground = Color.White
 )
 
 fun addiyonDarkColors(brand: AddiyonBrand) = AddiyonColors(
@@ -187,14 +205,25 @@ fun addiyonDarkColors(brand: AddiyonBrand) = AddiyonColors(
         "green" to Color(0xFF81C784),
         "rose" to Color(0xFFF48FB1),
         "blue" to Color(0xFF4FC3F7),
-        "amber" to Color(0xFFFFD54F)
+        "amber" to Color(0xFFFFD54F),
+        "cyan" to Color(0xFF4DD0E1),
+        "lime" to Color(0xFFAED581),
+        "pink" to Color(0xFFF06292),
+        "red" to Color(0xFFEF9A9A),
+        "yellow" to Color(0xFFFFE082),
+        "brown" to Color(0xFFBCAAA4),
+        "grey" to Color(0xFFB0BEC5),
+        "deep_purple" to Color(0xFFB39DDB)
     ),
-    resultSurface = brand.surface,
-    onResultSurface = brand.ink,
+    resultSurface = brand.darkSurface,
+    onResultSurface = brand.darkInk,
     success = Color(0xFF81C784),
-    onSuccess = Color(0xFF0D2A12),
-    successContainer = Color(0xFF1B5E20),
-    onSuccessContainer = Color(0xFFC8E6C9)
+    onSuccess = Color(0xFF1B5E20),
+    successContainer = Color(0xFF2E7D32),
+    onSuccessContainer = Color(0xFFC8E6C9),
+    icon = brand.darkIcon,
+    iconMuted = brand.darkIconMuted,
+    cardBackground = Color.White
 )
 
 val LocalAddiyonColors = staticCompositionLocalOf<AddiyonColors> {

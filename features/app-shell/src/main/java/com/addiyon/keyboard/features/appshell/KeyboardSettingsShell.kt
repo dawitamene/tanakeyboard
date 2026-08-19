@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import com.addiyon.keyboard.ui.design.addiyonColors
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,6 +62,7 @@ data class KeyboardSettingsMenuItem(
 @Composable
 fun KeyboardSettingsMenuScreen(
     header: @Composable () -> Unit,
+    aiItems: List<KeyboardSettingsMenuItem> = emptyList(),
     primaryItems: List<KeyboardSettingsMenuItem>,
     storeItems: List<KeyboardSettingsMenuItem>,
     supportItems: List<KeyboardSettingsMenuItem>,
@@ -79,8 +81,12 @@ fun KeyboardSettingsMenuScreen(
                     modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(AddiyonSpacing.md)
                 ) {
-                    androidx.compose.foundation.layout.Box(Modifier.weight(1f)) {
+                    Column(Modifier.weight(1f)) {
                         SettingsGroup(primaryItems)
+                        if (aiItems.isNotEmpty()) {
+                            Spacer(Modifier.height(AddiyonSpacing.md))
+                            SettingsGroup(aiItems)
+                        }
                     }
                     Column(Modifier.weight(1f)) {
                         SettingsGroup(storeItems)
@@ -91,6 +97,10 @@ fun KeyboardSettingsMenuScreen(
             } else {
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                     SettingsGroup(primaryItems)
+                    if (aiItems.isNotEmpty()) {
+                        Spacer(Modifier.height(AddiyonSpacing.xl))
+                        SettingsGroup(aiItems)
+                    }
                     Spacer(Modifier.height(AddiyonSpacing.xl))
                     SettingsGroup(storeItems)
                     Spacer(Modifier.height(AddiyonSpacing.xl))
@@ -115,7 +125,7 @@ private fun SettingsGroup(items: List<KeyboardSettingsMenuItem>) {
                 Icon(
                     item.icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.addiyonColors.icon
                 )
                 Spacer(Modifier.width(AddiyonSpacing.lg))
                 Text(
@@ -200,6 +210,7 @@ private fun standardKeyboardAppShellConfig(
         KeyboardShellDestination(KeyboardShellDestinations.PERSONAL_DICTIONARY) { scope ->
             KeyboardPersonalDictionaryScreen(
                 copy = copy.personalDictionaryCopy,
+                languageIds = product.orderedInputLanguageIds,
                 onBack = scope.onBack
             )
         },

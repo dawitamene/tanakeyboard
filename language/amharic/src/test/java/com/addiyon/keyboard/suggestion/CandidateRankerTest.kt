@@ -153,7 +153,7 @@ class CandidateRankerTest {
     @Test
     fun prefixOnlyReadingsStayAliveForCompletionsWithoutBeingShownAsWords() {
         val words = dict("ስህተት" to 800)
-        val ranked = rankAmharic(listOf("ሽ", "ስህ"), words)
+        val ranked = rankAmharic(listOf("ሽ", "ስህ"), words, quirkReadings = setOf("ስህ"))
         assertEquals(listOf("ሽ", "ስህተት"), ranked)
         assertFalse("ስህ" in ranked)
     }
@@ -710,5 +710,38 @@ class CandidateRankerTest {
 
         assertEquals("ቤቷ", first.first { it.candidate.source == CandidateRanker.CandidateSource.GENERATED_MORPHOLOGY }.candidate.word)
         repeat(20) { assertEquals(first, rank()) }
+    }
+
+    @Test
+    fun secondaryVowelOptionDoesNotPollutePrefixCompletionsWhenNotAnExactWord() {
+        val words = dict(
+            "ለምን" to 800,
+            "ለማየት" to 700,
+            "ሌላ" to 950,
+            "ሌሊት" to 900
+        )
+        val candidates = Transliterator.candidateReadings("le")
+        val readings = candidates.map { it.text }
+        val quirks = candidates.filter { it.isQuirk }.mapTo(mutableSetOf()) { it.text }
+        val ranked = rankAmharic(readings, words, visibleReadings = readings, quirkReadings = quirks)
+        assertEquals(listOf("ለ", "ለምን", "ለማየት"), ranked)
+        assertFalse("ሌላ" in ranked)
+        assertFalse("ሌሊት" in ranked)
+        assertFalse("ሌ" in ranked)
+    }
+
+    @Test
+    fun secondaryVowelOptionSurfacesWhenAnExactWordExists() {
+        val words = dict(
+            "ቤት" to 900,
+            "በትምህርት" to 800,
+            "ቤተሰብ" to 700
+        )
+        val readings = Transliterator.candidates("bet")
+        val ranked = rankAmharic(readings, words, visibleReadings = readings)
+        assertEquals("ቤት", ranked.first())
+        assertTrue("በት" in ranked)
+        assertTrue("በትምህርት" in ranked)
+        assertFalse("ቤተሰብ" in ranked)
     }
 }

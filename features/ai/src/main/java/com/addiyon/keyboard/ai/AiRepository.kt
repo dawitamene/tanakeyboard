@@ -216,6 +216,63 @@ class AiRepository(private val api: AiApi) {
         }
     }
 
+    suspend fun listCustomTones(jwt: String): Result<List<CustomToneResponseDto>> {
+        val auth = "Bearer $jwt"
+        return try {
+            val res = api.listCustomTones(auth, jwt)
+            Result.success(res)
+        } catch (e: HttpException) {
+            Result.failure(mapHttp(e))
+        } catch (e: IOException) {
+            Result.failure(Exception(AiError.Offline.toString(), e))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun upsertCustomTone(
+        jwt: String,
+        toneId: String,
+        label: String,
+        instruction: String,
+        icon: String? = null,
+        color: String? = null
+    ): Result<CustomToneResponseDto> {
+        val auth = "Bearer $jwt"
+        val req = CustomToneDto(
+            toneId = toneId,
+            label = label,
+            description = instruction,
+            promptFragment = instruction,
+            icon = icon,
+            color = color
+        )
+        return try {
+            val res = api.upsertCustomTone(req, auth, jwt)
+            Result.success(res)
+        } catch (e: HttpException) {
+            Result.failure(mapHttp(e))
+        } catch (e: IOException) {
+            Result.failure(Exception(AiError.Offline.toString(), e))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteCustomTone(jwt: String, toneId: String): Result<Boolean> {
+        val auth = "Bearer $jwt"
+        return try {
+            api.deleteCustomTone(toneId, auth, jwt)
+            Result.success(true)
+        } catch (e: HttpException) {
+            Result.failure(mapHttp(e))
+        } catch (e: IOException) {
+            Result.failure(Exception(AiError.Offline.toString(), e))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private fun mapHttp(e: HttpException): Exception {
         val code = e.code()
         val body = try { e.response()?.errorBody()?.string() } catch (_: Exception) { null }
@@ -262,3 +319,12 @@ class AiRepository(private val api: AiApi) {
         }
     }
 }
+
+fun CustomToneResponseDto.toCustomTone(): CustomTone = CustomTone(
+    id = id,
+    title = label,
+    instruction = promptFragment.ifBlank { description.orEmpty() },
+    icon = sanitizeStoredIcon(icon.orEmpty()),
+    color = if (color in CustomToneColor.All) color!! else CustomToneColor.Default
+)
+

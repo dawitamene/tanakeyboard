@@ -45,9 +45,16 @@ class AiKeyboardFeature internal constructor(
     var customTones by mutableStateOf(emptyList<CustomTone>())
         private set
 
+    var toneOrder by mutableStateOf(emptyList<String>())
+        private set
+
+    var orderedItems by mutableStateOf<List<ToneOrderItem>>(emptyList())
+        private set
+
     private var requestJob: Job? = null
     private var toneActionsEnabled by mutableStateOf(false)
     private var customToneChangeListener: (() -> Unit)? = null
+    private var toneOrderChangeListener: (() -> Unit)? = null
 
     @Composable
     fun optionalKeyboardUi(): OptionalKeyboardUi = OptionalKeyboardUi(
@@ -78,7 +85,8 @@ class AiKeyboardFeature internal constructor(
                 },
                 onTabSelected = ::onKeyboardToneSelected,
                 onCustomToneSelected = ::onKeyboardCustomToneSelected,
-                onAddCustomTone = ::onAddCustomTone
+                onAddCustomTone = ::onAddCustomTone,
+                orderedItems = orderedItems
             )
         },
         contentOverlayVisible = uiState.isLoading ||
@@ -274,6 +282,8 @@ class AiKeyboardFeature internal constructor(
         resetForLifecycle()
         customToneChangeListener?.let { store.unregisterCustomToneChangeListener(it) }
         customToneChangeListener = null
+        toneOrderChangeListener?.let { store.unregisterToneOrderChangeListener(it) }
+        toneOrderChangeListener = null
         scope.cancel()
     }
 
@@ -316,6 +326,16 @@ class AiKeyboardFeature internal constructor(
 
     private fun refreshCustomTones() {
         customTones = store.customTones()
+        refreshOrderedItems()
+    }
+
+    private fun refreshToneOrder() {
+        toneOrder = store.toneOrder()
+        refreshOrderedItems()
+    }
+
+    private fun refreshOrderedItems() {
+        orderedItems = orderedToneSequence(toneOrder, customTones)
     }
 
     private fun selectVariant(strength: AiStrength): AiResult? {
@@ -331,6 +351,7 @@ class AiKeyboardFeature internal constructor(
         controller.invalidateEditorCaptures()
         toneActionsEnabled = false
         refreshCustomTones()
+        refreshToneOrder()
         uiState = AiUiState(
             quota = store.quota(),
             authEmail = store.email().orEmpty()
@@ -339,9 +360,19 @@ class AiKeyboardFeature internal constructor(
 
     private fun attachCustomToneStore() {
         refreshCustomTones()
-        val listener = { customTones = store.customTones() }
+        refreshToneOrder()
+        val listener = {
+            customTones = store.customTones()
+            refreshOrderedItems()
+        }
         customToneChangeListener = listener
         store.registerCustomToneChangeListener(listener)
+        val orderListener = {
+            toneOrder = store.toneOrder()
+            refreshOrderedItems()
+        }
+        toneOrderChangeListener = orderListener
+        store.registerToneOrderChangeListener(orderListener)
     }
 
     private fun cancelRequest() {

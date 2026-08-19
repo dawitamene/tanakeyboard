@@ -192,7 +192,7 @@ class DesignSystemContractTest {
             "object AddiyonSpacing",
             "object AddiyonRadii",
             "object AddiyonSizes",
-            "val formControl = 56.dp",
+            "val formControl = 48.dp",
             "object AddiyonBorders",
             "val selectedTone = 1.dp",
             "object AddiyonMotion",
@@ -357,9 +357,13 @@ class DesignSystemContractTest {
 
         assertTrue(tokens.contains("val onPrimary = Color.White"))
         assertTrue(tokens.contains("val onPrimaryDark = Color.White"))
-        assertTrue(tokens.contains("val paper = Color.White.mix(Color.Black, 0.04f)"))
+        assertTrue(tokens.contains("val paper = Color.White.mix(Color.Black, 0.06f)"))
         assertTrue(tokens.contains("val surfaceVariant = Color.White.mix(Color.Black, 0.08f)"))
-        assertTrue(auth.contains("RoundedCornerShape(AddiyonRadii.pill)"))
+        assertTrue(
+            auth.contains("RoundedCornerShape(AddiyonRadii.pill)") ||
+                auth.contains("AddiyonButton") ||
+                auth.contains("AddiyonOutlinedButton")
+        )
         assertTrue(components.contains("focusedBorderColor = Color.Transparent"))
         assertTrue(components.contains("focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant"))
         assertTrue(auth.contains("Modifier.padding(top = AddiyonSpacing.xs)"))

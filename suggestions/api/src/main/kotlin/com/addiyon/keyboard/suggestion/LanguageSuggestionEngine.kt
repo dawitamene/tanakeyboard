@@ -40,6 +40,7 @@ interface LanguageSuggestionEngine {
     fun topFrequentWords(limit: Int): List<EngineSuggestion>
     fun normalize(word: String): String
     fun morphologyIdentity(word: String): MorphologyIdentity? = null
+    fun containsWord(word: String): Boolean = false
     fun clearCaches()
     fun release()
 }

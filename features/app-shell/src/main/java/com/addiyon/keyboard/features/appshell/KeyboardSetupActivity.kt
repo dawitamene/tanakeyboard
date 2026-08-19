@@ -43,13 +43,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.addiyon.keyboard.ui.design.AddiyonButton
+import com.addiyon.keyboard.ui.design.AddiyonOutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -266,14 +266,14 @@ fun KeyboardProductHomeScreen(
                         style = MaterialTheme.typography.titleMedium
                     )
                     if (!status.enabled) {
-                        OutlinedButton(
+                        AddiyonOutlinedButton(
                             onClick = onOpenSettings,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = AddiyonSpacing.xs)
                         ) { Text(copy.enableAction) }
                     } else if (!status.isDefault) {
-                        OutlinedButton(
+                        AddiyonOutlinedButton(
                             onClick = onShowPicker,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -282,7 +282,7 @@ fun KeyboardProductHomeScreen(
                     }
                 }
             }
-            Button(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+            AddiyonButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
                 Text(copy.settingsAction)
             }
             productContent()
@@ -405,7 +405,7 @@ private fun SetupStepPage(
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(AddiyonSpacing.xs))
-            Button(onClick = onClick) { Text(buttonLabel) }
+            AddiyonButton(onClick = onClick) { Text(buttonLabel) }
         }
         Column(
             modifier = Modifier
@@ -438,7 +438,7 @@ private fun SetupStepIcon(icon: ImageVector) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MaterialTheme.addiyonColors.icon,
             modifier = Modifier.size(AddiyonSizes.iconHero)
         )
     }

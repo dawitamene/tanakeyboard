@@ -3,9 +3,11 @@ package com.addiyon.keyboard.ai
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 @JsonClass(generateAdapter = true)
 data class RevampRequest(
@@ -131,6 +133,28 @@ data class CompletionResponse(
     val completion: String?
 )
 
+@JsonClass(generateAdapter = true)
+data class CustomToneDto(
+    val toneId: String,
+    val label: String,
+    val description: String? = null,
+    val promptFragment: String,
+    val icon: String? = null,
+    val color: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class CustomToneResponseDto(
+    val id: String,
+    val label: String,
+    val description: String? = null,
+    val promptFragment: String,
+    val icon: String? = null,
+    val color: String? = null,
+    val isBuiltIn: Boolean? = null,
+    val isCustom: Boolean? = null
+)
+
 interface AiApi {
     @POST("text/completion")
     suspend fun completion(
@@ -176,4 +200,25 @@ interface AiApi {
         @Header("Authorization") auth: String? = null,
         @Header("X-Anonymous-Id") anonId: String? = null
     ): QuotaResponse
+
+    @GET("tones")
+    suspend fun listCustomTones(
+        @Header("Authorization") auth: String? = null,
+        @Header("X-Session-Id") sessionId: String? = null
+    ): List<CustomToneResponseDto>
+
+    @POST("tones")
+    suspend fun upsertCustomTone(
+        @Body body: CustomToneDto,
+        @Header("Authorization") auth: String? = null,
+        @Header("X-Session-Id") sessionId: String? = null
+    ): CustomToneResponseDto
+
+    @DELETE("tones/{id}")
+    suspend fun deleteCustomTone(
+        @Path("id") id: String,
+        @Header("Authorization") auth: String? = null,
+        @Header("X-Session-Id") sessionId: String? = null
+    ): Map<String, Boolean>
 }
+

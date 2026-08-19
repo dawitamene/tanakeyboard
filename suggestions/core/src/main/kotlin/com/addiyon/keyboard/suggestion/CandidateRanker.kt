@@ -15,6 +15,7 @@ object CandidateRanker {
         GREEDY_LITERAL,
         ATTESTED_SURFACE,
         GENERATED_MORPHOLOGY,
+        GUESSER_MORPHOLOGY,
         PERSONAL,
         FUZZY,
     }
@@ -52,6 +53,7 @@ object CandidateRanker {
     private const val EXACT_LEXEME_COMPLETION_BONUS = 170_000
     private const val ATTESTED_SURFACE_BONUS = 130_000
     private const val GENERATED_MORPHOLOGY_BONUS = 90_000
+    private const val GUESSER_MORPHOLOGY_BONUS = 70_000
     private const val FUZZY_BONUS = 50_000
     private const val STRUCTURAL_PENALTY = 180
     private const val COMPLETION_LENGTH_PENALTY = 20
@@ -219,6 +221,9 @@ object CandidateRanker {
         for ((index, reading) in readings.withIndex()) {
             val completions = completionsForPrefix(reading, limit)
             for (completion in completions) {
+                if (index > 0 && reading !in quirkReadings && normalize(completion.word) != normalize(reading)) {
+                    continue
+                }
                 val candidate = withPersonalEvidence(completion, personalEvidence, normalize)
                 scored += score(
                     candidate = candidate,
@@ -295,6 +300,7 @@ object CandidateRanker {
             candidate.source == CandidateSource.EXACT_LEXEME -> EXACT_LEXEME_COMPLETION_BONUS
             candidate.source == CandidateSource.ATTESTED_SURFACE -> ATTESTED_SURFACE_BONUS
             candidate.source == CandidateSource.GENERATED_MORPHOLOGY -> GENERATED_MORPHOLOGY_BONUS
+            candidate.source == CandidateSource.GUESSER_MORPHOLOGY -> GUESSER_MORPHOLOGY_BONUS
             else -> FUZZY_BONUS
         }
         val frequencyEvidence = when {
@@ -305,7 +311,8 @@ object CandidateRanker {
             candidate.source == CandidateSource.ATTESTED_SURFACE ->
                 candidate.surfaceFrequency.orZero().coerceAtMost(10_000) +
                     lexicalEvidenceScore(candidate.lexicalFrequency).coerceAtMost(3_000)
-            candidate.source == CandidateSource.GENERATED_MORPHOLOGY ->
+            candidate.source == CandidateSource.GENERATED_MORPHOLOGY ||
+            candidate.source == CandidateSource.GUESSER_MORPHOLOGY ->
                 lexicalEvidenceScore(candidate.lexicalFrequency).coerceAtMost(3_000)
             candidate.source == CandidateSource.FUZZY ->
                 frequencyScore(candidate.lexicalFrequency).coerceAtMost(15_000)
@@ -340,7 +347,8 @@ object CandidateRanker {
         if (
             candidate.source != CandidateSource.EXACT_LEXEME &&
             candidate.source != CandidateSource.ATTESTED_SURFACE &&
-            candidate.source != CandidateSource.GENERATED_MORPHOLOGY
+            candidate.source != CandidateSource.GENERATED_MORPHOLOGY &&
+            candidate.source != CandidateSource.GUESSER_MORPHOLOGY
         ) {
             return candidate
         }
@@ -379,8 +387,9 @@ object CandidateRanker {
         CandidateSource.GREEDY_LITERAL -> 1
         CandidateSource.ATTESTED_SURFACE -> 2
         CandidateSource.GENERATED_MORPHOLOGY -> 3
-        CandidateSource.FUZZY -> 4
-        CandidateSource.PERSONAL -> 5
+        CandidateSource.GUESSER_MORPHOLOGY -> 4
+        CandidateSource.FUZZY -> 5
+        CandidateSource.PERSONAL -> 6
     }
 
     /**
@@ -425,7 +434,10 @@ object CandidateRanker {
         normalize: (String) -> String
     ): Int {
         if (ngramNext.isEmpty()) return 0
-        val weight = ngramNext[normalize(word)] ?: return 0
+        val normalized = normalize(word)
+        val weight = ngramNext[normalized]
+            ?: (if (normalized.contains('\'')) ngramNext[normalized.replace("'", "")] else null)
+            ?: return 0
         return (NGRAM_BASE_BONUS + weight * NGRAM_WEIGHT_SCALE)
             .coerceAtMost(NGRAM_MAX_BONUS)
     }

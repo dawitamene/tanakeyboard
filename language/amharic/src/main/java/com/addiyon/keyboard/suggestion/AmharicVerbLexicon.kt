@@ -87,18 +87,27 @@ class AmharicVerbLexicon private constructor(
     }
 
     private class PageCache(
+        pageCount: Int,
         private val read: (Int) -> ByteArray,
     ) {
-        private val pages = object : LinkedHashMap<Int, ByteArray>(PAGE_CACHE_SIZE, 0.75f, true) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, ByteArray>): Boolean =
-                size > PAGE_CACHE_SIZE
+        private val pages = arrayOfNulls<ByteArray>(pageCount)
+
+        fun get(page: Int): ByteArray {
+            val cached = if (page in pages.indices) pages[page] else null
+            if (cached != null) return cached
+            synchronized(this) {
+                val existing = if (page in pages.indices) pages[page] else null
+                if (existing != null) return existing
+                val inflated = read(page)
+                if (page in pages.indices) pages[page] = inflated
+                return inflated
+            }
         }
 
         @Synchronized
-        fun get(page: Int): ByteArray = pages[page] ?: read(page).also { pages[page] = it }
-
-        @Synchronized
-        fun clear() = pages.clear()
+        fun clear() {
+            pages.fill(null)
+        }
     }
 
     private val buffer = source?.asReadOnlyBuffer()?.order(ByteOrder.BIG_ENDIAN)
@@ -213,7 +222,7 @@ class AmharicVerbLexicon private constructor(
             rootFeature = featureNames.indexOf("r")
             lemmaFeature = featureNames.indexOf("lemma")
             require(rootFeature >= 0) { "HornMorpho runtime has no root feature" }
-            pageCache = PageCache(::inflatePage)
+            pageCache = PageCache(constraintPageCount, ::inflatePage)
         }
     }
 
@@ -543,6 +552,41 @@ class AmharicVerbLexicon private constructor(
         val end = cursor + length
         val page = requireNotNull(pageCache).get(pageId)
         val alternativeCount = page[cursor++].toInt() and 0xff
+
+        if (current.size == 1 && alternativeCount == 1) {
+            val base = current[0]
+            val assignmentCount = page[cursor++].toInt() and 0xff
+            val assignmentStart = cursor
+            var assignment = assignmentStart
+            var valid = true
+            repeat(assignmentCount) {
+                val feature = page[assignment].toInt() and 0xff
+                val value = (
+                    ((page[assignment + 1].toInt() and 0xff) shl 8) or
+                        (page[assignment + 2].toInt() and 0xff)
+                    ) + 1
+                val previous = base[feature].toInt() and 0xffff
+                if (previous != 0 && previous != value) {
+                    valid = false
+                    return@repeat
+                }
+                assignment += 3
+            }
+            if (!valid) return null
+            val values = base.clone()
+            assignment = assignmentStart
+            repeat(assignmentCount) {
+                val feature = page[assignment].toInt() and 0xff
+                val value = (
+                    ((page[assignment + 1].toInt() and 0xff) shl 8) or
+                        (page[assignment + 2].toInt() and 0xff)
+                    ) + 1
+                values[feature] = value.toShort()
+                assignment += 3
+            }
+            return listOf(values)
+        }
+
         val merged = LinkedHashMap<FeatureKey, ShortArray>()
         repeat(alternativeCount) {
             val assignmentCount = page[cursor++].toInt() and 0xff
@@ -709,9 +753,9 @@ class AmharicVerbLexicon private constructor(
         private const val MAX_FRONTIER_SIZE = 8_192
         private const val MAX_SURFACE_LENGTH = 32
         private const val EXACT_ANALYSIS_LIMIT = 16
-        private const val EXACT_EXPANSION_LIMIT = 1_000_000
-        private const val COMPLETION_EXPANSION_LIMIT = 50_000
-        private const val FUZZY_EXPANSION_LIMIT = 250_000
+        private const val EXACT_EXPANSION_LIMIT = 50_000
+        private const val COMPLETION_EXPANSION_LIMIT = 2_500
+        private const val FUZZY_EXPANSION_LIMIT = 5_000
         private const val DEFAULT_ROOT_FREQUENCY = 1
         private val PARADIGM_FEATURES = listOf(
             "r",

@@ -18,6 +18,11 @@ internal object NominalFeatureEncoding {
     private const val PROPER_PERSON = 1L shl 14
     private const val PROPER_PLACE = 1L shl 15
     private const val HUMAN_BLOCKED = 1L shl 26
+    private const val POS_PRONOUN = 1L shl 27
+    private const val POS_VERBAL_NOUN = 1L shl 28
+    private const val POS_COPULA = 1L shl 29
+    private const val POS_PREVERB = 1L shl 30
+    private const val COPULA_CLITIC = 1L shl 31
 
     private val adpositions = listOf("የ", "ለ", "በ", "ከ", "እንደ", "ወደ", "እስከ", "ስለ", "በስተ", "ያለ")
 
@@ -49,6 +54,10 @@ internal object NominalFeatureEncoding {
         var bits = PRODUCTIVE
         if ("N" in partsOfSpeech) bits = bits or POS_NOUN
         if ("ADJ" in partsOfSpeech) bits = bits or POS_ADJECTIVE
+        if ("PRON" in partsOfSpeech) bits = bits or POS_PRONOUN
+        if ("N_V" in partsOfSpeech) bits = bits or POS_VERBAL_NOUN
+        if ("COP" in partsOfSpeech) bits = bits or POS_COPULA
+        if ("PV" in partsOfSpeech) bits = bits or POS_PREVERB
         if (values["g"] == setOf("f")) bits = bits or GENDER_FEMININE
         if (values["g"] == setOf("m")) bits = bits or GENDER_MASCULINE
         if (properPerson) bits = bits or PROPER_PERSON

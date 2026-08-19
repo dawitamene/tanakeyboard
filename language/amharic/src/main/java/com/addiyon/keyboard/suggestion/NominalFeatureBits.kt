@@ -18,8 +18,14 @@ object NominalFeatureBits {
     const val PROPER_PERSON = 1L shl 14
     const val PROPER_PLACE = 1L shl 15
     const val HUMAN_BLOCKED = 1L shl 26
+    const val POS_PRONOUN = 1L shl 27
+    const val POS_VERBAL_NOUN = 1L shl 28
+    const val POS_COPULA = 1L shl 29
+    const val POS_PREVERB = 1L shl 30
+    const val COPULA_CLITIC = 1L shl 31
 
     val adpositions = listOf("የ", "ለ", "በ", "ከ", "እንደ", "ወደ", "እስከ", "ስለ", "በስተ", "ያለ")
+    val ALL_ADPOSITIONS: Long = adpositions.fold(ADPOSITION) { acc, adp -> acc or adpositionBit(adp) }
 
     fun adpositionBit(adposition: String): Long {
         val index = adpositions.indexOf(adposition)
@@ -29,9 +35,7 @@ object NominalFeatureBits {
     fun encode(features: NominalFeatures, kind: Int): Long {
         val properPerson = kind == 2
         val properPlace = kind == 3
-        val nominalPart = features.partsOfSpeech.any {
-            it == PartOfSpeech.NOUN || it == PartOfSpeech.ADJECTIVE
-        }
+        val nominalPart = features.partsOfSpeech.any { it == PartOfSpeech.NOUN || it == PartOfSpeech.ADJECTIVE }
         val sourceIsBase = features.definite != FeatureState.POSITIVE &&
             features.accusative != FeatureState.POSITIVE &&
             features.person !is PersonFeature.Values
@@ -41,6 +45,10 @@ object NominalFeatureBits {
         var bits = PRODUCTIVE
         if (PartOfSpeech.NOUN in features.partsOfSpeech) bits = bits or POS_NOUN
         if (PartOfSpeech.ADJECTIVE in features.partsOfSpeech) bits = bits or POS_ADJECTIVE
+        if (PartOfSpeech.PRONOUN in features.partsOfSpeech) bits = bits or POS_PRONOUN
+        if (PartOfSpeech.VERBAL_NOUN in features.partsOfSpeech) bits = bits or POS_VERBAL_NOUN
+        if (PartOfSpeech.COPULA in features.partsOfSpeech) bits = bits or POS_COPULA
+        if (PartOfSpeech.PREVERB in features.partsOfSpeech) bits = bits or POS_PREVERB
         if (properPerson) bits = bits or PROPER_PERSON
         if (properPlace) bits = bits or PROPER_PLACE
         if (features.gender == Gender.FEMININE) bits = bits or GENDER_FEMININE
@@ -69,6 +77,10 @@ object NominalFeatureBits {
         val partsOfSpeech = buildSet {
             if (has(POS_NOUN)) add(PartOfSpeech.NOUN)
             if (has(POS_ADJECTIVE)) add(PartOfSpeech.ADJECTIVE)
+            if (has(POS_PRONOUN)) add(PartOfSpeech.PRONOUN)
+            if (has(POS_VERBAL_NOUN)) add(PartOfSpeech.VERBAL_NOUN)
+            if (has(POS_COPULA)) add(PartOfSpeech.COPULA)
+            if (has(POS_PREVERB)) add(PartOfSpeech.PREVERB)
             if (kind in 2..3) add(PartOfSpeech.PROPER_NOUN)
         }
         val gender = when {

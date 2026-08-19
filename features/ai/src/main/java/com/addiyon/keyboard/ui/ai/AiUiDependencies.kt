@@ -62,8 +62,14 @@ interface AiUiStrings {
     val aiCustomToneEdit: String
     val aiCustomToneListHeading: String
     val aiCustomToneEmpty: String
+    val aiReorderInstructionsTitle: String
+    val aiReorderInstructionsDescription: String
+    val aiReorderInstructionsSave: String
+    val aiReorderInstructionsBuiltInBadge: String
+    val aiReorderInstructionsCustomBadge: String
     val aiCustomToneRemove: String
     val aiCustomToneError: String
+    val aiAddNewInstructionTitle: String
     val aiCustomToneIconAutoAwesome: String
     val aiCustomToneIconFace: String
     val aiCustomToneIconFavorite: String
@@ -104,6 +110,14 @@ interface AiUiStrings {
     val aiCustomToneColorRose: String
     val aiCustomToneColorBlue: String
     val aiCustomToneColorAmber: String
+    val aiCustomToneColorCyan: String
+    val aiCustomToneColorLime: String
+    val aiCustomToneColorPink: String
+    val aiCustomToneColorRed: String
+    val aiCustomToneColorYellow: String
+    val aiCustomToneColorBrown: String
+    val aiCustomToneColorGrey: String
+    val aiCustomToneColorDeepPurple: String
     val aiTruncated: String
     val aiUsageRemaining: String
     val aiUsageTokensRemainingFormat: String
@@ -148,6 +162,7 @@ interface AiAccountStore {
     fun phraseCompletionConsentVersion(): Int
     fun setPhraseCompletionConsentVersion(version: Int)
     fun customTones(): List<CustomTone>
+    fun setCustomTones(tones: List<CustomTone>)
     fun addCustomTone(title: String, instruction: String, icon: String, color: String): CustomTone?
     fun updateCustomTone(
         id: String,
@@ -159,4 +174,8 @@ interface AiAccountStore {
     fun removeCustomTone(id: String)
     fun registerCustomToneChangeListener(listener: () -> Unit)
     fun unregisterCustomToneChangeListener(listener: () -> Unit)
+    fun toneOrder(): List<String>
+    fun setToneOrder(order: List<String>)
+    fun registerToneOrderChangeListener(listener: () -> Unit)
+    fun unregisterToneOrderChangeListener(listener: () -> Unit)
 }

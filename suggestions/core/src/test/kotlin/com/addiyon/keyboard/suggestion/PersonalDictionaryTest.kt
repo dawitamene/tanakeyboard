@@ -122,4 +122,24 @@ class PersonalDictionaryTest {
         assertEquals(listOf("hello"), dictionary.completions("en-US", "h", 5))
         assertEquals(listOf("hello", "horoo"), dictionary.completions("om-ET", "h", 5))
     }
+
+    @Test
+    fun languageScopedWordsAndClearOperateOnTargetLanguageBucketOnly() {
+        val dictionary = PersonalDictionary.decode(null)
+        dictionary.learn("am-ET", "ሰላም")
+        dictionary.learn("en-US", "hello")
+        dictionary.learn("om-ET", "akkam")
+
+        assertEquals(listOf("ሰላም"), dictionary.words("am-ET"))
+        assertEquals(listOf("hello"), dictionary.words("en-US"))
+        assertEquals(listOf("akkam"), dictionary.words("om-ET"))
+
+        dictionary.remove("en-US", "hello")
+        assertEquals(emptyList<String>(), dictionary.words("en-US"))
+        assertEquals(listOf("ሰላም"), dictionary.words("am-ET"))
+
+        dictionary.clear("am-ET")
+        assertEquals(emptyList<String>(), dictionary.words("am-ET"))
+        assertEquals(listOf("akkam"), dictionary.words("om-ET"))
+    }
 }
