@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">አዲዮን ኪቦርድ</string>
+    <string name="keyboard_product_name">አዲዮን ኪቦርድ</string>
+    <string name="ime_name">Addiyon Keyboard - አዲዮን ኪቦርድ</string>
+    <string name="keyboard_activate_title">አዲዮን ኪቦርድን አስጀምር</string>
+    <string name="keyboard_enable_title">አዲዮን ኪቦርድን ምረጥ</string>
+    <string name="keyboard_all_set_subtitle">አዲዮን ኪቦርድ በአማርኛ እና በእንግሊዝኛ ለመጠቀም ዝግጁ ነው።</string>
+    <string name="tour_typing_title">በሁለት ቋንቋዎች ይፃፉ</string>
+    <string name="tour_typing_description">በአማርኛ እና በእንግሊዝኛ መካከል ለመቀያየር የቋንቋ ቁልፉን ይጠቀሙ።</string>
+    <string name="tour_typing_example">አማርኛ • English</string>
+    <string name="typing_guide_body">በአማርኛ ወይም በእንግሊዝኛ ይፃፉ። በተጫኑት ሁለት ቋንቋዎች መካከል ለመቀያየር የቋንቋ ቁልፉን ይጠቀሙ።</string>
+    <string name="typing_guide_search_placeholder">ፈልግ፡ he, sh, ላ …</string>
+    <string name="typing_guide_how_it_works">አጠቃቀም</string>
+    <string name="about_body">የእንግሊዝኛ ፊደላትን በመጠቀም በቀላሉ አማርኛ ይፃፉ። ለምሳሌ \"selam\" ወደ ሰላም ይቀየራል።</string>
+</resources>

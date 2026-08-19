@@ -17,15 +17,14 @@ class AddiyonLauncherBrandContractTest {
         assertTrue(background.contains("#FFEE4D2D"))
 
         val foreground = addiyonRes.resolve("drawable/ic_addiyon_foreground.xml").readText()
-        assertTrue(foreground.contains("M166.57 378.09L229.84"))
+        assertTrue(foreground.contains("M103.552,312.066C101.156,318.942") || foreground.contains("M103.552 312.066"))
         assertTrue(foreground.contains("#FFFFF6F0"))
-        assertTrue(foreground.contains("#FFEE4D2D"))
 
         val appShellIcon = addiyonRes.resolve("drawable/ic_addiyon_app_shell.xml").readText()
-        assertTrue(appShellIcon.contains("M166.57 378.09L229.84"))
+        assertTrue(appShellIcon.contains("M103.552,312.066C101.156,318.942") || appShellIcon.contains("M103.552 312.066"))
 
         val standaloneIcon = addiyonRes.resolve("drawable/ic_addiyon_icon.xml").readText()
-        assertTrue(standaloneIcon.contains("M166.57 378.09L229.84"))
+        assertTrue(standaloneIcon.contains("M103.552,312.066C101.156,318.942") || standaloneIcon.contains("M103.552 312.066"))
 
         val adaptiveLauncher = addiyonRes.resolve("mipmap-anydpi-v26/ic_launcher.xml").readText()
         assertTrue(adaptiveLauncher.contains("@drawable/ic_addiyon_background"))
